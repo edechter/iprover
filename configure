@@ -1,0 +1,13 @@
+#!/bin/bash
+
+
+if [ -d E_Prover ]; then
+    cd E_Prover 
+    ./configure
+    make 
+    cp PROVER/eprover ./
+    cd ../
+fi
+
+OCAMLLIBSTR="OCAMLLIB=$(ocamlc -where)"
+echo "$OCAMLLIBSTR" > Makefile.extras

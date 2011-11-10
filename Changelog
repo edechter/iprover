@@ -1,0 +1,48 @@
+0.9 
+----------------------------------------------------
+1) answer computation 
+2) different model outputs for hardware designs
+3) Brand's transformation. 
+4) simple version of semantic filter 
+
+----------------------------------------------------
+0.7.2 -> 0.8.1
+
+1) Model output using first-order definitions  in term algebra.
+
+2) Incrementality wrt. model changes in the SAT solving part
+
+3) New index for dismatching constraints.
+
+4) Now any external clausifier can be used see --clausifier --clausifier_options 
+
+5) Many minor improvements
+
+----------------------------------------------------
+0.7.1 -> 0.7.2
+
+1) changed all output via streams
+
+2) dismatching constraints dynamic index
+
+3) model output --sat_out_model
+
+----------------------------------------------------	
+0.7 -> 0.7.1 
+1) stdin option for reading from standard input 
+   You can run now 
+	"your_clausifier problem.fof | iproveropt --stdin true"
+	
+   If whant to use E for clausification then 
+	"cat problem.fof | iproveropt --stdin true --fof true --eprover_path ~/E_Prover"
+   Note you need a new version of E Balasun (the old versions do not properly work with pipes) 
+	
+2) redone connection with E via pipes 
+	
+3) C++ version of MiniSat was integrated, to make it run "make CPP=true"
+
+4) Experimented with OCamleMake, ocamlbuild does not work yet: problems to compile/link C++ version of Minisat
+
+5) Tried to stically link with glibc, does not work and probably is not needed. 	
+		
+----------------------------------------------------		

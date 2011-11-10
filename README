@@ -1,0 +1,166 @@
+
+--------------------iProver-----------------------
+
+iProver is a reasoner for first-order logic.
+
+-------------------------------------------------
+Download the current version from:
+ 
+http://code.google.com/p/iprover/
+
+-------------------------------------------------
+                    Easy to install:
+-------------------------------------------------
+
+We assume OCaml v3.10 >= is installed. 
+
+1) ./configure
+2) make 
+
+will produce executable: iproveropt
+
+
+-1) "make clean"     to remove created objects and executable files
+-2) "make clean_all" to remove created objects and executable files including E objects
+
+-------------------------------------------------
+                    Easy to use: 
+-------------------------------------------------
+
+iproveropt problem.p
+
+where problem.p is a problem in the TPTP format
+
+-------------------------------------------------
+                    Examples:
+-------------------------------------------------
+
+General:
+
+1) iproveropt problem.p
+
+Sat modes:
+
+2) iproveropt --sat_mode true problem_sat.p
+
+3) iproveropt --sat_mode true --schedule none --sat_finite_models true problem_sat.p
+
+FOF format:
+
+4a) iproveropt --clausifier /home/eprover/eprover \
+                --clausifier_options " --tstp-format --silent --cnf " problem_fof.p
+
+  Clausifier is any executable that transforms formulas into TPTP cnf form, 
+  --clausifier_options are the options passed to the clausifier. 
+  If you are using bundled version then you do not need to specify these options.
+
+4b)  iproveropt --clausifier /home/vampire/vampire --clausifier_options "--mode clausify"  problem_fof.p
+
+5) iproveropt --help
+
+
+
+-------------------------------------------------
+
+It might be convenient to collect options you like in a file 
+(e.g. example.opt) and run 
+
+iproveropt $(cat example.opt) problem.p
+
+The default options should be generally ok.
+
+
+-----------------------------------------------------
+                   Output
+----------------------------------------------------
+
+Output: the output of iProver is according to a modified version of SZS ontology:
+
+"SZS status Theorem"  
+                       corresponds to a proved theorem where 
+                       the input is first-order and contains 
+                       a theorem represented by a conjecture.
+
+"SZS status CounterSatisfiable" 
+	               corresponds to disproving the theorem where
+                       the input is first-order and contains 
+                       a theorem represented by a conjecture. 
+
+"SZS status Unsatisfiable"
+                       corresponds to an unsatisfiable set of input formulas                     
+                       where the input does not contain a theorem 
+                       (i.e. either cnf or fof and does not contain a conjecture)	
+
+"SZS status Satisfiable"
+                       corresponds to a satisfiable set of input formulas
+                       where the input does not contain a theorem
+                       (i.e. contains neither a conjecture or a negated_conjecture)
+
+
+
+% SZS output start Model  Model representation output 
+                          when a model is found by instantiation
+% SZS output end Model 
+
+--------------------------------------------------------------------------------------------
+Please send any comments, report bugs to korovin[@]cs.man.ac.uk
+If you are interested in a different from GNU GPL license please email korovin[@]cs.man.ac.uk
+--------------------------------------------------------------------------------------------
+
+-------------------------------------------------
+            Additional Info
+-------------------------------------------------              
+
+iProver is based on an instantiation calculus Inst-Gen, 
+which is complete for first-order logic:
+http://www.cs.man.ac.uk/~korovink/my_pub/instantiation_lics03.ps
+
+iProver has been developed and implemented by 
+Konstantin Korovin (korovin[@]cs.man.ac.uk), 
+The University of Manchester, UK
+In 2008 Christoph Sticksel has joined the project.
+
+iProver combines instantiation with resolution and implements a number 
+of redundancy elimination methods:
+http://www.cs.man.ac.uk/~korovink/my_pub/inv_to_inst.ps
+(see also the list of options for details)
+
+For ground reasoning iProver uses C version of MiniSat:
+http://www.cs.chalmers.se/Cs/Research/FormalMethods/MiniSat/
+
+iProver accepts problems in TPTP format:
+http://www.cs.miami.edu/~tptp/
+
+For problems in fof (and not just cnf) format, 
+iProver can use any external clausifier, see examples.
+
+
+External clausifier is NOT required if the input is in cnf and 
+a clausifier (as an option to E prover) 
+is included only in the bundled distribution.
+
+iProver has a satisfiability mode which includes a finite model finder, 
+incorporating some ideas from Paradox and DarwinFM.
+
+To activate satisfiability mode use "iproveropt --sat_mode true problem_sat.p".
+to search for finite models you can run 
+"iproveropt --sat_mode true --schedule none --sat_finite_models true problem_sat.p".
+
+iProver outputs models when satisfiability is shown  by instantiation. 
+Different representations of models are implemented 
+based on definitions of predicates in term algebra.
+ 
+
+-----------------------------------------------------
+iProver combines instantiation with resolution 
+
+If you would like to run pure instantiation/resolution 
+then you can switch the corresponding flag 
+(see -help for all options)
+
+
+-----------------------------------------------------
+External libraries (freely available with LGPL compatible licenses) are: 
+
+MiniSat by Niklas Een and Niklas Sorensson
+Heaps   by Jean-Christophe Filliatre
