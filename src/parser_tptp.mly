@@ -159,17 +159,25 @@ attr_name :
 
 attr_args : 
       number {Attr_Int ($1)}
-  |attr_interval {$1}
-  |attr_str_arg {Attr_Str ($1)}
+/*  |attr_interval {$1} */
+  | attr_list_arg { Attr_List $1 } 
+  | attr_str_arg { Attr_Str $1 }
 
 attr_str_arg :
       functor_name {$1}
   |defined_functor {$1}
 
+/*
 attr_interval :
   LBrace number Comma number RBrace {Attr_Interval ($2, $4)}
+*/
 
-
+attr_list_arg : 
+  | LBrace attr_list_arg_list RBrace { $2 }
+      
+attr_list_arg_list :
+  | number { [$1] }
+  | number Comma attr_list_arg_list { $1 :: $3 }
 
 tff_untyped_atom : 
       functor_name {$1}

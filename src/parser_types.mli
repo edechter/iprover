@@ -35,6 +35,8 @@ val neg_conjectures : Clause.clause list ref
 val includes : includes list ref
 val less_map : int SymbMap.t ref
 val range_map : (int * int) SymbMap.t ref
+val clock_map : int list SymbMap.t ref
+val cardinality_map : int SymbMap.t ref
 val father_of_map : string list SymbMap.t ref
 val distinct : term list list ref
 val all_current_clauses : clause list ref
@@ -73,14 +75,17 @@ val ttf_add_typed_atom_out_symb_fun :
   string -> Symbol.stype -> SymbolDB.symbol
 val ttf_add_typed_atom_fun : string -> Symbol.stype -> unit
 type attr_args =
-    Attr_Interval of int * int
+(*    Attr_Interval of int * int *)
+  | Attr_List of int list
   | Attr_Int of int
   | Attr_Str of string
 type attr_type =
     ALess of int
   | ARange of int * int
+  | AClock of int list
   | AFatherOf of string
   | ASonOf of string
+  | ACardinality of int 
   | AOther of string * attr_args
 type attr = Attr of attr_type * attr_args
 val attr_fun : string -> attr_args -> attr_type
@@ -91,4 +96,5 @@ val ttf_add_typed_atom_atrr_fun :
   string -> Symbol.stype -> attr_type list -> unit
 val is_less_symb : SymbMap.key -> bool
 val is_range_symb : SymbMap.key -> bool
+val is_clock_symb : SymbMap.key -> bool
 val is_less_or_range_symb : SymbMap.key -> bool

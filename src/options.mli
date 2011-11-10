@@ -15,6 +15,36 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
+(* Option values with defaults and overrides from files or command-line *)
+
+(** An option set from different sources *)
+type 'a override = 
+
+  (** Option has the default value *)
+  | ValueDefault of 'a 
+
+  (** Default has been overridden by file argument *)
+  | ValueFile of 'a
+
+  (** Default has been overridden by command-line argument *)
+  | ValueCmd of 'a 
+
+(** Get current value of option *)
+val val_of_override : 'a override -> 'a
+
+(** Override a default value, returning a new default value, but keep
+    file and command-line values *)
+val override_default : 'a -> 'a override -> 'a override 
+
+(** Override a default or file value, returning a new file value,
+    but keep a command-line value *)
+val override_file : 'a -> 'a override -> 'a override 
+
+(** Override a default, file or command-line value, returning a new
+    command-line value *)
+val override_cmd : 'a -> 'a override -> 'a override 
+
+
 (*-----------------Option Types---------------------------*)
 
 type out_options_type = Out_All_Opt | Out_Control_Opt | Out_No_Opt
@@ -117,7 +147,7 @@ type options = {
     mutable prep_sem_filter       : bool;
     mutable prep_sem_filter_out   : bool;
     mutable brand_transform       : bool;
-
+    
 (*---Large Theories---------------*)
     mutable large_theory_mode     : bool;
     mutable prolific_symb_bound   : int;
@@ -130,6 +160,10 @@ type options = {
     mutable sat_finite_models     : bool;
     mutable sat_out_model         : sat_out_model_type;
 
+(*----BMC1---------------*)
+    mutable bmc1_incremental      : bool; 
+    mutable bmc1_max_bound        : int override; 
+    
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
     mutable inst_lit_sel                      : inst_lit_sel_type;  
@@ -179,6 +213,9 @@ type options = {
 type named_options = {options_name : string; options : options}
 
 val current_options : options ref
+
+(* Set new current options, preserving overridden option values *)
+val set_new_current_options : options -> unit 
 
 val input_options : options
 val input_named_options : named_options 

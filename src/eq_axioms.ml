@@ -224,9 +224,11 @@ let get_type_eq_term t =
 	|stype_term::_ -> 
 	    (match stype_term with
 	    |Term.Fun(stype_symb,args,_) -> Some stype_symb
-	    |_ -> failwith "get_type_eq_term shouldn't happen"
+	    |_ -> failwith 
+	       ("get_type_eq_term shouldn't happen" ^ Term.to_string t) 
 	    )
-	|_-> failwith "get_type_eq_term shouldn't happen"
+	|_-> failwith 
+	   ("get_type_eq_term shouldn't happen\n" ^ Term.to_string t) 
 	)
       else 
 	None

@@ -206,6 +206,21 @@ let prop_fo_subsumed =
  }
 
 
+(*------BMC1- --------------------------*)
+
+let bmc1_current_bound =
+  {
+   fun_entry_name = "bmc1_current_bound";
+   stat_fun = Undef;
+ }
+
+let bmc1_last_solved_bound = 
+  {
+   int_entry_name = "bmc1_last_solved_bound";
+   value = -1;
+ }
+
+
 (*------Instantiation------------------*)
 
 let inst_num_of_loops = 
@@ -521,6 +536,16 @@ let prop_solver_float_stat_list =
    prop_fast_solver_time]
 
 
+let bmc1_fun_stat_list =
+  [ bmc1_current_bound ]
+
+let bmc1_int_stat_list =
+  [ bmc1_last_solved_bound ]
+
+let bmc1_float_stat_list =
+  [  ]
+
+
 let inst_fun_stat_list = 
   [
    inst_num_of_clauses;
@@ -594,6 +619,10 @@ let stat_to_str () =
   "\n"^(stat_fun_list_str prop_solver_fun_stat_list)^"\n"
   ^(stat_int_list_str prop_solver_int_stat_list)^"\n"
   ^(stat_float_list_str prop_solver_float_stat_list)^"\n"^
+  "\n"^(s_pref_str ())^"BMC1\n"^
+  "\n"^(stat_fun_list_str bmc1_fun_stat_list)^"\n"
+  ^(stat_int_list_str bmc1_int_stat_list)^"\n"
+  ^(stat_float_list_str bmc1_float_stat_list)^"\n"^
   "\n"^(s_pref_str ())^"Instantiation\n"^
   "\n"^(stat_fun_list_str inst_fun_stat_list)^"\n"
   ^(stat_int_list_str inst_int_stat_list)^"\n"

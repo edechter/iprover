@@ -18,6 +18,64 @@
 
 open Lib
 
+(* Option values with defaults and overrides from files or command-line *)
+
+(* An option set from different sources *)
+type 'a override = 
+
+  (* Option has the default value *)
+  | ValueDefault of 'a 
+
+  (* Default has been overridden by file argument *)
+  | ValueFile of 'a
+
+  (* Default has been overridden by command-line argument *)
+  | ValueCmd of 'a 
+
+
+(* Get current value of option *)
+let val_of_override = function
+  | ValueDefault v -> v
+  | ValueFile v -> v
+  | ValueCmd v -> v
+
+
+(* Override value with a new default value *)
+let override_default v' = function 
+
+  (* Override previous default value *)
+  | ValueDefault _ -> ValueDefault v'
+
+  (* Do not override file or command line values *)
+  | _ as v -> v
+
+
+(* Override value with a new default value *)
+let override_file v' = function 
+
+  (* Override previous default or file value *)
+  | ValueDefault _ 
+  | ValueFile _ -> ValueFile v'
+
+  (* Do not override command line value *)
+  | _ as v -> v
+
+
+(* Override value with a new command-line value *)
+let override_cmd v' = function 
+
+  (* Override previous default, file or command-line value  *)
+  | ValueDefault _ 
+  | ValueFile _ 
+  | ValueCmd _ -> ValueCmd v'
+
+
+(* Override one value with another *)
+let override = function 
+  | ValueDefault v -> override_default v 
+  | ValueFile v -> override_file v 
+  | ValueCmd v -> override_cmd v
+
 
 (*--prase list options----*)
 exception Parse_list_fail
@@ -441,6 +499,10 @@ type options = {
     mutable sat_finite_models     : bool;
     mutable sat_out_model         : sat_out_model_type;
 
+(*----BMC1---------------*)
+    mutable bmc1_incremental      : bool; 
+    mutable bmc1_max_bound        : int override; 
+    
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
     mutable inst_lit_sel                      : inst_lit_sel_type;  
@@ -528,6 +590,10 @@ let default_options () = {
   sat_finite_models       = false;
   sat_out_model           = Model_Small;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
+    
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_Sign true; Lit_Ground true;  
@@ -586,6 +652,16 @@ let default_options () = {
 
 (*---------*)
 let current_options = ref (default_options ()) 
+
+let set_new_current_options o = 
+  current_options := 
+    {o with 
+       
+       (* Only override defaults *)
+       bmc1_max_bound = 
+	override o.bmc1_max_bound !current_options.bmc1_max_bound }
+    
+
 
 (*---------*)
 let args_error_msg opt_name str = 
@@ -949,6 +1025,30 @@ let sat_out_model_inf =
   inf_pref^"none     -- no model output \n"^
 (* ugly hack *)
   (dash_str "Instantiation Options")^"\n"
+
+(*----BMC1---------------*)
+
+let bmc1_incremental_str = "--bmc1_incremental" 
+
+let bmc1_incremental_fun b =
+  !current_options.bmc1_incremental <- b
+
+let bmc1_incremental_inf  =
+  bool_str^
+  inf_pref^"incrementally increase bounds in BMC1\n"
+
+(*--------*)
+
+let bmc1_max_bound_str = "--bmc1_max_bound" 
+
+let bmc1_max_bound_fun b =
+  !current_options.bmc1_max_bound <- 
+    override_cmd b !current_options.bmc1_max_bound
+
+let bmc1_max_bound_inf  =
+  bool_str^
+  inf_pref^"maximal bound in BMC1\n"
+
 
 (*----Instantiation------*)
 
@@ -1517,6 +1617,13 @@ let spec_list =
    (sat_finite_models_str,Arg.Bool(sat_finite_models_fun),sat_finite_models_inf);
    (sat_out_model_str,Arg.String(sat_out_model_fun),sat_out_model_inf); 
 
+(*----BMC1---------------*)
+   (bmc1_incremental_str, 
+    Arg.Bool(bmc1_incremental_fun),
+    bmc1_incremental_inf);
+   (bmc1_max_bound_str, 
+    Arg.Int(bmc1_max_bound_fun),
+    bmc1_max_bound_inf);
 
 (*------Instantiation--*)
    (instantiation_flag_str, Arg.Bool(instantiation_flag_fun),instantiation_flag_inf);
@@ -1641,6 +1748,11 @@ let sat_options_str_list opt =
    (sat_out_model_str, (sat_out_model_type_to_str opt.sat_out_model))
  ]
 
+let bmc1_options_str_list opt =
+  [
+   (bmc1_incremental_str,(string_of_bool opt.bmc1_incremental));
+   (bmc1_max_bound_str,(string_of_int (val_of_override opt.bmc1_max_bound)));
+  ]
 
 let inst_options_str_list opt = 
   [
@@ -1713,6 +1825,10 @@ let  sat_options_str opt =
    "\n"^(s_pref_str ())^"SAT Options\n\n"^
   opt_val_list_to_str (sat_options_str_list opt)^"\n"
 
+let bmc1_opt_str opt = 
+  "\n"^(s_pref_str ())^"BMC1 Options\n\n"^
+  opt_val_list_to_str (bmc1_options_str_list opt)^"\n"
+
 let inst_opt_str opt = 
   "\n"^(s_pref_str ())^"Instantiation Options\n\n"^
   opt_val_list_to_str (inst_options_str_list opt)^"\n"
@@ -1729,6 +1845,7 @@ let comb_opt_str opt =
 let control_opt_str opt = 
   (general_opt_str opt)^
   (sat_options_str opt)^
+  (bmc1_opt_str opt)^
   (inst_opt_str opt)^
   (res_opt_str opt)^
   (comb_opt_str opt)
@@ -2002,6 +2119,10 @@ let option_1 () = {
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_Sign false;   
@@ -2136,6 +2257,10 @@ let option_2 () = {
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_Sign false;   
@@ -2243,6 +2368,10 @@ let option_3 () = {
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_Sign false; Lit_Num_of_Symb false];
@@ -2345,6 +2474,10 @@ let option_4 () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
 
 
 (*----Instantiation------*)
@@ -2460,6 +2593,10 @@ let option_finite_models () = {
   sat_finite_models       = true;
   sat_out_model           = !current_options.sat_out_model;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----Instantiation------*)
   instantiation_flag             = true;
 
@@ -2568,6 +2705,10 @@ let option_epr_non_horn () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2800,6 +2941,10 @@ let option_epr_horn () = {
   sat_finite_models       = false;
   sat_out_model           = !current_options.sat_out_model; 
 
+(*----BMC1---------------*)
+  bmc1_incremental        = false;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----------------------Instantiation------*)
   instantiation_flag             = true;
 (*------------------------------------------*)
@@ -3029,6 +3174,10 @@ let option_verification_epr ver_epr_opt =
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = true;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_Ground true;Lit_Sign false;];
@@ -3139,6 +3288,10 @@ let option_verification_epr ver_epr_opt =
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
+(*----BMC1---------------*)
+  bmc1_incremental        = true;
+  bmc1_max_bound          = ValueDefault (-1);
+
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_eq false; Lit_Ground true; Lit_Sign false;];
@@ -3246,6 +3399,10 @@ let option_verification_epr ver_epr_opt =
        sat_gr_def              = false;
        sat_finite_models       = false; 
        sat_out_model           = !current_options.sat_out_model;
+
+(*----BMC1---------------*)
+  bmc1_incremental        = true;
+  bmc1_max_bound          = ValueDefault (-1);
 
 (*----Instantiation------*)
        instantiation_flag             = true;

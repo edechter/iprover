@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------(C)-*)
-(* Copyright (C) 2006-2011 Konstantin Korovin and the University of Manchester. 
+(* Copyright (C) 2006-2011 The University of Manchester. 
    This file is part of iProver - a theorem prover for first-order logic.
 
    iProver is free software: you can redistribute it and/or modify
@@ -61,7 +61,7 @@ let init_filter_state clause_list =
    filtered_clauses    = [];
    undef_pred_queue    = [];
    undef_pred_set      = SymbSet.empty;
-   watch_symbol_table  = SymbHash.create 100000 
+   watch_symbol_table  =  SymbHash.create 100000 
  }
 
 

@@ -40,6 +40,8 @@ val init_solver_exchange : unit -> unit
 (* solver assumptions are used for finite models *)
 
 val assign_solver_assumptions : term list -> unit
+val assign_only_sim_solver_assumptions : term list -> unit
+val assign_only_norm_solver_assumptions : term list -> unit
 val assign_adjoint_preds     : term list -> unit
 
 val solve                : unit -> PropSolver.solver_out
@@ -49,6 +51,8 @@ val solve                : unit -> PropSolver.solver_out
 val add_clause_to_solver :  clause -> unit
 
 val clear_model : unit -> unit
+
+val clear_model_and_move_to_passive : (Clause.clause -> unit) -> unit
 
 (*let  selection_renew move_lit_from_active_to_passive selection_fun clause =*)
 val  selection_renew : 

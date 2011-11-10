@@ -44,6 +44,7 @@ val num_of_splits        : stat_int_entry
 val num_of_split_atoms   : stat_int_entry 
 val forced_gc_time       : stat_int_entry 
 val parsing_time         : stat_float_entry 
+val total_time           : stat_float_entry 
 val num_of_terms         : stat_fun_entry 
 val num_of_symbols       : stat_fun_entry 
 val num_of_input_clauses : stat_int_entry 
@@ -58,6 +59,10 @@ val prop_fast_solver_time          : stat_float_entry
 val prop_num_of_clauses            : stat_int_entry 
 val prop_preprocess_simplified     : stat_int_entry 
 val prop_fo_subsumed               : stat_int_entry 
+
+(*----BMC1---------------------*)
+val bmc1_current_bound             : stat_fun_entry
+val bmc1_last_solved_bound         : stat_int_entry
 
 (*----Instantiation------------*)
 val inst_num_of_clauses            : stat_fun_entry 

@@ -177,8 +177,9 @@ let solve_num = ref 0
 let solve () = 
   solve_num:= !solve_num +1;
  (* out_str ("Solve num: "^(string_of_int !solve_num));*)
-  (*out_str ("Assumptions: "^
-    (PropSolver.lit_list_to_string !solver_assumptions_ref)^"\n");*)
+ (* out_str ("Assumptions: "^
+	     (PropSolver.lit_list_to_string 
+		(get_solver_assumptions solver)) ^ "\n"); *)
   PropSolver.solve_assumptions solver (get_solver_assumptions solver)
 
 
@@ -310,6 +311,17 @@ let model_sel_to_string () =
 let clear_model () =  
   TableArray.iter 
     (function var_entry -> 
+      var_entry.sel_clauses <- [];
+      var_entry.pos_activity <- 0;
+      var_entry.neg_activity <- 0;
+      var_entry.truth_val <- Undef
+    ) var_table
+
+
+let clear_model_and_move_to_passive move_clause_from_active_to_passive =  
+  TableArray.iter 
+    (function var_entry -> 
+       List.iter move_clause_from_active_to_passive var_entry.sel_clauses;
       var_entry.sel_clauses <- [];
       var_entry.pos_activity <- 0;
       var_entry.neg_activity <- 0;
@@ -529,16 +541,40 @@ let ()=add_param_str ("Real Selection lex [-act;-num_symb]\n")
 (*--------------------*)
 let assign_solver_assumptions lit_list = 
  let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
+
+   Format.printf "New solver assumptions: @\n";
+
+   List.iter 
+     (fun l -> Format.printf "%s@\n" (Term.to_string l))
+     lit_list;
+   
+   Format.printf "@\n@.";
+
  solver_assumptions_ref:= new_assum
 
 
 let assign_only_sim_solver_assumptions lit_list = 
  let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
+   Format.printf "New assumptions for simplification solver: @.";
+
+   List.iter 
+     (fun l -> Format.printf "%s@." (Term.to_string l))
+     lit_list;
+   
  only_sim_solver_assumptions_ref:= new_assum
 
 let assign_only_norm_solver_assumptions lit_list = 
  let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
- only_norm_solver_assumptions_ref:= new_assum
+
+   Format.printf "New assumptions for satisfiability solver: @.";
+
+   List.iter 
+     (fun l -> Format.printf "%s@." (Term.to_string l))
+     lit_list;
+   
+   Format.printf "@.";
+   
+   only_norm_solver_assumptions_ref:= new_assum
 
 let assign_adjoint_preds preds =
   adjoint_preds:=preds

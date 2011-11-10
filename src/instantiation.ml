@@ -351,12 +351,12 @@ let eliminate_from_unif_index main_clause =
  (*   Term.set_fun_bool_param false  Term.in_unif_index sel_lit;*) (*see below*)
 (*    out_str ("Remove from Unif cl literal:  "^(Term.to_string sel_lit)
 	   ^"restarts: "^(string_of_int !num_of_learning_restarts)^"\n"); *)
-    (*out_str_debug 
+(*    out_str
       ("Trying to elim from Unif index:"
       ^(Clause.to_string main_clause)
       ^" Literals: "
-      ^(Term.to_string sel_lit)^"\n");
-     *)
+      ^(Term.to_string sel_lit)^"\n"); *)
+
     (try  
       let ind_elem = DiscrTreeM.find sel_lit !unif_index_ref
 	(* failwith "discount:  eliminate_from_unif_index lit is in unif_index" *)
@@ -424,6 +424,12 @@ let eliminate_lit_from_unif_index lit =
 (*  Term.set_fun_bool_param false  Term.in_unif_index lit;*)
 (*  out_str ("Remove from Unif literal:  "^(Term.to_string lit)
 	   ^"restarts: "^(string_of_int !num_of_learning_restarts)^"\n"); *)
+
+(*    out_str
+      ("Trying to elim from Unif index:"
+      ^" Literal: "
+      ^(Term.to_string lit)^"\n"); *)
+
   let  ind_elem = DiscrTreeM.remove_term_path_ret lit unif_index_ref in
   match !ind_elem with 
   | Elem(elem) ->
@@ -805,6 +811,10 @@ exception Given_Splitted
 (*let solve_num_deb = ref 0 *)
 let solve_pass_empty = ref 0
 
+(* let bmc1_bounds = ref [1; 2; 4; 8; 12; 16] *)
+(* let bmc1_bounds = ref [4] *)
+let bmc1_bounds = ref [] 
+
   let lazy_loop_body solver_counter sover_clause_counter =
     try  
       (let given_clause = remove_from_passive () in       
@@ -1039,10 +1049,93 @@ let solve_pass_empty = ref 0
 	    )	 
 	)
       )
-  |PropSolver.Unsatisfiable -> raise Unsatisfiable
   |Simplified -> ()
   |Simplified_exists  -> ()(*(out_str ("\n Simplified_exists\n "))*)
   |Given_Splitted     -> () (*out_str "Given_Splitted\n"*)
+
+  (* Unsatisfiable and next bound for BMC1 *)
+  | PropSolver.Unsatisfiable
+  | Unsatisfiable
+      when ((List.length !bmc1_bounds) > 1 ) -> 
+
+      (
+
+	(* Add an axiom clause to unprocessed *)
+	let add_bound_axioms_to_unprocessed clause = 
+
+	  (* Add clause to database *)
+	  let clause' = 	     
+	    ClauseAssignDB.add_ref 
+	      (Clause.copy_clause clause) 
+	      clause_db_ref
+	  in             
+	    
+	    (* Assign age of clause *)
+	    Clause.assign_when_born [] [] clause';
+
+	    (* Add clause to solver *)
+	    Prop_solver_exchange.add_clause_to_solver clause';
+	    
+	    (* Add clause to unprocessed set *)
+	    add_clause_to_unprocessed clause'
+	      
+	in
+	  
+	(* Get current and next bounds *)
+	let cur_bound, next_bound, bounds_tail =
+	  match !bmc1_bounds with
+	    | b :: c :: tl -> b, c, tl
+	    | _ -> failwith ("Iprover.main: bmc1_bounds too short")
+	in
+	  
+	  (* Output current bound *)
+	  Format.printf 
+	    "%s BMC1 bound %d unsatisfiable@\n@."
+	    pref_str
+	    cur_bound;
+	  
+	  (* Output statistics *)
+	  out_stat ();
+	  
+	  (* Output next bound *)
+	  Format.printf 
+	    "%s Incrementing BMC1 bound to %d@\n@."
+	    pref_str
+	    next_bound;
+	  
+	  (* Get axioms for next bound *)
+	  let next_bound_axioms = 
+	    Bmc1Axioms.increment_bound cur_bound next_bound
+	  in
+	    
+	    (* Symbols in axioms are input symbols *)
+	    List.iter  
+	      (Clause.iter_sym 
+		 (Symbol.assign_is_essential_input true)) 
+	      next_bound_axioms;
+	    
+	    (* Preprocess axioms *)
+	    let next_bound_axioms' = 
+	      Preprocess.preprocess next_bound_axioms
+	    in
+
+	      (* Make all active clauses passive *)
+	      Prop_solver_exchange.clear_model_and_move_to_passive
+		move_from_active_to_passive;
+
+	      (* Eliminate current bound from list *)
+	      bmc1_bounds := next_bound :: bounds_tail;
+
+	      (* Add all axioms to unprocessed *)
+	      List.iter 
+		add_bound_axioms_to_unprocessed 
+		next_bound_axioms'
+
+      )
+
+  (* Unsatisfiable and no more bounds for BMC1 *)
+  | PropSolver.Unsatisfiable -> 
+      raise Unsatisfiable
 
 
 
@@ -1156,7 +1249,48 @@ let init_instantiation () =
     Clause.assign_when_born [] [] added_clause;
     add_clause_to_unprocessed added_clause
   in
-  List.iter add_input_to_unprocessed input_clauses
+
+  let input_clauses' =
+    
+    (* Check list of bounds for incremental BMC *)
+    match !bmc1_bounds with 
+	
+      (* Take initial bound *)
+      | b :: tl -> 
+	  
+	  (* Create clauses for initial bound *)
+	  let bmc1_axioms = Bmc1Axioms.increment_bound 0 b in
+(*	  
+	  (* Create equality axioms also for symbols in BMC1 axioms *)
+	  let eq_axioms = Eq_axioms.axiom_list () in
+*)	      
+	  (* Preprocess axioms *)
+	  let bmc1_and_eq_axioms = 
+	    Preprocess.preprocess bmc1_axioms
+(*	    Preprocess.preprocess (bmc1_axioms @ eq_axioms) *)
+	  in
+	    
+	    (* Symbols in axioms are input symbols *)
+	    List.iter  
+	      (Clause.iter_sym 
+		 (Symbol.assign_is_essential_input true)) 
+	      bmc1_and_eq_axioms;
+	    
+	    (* Add clause to solver *)
+	    List.iter
+	      Prop_solver_exchange.add_clause_to_solver 
+	      bmc1_and_eq_axioms;
+
+	    (* Add clauses for initial bound *)
+	    bmc1_and_eq_axioms @ input_clauses
+		  
+      (* No bounds given *)
+      | [] -> input_clauses
+	  
+  in
+
+    List.iter add_input_to_unprocessed input_clauses'
+
 (* 
  (*----------debug----------*)
    let out_cl c = 

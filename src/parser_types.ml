@@ -106,6 +106,17 @@ let includes        = ref []
 let less_map        = ref SymbMap.empty
 let range_map       = ref SymbMap.empty
 
+
+(* Clock symbols: mapped to pairs of integers, first is the initial
+   value of the clock (0 for negative, 1 for positive), second is the
+   period of the clock *)
+let clock_map       = ref SymbMap.empty 
+
+(* Symbols with cardinality: in BMC1 if the state_type symbol has a
+   cardinality, this is meant to be the maximal bound plus one (bounds
+   are 0-based *)
+let cardinality_map = ref SymbMap.empty
+
 (* maps symbol into list of strings which this symbol is the father of *)
 let father_of_map      = ref SymbMap.empty
 
@@ -138,6 +149,7 @@ let init () =
   all_current_clauses := [];
   less_map        := SymbMap.empty;
   range_map       := SymbMap.empty;
+  clock_map       := SymbMap.empty;
 
 (*  ignore (TermDB.add_ref bot_term term_db_ref);*)
 (*  ignore (TermDB.add_ref top_term term_db_ref);*)
@@ -492,7 +504,8 @@ let ttf_add_typed_atom_fun symb_name stype =
   ignore (ttf_add_typed_atom_out_symb_fun symb_name stype)
 
 type attr_args = 
-    Attr_Interval of int * int 
+(*    Attr_Interval of int * int *)
+  | Attr_List of int list 
   | Attr_Int of int
   | Attr_Str of string
   
@@ -500,40 +513,58 @@ type attr_args =
 type attr_type = 
   |ALess  of int  
   |ARange of int * int
+
+  (* A clock symbol with initial value (first) and period (second) *)
+  |AClock of int list
   |AFatherOf of string
   |ASonOf of string
+
+  (* Cardinality of a type, currently used to determine the maximal
+     bound in BMC1. The maximal bound is the value of $cardinality of
+     the state_type minus one, since states are 0-based. *)
+  |ACardinality of int
+
   |AOther of string * attr_args
 
-	
+      
 type attr = 
-   Attr of attr_type * attr_args
+    Attr of attr_type * attr_args
 
 let attr_fun attr_name attr_args =
   match attr_name with 
-  |"less"  -> 
-      (match attr_args with 
-      |Attr_Int (int) -> ALess int
-      |_-> failwith "$less should have one argument: int"
-      )
-    
-  |"range" -> 
-      (match attr_args with 
-      |Attr_Interval (i1,i2) -> ARange (i1,i2)
-      |_-> failwith "$range should have one argument: interval"
-      )
-  |"$father_of" ->   
-      (match attr_args with 
-      |Attr_Str(str) -> AFatherOf(str)
-      |_-> failwith "$father_of  should have one argument: string  "  
-      )
-  |"$son_of" ->   
-     (match attr_args with 
-     |Attr_Str(str) -> ASonOf(str)
-     |_-> failwith "$son_of  should have one argument: string  "  
-     )
-
-  |other_str -> AOther (other_str, attr_args)
-
+    |"less"  -> 
+       (match attr_args with 
+	  |Attr_Int (int) -> ALess int
+	  |_-> failwith "$less should have one argument: int"
+       )
+	 
+    |"range" -> 
+       (match attr_args with 
+	  | Attr_List [i1; i2] -> ARange (i1,i2)
+	  | _ -> failwith "$range should have one argument: interval"
+       )
+    | "$clock" -> 
+	(match attr_args with 
+	   | Attr_List p -> AClock p
+	   |_-> failwith "clock should have one argument: clock pattern"
+	)
+    |"$father_of" ->   
+       (match attr_args with 
+	  |Attr_Str(str) -> AFatherOf(str)
+	  |_-> failwith "$father_of  should have one argument: string  "  
+       )
+    |"$son_of" ->   
+       (match attr_args with 
+	  |Attr_Str(str) -> ASonOf(str)
+	  |_-> failwith "$son_of  should have one argument: string  "  
+       )
+    |"$cardinality" -> 
+       (match attr_args with 
+	  | Attr_Int c -> ACardinality c
+	  | _ -> failwith "cardinality should have one argument: integer")
+	 
+    |other_str -> AOther (other_str, attr_args)
+       
 
 (* returns (Some(range/less), Some(AFatherOF str_list)) *)
 (* can raise Not_found                                  *)
@@ -544,7 +575,7 @@ let find_recognised_main_attr attr_list =
       (List.find 
 	 (fun attr -> 
 	   match attr with 
-	   |ALess _ |ARange _ -> true
+	   |ALess _ |ARange _ |AClock _ |ACardinality _ -> true
 	   |_-> false
 	 )
 	 attr_list
@@ -587,6 +618,64 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 	  (
 	   range_map := SymbMap.add symb (i,j) !range_map
 	  )
+
+    (* Symbol is a clock with pattern p *)
+    |Some (AClock p) -> 
+       
+       (* Clock symbol already defined? *)
+       if (SymbMap.mem symb !clock_map) then 
+
+	 (* Skip *) 
+	 ()
+	   
+       else
+
+	 (
+
+	   (* Sanity check: pattern must not be empty *)
+	   if p = [] then
+	     failwith 
+	       (Format.sprintf
+		  "Bad $clock attribute for symbol %s: pattern must not be empty"
+		  (Symbol.to_string symb));
+
+	   (* Sanity check: all elements in list must be 0 or 1 *)
+	   if List.exists (fun e -> not (e = 0 || e = 1)) p then
+	     failwith 
+	       (Format.sprintf
+		  "Bad $clock attribute for symbol %s: pattern must contain only 0 and 1"
+		  (Symbol.to_string symb));
+	   
+	   (* Add symbol to map *)
+	   clock_map := SymbMap.add symb p !clock_map
+
+	 )
+
+    (* Symbol has cardinality p *)
+    |Some (ACardinality c) -> 
+       
+       (* Cardinality of symbol already defined? *)
+       if (SymbMap.mem symb !cardinality_map) then 
+
+	 (* Skip *) 
+	 ()
+	   
+       else
+	 
+	 (
+
+	   (* Sanity check: cardinality must not be zero or less *)
+	   if c < 1 then
+	     failwith 
+	       (Format.sprintf
+		  "Bad $cardinality attribute for symbol %s: must be positive and not zero"
+		  (Symbol.to_string symb));
+
+	   (* Add symbol to map *)
+	   cardinality_map := SymbMap.add symb c !cardinality_map
+
+	 )
+
     |_ -> ()
     );
     (
@@ -610,6 +699,9 @@ let is_less_symb symb =
 
 let is_range_symb symb =
   SymbMap.mem symb !range_map  
+
+let is_clock_symb symb =
+  SymbMap.mem symb !clock_map  
 
 let is_less_or_range_symb symb = 
   (is_less_symb symb) || (is_range_symb symb)

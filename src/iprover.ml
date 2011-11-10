@@ -597,19 +597,37 @@ let rec change_prolific_symb_input input_clauses =
       in
   List.iter change_prolific_symb_clause input_clauses
  
+(*--------------------*)
+
+let assign_is_essential_input_symb c_list = 
+ List.iter  (Clause.iter_sym (Symbol.assign_is_essential_input true)) c_list
+
 
 (*--------------Schedule-----------------------------*)
+
+(* let bmc1_bounds = ref [1; 2; 4; 8; 12; 16] *)
+(* let bmc1_bounds = ref [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16] *)
+(* let bmc1_bounds = ref [16] *)
+(* let bmc1_bounds = ref [] *)
+
+let bmc1_cur_bound = ref 0
+
+let () = assign_fun_stat 
+  (fun () -> (!bmc1_cur_bound)) bmc1_current_bound
+
 
 type schedule = (named_options * time) list 
 
 (* setting hard time limit is problematic since the SAT solver can be interrupted*)
 exception Schedule_Terminated
 let rec schedule_run input_clauses finite_model_clauses schedule = 
+
   match schedule with 
   | (named_options,time_limit) ::tl ->
       if (named_options.options.sat_mode && named_options.options.sat_finite_models)
       then 
-	 (current_options:= named_options.options;
+	((* current_options:= named_options.options; *)
+	  set_new_current_options named_options.options;
 	  init_sched_time time_limit;
 	  finite_models finite_model_clauses)
       else
@@ -622,7 +640,8 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 	  (if not (!current_options.prolific_symb_bound = 
 		   named_options.options.prolific_symb_bound) 
 	  then change_prolific_symb_input input_clauses);
-	  current_options:= named_options.options;
+	  (* current_options:= named_options.options; *)
+	  set_new_current_options named_options.options;
 (* debug *) 
 	(*     !current_options.out_options <- Out_All_Opt;
 	       out_str ("\n current options: "^(options_to_str !current_options)^"\n");
@@ -651,10 +670,6 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 	  )
 	end
   | [] -> raise Schedule_Terminated
-	
-
-
-
 
 (*------------------Large Theories--------------------------------*)
 
@@ -1074,6 +1089,9 @@ let unknown_str  ()   = szs_pref^"Unknown\n"
 
 (* clauses used for finite model finding need not contain eq axioms *)
 
+
+
+
 let rec main clauses finite_model_clauses = 
 (* when Sat and eq ax are omitted we need to add them and start again *)
   let when_eq_ax_ommitted () =
@@ -1112,22 +1130,23 @@ let rec main clauses finite_model_clauses =
 (* usual mode *)
 	    let prover_functions_ref = 
 	      ref (create_provers "Inst" "Res" clauses) in
-	    full_loop prover_functions_ref clauses
+	      full_loop prover_functions_ref clauses
+		    
       | Schedule_sat -> 
 	  sched_run (sat_schedule ())
-	    
-(*  
+		      
+    (*  
 
-      (if !current_options.schedule then 
+	(if !current_options.schedule then 
 	(
-	 let schedule = 
-	   if !current_options.sat_mode 
-	   then 
-	     sat_schedule () 
-	   else 
-	     init_schedule ()
-	 in
-(*	 let schedule = init_schedule () in*)
+	let schedule = 
+	if !current_options.sat_mode 
+	then 
+	sat_schedule () 
+	else 
+	init_schedule ()
+	in
+    (*	 let schedule = init_schedule () in*)
 	 schedule_run clauses schedule 
 	)
       else
@@ -1176,13 +1195,105 @@ let rec main clauses finite_model_clauses =
 	   else ()
 	  )
 
+    (* Incremental BMC solving: unsatisfiable when there are higher
+       bounds left to check *)
+    | Discount.Unsatisfiable 
+    | Instantiation.Unsatisfiable  
+    | PropSolver.Unsatisfiable   
+    | Discount.Empty_Clause _ 
+	when !current_options.bmc1_incremental -> 
+	
+	(
+	  
+(*
+	  (* Get current and next bounds *)
+	  let cur_bound, next_bound, bounds_tail =
+	    match !bmc1_bounds with
+	      | b :: c :: tl -> b, c, tl
+	      | _ -> failwith ("Iprover.main: bmc1_bounds too short")
+	  in
+*)	    
 
-(*--------------------*)
+	  (* Increment bound by one
 
-let assign_is_essential_input_symb c_list = 
- List.iter  (Clause.iter_sym (Symbol.assign_is_essential_input true)) c_list
+	     TODO: option for arbitrary bound increments *)
+	  let cur_bound, next_bound =
+	    !bmc1_cur_bound, succ !bmc1_cur_bound
+	  in
 
+	    (* Output current bound *)
+	    Format.printf 
+	      "@.@\n%s BMC1 bound %d after %.3fs@\n@."
+	      pref_str
+	      cur_bound
+	      (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time));
+	    
+	    (* Output unsatisfiable result *)
+	    out_str (proved_str ());
 
+	    (* Assign last solved bound in statistics *)
+	    assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
+
+	    (* Output statistics *)
+	    out_stat ();
+
+	    if 
+
+	      (* Get value of maximal bound *)
+	      let max_bound = 
+		pred (val_of_override !current_options.bmc1_max_bound)
+	      in
+
+		(* Next bound is beyond maximal bound? *)
+		next_bound > max_bound && 
+		  
+		  (* No maximal bound for -1 *)
+		  max_bound >= 0 
+
+	    then
+	 
+	      (* Silently terminate *)
+	      raise Exit;
+
+	    (* Output next bound *)
+	    Format.printf 
+	      "%s Incrementing BMC1 bound to %d@\n@."
+	      pref_str
+	      next_bound;
+	    
+	    (* Clear properties of terms before running again *)
+	    Instantiation.clear_after_inst_is_dead (); 
+	    
+	    (* Add axioms for next bound *)
+	    let next_bound_axioms = 
+	      Bmc1Axioms.increment_bound cur_bound next_bound
+	    in
+
+	      (* Symbols in axioms are input symbols *)
+	      assign_is_essential_input_symb next_bound_axioms;
+
+	      (* Add axioms to solver *)
+	      List.iter 
+		Prop_solver_exchange.add_clause_to_solver 
+		next_bound_axioms;
+
+	      (* Preprocess axioms *)
+	      let next_bound_axioms' = 
+		Preprocess.preprocess next_bound_axioms
+	      in
+
+(*
+		(* Eliminate current bound from list *)
+		bmc1_bounds := next_bound :: bounds_tail;
+*)
+	    
+		(* Save next bound as current *)
+		bmc1_cur_bound := next_bound;
+
+		(* Run again for next bound *)
+		main (next_bound_axioms' @ clauses) finite_model_clauses
+	      
+	)
 
 (*-------- Reachability depth for father_of relation (Intel) -----------*)
 
@@ -1255,6 +1366,7 @@ let out_symb_reach_map srm =
 (*--parses and then runs main on the prepocessed clauses------*)
 
 let run_iprover () =
+
   (try
 (*---------Set System Signals--------------------*)
     set_sys_signals ();
@@ -1423,6 +1535,48 @@ let run_iprover () =
 
       let less_range_axioms = Eq_axioms.less_range_axioms () in
 
+	(
+
+	  (
+
+	    try 
+	      
+	      (* Get cardinality of state_type *)
+	      let max_bound = 
+		Symbol.Map.find
+		  Symbol.symb_ver_state_type
+		  !Parser_types.cardinality_map
+	      in
+		
+		(* Override default value of maximal bound from file *)
+		!current_options.bmc1_max_bound <- 
+		  override_file max_bound !current_options.bmc1_max_bound
+		  
+	    (* Cardinality not defined, then no upper bound *)
+	    with Not_found -> 
+	      
+	      ()
+
+	  );
+	  
+	  (* BMC1 with incremental bounds? *)
+	  if !current_options.bmc1_incremental then
+	    
+	    (* Create clauses for initial bound *)
+	    let bmc1_axioms = Bmc1Axioms.init_bound () in
+	      
+	      out_str "Added initial BMC1 axioms\n";
+	      
+	      (* Clauses are input clauses *)
+	      assign_is_essential_input_symb bmc1_axioms;
+	      
+	      (* Add clauses for initial bound *)
+	      current_clauses := 
+		bmc1_axioms @ !current_clauses
+		  
+	);
+
+
 (*debug *)
 (*
 	out_str "\n-----------Less Range Axioms:---------\n";
@@ -1434,7 +1588,8 @@ let run_iprover () =
  
 (* for finite models we ommit equality axioms! *)
 
-      let finite_models_clauses = !current_clauses in
+      let finite_models_clauses = !current_clauses in 
+
       current_clauses := less_range_axioms@(!current_clauses);
 
       (if (not (omit_eq_axioms ())) 
@@ -1523,6 +1678,7 @@ let run_iprover () =
       main !current_clauses finite_models_clauses
     end
   with
+
   |Discount.Unsatisfiable 
   |Instantiation.Unsatisfiable  |PropSolver.Unsatisfiable  
     ->
@@ -1600,6 +1756,10 @@ let run_iprover () =
        out_str (unknown_str ()); 
        out_str "Schedule_Terminated:  try an extended schedule or with an unbounded time limit";
        out_stat ())
+
+  (* Silently terminate after BMC1 maximal bound proved *)
+  | Exit -> ()
+  
   | x -> 
       (kill_all_child_processes ();
        out_str (unknown_str ());
