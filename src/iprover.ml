@@ -605,13 +605,10 @@ let assign_is_essential_input_symb c_list =
 
 (*--------------Schedule-----------------------------*)
 
-(* let bmc1_bounds = ref [1; 2; 4; 8; 12; 16] *)
-(* let bmc1_bounds = ref [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16] *)
-(* let bmc1_bounds = ref [16] *)
-(* let bmc1_bounds = ref [] *)
-
+(* Current bound for BMC1 *)
 let bmc1_cur_bound = ref 0
 
+(* Assign statistics for current bound being processed *)
 let () = assign_fun_stat 
   (fun () -> (!bmc1_cur_bound)) bmc1_current_bound
 
@@ -1195,7 +1192,7 @@ let rec main clauses finite_model_clauses =
 	   else ()
 	  )
 
-    (* Incremental BMC solving: unsatisfiable when there are higher
+    (* Incremental BMC1 solving: unsatisfiable when there are higher
        bounds left to check *)
     | Discount.Unsatisfiable 
     | Instantiation.Unsatisfiable  
@@ -1205,56 +1202,83 @@ let rec main clauses finite_model_clauses =
 	
 	(
 	  
-(*
-	  (* Get current and next bounds *)
-	  let cur_bound, next_bound, bounds_tail =
-	    match !bmc1_bounds with
-	      | b :: c :: tl -> b, c, tl
-	      | _ -> failwith ("Iprover.main: bmc1_bounds too short")
-	  in
-*)	    
-
 	  (* Increment bound by one
-
+	     
 	     TODO: option for arbitrary bound increments *)
 	  let cur_bound, next_bound =
 	    !bmc1_cur_bound, succ !bmc1_cur_bound
 	  in
 
+	  (* Get value of maximal bound *)
+	  let max_bound = 
+	    val_of_override !current_options.bmc1_max_bound
+	  in
+
 	    (* Output current bound *)
 	    Format.printf 
-	      "@.@\n%s BMC1 bound %d after %.3fs@\n@."
+	      "@.@\n%s BMC1 bound %d %s after %.3fs@\n@."
 	      pref_str
 	      cur_bound
+	      ("UNSAT")
 	      (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time));
 	    
-	    (* Output unsatisfiable result *)
-	    out_str (proved_str ());
-
 	    (* Assign last solved bound in statistics *)
 	    assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
-
-	    (* Output statistics *)
-	    out_stat ();
-
+	    
 	    if 
-
-	      (* Get value of maximal bound *)
-	      let max_bound = 
-		pred (val_of_override !current_options.bmc1_max_bound)
-	      in
-
-		(* Next bound is beyond maximal bound? *)
-		next_bound > max_bound && 
-		  
-		  (* No maximal bound for -1 *)
-		  max_bound >= 0 
-
+	      
+	      (* Next bound is beyond maximal bound? *)
+	      next_bound > max_bound && 
+		
+		(* No maximal bound for -1 *)
+		max_bound >= 0 
+		
 	    then
-	 
-	      (* Silently terminate *)
-	      raise Exit;
+	      
+	      (
+		
+		(* Output unsatisfiable result for last bound *)
+		out_str (proved_str ());
+		
+	      );
+	    
+	    (
+	      
+	      (* When to output statistics? *)
+	      match val_of_override !current_options.bmc1_out_stat with
+		  
+		(* Output statistics after each bound *)
+		| BMC1_Out_Stat_Full -> out_stat ()
 
+		(* Output statistics after last bound *)
+		| BMC1_Out_Stat_Last 
+		    when next_bound > max_bound -> out_stat ()
+
+		(* Do not output statistics for bounds before last *)
+		| BMC1_Out_Stat_Last -> ()
+
+		(* Never output statistics *)
+		| BMC1_Out_Stat_None -> ()
+
+	    );
+	    
+	    if 
+	      
+	      (* Next bound is beyond maximal bound? *)
+	      next_bound > max_bound && 
+		
+		(* No maximal bound for -1 *)
+		max_bound >= 0 
+		
+	    then
+
+	      (
+
+		(* Silently terminate *)
+		raise Exit
+		  
+	      );
+	    
 	    (* Output next bound *)
 	    Format.printf 
 	      "%s Incrementing BMC1 bound to %d@\n@."
@@ -1282,14 +1306,9 @@ let rec main clauses finite_model_clauses =
 		Preprocess.preprocess next_bound_axioms
 	      in
 
-(*
-		(* Eliminate current bound from list *)
-		bmc1_bounds := next_bound :: bounds_tail;
-*)
-	    
 		(* Save next bound as current *)
 		bmc1_cur_bound := next_bound;
-
+		
 		(* Run again for next bound *)
 		main (next_bound_axioms' @ clauses) finite_model_clauses
 	      
@@ -1543,9 +1562,10 @@ let run_iprover () =
 	      
 	      (* Get cardinality of state_type *)
 	      let max_bound = 
-		Symbol.Map.find
-		  Symbol.symb_ver_state_type
-		  !Parser_types.cardinality_map
+		pred 
+		  (Symbol.Map.find
+		     Symbol.symb_ver_state_type
+		     !Parser_types.cardinality_map)
 	      in
 		
 		(* Override default value of maximal bound from file *)
@@ -1565,7 +1585,10 @@ let run_iprover () =
 	    (* Create clauses for initial bound *)
 	    let bmc1_axioms = Bmc1Axioms.init_bound () in
 	      
-	      out_str "Added initial BMC1 axioms\n";
+	      out_str 
+		(Format.sprintf 
+		   "%sAdded initial BMC1 axioms@\n"
+		   pref_str);
 	      
 	      (* Clauses are input clauses *)
 	      assign_is_essential_input_symb bmc1_axioms;
@@ -1576,6 +1599,17 @@ let run_iprover () =
 		  
 	);
 
+
+	(* Output maxial bound for BMC1 *)
+	let max_bound = val_of_override !current_options.bmc1_max_bound in
+
+	  if max_bound >= 0 then 
+	    out_str 
+	      (Format.sprintf 
+		 "%sMaximal bound for BMC1 is %d@\n"
+		 pref_str
+		 max_bound);
+	
 
 (*debug *)
 (*

@@ -142,6 +142,26 @@ let str_to_ground_splitting_type str =
 
 
 
+(*--------*)
+
+(* Output no statistics, statistics after every bound or only after
+   the last bound in BMC1 *)
+type bmc1_out_stat_type = 
+    BMC1_Out_Stat_None | BMC1_Out_Stat_Full | BMC1_Out_Stat_Last
+
+let bmc1_out_stat_type_to_str = function
+  | BMC1_Out_Stat_None -> "none"
+  | BMC1_Out_Stat_Full -> "full"
+  | BMC1_Out_Stat_Last -> "last"
+
+exception Unknown_bmc1_out_stat_type
+let str_to_bmc1_out_stat_type = function
+  | "none" -> BMC1_Out_Stat_None
+  | "full" -> BMC1_Out_Stat_Full
+  | "last" -> BMC1_Out_Stat_Last
+  | _ -> raise Unknown_bmc1_out_stat_type
+
+let bmc1_out_stat_str = "<none | full | last>"
 
 (*--------*)
 type schedule_type = 
@@ -502,6 +522,7 @@ type options = {
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
     mutable bmc1_max_bound        : int override; 
+    mutable bmc1_out_stat         : bmc1_out_stat_type override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
@@ -593,7 +614,9 @@ let default_options () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
     
+
 (*----Instantiation------*)
   instantiation_flag             = true;
   inst_lit_sel                   = [Lit_Sign true; Lit_Ground true;  
@@ -659,7 +682,14 @@ let set_new_current_options o =
        
        (* Only override defaults *)
        bmc1_max_bound = 
-	override o.bmc1_max_bound !current_options.bmc1_max_bound }
+	override o.bmc1_max_bound !current_options.bmc1_max_bound;
+
+       (* Only override defaults *)
+       bmc1_out_stat = 
+	override o.bmc1_out_stat !current_options.bmc1_out_stat;
+       
+    }
+
     
 
 
@@ -1048,6 +1078,24 @@ let bmc1_max_bound_fun b =
 let bmc1_max_bound_inf  =
   bool_str^
   inf_pref^"maximal bound in BMC1\n"
+
+(*--------*)
+
+let bmc1_out_stat_str = "--bmc1_out_stat" 
+
+let bmc1_out_stat_fun str =
+  try 
+    !current_options.bmc1_out_stat <- 
+      (override_cmd 
+	 (str_to_bmc1_out_stat_type str) 
+	 !current_options.bmc1_out_stat)
+  with 
+     Unknown_bmc1_out_stat_type ->
+       failwith (args_error_msg bmc1_out_stat_str str)
+
+let bmc1_out_stat_inf  =
+  bmc1_out_stat_str^
+    inf_pref^"output no statistics, after the last bound only or after each bound (full)\n"
 
 
 (*----Instantiation------*)
@@ -1621,9 +1669,14 @@ let spec_list =
    (bmc1_incremental_str, 
     Arg.Bool(bmc1_incremental_fun),
     bmc1_incremental_inf);
+
    (bmc1_max_bound_str, 
     Arg.Int(bmc1_max_bound_fun),
     bmc1_max_bound_inf);
+
+   (bmc1_out_stat_str, 
+    Arg.String(bmc1_out_stat_fun),
+    bmc1_out_stat_inf);
 
 (*------Instantiation--*)
    (instantiation_flag_str, Arg.Bool(instantiation_flag_fun),instantiation_flag_inf);
@@ -1752,6 +1805,8 @@ let bmc1_options_str_list opt =
   [
    (bmc1_incremental_str,(string_of_bool opt.bmc1_incremental));
    (bmc1_max_bound_str,(string_of_int (val_of_override opt.bmc1_max_bound)));
+   (bmc1_out_stat_str,
+    (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
   ]
 
 let inst_options_str_list opt = 
@@ -2122,6 +2177,7 @@ let option_1 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2260,6 +2316,7 @@ let option_2 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2371,6 +2428,7 @@ let option_3 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2478,7 +2536,7 @@ let option_4 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
-
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2596,6 +2654,7 @@ let option_finite_models () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2709,6 +2768,7 @@ let option_epr_non_horn () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2944,6 +3004,7 @@ let option_epr_horn () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----------------------Instantiation------*)
   instantiation_flag             = true;
@@ -3177,6 +3238,7 @@ let option_verification_epr ver_epr_opt =
 (*----BMC1---------------*)
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3291,6 +3353,7 @@ let option_verification_epr ver_epr_opt =
 (*----BMC1---------------*)
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3403,6 +3466,7 @@ let option_verification_epr ver_epr_opt =
 (*----BMC1---------------*)
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
 
 (*----Instantiation------*)
        instantiation_flag             = true;

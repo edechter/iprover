@@ -49,6 +49,12 @@ val override_cmd : 'a -> 'a override -> 'a override
 
 type out_options_type = Out_All_Opt | Out_Control_Opt | Out_No_Opt
 
+
+(** Output no statistics, statistics after every bound or only after
+    the last bound in BMC1 *)
+type bmc1_out_stat_type = 
+    BMC1_Out_Stat_None | BMC1_Out_Stat_Full | BMC1_Out_Stat_Last
+
 type ground_splitting_type = Split_Input |Split_Full | Split_Off 
 
 type schedule_type = 
@@ -163,6 +169,7 @@ type options = {
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
     mutable bmc1_max_bound        : int override; 
+    mutable bmc1_out_stat         : bmc1_out_stat_type override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
