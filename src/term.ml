@@ -601,6 +601,7 @@ let assign_all term =  assign_num_of_symb term; assign_var_list term *)
 (*raise Term_assign_fkey_to_var*)
 
 let arg_map   = List.map
+let arg_map_list = List.map
 let arg_map_left = list_map_left
 
 let arg_fold_left = List.fold_left

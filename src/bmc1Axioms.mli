@@ -15,7 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
  
 
-val init_bound : unit -> Clause.clause list
+val init_bound : Clause.clause list -> Clause.clause list * Clause.clause list
 
 val increment_bound : int -> int -> Clause.clause list
 

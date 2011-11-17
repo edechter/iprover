@@ -1583,7 +1583,9 @@ let run_iprover () =
 	  if !current_options.bmc1_incremental then
 	    
 	    (* Create clauses for initial bound *)
-	    let bmc1_axioms = Bmc1Axioms.init_bound () in
+	    let bmc1_axioms, current_clauses' = 
+	      Bmc1Axioms.init_bound !current_clauses 
+	    in
 	      
 	      out_str 
 		(Format.sprintf 
@@ -1595,7 +1597,7 @@ let run_iprover () =
 	      
 	      (* Add clauses for initial bound *)
 	      current_clauses := 
-		bmc1_axioms @ !current_clauses
+		bmc1_axioms @ current_clauses'
 		  
 	);
 

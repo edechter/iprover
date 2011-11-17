@@ -37,6 +37,9 @@ val less_map : int SymbMap.t ref
 val range_map : (int * int) SymbMap.t ref
 val clock_map : int list SymbMap.t ref
 val cardinality_map : int SymbMap.t ref
+val max_address_width_map : int SymbMap.t ref
+val state_constant_map : int SymbMap.t ref
+val address_base_name_map : string SymbMap.t ref
 val father_of_map : string list SymbMap.t ref
 val distinct : term list list ref
 val all_current_clauses : clause list ref

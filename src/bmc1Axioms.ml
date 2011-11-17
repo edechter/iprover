@@ -29,6 +29,10 @@ let term_db = Parser_types.term_db_ref
   
 (* Assumptions for previous bounds *)
 let invalid_bound_assumptions = ref []
+
+
+(* Clauses to be instantiated for each bound *)
+let bound_axioms_instantiate = ref []
   
 
 (********** Symbol names and name patterns **********)  
@@ -131,31 +135,38 @@ let create_typed_equation stype lhs rhs =
       term_db
       
 
+(* Create term *)
+let create_term symbol_name symbol_type =
+ 
+  (* Type of symbol *)
+  let symbol_stype = Symbol.create_stype [] symbol_type in
+    
+  (* Add symbol to symbol database *)
+  let symbol = 
+    SymbolDB.add_ref
+      (Symbol.create_from_str_type symbol_name symbol_stype)
+      symbol_db
+  in
+    
+  (* Add term to term database *)
+  let term = 
+    TermDB.add_ref 
+      (Term.create_fun_term symbol []) 
+      term_db
+  in
+    
+    (* Return creted term *)
+    term
+
+
 (* Create skolem term with parameter *)
 let create_skolem_term (symbol_format : ('a -> 'b, 'c, 'd, 'e, 'e, 'b) format6) symbol_type (name_param: 'a) =
   
   (* Name of skolem symbol *)
   let skolem_symbol_name = Format.sprintf symbol_format name_param in
     
-  (* Type of skolem symbol *)
-  let skolem_symbol_stype = Symbol.create_stype [] symbol_type in
-    
-  (* Add skolem symbol to symbol database *)
-  let skolem_symbol = 
-    SymbolDB.add_ref
-      (Symbol.create_from_str_type skolem_symbol_name skolem_symbol_stype)
-      symbol_db
-  in
-    
-  (* Add skolem term to term database *)
-  let skolem_term = 
-    TermDB.add_ref 
-      (Term.create_fun_term skolem_symbol []) 
-      term_db
-  in
-    
-    (* Return creted skolem term *)
-    skolem_term
+    (* Create term *)
+    create_term skolem_symbol_name symbol_type
       
       
 (* Create atom with arguments *)
@@ -592,11 +603,203 @@ let create_constant_address_definition accum bitvector_symbol =
 
 
 
+(* Is the term or one if its subterms to be instantiated for each bound? *)
+let rec is_bound_term = function 
+
+  (* No instantiation for variables *)
+  | Term.Var _ -> false
+
+  (* Symbol is a state constant *)
+  | Term.Fun (symb, args, _) 
+      when Symbol.Map.mem symb !Parser_types.state_constant_map -> 
+
+      (* Only instantiate the state constant for bound 1 *)
+      Symbol.Map.find symb !Parser_types.state_constant_map = 1 
+
+  (* Symbol has a base name *)
+  | Term.Fun (symb, args, _) 
+      when Symbol.Map.mem symb !Parser_types.address_base_name_map -> 
+
+      (* Get base name of symbol *)
+      let base_name = 
+	Symbol.Map.find symb !Parser_types.address_base_name_map 
+      in
+
+	(
+
+	  try 
+	    
+	    (* Only instantiate if base name of symbol has a "1"
+	       appended? *)
+	    String.sub 
+	      (Symbol.get_name symb)
+	      (String.length base_name) 
+	      ((String.length (Symbol.get_name symb)) - 
+		 (String.length base_name))
+	    = "1" 
+	    
+	  with Invalid_argument _ -> 
+	    
+	    failwith 
+	      (Format.sprintf 
+		 ("Bmc1Axioms.is_bound_term: name of symbol %s " ^^ 
+		    "and base name %s do not match")
+		 (Symbol.get_name symb)
+		 base_name)
+
+	)
+
+
+  (* Check if term has a subterm to be instantiated *)
+  | Term.Fun (_, args, _) -> 
+
+      (* Is one of the subterms a term to be instantiated? *)
+      List.exists (fun b -> b) (Term.arg_map_list is_bound_term args)
+
+
+let is_bound_clause clause = 
+  
+  List.exists (fun b -> b) (List.map is_bound_term (Clause.get_literals clause))
+ 
+
+
+(* Instantiate term for current bound *)
+let rec bound_instantiate_term bound = function 
+
+  (* No instantiation for variables *)
+  | Term.Var _ as t -> t
+
+  (* Symbol is a state constant *)
+  | Term.Fun (symb, args, _) as t 
+      when Symbol.Map.mem symb !Parser_types.state_constant_map -> 
+
+      if 
+
+	(* Only replace state constant for bound 1 *)
+	Symbol.Map.find symb !Parser_types.state_constant_map = 1 
+
+      then
+
+	(* Replace term with state term for current bound *)
+	create_state_term bound
+
+      else
+
+	(* Keep state constant for bounds other than 1*)
+	t
+
+
+  (* Symbol has a base name *)
+  | Term.Fun (symb, args, _) as t 
+      when Symbol.Map.mem symb !Parser_types.address_base_name_map -> 
+
+      (* Get base name of symbol *)
+      let base_name = 
+	Symbol.Map.find symb !Parser_types.address_base_name_map 
+      in
+
+	if 
+
+	  try 
+	    
+	    (* Base name of symbol has "1" appended? *)
+	    String.sub 
+	      (Symbol.get_name symb)
+	      (String.length base_name) 
+	      ((String.length (Symbol.get_name symb)) - 
+		 (String.length base_name))
+	    = "1" 
+
+	  with Invalid_argument _ -> 
+
+	    failwith 
+	      (Format.sprintf 
+		 ("Bmc1Axioms.bound_instantiate_term: name of symbol %s " ^^ 
+		    "and base name %s do not match")
+		 (Symbol.get_name symb)
+		 base_name)
+	      
+	then
+
+	  (* Append bound to base name *)
+	  let term_bound_name = base_name ^ (string_of_int bound) in
+	    
+	    (* Replace term with term for current bound *)
+	    create_term term_bound_name address_type 
+
+	else
+
+	  (* Keep term for bounds other than 1 *)
+	  t
+
+
+  (* Instantiate withing functional term *)
+  | Term.Fun (symb, args, _) -> 
+
+      (* Instantiate arguments of term *)
+      let args' =
+	Term.arg_map_list (bound_instantiate_term bound) args
+      in
+
+	(* Return term with instantiated arguments *)
+	TermDB.add_ref
+	  (Term.create_fun_term 
+	     symb
+	     args')
+	  term_db
+	
+
+
+(* Instantiate clause for current bound *)
+let bound_instantiate_clause bound clause =
+
+  (* Get literals of clause *)
+  let clause_literals = 
+    Clause.get_literals clause 
+  in
+
+  (* Instantiate terms in literals for current bound *)
+  let clause_literals' =
+    List.map (bound_instantiate_term bound) clause_literals 
+  in
+    
+    (* Create new clause of instantiated literals *)
+    Clause.normalise
+      term_db
+      (Clause.create clause_literals')
+      
+
+(* Instantiate clauses for current bound *)
+let instantiate_bound_axioms bound clauses = 
+
+  (* Instantiate each clause *)
+  List.map
+    (bound_instantiate_clause bound)
+    clauses
+
+
+let separate_bound_axioms clauses =
+
+  List.partition is_bound_clause clauses
+    
     
 
-
 (* Axioms for bound 0 *)
-let init_bound () = 
+let init_bound all_clauses = 
+
+  (* Separate axioms to be instantiated for each bound *)
+  let bound_axioms, clauses = separate_bound_axioms all_clauses in
+
+    (* Output axioms to be instantiated for each bound *)
+    Format.printf 
+      "BMC1 axioms to be instantiated at bounds@.";
+      
+    List.iter
+      (fun c -> Format.printf "%s@\n@." (Clause.to_string c))
+      bound_axioms;
+
+    (* Save axioms to be instantiated *)
+    bound_axioms_instantiate := bound_axioms;
 
   (* Create reachable states axiom *)
   let reachable_state_axioms = 
@@ -643,7 +846,7 @@ let init_bound () =
       Format.printf "@.";
       
       (* Return created axioms for bound *)
-      bound_axioms
+      bound_axioms, clauses
 
   
 
@@ -677,6 +880,14 @@ let increment_bound cur_bound next_bound =
       next_bound 
   in
 
+  (* Instantiate axioms for next bound 
+
+     TODO: iterate all bounds between cur_bound and next_bound if
+     increases are in greater steps *)
+  let bound_axioms_instantiated = 
+    instantiate_bound_axioms next_bound !bound_axioms_instantiate 
+  in
+
   (* Create literal for current bound, i.e. $$iProver_bound{b_cur} *)
   let bound_literal_cur = create_bound_atom cur_bound in
 
@@ -694,7 +905,10 @@ let increment_bound cur_bound next_bound =
     (* Return created path axioms and reachable state axiom *)
     let bound_axioms =
       reachable_state_conj_axiom :: 
-	(reachable_state_axioms @ path_axioms @ clock_axioms)
+	(reachable_state_axioms @ 
+	   path_axioms @ 
+	   clock_axioms @ 
+	   bound_axioms_instantiated)
     in
       
       

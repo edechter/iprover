@@ -117,6 +117,19 @@ let clock_map       = ref SymbMap.empty
    are 0-based *)
 let cardinality_map = ref SymbMap.empty
 
+(* Symbols with maximal address width: associates to an address type
+   the maximal width of the addresses *)
+let max_address_width_map = ref SymbMap.empty
+
+(* State symbols: associates the state to a state symbol *)
+let state_constant_map = ref SymbMap.empty
+
+(* Symbols with base names: the symbol for a higher bound is obtained
+   by appending the bound to the base name *)
+let address_base_name_map = ref SymbMap.empty
+
+
+
 (* maps symbol into list of strings which this symbol is the father of *)
 let father_of_map      = ref SymbMap.empty
 
@@ -677,8 +690,14 @@ let find_recognised_main_attr attr_list =
       (List.find 
 	 (fun attr -> 
 	   match attr with 
-	   |ALess _ |ARange _ |AClock _ |ACardinality _ -> true
-	   |_-> false
+	     | ALess _ 
+	     | ARange _ 
+	     | AClock _ 
+	     | ACardinality _ 
+	     | AAddressMaxWidth _ 
+	     | AStateConstant _ 
+	     | AAddressBaseName _ -> true
+	     |_-> false
 	 )
 	 attr_list
       )
@@ -753,8 +772,8 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 
 	 )
 
-    (* Symbol has cardinality p *)
-    |Some (ACardinality c) -> 
+    (* Symbol has cardinality c *)
+    | Some (ACardinality c) -> 
        
        (* Cardinality of symbol already defined? *)
        if (SymbMap.mem symb !cardinality_map) then 
@@ -775,6 +794,77 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 
 	   (* Add symbol to map *)
 	   cardinality_map := SymbMap.add symb c !cardinality_map
+
+	 )
+
+
+    (* Symbol has a maximal address width *)
+    | Some (AAddressMaxWidth c) -> 
+       
+       (* Maximal address width of symbol already defined? *)
+       if (SymbMap.mem symb !max_address_width_map) then 
+
+	 (* Skip *) 
+	 ()
+	   
+       else
+	 
+	 (
+
+	   (* Sanity check: must not negative *)
+	   if c < 0 then
+	     failwith 
+	       (Format.sprintf
+		  "Bad address_max_width attribute for symbol %s: must be positive"
+		  (Symbol.to_string symb));
+
+	   (* Add symbol to map *)
+	   max_address_width_map := SymbMap.add symb c !max_address_width_map
+
+	 )
+
+
+
+    (* Symbol is a state constant *)
+    | Some (AStateConstant c) -> 
+       
+       (* State of symbol already defined? *)
+       if (SymbMap.mem symb !state_constant_map) then 
+
+	 (* Skip *) 
+	 ()
+	   
+       else
+	 
+	 (
+
+	   (* Sanity check: state constant must not be negative *)
+	   if c < 0 then
+	     failwith 
+	       (Format.sprintf
+		  "Bad state_constant attribute for symbol %s: must be positive"
+		  (Symbol.to_string symb));
+
+	   (* Add symbol to map *)
+	   state_constant_map := SymbMap.add symb c !state_constant_map
+
+	 )
+
+    (* Symbol has a base name *)
+    | Some (AAddressBaseName c) -> 
+       
+       (* Base name of symbol already defined? *)
+       if (SymbMap.mem symb !address_base_name_map) then 
+
+	 (* Skip *) 
+	 ()
+	   
+       else
+	 
+	 (
+
+	   (* Add symbol to map *)
+	   address_base_name_map := SymbMap.add symb c !address_base_name_map
 
 	 )
 
