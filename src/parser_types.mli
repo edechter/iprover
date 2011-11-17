@@ -66,6 +66,8 @@ val defined_term_fun : string -> Term.term list -> TermDB.term
 val defined_pred_fun : string -> TermDB.term list -> TermDB.term
 val defined_infix_pred_fun :
   string -> TermDB.term -> TermDB.term -> TermDB.term
+val system_term_fun : string -> Term.term list -> TermDB.term
+val system_pred_fun : string -> Term.term list -> TermDB.term
 val term_variable_fun : Term.var -> Term.term
 val variable_fun : string -> var
 val term_of_number_fun : int -> Term.term
@@ -80,13 +82,33 @@ type attr_args =
   | Attr_Int of int
   | Attr_Str of string
 type attr_type =
-    ALess of int
-  | ARange of int * int
+  |ALess  of int  
+  |ARange of int * int
+
+  |AFatherOf of string
+  |ASonOf of string
+
+  (** A clock symbol with initial value (first) and period (second) *)
   | AClock of int list
-  | AFatherOf of string
-  | ASonOf of string
-  | ACardinality of int 
+
+  (** Cardinality of a type, currently used to determine the maximal
+      bound in BMC1. The maximal bound is the value of $cardinality of
+      the state_type minus one, since states are 0-based. *)
+  | ACardinality of int
+
+  (** A symbol for a state, usually $$constB0 *)
+  | AStateConstant of int
+
+  (** Base name of address term, the current bound is to be appended to
+     the base name *)
+  | AAddressBaseName of string
+
+  (** Maximal width of addresses, usually for address_type*)
+  | AAddressMaxWidth of int 
+
   | AOther of string * attr_args
+
+
 type attr = Attr of attr_type * attr_args
 val attr_fun : string -> attr_args -> attr_type
 val find_recognised_main_attr : attr_type list -> attr_type option

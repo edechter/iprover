@@ -393,7 +393,7 @@ let defined_term_fun name args =
   |"$o" -> 
       create_theory_term Symbol.symb_bool_type args
 
- |_ -> failwith ("Parsing error: unsupported defined function \""^name^"\"")
+  | _ -> failwith ("Parsing error: unsupported defined function \""^name^"\"")
 
 
 let defined_pred_fun name args =
@@ -431,6 +431,60 @@ let defined_prop_fun name = ()
 let defined_pred_fun name = 
 *)  
 
+
+let system_pred_fun name args = 
+
+  match name with 
+
+    (* Next state predicate for BMC1 *)
+    | "$$nextState" -> 
+
+	(* Create term like plain term *)
+	plain_term_fun_typed true name args
+
+    (* Reachable state predicate for BMC1 *)
+    | "$$reachableState" -> 
+
+	(* Create term like plain term *)
+	plain_term_fun_typed true name args
+
+    (* Less predicate for BMC1 *)
+    | term when 
+	(try 
+	   String.sub term 0 7 = "$$less_" 
+	 with 
+	   | Invalid_argument _ -> false) ->
+
+	(* Create term like plain term *)
+	plain_term_fun_typed true name args
+	
+
+    | _ -> 
+
+	(* Alternative: create as plain term without catching undefined *)
+	failwith ("Parsing error: unsupported system predicate \""^name^"\"")
+
+
+let system_term_fun name args = 
+
+  match name with 
+
+    (* State constant for BMC1 *)
+    | term when 
+	(try 
+	   String.sub term 0 8 = "$$constB" 
+	 with 
+	   | Invalid_argument _ -> false) ->
+	
+	(* Create term like plain term *)
+	plain_term_fun_typed false name args
+	  
+    | _ -> 
+
+	(* Alternative: create as plain term without catching undefined *)
+	failwith ("Parsing error: unsupported system term \""^name^"\"")
+
+	  
 let term_variable_fun var = 
   Term.create_var_term var
 
@@ -514,17 +568,28 @@ type attr_type =
   |ALess  of int  
   |ARange of int * int
 
-  (* A clock symbol with initial value (first) and period (second) *)
-  |AClock of int list
   |AFatherOf of string
   |ASonOf of string
+
+  (* A clock symbol with initial value (first) and period (second) *)
+  | AClock of int list
 
   (* Cardinality of a type, currently used to determine the maximal
      bound in BMC1. The maximal bound is the value of $cardinality of
      the state_type minus one, since states are 0-based. *)
-  |ACardinality of int
+  | ACardinality of int
 
-  |AOther of string * attr_args
+  (* A symbol for a state, usually $$constB0 *)
+  | AStateConstant of int
+
+  (* Base name of address term, the current bound is to be appended to
+     the base name *)
+  | AAddressBaseName of string
+
+  (* Maximal width of addresses, usually for address_type*)
+  | AAddressMaxWidth of int 
+
+  | AOther of string * attr_args
 
       
 type attr = 
@@ -532,36 +597,73 @@ type attr =
 
 let attr_fun attr_name attr_args =
   match attr_name with 
-    |"less"  -> 
+    |"less" 
+    |"$less"
+    |"$$less"  -> 
        (match attr_args with 
 	  |Attr_Int (int) -> ALess int
-	  |_-> failwith "$less should have one argument: int"
+	  |_-> failwith "less should have one argument: int"
        )
 	 
-    |"range" -> 
+    |"range" 
+    |"$range" 
+    |"$$range" -> 
        (match attr_args with 
 	  | Attr_List [i1; i2] -> ARange (i1,i2)
-	  | _ -> failwith "$range should have one argument: interval"
+	  | _ -> failwith "range should have one argument: interval"
        )
-    | "$clock" -> 
+
+    | "clock" 
+    | "$clock" 
+    | "$$clock" -> 
 	(match attr_args with 
 	   | Attr_List p -> AClock p
 	   |_-> failwith "clock should have one argument: clock pattern"
 	)
-    |"$father_of" ->   
+
+    |"father_of" 
+    |"$father_of" 
+    |"$$father_of" ->   
        (match attr_args with 
 	  |Attr_Str(str) -> AFatherOf(str)
-	  |_-> failwith "$father_of  should have one argument: string  "  
+	  |_-> failwith "father_of should have one argument: string  "  
        )
-    |"$son_of" ->   
+
+    | "son_of" 
+    | "$son_of" 
+    | "$$son_of" ->   
        (match attr_args with 
 	  |Attr_Str(str) -> ASonOf(str)
-	  |_-> failwith "$son_of  should have one argument: string  "  
+	  |_-> failwith "son_of should have one argument: string  "  
        )
-    |"$cardinality" -> 
+
+    | "cardinality" 
+    | "$cardinality" 
+    | "$$cardinality" -> 
        (match attr_args with 
 	  | Attr_Int c -> ACardinality c
 	  | _ -> failwith "cardinality should have one argument: integer")
+	 
+    | "addressMaxWidth" 
+    | "$addressMaxWidth" 
+    | "$$addressMaxWidth" -> 
+       (match attr_args with 
+	  | Attr_Int c -> AAddressMaxWidth c
+	  | _ -> failwith "addressMaxWidth should have one argument: integer")
+	 
+    | "state_constant" 
+    | "$state_constant" 
+    | "$$state_constant" -> 
+       (match attr_args with 
+	  | Attr_Int c -> AStateConstant c
+	  | _ -> failwith "state_constant should have one argument: integer")
+	 
+    | "address_base_name" 
+    | "$address_base_name" 
+    | "$$address_base_name" -> 
+       (match attr_args with 
+	  | Attr_Str c -> AAddressBaseName c
+	  | _ -> failwith "address_base_name should have one argument: integer")
 	 
     |other_str -> AOther (other_str, attr_args)
        

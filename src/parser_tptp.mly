@@ -131,7 +131,7 @@ type_word :
     then $1 
     else failwith "tff: only type declarations are supported at the moment"}
 
-type_name : functor_name {$1}
+type_name : functor_name {$1} 
 
 tff_typed_atom :  						       
    tff_untyped_atom Column tff_top_level_type {ttf_add_typed_atom_fun $1 $3}
@@ -155,6 +155,7 @@ attr :
 attr_name : 
  functor_name {$1}
   |defined_functor {$1}
+  |system_functor {$1}
  
 
 attr_args : 
@@ -180,8 +181,9 @@ attr_list_arg_list :
   | number Comma attr_list_arg_list { $1 :: $3 }
 
 tff_untyped_atom : 
-      functor_name {$1}
-  /*|system_functor_name  {$1} */
+  | functor_name {$1}
+  | defined_functor {$1}
+  | system_functor {$1}
 
 
 tff_top_level_type : 
@@ -244,9 +246,9 @@ fol_infix_unary :
 
 
 atomic_formula : 
-  plain_atomic_formula   {$1} 
-  |defined_atomic_formula {$1} 
-/*|system_atomic_formula  {$1}*/
+ | plain_atomic_formula   {$1} 
+ | defined_atomic_formula {$1} 
+ | system_atomic_formula  {$1}
 
 
 /* we need to separate atomic_formulas from */
@@ -289,25 +291,28 @@ variable :
   UpperWord {variable_fun $1}
 
 function_term : 
-  plain_term {$1}
- |defined_term {$1}
-/*  |system_term  */
-
+ | plain_term {$1}
+ | defined_term {$1}
+ | system_term {$1}
 
 defined_term        : 
-       defined_atom {$1}
-   | defined_atomic_term {$1}
+ | defined_atom {$1}
+ | defined_atomic_term {$1}
 
 defined_atom : 
-   number {term_of_number_fun $1}
+ | number {term_of_number_fun $1}
  /*|    distinct_object */
 
 defined_atomic_term : 
-   defined_plain_term {$1}
+ | defined_plain_term {$1}
 
 defined_plain_term  : 
-       defined_functor {defined_term_fun $1 []} /* constant */
-      |defined_functor LeftParen arguments RightParen { defined_term_fun $1 $3}
+ | defined_functor {defined_term_fun $1 []} /* constant */
+ | defined_functor LeftParen arguments RightParen { defined_term_fun $1 $3}
+
+system_term : 
+ | system_functor {system_term_fun $1 []} /* constant */
+ | system_functor LeftParen arguments RightParen { system_term_fun $1 $3}
 
 
 /* defined_functor :  $itett | $uminus | $sum | $difference 
@@ -324,10 +329,12 @@ defined_plain_term  :
  */
 
 
-defined_functor  : 
-      Equality {"="}
-| DollarWord {$1} 
-| DollarDollarWord {$1}
+defined_functor : 
+  | Equality {"="}
+  | DollarWord {$1} 
+	  
+system_functor :
+  | DollarDollarWord {$1}
 
   
 /* defined_pred :  	   DollarWord{$1} */
@@ -339,11 +346,17 @@ defined_atomic_formula :
   defined_plain_formula {$1} 
  |defined_infix_formula {$1} 
 
+system_atomic_formula : 
+  system_plain_formula {$1} 
 
 
 defined_plain_formula : 
    defined_functor  {defined_pred_fun $1 []} /* constant pred */ 
   |defined_functor LeftParen arguments RightParen { defined_pred_fun $1 $3} 
+   
+system_plain_formula : 
+   system_functor  {system_pred_fun $1 []} /* constant pred */ 
+  |system_functor LeftParen arguments RightParen { system_pred_fun $1 $3} 
    
 
 

@@ -25,28 +25,92 @@ let symbol_db  = Parser_types.symbol_db_ref
 
 (* The term database *)
 let term_db = Parser_types.term_db_ref
-
+  
+  
 (* Assumptions for previous bounds *)
 let invalid_bound_assumptions = ref []
+  
 
-(* Format of state symbol *)
-let state_symbol_format = format_of_string "constB%d" 
+(********** Symbol names and name patterns **********)  
+
+(* Type of addresses *)
+let address_type = Symbol.symb_ver_address_type
+
+(* Type of states *)
+let state_type = Symbol.symb_ver_state_type
+  
+(* Type of bitindexes *)
+let bitindex_type = Symbol.symb_ver_bit_index_type
   
 (* Name of path symbol *)
-let path_symbol_name = "nextState"
+let path_symbol_name = "$$nextState"
 
 (* Name of reachable state symbol *)
-let reachable_state_symbol_name = "reachableState"
+let reachable_state_symbol_name = "$$reachableState"
+
+(* Name of addressDiff symbol *)
+let address_diff_symbol_name = "$$addressDiff"
+
+(* Name of addressDiff symbol *)
+let address_val_symbol_name = "$$addressVal"
+
+(* Name of address symbol *)
+let address_symbol_name = "$$address"
 
 (* Format of symbol for active bound *)
 let bound_symbol_format = format_of_string "$$iProver_bound%d"
 
+(* Format of symbol for bitindex *)
+let bitindex_symbol_format = format_of_string "bitindex%d"
+
+(* Format of state symbol *)
+let state_symbol_format = format_of_string "$$constB%d" 
+
+(* Format of constant address term *)
+let constant_address_term_format = format_of_string "%s_address_term" 
+
+(* Format of transient address term *)
+let transient_address_term_format = 
+  format_of_string "%s_address_term_bound_%d"
+
+
+(********** Generic functions **********)  
+
+
+(* Get n-th variable recursively *)
+let rec var_n' accum = function
+    
+  (* Terminate and return accumulated variable *)
+  | 0 -> accum
+    
+  (* Fail for negaive variable numbers *)
+  | i when i < 0 -> failwith ("Bmc1Axioms.var_n: variable number must be >= 0")
+      
+  (* Recurse to get next variable *)
+  | i -> var_n' (Var.get_next_var accum) (pred i)
+
+
+(* Get n-th variable *)
+let var_n n = var_n' (Var.get_first_var ()) n
+
+
+(* Get n-th variable term *)
+let term_xn n = 
+  TermDB.add_ref 
+    (Term.create_var_term (var_n n))
+    term_db 
+    
 
 (* Create term for variable X0 *)
-let term_x0 = 
-  TermDB.add_ref 
-    (Term.create_var_term (Var.get_first_var ()))
-    term_db 
+let term_x0 = TermDB.add_ref (term_xn 0) term_db 
+
+
+(* Create term for variable X0 *)
+let term_x1 = TermDB.add_ref (term_xn 1) term_db 
+
+
+(* Create term for variable X0 *)
+let term_x2 = TermDB.add_ref (term_xn 2) term_db 
 
 
 (* Create typed equation *)
@@ -67,6 +131,59 @@ let create_typed_equation stype lhs rhs =
       term_db
       
 
+(* Create skolem term with parameter *)
+let create_skolem_term (symbol_format : ('a -> 'b, 'c, 'd, 'e, 'e, 'b) format6) symbol_type (name_param: 'a) =
+  
+  (* Name of skolem symbol *)
+  let skolem_symbol_name = Format.sprintf symbol_format name_param in
+    
+  (* Type of skolem symbol *)
+  let skolem_symbol_stype = Symbol.create_stype [] symbol_type in
+    
+  (* Add skolem symbol to symbol database *)
+  let skolem_symbol = 
+    SymbolDB.add_ref
+      (Symbol.create_from_str_type skolem_symbol_name skolem_symbol_stype)
+      symbol_db
+  in
+    
+  (* Add skolem term to term database *)
+  let skolem_term = 
+    TermDB.add_ref 
+      (Term.create_fun_term skolem_symbol []) 
+      term_db
+  in
+    
+    (* Return creted skolem term *)
+    skolem_term
+      
+      
+(* Create atom with arguments *)
+let create_atom symbol_name arg_types args =
+
+  (* Create stype of symbol *)
+  let symbol_stype = 
+    Symbol.create_stype arg_types Symbol.symb_bool_type
+  in
+
+  (* Add or retrieve symbol from symbol database *)
+  let symbol =
+    SymbolDB.add_ref
+      (Symbol.create_from_str_type symbol_name symbol_stype)
+      symbol_db
+  in
+
+  (* Create atom and add to term database *)
+  let atom = 
+    TermDB.add_ref
+      (Term.create_fun_term symbol args)
+      term_db
+  in
+
+    (* Return created atom *)
+    atom
+
+
 (* Create complementary literal *)
 let create_compl_lit term = 
   
@@ -76,110 +193,76 @@ let create_compl_lit term =
     term_db 
 
       
+
+(********** Creation of terms and atoms **********)  
+
+
 (* Create term for state, i.e. constB{n} *)
 let create_state_term n = 
-  
-  (* Name of state symbol *)
-  let state_symbol_name = Format.sprintf state_symbol_format n in
+  create_skolem_term state_symbol_format state_type n
+ 
 
-  (* Type of state symbol *)
-  let state_symbol_stype = Symbol.create_stype [] Symbol.symb_ver_state_type in
+(* Create atom for active bound, i.e. $$iProver_bound{bound} *)
+let create_bound_atom n = 
+  create_skolem_term bound_symbol_format Symbol.symb_bool_type n
 
-  (* Add state symbol to symbol database *)
-  let state_symbol = 
-    SymbolDB.add_ref
-      (Symbol.create_from_str_type state_symbol_name state_symbol_stype)
-      symbol_db
-  in
-    
-  (* Add state term to term database *)
-  let state_term = 
-    TermDB.add_ref 
-      (Term.create_fun_term state_symbol []) 
-      term_db
-  in
 
-    (* Return creted state term *)
-    state_term
+(* Create term for bitindex, i.e. bitindex{n} *)
+let create_bitindex_term n =
+  create_skolem_term bitindex_symbol_format bitindex_type n
+
+
+(* Create atom for bitvector, i.e. b000(X0) *)
+let create_bitvector_atom bitvector_symbol_name bitindex_term =
+  create_atom 
+    bitvector_symbol_name 
+    [ bitindex_type ]
+    [ bitindex_term ]
 
 
 (* Create path atom for two states, i.e. nextState(constB{p}, constB{q}) *)
 let create_path_atom state_p state_q =
-
-  (* Type of path symbol *)
-  let path_symbol_stype = 
-    Symbol.create_stype 
-      [Symbol.symb_ver_state_type; Symbol.symb_ver_state_type]
-      Symbol.symb_bool_type
-  in
-
-  (* Add or retrieve symbol from symbol database *)
-  let path_symbol =
-    SymbolDB.add_ref
-      (Symbol.create_from_str_type path_symbol_name path_symbol_stype)
-      symbol_db
-  in
-
-  (* Create path atom and add to term database *)
-  let path_atom = 
-    TermDB.add_ref
-      (Term.create_fun_term path_symbol [state_p; state_q])
-      term_db
-  in
-
-    (* Return created path atom *)
-    path_atom
+  create_atom 
+    path_symbol_name    
+    [ state_type; state_type]
+    [ state_p; state_q ]
       
 
 (* Create reachable state atom for given state,
    i.e. reachableState(state) *)
 let create_reachable_state_atom state =
-
-  (* Type of reachable state symbol *)
-  let reachable_state_symbol_stype = 
-    Symbol.create_stype 
-      [Symbol.symb_ver_state_type]
-      Symbol.symb_bool_type
-  in
-    
-  (* Add or retrieve symbol from symbol database *)
-  let reachable_state_symbol =
-    SymbolDB.add_ref
-      (Symbol.create_from_str_type 
-	 reachable_state_symbol_name 
-	 reachable_state_symbol_stype)
-      symbol_db
-  in
-    
-    (* Add or retrieve atom from term database *)
-    TermDB.add_ref
-      (Term.create_fun_term 
-	 reachable_state_symbol 
-	 [state])
-      term_db
+  create_atom 
+    reachable_state_symbol_name 
+    [ state_type ]
+    [ state ]
 
 
-(* Create atom for active bound, i.e. $$iProver_bound{bound} *)
-let create_bound_atom bound = 
+(* Create addressDiff atom for given arguments *)
+let create_address_diff_atom arg1 arg2 arg3 =
+  create_atom
+    address_diff_symbol_name
+    [ address_type; address_type; bitindex_type ]
+    [ arg1; arg2; arg3 ]
 
-  (* Type of bound symbol *)
-  let bound_symbol_stype = Symbol.create_stype [] Symbol.symb_bool_type in
 
-  (* Add or retrieve symbol from symbol database *)
-  let bound_symbol =
-    SymbolDB.add_ref 
-      (Symbol.create_from_str_type
-	 (Format.sprintf bound_symbol_format bound)
-	 bound_symbol_stype)
-      symbol_db
-  in
-    
-    (* Add or retrieve term from term database *)
-    TermDB.add_ref 
-      (Term.create_fun_term bound_symbol [])
-      term_db
-    
-  
+(* Create addressVal atom for given arguments *)
+let create_address_val_atom arg1 arg2 =
+  create_atom
+    address_val_symbol_name
+    [ address_type; bitindex_type ]
+    [ arg1; arg2 ]
+
+
+(* Create sort atom for address, i.e. address(state) *)
+let create_address_atom address =
+  create_atom 
+    address_symbol_name 
+    [ address_type ]
+    [ address ]
+
+
+(********** Creation of clauses **********)
+
 (* Create path axioms for all bounds down to [lbound] *)
 let rec create_path_axioms accum lbound = function 
 
@@ -203,7 +286,7 @@ let rec create_path_axioms accum lbound = function
       let path_axiom_b = 
 	Clause.normalise
 	  term_db
-	  (Clause.create [path_atom_b])
+	  (Clause.create [ path_atom_b ])
       in
 	
 	(* Add path axioms for lesser states *)
@@ -230,7 +313,7 @@ let rec create_reachable_state_axioms accum lbound = function
       let reachable_state_axiom_b = 
 	Clause.normalise
 	  term_db
-	  (Clause.create [reachable_state_atom_b])
+	  (Clause.create [ reachable_state_atom_b ])
       in
 	
 	(* Add reachable state axioms for lesser states *)
@@ -251,7 +334,7 @@ let rec create_reachable_state_literals accum = function
       (* Create equation X0 = constB{b} *)
       let reachable_state_literal_b =
 	create_typed_equation 
-	  Symbol.symb_ver_state_type
+	  state_type
 	  state_term_b
 	  term_x0
       in
@@ -303,7 +386,7 @@ let create_clock_axiom state clock pattern accum =
   (* Create atom for clock *)
   let clock_atom = 
     TermDB.add_ref 
-      (Term.create_fun_term clock [state_term]) 
+      (Term.create_fun_term clock [ state_term ]) 
       term_db
   in
 
@@ -324,7 +407,7 @@ let create_clock_axiom state clock pattern accum =
   in
 
     (* Return clock axiom in accumulator *)
-    (Clause.normalise term_db (Clause.create [clock_literal])) :: accum
+    (Clause.normalise term_db (Clause.create [ clock_literal ])) :: accum
 
 
 
@@ -335,7 +418,7 @@ let create_all_clock_axioms state =
   Symbol.Map.fold 
     (create_clock_axiom state)
     !Parser_types.clock_map 
-    []
+    [ ]
 
 (* Create clock axioms for all clock and all states up to bound *)
 let rec create_all_clock_axioms_for_states accum bound_i ubound =
@@ -355,13 +438,170 @@ let rec create_all_clock_axioms_for_states accum bound_i ubound =
       ubound
 
 
+(* Create address domain axioms 
+   
+   ~address(A1) | ~address(A2) | ~addressDiff(A1,A2,B) | A1 = A2 | 
+     address_val(A1,B) | address_val(A2,B)
+
+   ~address(A1) | ~address(A2) | ~addressDiff(A1,A2,B) | A1 = A2 | 
+     ~address_val(A1,B) | ~address_val(A2,B)
+
+*)
+let create_address_domain_axiom () =
+
+  (* Common literals of both axioms: 
+
+     ~address(A1) | ~address(A2) | ~addressDiff(A1,A2,B) | A1 = A2
+  *)
+  let axiom_head =
+    [ create_compl_lit (create_address_atom term_x0);
+      create_compl_lit (create_address_atom term_x1);
+      create_compl_lit (create_address_diff_atom term_x0 term_x1 term_x2);
+      create_typed_equation address_type term_x0 term_x1 ]
+  in
+
+  (* Atom address_val(A1,B) *)
+  let address_val_1_atom = 
+    create_address_val_atom term_x0 term_x2
+  in
+
+  (* Atom address_val(A2,B) *)
+  let address_val_2_atom = 
+    create_address_val_atom term_x1 term_x2
+  in
+
+  (* First axiom:
+     
+     address_val(A1,B) | address_val(A1,B) | {axiom_head} 
+  *)
+  let address_domain_axiom_1 = 
+    address_val_1_atom :: 
+      address_val_2_atom :: 
+      axiom_head
+  in
+
+  (* Second axiom:
+
+     ~address_val(A1,B) | ~address_val(A1,B) | {axiom_head} 
+  *)
+  let address_domain_axiom_2 = 
+    (create_compl_lit address_val_1_atom) :: 
+      (create_compl_lit address_val_2_atom) :: 
+      axiom_head
+  in
+
+    (* Return the two address_domain axioms *)
+    [ address_domain_axiom_1; address_domain_axiom_2 ]
+
+
+(* Accumulate atoms addressDiff(A1,A2,bitindex{n}) from n to 0 *)
+let rec create_address_diff_disjunction accum = function 
+
+  (* Terminate after all atoms have been generated *)
+  | i when i < 0 -> accum
+
+  (* Create axiom for current i *)
+  | i -> 
+
+      (* Create atom addressDiff(X0,X1,bitindex{i}) *)
+      let address_diff_disjunct = 
+	create_address_diff_atom term_x0 term_x1 (create_bitindex_term i) 
+      in
+
+	(* Recursively create remaining atoms *)
+	create_address_diff_disjunction 
+	  (address_diff_disjunct :: accum)
+	  (pred i)
+
+      
+(* Create address_diff axiom with the maximal bit width of all
+   addresses:
+   
+   cnf(address_diff,axiom,addressDiff(A1,A2,bitindex0) | ... | 
+                            addressDiff(A1,A2,bitindex{N-1})).
+
+*)
+let create_address_domain_axiom address_max_width = 
+
+  (* Create literals for axiom *)
+  let address_domain_axiom_literals =
+    create_address_diff_disjunction [ ] address_max_width 
+  in
+    
+    (* Create axiom *)
+    Clause.normalise term_db (Clause.create address_domain_axiom_literals)
+    
+
+
+
+(* Return address definition for given constant bit vector b000 as 
+   
+   b000(X0) <=> addressVal(b000_address_term,X0) 
+   
+   clausified to 
+   
+   b000(X0) | ~addressVal(b000_address_term,X0) 
+   ~b000(X0) | addressVal(b000_address_term,X0) 
+   
+   and sort axiom 
+   
+   address(b000_address_term)
+   
+   TODO: optimise clausification, might be sufficient to generate
+   first clause only in some cases
+
+*)
+let create_constant_address_definition accum bitvector_symbol =
+  
+  (* Get name of bit vector symbol *)
+  let bitvector_name = Symbol.get_name bitvector_symbol in 
+
+  (* Create address term for constant bit vector: b000_address_term *)
+  let address_term = 
+    create_skolem_term constant_address_term_format address_type bitvector_name
+  in
+    
+  (* Create atom for address: addressVal(b000_address_term, X0) *)
+  let address_val_atom =
+    create_address_val_atom address_term term_x0
+  in
+    
+  (* Create atom for bitvector with variable: b000(X0) *)
+  let bitvector_atom = 
+    create_bitvector_atom bitvector_name term_x0
+  in
+
+  (* Create atom for address term: address(b000_address_term) *)
+  let address_atom =
+    create_address_atom address_term
+  in
+
+    (* Return clauses in accumulator *)
+    (Clause.normalise 
+      term_db 
+      (Clause.create 
+	 [ create_compl_lit bitvector_atom; address_val_atom ])) ::
+      (Clause.normalise 
+	 term_db 
+	 (Clause.create 
+	    [ bitvector_atom; create_compl_lit address_val_atom ])) ::
+      (Clause.normalise 
+	 term_db 
+	 (Clause.create [ address_atom ])) ::
+      accum
+
+
+
+    
+
+
 (* Axioms for bound 0 *)
 let init_bound () = 
 
   (* Create reachable states axiom *)
   let reachable_state_axioms = 
     create_reachable_state_axioms 
-      []       
+      [ ]       
       0
       0
   in
@@ -374,7 +614,7 @@ let init_bound () =
   (* Create clock axiom *)
   let clock_axioms =
     create_all_clock_axioms_for_states 
-      [] 
+      [ ] 
       0
       0
   in
@@ -384,7 +624,7 @@ let init_bound () =
 
     (* Assume assumption literal for next_bound to be true in solver *)
     Prop_solver_exchange.assign_only_norm_solver_assumptions 
-      [bound_literal_0];
+      [ bound_literal_0 ];
     
     (* Return created path axioms and reachable state axiom *)
     let bound_axioms =
@@ -413,13 +653,13 @@ let increment_bound cur_bound next_bound =
   (* Create path axioms for all states between next bound and current
      bound *)
   let path_axioms =
-    create_path_axioms [] cur_bound next_bound
+    create_path_axioms [ ] cur_bound next_bound
   in
 
   (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
     create_reachable_state_axioms 
-      []       
+      [ ]       
       (succ cur_bound)
       next_bound
   in
@@ -432,7 +672,7 @@ let increment_bound cur_bound next_bound =
   (* Create clock axioms up to next bound *)
   let clock_axioms =
     create_all_clock_axioms_for_states 
-      [] 
+      [ ] 
       (succ cur_bound)
       next_bound 
   in
