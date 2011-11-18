@@ -1372,10 +1372,14 @@ let out_symb_reach_map srm =
  in
  let sorted_symb_depth_list = 
    List.sort (fun (_,d1) (_,d2) -> compare d1 d2) symb_depth_list in
- List.iter 
-   (fun (symb,depth) -> 
-     out_str ((Symbol.to_string symb)^": "^(string_of_int depth))) sorted_symb_depth_list  
 
+   (* Output only in verbose mode *)
+   if !current_options.bmc1_verbose then 
+     List.iter 
+       (fun (symb,depth) -> 
+	  out_str ((Symbol.to_string symb)^": "^(string_of_int depth))) 
+       sorted_symb_depth_list  
+       
 
 (*------------------------------------------------*)
 

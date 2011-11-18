@@ -523,6 +523,7 @@ type options = {
     mutable bmc1_incremental      : bool; 
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
+    mutable bmc1_verbose          : bool;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
@@ -615,6 +616,7 @@ let default_options () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
     
 
 (*----Instantiation------*)
@@ -1097,6 +1099,16 @@ let bmc1_out_stat_inf  =
   bmc1_out_stat_str^
     inf_pref^"output no statistics, after the last bound only or after each bound (full)\n"
 
+(*--------*)
+
+let bmc1_verbose_str = "--bmc1_verbose" 
+
+let bmc1_verbose_fun b =
+  !current_options.bmc1_verbose <- b
+
+let bmc1_verbose_inf  =
+  bool_str^
+  inf_pref^"print detailed output during incremental BMC1\n"
 
 (*----Instantiation------*)
 
@@ -1678,6 +1690,10 @@ let spec_list =
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
 
+   (bmc1_verbose_str, 
+    Arg.Bool(bmc1_verbose_fun),
+    bmc1_verbose_inf);
+
 (*------Instantiation--*)
    (instantiation_flag_str, Arg.Bool(instantiation_flag_fun),instantiation_flag_inf);
    (inst_lit_sel_str, Arg.String(inst_lit_sel_fun), inst_lit_sel_inf);
@@ -1807,6 +1823,7 @@ let bmc1_options_str_list opt =
    (bmc1_max_bound_str,(string_of_int (val_of_override opt.bmc1_max_bound)));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
+   (bmc1_verbose_str,(string_of_bool opt.bmc1_verbose));
   ]
 
 let inst_options_str_list opt = 
@@ -2178,6 +2195,7 @@ let option_1 () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2317,6 +2335,7 @@ let option_2 () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2429,6 +2448,7 @@ let option_3 () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2537,6 +2557,7 @@ let option_4 () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2655,6 +2676,7 @@ let option_finite_models () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2769,6 +2791,7 @@ let option_epr_non_horn () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3005,6 +3028,7 @@ let option_epr_horn () = {
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----------------------Instantiation------*)
   instantiation_flag             = true;
@@ -3239,6 +3263,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3354,6 +3379,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3467,6 +3493,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_verbose            = false;
 
 (*----Instantiation------*)
        instantiation_flag             = true;

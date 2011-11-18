@@ -170,6 +170,7 @@ type options = {
     mutable bmc1_incremental      : bool; 
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
+    mutable bmc1_verbose          : bool;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;

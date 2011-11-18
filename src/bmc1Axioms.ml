@@ -17,7 +17,6 @@
 open Lib
 open Options
 open Statistics
-open Printf
 
 
 (* The symbol database *)
@@ -32,7 +31,7 @@ let invalid_bound_assumptions = ref []
 
 
 (* Clauses to be instantiated for each bound *)
-let bound_axioms_instantiate = ref []
+let bound_instantiate_axioms = ref []
   
 
 (********** Symbol names and name patterns **********)  
@@ -788,19 +787,10 @@ let separate_bound_axioms clauses =
 let init_bound all_clauses = 
 
   (* Separate axioms to be instantiated for each bound *)
-  let bound_axioms, clauses = separate_bound_axioms all_clauses in
-
-    (* Output axioms to be instantiated for each bound *)
-    Format.printf 
-      "BMC1 axioms to be instantiated at bounds@.";
-      
-    List.iter
-      (fun c -> Format.printf "%s@\n@." (Clause.to_string c))
-      bound_axioms;
-
-    (* Save axioms to be instantiated *)
-    bound_axioms_instantiate := bound_axioms;
-
+  let bound_instantiate_axioms_of_clauses, clauses = 
+    separate_bound_axioms all_clauses 
+  in
+    
   (* Create reachable states axiom *)
   let reachable_state_axioms = 
     create_reachable_state_axioms 
@@ -813,7 +803,7 @@ let init_bound all_clauses =
   let reachable_state_conj_axiom = 
     create_reachable_state_conj_axiom 0
   in
-
+    
   (* Create clock axiom *)
   let clock_axioms =
     create_all_clock_axioms_for_states 
@@ -821,35 +811,53 @@ let init_bound all_clauses =
       0
       0
   in
-
+    
   (* Create literal for current bound, i.e. $$iProver_bound{b_cur} *)
   let bound_literal_0 = create_bound_atom 0 in
-
+    
+  (* Return created path axioms and reachable state axiom *)
+  let bound_axioms =
+    reachable_state_conj_axiom :: 
+      (reachable_state_axioms @ clock_axioms)
+  in
+    
+    (* Save axioms to be instantiated *)
+    bound_instantiate_axioms := bound_instantiate_axioms_of_clauses;
+    
     (* Assume assumption literal for next_bound to be true in solver *)
     Prop_solver_exchange.assign_only_norm_solver_assumptions 
       [ bound_literal_0 ];
     
-    (* Return created path axioms and reachable state axiom *)
-    let bound_axioms =
-      reachable_state_conj_axiom :: 
-	(reachable_state_axioms @ clock_axioms)
-    in
+    (* Output only in verbose mode *)
+    if !current_options.bmc1_verbose then
       
-      (* Output created axioms for bound *)
-      Format.printf 
-	"BMC1 axioms for initial bound 0@.";
+      (
+	
+	(* Output axioms to be instantiated for each bound *)
+	Format.printf 
+	  "BMC1 axioms to be instantiated at bounds@.";
+	
+	List.iter
+	  (fun c -> Format.printf "%s@\n@." (Clause.to_string c))
+	  bound_axioms;
+	  
+	(* Output created axioms for bound *)
+	Format.printf 
+	  "BMC1 axioms for initial bound 0@.";
+	
+	List.iter
+	  (function c -> Format.printf "%s@." (Clause.to_string c))
+	  bound_axioms;
+	
+	Format.printf "@."
+	  
+      );
+    
+    (* Return created axioms for bound *)
+    bound_axioms, clauses
       
-      List.iter
-	(function c -> Format.printf "%s@." (Clause.to_string c))
-	bound_axioms;
-
-      Format.printf "@.";
       
-      (* Return created axioms for bound *)
-      bound_axioms, clauses
-
-  
-
+      
 (* Increment bound from given bound *)
 let increment_bound cur_bound next_bound =
 
@@ -885,7 +893,7 @@ let increment_bound cur_bound next_bound =
      TODO: iterate all bounds between cur_bound and next_bound if
      increases are in greater steps *)
   let bound_axioms_instantiated = 
-    instantiate_bound_axioms next_bound !bound_axioms_instantiate 
+    instantiate_bound_axioms next_bound !bound_instantiate_axioms 
   in
 
   (* Create literal for current bound, i.e. $$iProver_bound{b_cur} *)
@@ -911,19 +919,26 @@ let increment_bound cur_bound next_bound =
 	   bound_axioms_instantiated)
     in
       
-      
-      (* Output created axioms for bound *)
-      Format.printf 
-	"BMC1 axioms for bound %d after bound %d@." 
-	next_bound 
-	cur_bound;
-      
-      List.iter
-	(function c -> Format.printf "%s@." (Clause.to_string c))
-	bound_axioms;
+      (* Output only in verbose mode *)
+      if !current_options.bmc1_verbose then
+	
+	(
 
-      Format.printf "@.";
-   
+	  (* Output created axioms for bound *)
+	  Format.printf 
+	    "BMC1 axioms for bound %d after bound %d@." 
+	    next_bound 
+	    cur_bound;
+	  
+	  List.iter
+	    (function c -> Format.printf "%s@." (Clause.to_string c))
+	    bound_axioms;
+	  
+	  Format.printf "@."
+	    
+	);
+
+      
       (* Return created axioms for bound *)
       bound_axioms
 

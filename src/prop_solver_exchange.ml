@@ -542,6 +542,7 @@ let ()=add_param_str ("Real Selection lex [-act;-num_symb]\n")
 let assign_solver_assumptions lit_list = 
  let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
 
+   (*
    Format.printf "New solver assumptions: @\n";
 
    List.iter 
@@ -549,23 +550,27 @@ let assign_solver_assumptions lit_list =
      lit_list;
    
    Format.printf "@\n@.";
+   *)
 
  solver_assumptions_ref:= new_assum
 
 
 let assign_only_sim_solver_assumptions lit_list = 
  let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
+   (*
    Format.printf "New assumptions for simplification solver: @.";
 
    List.iter 
      (fun l -> Format.printf "%s@." (Term.to_string l))
      lit_list;
-   
+   *)
+
  only_sim_solver_assumptions_ref:= new_assum
 
 let assign_only_norm_solver_assumptions lit_list = 
  let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
 
+   (*
    Format.printf "New assumptions for satisfiability solver: @.";
 
    List.iter 
@@ -573,7 +578,8 @@ let assign_only_norm_solver_assumptions lit_list =
      lit_list;
    
    Format.printf "@.";
-   
+   *)
+
    only_norm_solver_assumptions_ref:= new_assum
 
 let assign_adjoint_preds preds =
