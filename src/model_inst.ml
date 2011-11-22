@@ -863,9 +863,9 @@ let fill_stat_model model =
 let build_model all_clauses = 
 (* debug *)
 
-(*  out_str "\n\n-----Debug Out Raw Model\n\n"; 
+  out_str "\n\n-----Debug Out Raw Model\n\n"; 
   out_raw_model all_clauses;
-*)
+
 
  stdout_stream.stream_add_str (pref_str^"Building Model..."); 
   let empty_model = NModel.empty in
