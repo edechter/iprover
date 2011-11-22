@@ -657,8 +657,9 @@ let rec is_bound_term = function
 
 
 let is_bound_clause clause = 
-  
-  List.exists (fun b -> b) (List.map is_bound_term (Clause.get_literals clause))
+  List.exists 
+    (fun b -> b) 
+    (List.map is_bound_term (Clause.get_literals clause))
  
 
 
@@ -839,7 +840,7 @@ let init_bound all_clauses =
 	
 	List.iter
 	  (fun c -> Format.printf "%s@\n@." (Clause.to_string c))
-	  bound_axioms;
+	  !bound_instantiate_axioms;
 	  
 	(* Output created axioms for bound *)
 	Format.printf 

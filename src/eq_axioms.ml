@@ -236,6 +236,67 @@ let get_type_eq_term t =
 
 let typed_congr_axiom_list () = 
   let eq_type_table = SymbTbl.create 101 in
+
+(*    
+  let collect_essential_stypes = function
+
+    (* Symbol is a theory symbol (not a type symbol) that occurs in an
+       input term *)
+    | symb when 
+	(Symbol.is_essential_input symb) &&
+	  not (symb == Symbol.symb_typed_equality) -> 
+
+	(
+
+	  (* Get type of arguments and type of result of symbol *)
+	  match Symbol.get_stype_args_val symb with 
+	      
+	    (* Type of arguments and result determined *)
+	    | Def (a, v) -> 
+		
+		(* Add all types to table of types except bool type $o *)
+		List.iter
+		  (function 
+		       
+		     (* Do not generate axioms for bool type $o *)
+		     | s when (s == Symbol.symb_bool_type) -> ()
+	
+		     (* Generate axioms for all other types *)
+		     | s -> 
+			 
+			 (* Symbol not in table? *)
+			 if not (SymbTbl.mem eq_type_table s) then 
+			   
+			   (* Add symbol to table of types *)
+			   SymbTbl.add eq_type_table s s 
+
+		  )
+		  (v :: a)
+		  
+	    (* Skip if type is not known *)
+	    | Undef -> ()
+
+	)
+
+	  
+    (* Symbol is declared only, but does not occur *)
+    | _ -> ()
+	
+  in
+    
+    (* Iterate symbol table to find types to generate axioms for *)
+    SymbolDB.iter collect_essential_stypes !symbol_db_ref;
+      
+
+    out_str ("Types to generate congruence axioms for:\n");
+    SymbTbl.iter
+      (fun s _ -> out_str (Symbol.to_string s))
+      eq_type_table;
+*)
+  
+(* It is not enough to consider the types in equations only, must 
+   take the types of all symbols in the input as above *)
+
 (* for $equality_sorted(type, t,s) add type to symb_table *)
   let add_eq_type t = 
     match (get_type_eq_term t) with 
@@ -247,6 +308,9 @@ let typed_congr_axiom_list () =
     |None -> ()
   in	 
   TermDB.iter add_eq_type !term_db_ref;    
+
+
+
   let f symb rest = 
     if 
       (
@@ -493,9 +557,10 @@ let less_range_axioms () =
 *)
   let max_ind = get_max_bit_index () in 
 
-(*  (Clause.clause_list_to_tptp (less_axioms' max_ind));*)
+(*    out_str 
+      (Clause.clause_list_to_tptp (less_axioms' max_ind)); *)
 
-  (less_axioms' max_ind)@(range_axioms' max_ind)
+    (less_axioms' max_ind)@(range_axioms' max_ind)
 
   
 (*--------------- Brand's transformation -------------------*)   

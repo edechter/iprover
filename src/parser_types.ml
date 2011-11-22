@@ -163,6 +163,11 @@ let init () =
   less_map        := SymbMap.empty;
   range_map       := SymbMap.empty;
   clock_map       := SymbMap.empty;
+  cardinality_map := SymbMap.empty;
+  max_address_width_map := SymbMap.empty;
+  state_constant_map := SymbMap.empty;
+  address_base_name_map := SymbMap.empty;
+  father_of_map := SymbMap.empty;
 
 (*  ignore (TermDB.add_ref bot_term term_db_ref);*)
 (*  ignore (TermDB.add_ref top_term term_db_ref);*)
@@ -471,6 +476,11 @@ let system_pred_fun name args =
 	(* Create term like plain term *)
 	plain_term_fun_typed true name args
 	
+
+    (* Sorted equality  *)
+    | "$$equality_sorted" -> 
+
+	create_theory_term Symbol.symb_typed_equality args
 
     | _ -> 
 
@@ -862,10 +872,10 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
        else
 	 
 	 (
-
+	   
 	   (* Add symbol to map *)
 	   address_base_name_map := SymbMap.add symb c !address_base_name_map
-
+	     
 	 )
 
     |_ -> ()

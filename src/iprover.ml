@@ -1547,6 +1547,9 @@ let run_iprover () =
       current_clauses := Preprocess.preprocess !current_clauses;
       assign_is_essential_input_symb !current_clauses;
       let distinct_ax_list = Eq_axioms.distinct_ax_list () in
+	(* Clauses are input clauses *)
+	assign_is_essential_input_symb distinct_ax_list;
+	      
 (*debug *)
 (*	out_str "\n-----------Distinct Axioms:---------\n";
 	out_str ((Clause.clause_list_to_tptp distinct_ax_list)^"\n\n");
@@ -1558,6 +1561,9 @@ let run_iprover () =
 
       let less_range_axioms = Eq_axioms.less_range_axioms () in
 
+	(* Clauses are input clauses *)
+	assign_is_essential_input_symb less_range_axioms;
+	      
 	(
 
 	  (
