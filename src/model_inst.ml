@@ -863,7 +863,8 @@ let fill_stat_model model =
 let build_model all_clauses = 
 (* debug *)
 
-(*  out_str "\n\n-----Debug Out Raw Model\n\n"; 
+(*
+  out_str "\n\n-----Debug Out Raw Model\n\n"; 
   out_raw_model all_clauses;
 *)
 
