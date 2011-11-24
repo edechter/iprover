@@ -169,6 +169,8 @@ type options = {
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
     mutable bmc1_max_bound        : int override; 
+    mutable bmc1_symbol_reachability : bool; 
+
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool;
     

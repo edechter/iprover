@@ -522,6 +522,8 @@ type options = {
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
     mutable bmc1_max_bound        : int override; 
+    mutable bmc1_symbol_reachability : bool; 
+
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool;
     
@@ -615,6 +617,7 @@ let default_options () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
     
@@ -1080,6 +1083,17 @@ let bmc1_max_bound_fun b =
 let bmc1_max_bound_inf  =
   bool_str^
   inf_pref^"maximal bound in BMC1\n"
+
+(*--------*)
+
+let bmc1_symbol_reachability_str = "--bmc1_symbol_reachability" 
+
+let bmc1_symbol_reachability_fun b =
+  !current_options.bmc1_symbol_reachability <- b
+
+let bmc1_symbol_reachability_inf  =
+  bool_str^
+  inf_pref^"calculate symbol reachability in BMC1\n"
 
 (*--------*)
 
@@ -1686,6 +1700,10 @@ let spec_list =
     Arg.Int(bmc1_max_bound_fun),
     bmc1_max_bound_inf);
 
+   (bmc1_symbol_reachability_str, 
+    Arg.Bool(bmc1_symbol_reachability_fun),
+    bmc1_symbol_reachability_inf);
+
    (bmc1_out_stat_str, 
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
@@ -1821,6 +1839,8 @@ let bmc1_options_str_list opt =
   [
    (bmc1_incremental_str,(string_of_bool opt.bmc1_incremental));
    (bmc1_max_bound_str,(string_of_int (val_of_override opt.bmc1_max_bound)));
+   (bmc1_symbol_reachability_str,
+    (string_of_bool opt.bmc1_symbol_reachability));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_verbose_str,(string_of_bool opt.bmc1_verbose));
@@ -2194,6 +2214,7 @@ let option_1 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -2334,6 +2355,7 @@ let option_2 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -2447,6 +2469,7 @@ let option_3 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -2556,6 +2579,7 @@ let option_4 () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -2675,6 +2699,7 @@ let option_finite_models () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -2790,6 +2815,7 @@ let option_epr_non_horn () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -3027,6 +3053,7 @@ let option_epr_horn () = {
 (*----BMC1---------------*)
   bmc1_incremental        = false;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -3262,6 +3289,7 @@ let option_verification_epr ver_epr_opt =
 (*----BMC1---------------*)
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -3378,6 +3406,7 @@ let option_verification_epr ver_epr_opt =
 (*----BMC1---------------*)
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 
@@ -3492,6 +3521,7 @@ let option_verification_epr ver_epr_opt =
 (*----BMC1---------------*)
   bmc1_incremental        = true;
   bmc1_max_bound          = ValueDefault (-1);
+  bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = false;
 

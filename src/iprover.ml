@@ -1468,9 +1468,13 @@ let run_iprover () =
       List.iter (change_conj_symb_clause false) !(Parser_types.parsed_clauses)
     in
     change_conj_symb_input ();
-    out_symb_reach_map  
-      (symbol_reach 
-	 !(Parser_types.neg_conjectures));
+
+    (* Calculate symbol reachability? *)
+    if !current_options.bmc1_symbol_reachability then
+
+      out_symb_reach_map  
+	(symbol_reach 
+	   !(Parser_types.neg_conjectures));
 
 
 (*----debug----*)
