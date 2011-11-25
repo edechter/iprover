@@ -1170,27 +1170,42 @@ let rec main clauses finite_model_clauses =
 	then 	  
 	  when_eq_ax_ommitted ()
 	else	
-	  (out_str (satisfiable_str ());  
-	   out_stat ();	   
-	   if (not (!current_options.sat_out_model = Model_None))
-	   then
-	     out_res_model all_clauses
-	   else ()
+	  (
+	      out_str (satisfiable_str ());  
+
+	    (* Do not output statistics in BMC1 mode with
+	       --bmc1_out_stat none *)
+	    if (not !current_options.bmc1_incremental) || 
+	      (not (val_of_override !current_options.bmc1_out_stat = 
+		  BMC1_Out_Stat_None)) then
+	      out_stat ();	   
+
+	    if (not (!current_options.sat_out_model = Model_None))
+	    then
+	      out_res_model all_clauses
+	    else ()
 	  )
     |
-      Instantiation.Satisfiable all_clauses 
+	Instantiation.Satisfiable all_clauses 
       ->
-	if !eq_axioms_are_omitted 
-	then 	  
-	  when_eq_ax_ommitted ()
-	else	
-	  (out_str (satisfiable_str ());  
-	    out_stat ();
-	   if (not (!current_options.sat_out_model = Model_None))
-	   then
-	     Model_inst.out_model (Model_inst.build_model all_clauses)
-	   else ()
-	  )
+      if !eq_axioms_are_omitted 
+      then 	  
+	when_eq_ax_ommitted ()
+      else	
+	(out_str (satisfiable_str ());  
+
+	    (* Do not output statistics in BMC1 mode with
+	       --bmc1_out_stat none *)
+	 if (not !current_options.bmc1_incremental) || 
+	   (not (val_of_override !current_options.bmc1_out_stat = 
+	       BMC1_Out_Stat_None)) then
+	   out_stat ();	   
+
+	 if (not (!current_options.sat_out_model = Model_None))
+	 then
+	   Model_inst.out_model (Model_inst.build_model all_clauses)
+	 else ()
+	)
 
     (* Incremental BMC1 solving: unsatisfiable when there are higher
        bounds left to check *)
@@ -1472,9 +1487,21 @@ let run_iprover () =
     (* Calculate symbol reachability? *)
     if !current_options.bmc1_symbol_reachability then
 
-      out_symb_reach_map  
-	(symbol_reach 
-	   !(Parser_types.neg_conjectures));
+      (
+	
+	let reach_map_start_time = Unix.gettimeofday () in
+	
+	out_symb_reach_map  
+	  (symbol_reach 
+	     !(Parser_types.neg_conjectures));
+	   
+	out_str 
+	  (Format.sprintf 
+	     "%sTime for symbol reachability: %.3fs@\n@."
+	     pref_str
+	     (Unix.gettimeofday () -. reach_map_start_time));
+
+      );
 
 
 (*----debug----*)
@@ -1740,13 +1767,26 @@ let run_iprover () =
       else
 	()
       );
-      out_stat ()
-	
+       	    
+       (* Do not output statistics in BMC1 mode with
+	  --bmc1_out_stat none *)
+       if (not !current_options.bmc1_incremental) || 
+	 (not (val_of_override !current_options.bmc1_out_stat = 
+	     BMC1_Out_Stat_None)) then
+	 out_stat ()
+	   
   | Discount.Empty_Clause (clause) -> 
-      (
-       out_str (proved_str ());
-       out_stat ();
-       out_str(" Resolution empty clause:\n");
+    (
+      out_str (proved_str ());
+
+      (* Do not output statistics in BMC1 mode with
+	 --bmc1_out_stat none *)
+      if (not !current_options.bmc1_incremental) || 
+	(not (val_of_override !current_options.bmc1_out_stat = 
+	    BMC1_Out_Stat_None)) then
+	out_stat ();	   
+      
+      out_str(" Resolution empty clause:\n");
 (* in this case the unsat is already without answer clauses *)
        (if (!answer_mode_ref)
        then
@@ -1764,7 +1804,14 @@ let run_iprover () =
     -> 
       (assert (not !eq_axioms_are_omitted);
        out_str (satisfiable_str ());  
-       out_stat ();
+       
+       (* Do not output statistics in BMC1 mode with
+	  --bmc1_out_stat none *)
+       if (not !current_options.bmc1_incremental) || 
+	 (not (val_of_override !current_options.bmc1_out_stat = 
+	     BMC1_Out_Stat_None)) then
+	 out_stat ();	   
+
        if (not (!current_options.sat_out_model = Model_None))
        then
 	 out_res_model all_clauses
@@ -1775,7 +1822,14 @@ let run_iprover () =
       ->
 	(assert (not !eq_axioms_are_omitted);
 	 out_str (satisfiable_str ());  
-	 out_stat ();
+
+	 (* Do not output statistics in BMC1 mode with
+	    --bmc1_out_stat none *)
+	 if (not !current_options.bmc1_incremental) || 
+	   (not (val_of_override !current_options.bmc1_out_stat = 
+	       BMC1_Out_Stat_None)) then
+	   out_stat ();	   
+
 	 if (not (!current_options.sat_out_model = Model_None))
 	 then
 	  Model_inst.out_model (Model_inst.build_model all_clauses)
@@ -1786,27 +1840,52 @@ let run_iprover () =
       (kill_all_child_processes ();
        out_str (unknown_str ()); 
        out_str "\n Termination Signal\n"; 
-       out_stat ())
+
+       (* Do not output statistics in BMC1 mode with
+	  --bmc1_out_stat none *)
+       if (not !current_options.bmc1_incremental) || 
+	 (not (val_of_override !current_options.bmc1_out_stat = 
+	     BMC1_Out_Stat_None)) then
+	 out_stat ())
 	
   | Time_out_real -> 
       (kill_all_child_processes ();
        out_str (unknown_str ()); 
        out_str "Time Out Real\n"; 
-       out_stat()
+       
+       (* Do not output statistics in BMC1 mode with
+	  --bmc1_out_stat none *)
+       if (not !current_options.bmc1_incremental) || 
+	 (not (val_of_override !current_options.bmc1_out_stat = 
+	     BMC1_Out_Stat_None)) then
+	 out_stat()
+	   
       )
 	
   | Time_out_virtual ->
       (kill_all_child_processes ();
        out_str (unknown_str ()); 
        out_str "Time Out Virtual\n"; 
-       out_stat())
+       
+       (* Do not output statistics in BMC1 mode with
+	  --bmc1_out_stat none *)
+       if (not !current_options.bmc1_incremental) || 
+	 (not (val_of_override !current_options.bmc1_out_stat = 
+	     BMC1_Out_Stat_None)) then
+	 out_stat())
 	
   |Schedule_Terminated ->
-      (kill_all_child_processes ();
-       out_str (unknown_str ()); 
-       out_str "Schedule_Terminated:  try an extended schedule or with an unbounded time limit";
+    (kill_all_child_processes ();
+     out_str (unknown_str ()); 
+     out_str "Schedule_Terminated:  try an extended schedule or with an unbounded time limit";
+     
+       (* Do not output statistics in BMC1 mode with
+	  --bmc1_out_stat none *)
+     if (not !current_options.bmc1_incremental) || 
+       (not (val_of_override !current_options.bmc1_out_stat = 
+	   BMC1_Out_Stat_None)) then
        out_stat ())
-
+      
   (* Silently terminate after BMC1 maximal bound proved *)
   | Exit -> ()
   

@@ -477,6 +477,17 @@ let system_pred_fun name args =
 	plain_term_fun_typed true name args
 	
 
+    (* Range predicate for BMC1 *)
+    | term when 
+	(try 
+	   String.sub term 0 8 = "$$range_" 
+	 with 
+	   | Invalid_argument _ -> false) ->
+
+	(* Create term like plain term *)
+	plain_term_fun_typed true name args
+	
+
     (* Sorted equality  *)
     | "$$equality_sorted" -> 
 
@@ -502,6 +513,18 @@ let system_term_fun name args =
 	(* Create term like plain term *)
 	plain_term_fun_typed false name args
 	  
+
+    (* bitindex term for BMC1 *)
+    | term when 
+	(try 
+	   String.sub term 0 10 = "$$bitIndex" 
+	 with 
+	   | Invalid_argument _ -> false) ->
+
+	(* Create term like plain term *)
+	plain_term_fun_typed false name args
+	
+
     | _ -> 
 
 	(* Alternative: create as plain term without catching undefined *)

@@ -386,7 +386,7 @@ let distinct_ax_list () =
 
 
 let bit_index_str i  = 
-  "bitIndex"^(string_of_int i)
+  "$$bitIndex"^(string_of_int i)
 
 let stype_bit_index = (Symbol.create_stype [] Symbol.symb_ver_bit_index_type)
 
