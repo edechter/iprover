@@ -481,7 +481,7 @@ let str_to_res_to_prop_solver_type str =
 (*-----All options-----*)
 
 type options = {
-    mutable out_options           : out_options_type;
+    mutable out_options           : out_options_type override;
     mutable tptp_safe_out         : bool;
 
 (*----Input-------*)
@@ -525,7 +525,7 @@ type options = {
     mutable bmc1_symbol_reachability : bool; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
-    mutable bmc1_verbose          : bool;
+    mutable bmc1_verbose          : bool override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
@@ -575,7 +575,7 @@ type options = {
 
 let default_options () = {
   
-    out_options   = Out_All_Opt;   
+    out_options   = ValueDefault Out_All_Opt;   
     tptp_safe_out = false;
 
 (*----Input-------*)
@@ -619,7 +619,7 @@ let default_options () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
     
 
 (*----Instantiation------*)
@@ -684,15 +684,23 @@ let current_options = ref (default_options ())
 let set_new_current_options o = 
   current_options := 
     {o with 
-       
-       (* Only override defaults *)
-       bmc1_max_bound = 
-	override o.bmc1_max_bound !current_options.bmc1_max_bound;
 
-       (* Only override defaults *)
-       bmc1_out_stat = 
+      (* Only override defaults *)
+      out_options =
+	override o.out_options !current_options.out_options;
+      
+      (* Only override defaults *)
+      bmc1_max_bound = 
+	override o.bmc1_max_bound !current_options.bmc1_max_bound;
+      
+      (* Only override defaults *)
+      bmc1_out_stat = 
 	override o.bmc1_out_stat !current_options.bmc1_out_stat;
-       
+      
+      (* Only override defaults *)
+      bmc1_verbose = 
+	override o.bmc1_verbose !current_options.bmc1_verbose;
+      
     }
 
     
@@ -726,7 +734,8 @@ let out_options_str   = "--out_options"
 
 let out_options_fun str = 
   try 
-    !current_options.out_options <- (str_to_out_options_type str)
+    !current_options.out_options <- 
+      override_cmd (str_to_out_options_type str) !current_options.out_options
   with 
     Unknown_out_options_type -> 
       failwith (args_error_msg out_options_str str)  
@@ -1118,7 +1127,8 @@ let bmc1_out_stat_inf  =
 let bmc1_verbose_str = "--bmc1_verbose" 
 
 let bmc1_verbose_fun b =
-  !current_options.bmc1_verbose <- b
+  !current_options.bmc1_verbose <- 
+    override_cmd b !current_options.bmc1_verbose
 
 let bmc1_verbose_inf  =
   bool_str^
@@ -1799,7 +1809,8 @@ let opt_val_list_to_str l =
 
 let input_options_str_list opt = 
   [ 
-    (out_options_str, (out_options_type_to_str opt.out_options));
+    (out_options_str, 
+     (out_options_type_to_str (val_of_override opt.out_options)));
     (tptp_safe_out_str, (string_of_bool opt.tptp_safe_out));
     (problem_path_str, opt.problem_path);
     (include_path_str, opt.include_path);
@@ -1843,7 +1854,7 @@ let bmc1_options_str_list opt =
     (string_of_bool opt.bmc1_symbol_reachability));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
-   (bmc1_verbose_str,(string_of_bool opt.bmc1_verbose));
+   (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
   ]
 
 let inst_options_str_list opt = 
@@ -1948,10 +1959,10 @@ let all_opt_str opt =
 let options_to_str opt =
   let close_str = (s_pref_str ())^"\n" in
   (*(pref_str^(out_options_type_to_str opt.out_options)^"\n";*)
-  match opt.out_options with 
-  | Out_All_Opt     ->  (all_opt_str opt)^close_str
-  | Out_Control_Opt ->  (control_opt_str opt)^close_str
-  | Out_No_Opt      ->  ""
+  match val_of_override opt.out_options with 
+    | Out_All_Opt     ->  (all_opt_str opt)^close_str
+    | Out_Control_Opt ->  (control_opt_str opt)^close_str
+    | Out_No_Opt      ->  ""
 
 
 
@@ -2216,7 +2227,7 @@ let option_1 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2357,7 +2368,7 @@ let option_2 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2471,7 +2482,7 @@ let option_3 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2581,7 +2592,7 @@ let option_4 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2701,7 +2712,7 @@ let option_finite_models () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2817,7 +2828,7 @@ let option_epr_non_horn () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3055,7 +3066,7 @@ let option_epr_horn () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----------------------Instantiation------*)
   instantiation_flag             = true;
@@ -3291,7 +3302,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3408,7 +3419,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3523,7 +3534,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
-  bmc1_verbose            = false;
+  bmc1_verbose            = ValueDefault false;
 
 (*----Instantiation------*)
        instantiation_flag             = true;

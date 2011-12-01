@@ -830,7 +830,7 @@ let init_bound all_clauses =
       [ bound_literal_0 ];
     
     (* Output only in verbose mode *)
-    if !current_options.bmc1_verbose then
+    if val_of_override !current_options.bmc1_verbose then
       
       (
 	
@@ -921,7 +921,7 @@ let increment_bound cur_bound next_bound =
     in
       
       (* Output only in verbose mode *)
-      if !current_options.bmc1_verbose then
+      if val_of_override !current_options.bmc1_verbose then
 	
 	(
 

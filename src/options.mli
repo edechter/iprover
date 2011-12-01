@@ -129,7 +129,7 @@ type res_to_prop_solver_type =
 
 type options = {
 
-    mutable out_options           : out_options_type;
+    mutable out_options           : out_options_type override;
     mutable tptp_safe_out         : bool;
 
 (*----Input-------*)
@@ -172,7 +172,7 @@ type options = {
     mutable bmc1_symbol_reachability : bool; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
-    mutable bmc1_verbose          : bool;
+    mutable bmc1_verbose          : bool override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;

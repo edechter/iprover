@@ -1389,7 +1389,7 @@ let out_symb_reach_map srm =
    List.sort (fun (_,d1) (_,d2) -> compare d1 d2) symb_depth_list in
 
    (* Output only in verbose mode *)
-   if !current_options.bmc1_verbose then 
+   if val_of_override !current_options.bmc1_verbose then 
      List.iter 
        (fun (symb,depth) -> 
 	  out_str ((Symbol.to_string symb)^": "^(string_of_int depth))) 
@@ -1751,7 +1751,7 @@ let run_iprover () =
       (if (Prop_solver_exchange.solve ()) = PropSolver.Unsat
       then 
 	(raise PropSolver.Unsatisfiable));
-      (*Clause.out_clause_list_tptp !current_clauses;*)
+      Clause.out_clause_list_tptp !current_clauses;
       main !current_clauses finite_models_clauses
     end
   with
