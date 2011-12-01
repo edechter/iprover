@@ -196,7 +196,8 @@ let fast_solve solver (assumptions : lit_list) =
   | -1  -> FUnsat    (* under assumption *) 
   |  1  -> FUnknown  (* under assumption *) 
   |  0  -> raise Unsatisfiable (* without assumptions*) 
-  |_    -> failwith "MiniSat error: solve_assumptions  unknown truth value"
+  |  -2  -> FUnknown  (* from C++ MiniSat *) 
+  |_    -> failwith "MiniSat error: fast_solve  unknown truth value"
 	
 
 
