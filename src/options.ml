@@ -164,6 +164,24 @@ let str_to_bmc1_out_stat_type = function
 let bmc1_out_stat_str = "<none | full | last>"
 
 (*--------*)
+
+type bmc1_axioms_type = 
+    BMC1_Axioms_Reachable_All | BMC1_Axioms_Reachable_Last
+
+let bmc1_axioms_type_to_str = function
+  | BMC1_Axioms_Reachable_All -> "reachable_all"
+  | BMC1_Axioms_Reachable_Last -> "reachable_last"
+
+exception Unknown_bmc1_axioms_type
+let str_to_bmc1_axioms_type = function
+  | "reachable_all" -> BMC1_Axioms_Reachable_All
+  | "reachable_last" -> BMC1_Axioms_Reachable_Last
+  | _ -> raise Unknown_bmc1_axioms_type
+
+let bmc1_axioms_str = "<reachable_all | reachable_last>"
+
+(*--------*)
+
 type schedule_type = 
   |Schedule_none 
   |Schedule_default 
@@ -521,6 +539,7 @@ type options = {
 
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
+    mutable bmc1_axioms           : bmc1_axioms_type override;
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_symbol_reachability : bool; 
 
@@ -616,6 +635,7 @@ let default_options () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -688,6 +708,10 @@ let set_new_current_options o =
       (* Only override defaults *)
       out_options =
 	override o.out_options !current_options.out_options;
+      
+      (* Only override defaults *)
+      bmc1_axioms = 
+	override o.bmc1_axioms !current_options.bmc1_axioms;
       
       (* Only override defaults *)
       bmc1_max_bound = 
@@ -1080,6 +1104,24 @@ let bmc1_incremental_fun b =
 let bmc1_incremental_inf  =
   bool_str^
   inf_pref^"incrementally increase bounds in BMC1\n"
+
+(*--------*)
+
+let bmc1_axioms_str = "--bmc1_axioms" 
+
+let bmc1_axioms_fun str =
+  try 
+    !current_options.bmc1_axioms <- 
+      (override_cmd 
+	 (str_to_bmc1_axioms_type str) 
+	 !current_options.bmc1_axioms)
+  with 
+     Unknown_bmc1_axioms_type ->
+       failwith (args_error_msg bmc1_axioms_str str)
+
+let bmc1_axioms_inf  =
+  bmc1_axioms_str^
+    inf_pref^"axioms for BMC1\n"
 
 (*--------*)
 
@@ -1706,6 +1748,10 @@ let spec_list =
     Arg.Bool(bmc1_incremental_fun),
     bmc1_incremental_inf);
 
+   (bmc1_axioms_str, 
+    Arg.String(bmc1_axioms_fun),
+    bmc1_axioms_inf);
+
    (bmc1_max_bound_str, 
     Arg.Int(bmc1_max_bound_fun),
     bmc1_max_bound_inf);
@@ -1849,6 +1895,8 @@ let sat_options_str_list opt =
 let bmc1_options_str_list opt =
   [
    (bmc1_incremental_str,(string_of_bool opt.bmc1_incremental));
+   (bmc1_axioms_str,
+    (bmc1_axioms_type_to_str (val_of_override opt.bmc1_axioms)));
    (bmc1_max_bound_str,(string_of_int (val_of_override opt.bmc1_max_bound)));
    (bmc1_symbol_reachability_str,
     (string_of_bool opt.bmc1_symbol_reachability));
@@ -2224,6 +2272,7 @@ let option_1 () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -2365,6 +2414,7 @@ let option_2 () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -2479,6 +2529,7 @@ let option_3 () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -2589,6 +2640,7 @@ let option_4 () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -2709,6 +2761,7 @@ let option_finite_models () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -2825,6 +2878,7 @@ let option_epr_non_horn () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -3063,6 +3117,7 @@ let option_epr_horn () = {
 
 (*----BMC1---------------*)
   bmc1_incremental        = false;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -3299,6 +3354,7 @@ let option_verification_epr ver_epr_opt =
 
 (*----BMC1---------------*)
   bmc1_incremental        = true;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -3416,6 +3472,7 @@ let option_verification_epr ver_epr_opt =
 
 (*----BMC1---------------*)
   bmc1_incremental        = true;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
@@ -3531,6 +3588,7 @@ let option_verification_epr ver_epr_opt =
 
 (*----BMC1---------------*)
   bmc1_incremental        = true;
+  bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;

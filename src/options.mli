@@ -55,6 +55,10 @@ type out_options_type = Out_All_Opt | Out_Control_Opt | Out_No_Opt
 type bmc1_out_stat_type = 
     BMC1_Out_Stat_None | BMC1_Out_Stat_Full | BMC1_Out_Stat_Last
 
+(** Axioms for BMC1 *)
+type bmc1_axioms_type = 
+    BMC1_Axioms_Reachable_All | BMC1_Axioms_Reachable_Last
+
 type ground_splitting_type = Split_Input |Split_Full | Split_Off 
 
 type schedule_type = 
@@ -168,6 +172,7 @@ type options = {
 
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
+    mutable bmc1_axioms           : bmc1_axioms_type override;
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_symbol_reachability : bool; 
 

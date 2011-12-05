@@ -217,6 +217,21 @@ let create_bound_atom n =
   create_skolem_term bound_symbol_format Symbol.symb_bool_type n
 
 
+(* Create atoms $$iProver_bound{bound} up to [ubound], in [accum] *)
+let rec create_bound_atom_list accum ubound = function 
+
+  (* Terminate on upper bound and return list in ascending order *)
+  | bound when bound >= ubound -> List.rev accum
+    
+  (* Create atom for bound, add to list and recurse for next bound *)
+  | bound -> 
+
+    create_bound_atom_list 
+      ((create_bound_atom bound) :: accum)
+      ubound 
+      (succ bound)
+      
+
 (* Create term for bitindex, i.e. bitindex{n} *)
 let create_bitindex_term n =
   create_skolem_term bitindex_symbol_format bitindex_type n
@@ -271,7 +286,7 @@ let create_address_atom address =
     [ address ]
 
 
-(********** Creation of clauses **********)
+(********** Path axioms **********)
 
 (* Create path axioms for all bounds down to [lbound] *)
 let rec create_path_axioms accum lbound = function 
@@ -303,7 +318,10 @@ let rec create_path_axioms accum lbound = function
 	create_path_axioms (path_axiom_b :: accum) lbound (pred b)
 
 
-(* Create path axioms for all bounds down to [lbound] *)
+(********** Reachable state axioms (for all states) **********)
+
+
+(* Create reachable state axioms for all bounds down to [lbound] *)
 let rec create_reachable_state_axioms accum lbound = function 
 
   (* No more axioms if state is less than lower bound *)
@@ -382,6 +400,118 @@ let create_reachable_state_conj_axiom bound =
     Clause.normalise term_db (Clause.create reachable_state_literals)
 
 
+(* Create reachable state axioms for all bounds down to [lbound] *)
+let rec create_reachable_state_axioms accum lbound = function 
+
+  (* No more axioms if state is less than lower bound *)
+  | b when b < lbound -> accum 
+
+  | b -> 
+
+      (* Create state term for state *)
+      let state_term_b = create_state_term b in
+
+      (* Create reachable state axiom for state *)
+      let reachable_state_atom_b = 
+	create_reachable_state_atom state_term_b 
+      in
+	
+      (* Create unit clause of atom *)
+      let reachable_state_axiom_b = 
+	Clause.normalise
+	  term_db
+	  (Clause.create [ reachable_state_atom_b ])
+      in
+	
+	(* Add reachable state axioms for lesser states *)
+	create_reachable_state_axioms
+	  (reachable_state_axiom_b :: accum) lbound (pred b)
+
+
+(********** Reachable state axioms (last state only) **********)
+
+
+(* Create reachable state axioms for all bounds down to [lbound] *)
+let rec create_reachable_state_on_bound_axioms accum lbound = function 
+
+  (* No more axioms if state is less than lower bound *)
+  | b when b < lbound -> accum 
+
+  | b -> 
+
+      (* Create state term for state *)
+      let state_term_b = create_state_term b in
+
+      (* Create reachable state axiom for state *)
+      let reachable_state_atom_b = 
+	create_reachable_state_atom state_term_b 
+      in
+	
+      (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+      let bound_literal = create_compl_lit (create_bound_atom b) in
+    
+      (* Create unit clause of atom *)
+      let reachable_state_axiom_b = 
+	Clause.normalise
+	  term_db
+	  (Clause.create [ bound_literal; reachable_state_atom_b ])
+      in
+	
+	(* Add reachable state axioms for lesser states *)
+      create_reachable_state_on_bound_axioms
+	(reachable_state_axiom_b :: accum) 
+	lbound 
+	(pred b)
+
+
+(* Create reachable state literals for all states down to zero *)
+let rec create_only_bound_reachable_axioms accum lbound = function 
+
+  (* No more axioms if state is less than lower bound *)
+  | b when b < lbound -> accum 
+
+  | b -> 
+      
+      (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+      let bound_literal = create_compl_lit (create_bound_atom b) in
+    
+      (* Create literal ~$$reachableState(X0) *)
+      let reachable_state_x0_literal = 
+	create_compl_lit (create_reachable_state_atom term_x0)
+      in
+	
+      (* Create state term for state *)
+      let state_term_b = create_state_term b in
+	
+      (* Create equation X0 = constB{b} *)
+      let reachable_state_literal_b =
+	create_typed_equation 
+	  state_type
+	  state_term_b
+	  term_x0
+      in
+
+      (* Create clause 
+	 ~$$iProver_bound{b} | ~$$reachableState(X0) | X0 = constB{b} *)
+      let reachable_state_axiom_b = 
+	Clause.normalise
+	  term_db
+	  (Clause.create 
+	     [ bound_literal; 
+	       reachable_state_x0_literal;
+	       reachable_state_literal_b ])
+      in
+      
+	(* Add clauses for lesser states *)
+        create_only_bound_reachable_axioms
+	  (reachable_state_axiom_b :: accum)
+	  lbound
+	  (pred b)
+	     
+
+(********** Clock pattern **********)
+
+
 (* Get sign of clock in given state *)
 let sign_of_clock_pattern state pattern = 
   (List.nth pattern (state mod List.length pattern)) = 1
@@ -447,6 +577,8 @@ let rec create_all_clock_axioms_for_states accum bound_i ubound =
       (succ bound_i)
       ubound
 
+
+(********** Address axioms (TODO) **********)
 
 (* Create address domain axioms 
    
@@ -543,7 +675,6 @@ let create_address_domain_axiom address_max_width =
     
 
 
-
 (* Return address definition for given constant bit vector b000 as 
    
    b000(X0) <=> addressVal(b000_address_term,X0) 
@@ -601,6 +732,8 @@ let create_constant_address_definition accum bitvector_symbol =
       accum
 
 
+(********** Instantiate clauses for bound **********)
+
 
 (* Is the term or one if its subterms to be instantiated for each bound? *)
 let rec is_bound_term = function 
@@ -656,6 +789,7 @@ let rec is_bound_term = function
       List.exists (fun b -> b) (Term.arg_map_list is_bound_term args)
 
 
+(* Is the clause to be instantiated at each bound? *)
 let is_bound_clause clause = 
   List.exists 
     (fun b -> b) 
@@ -778,11 +912,15 @@ let instantiate_bound_axioms bound clauses =
     clauses
 
 
+(* Return two list of clauses, the first containing the clauses to be
+   instantiated at each bound, the second the clauses valid for each
+   bound *)
 let separate_bound_axioms clauses =
-
   List.partition is_bound_clause clauses
-    
-    
+       
+
+(********** Top functions **********)
+
 
 (* Axioms for bound 0 *)
 let init_bound all_clauses = 
@@ -792,19 +930,34 @@ let init_bound all_clauses =
     separate_bound_axioms all_clauses 
   in
     
-  (* Create reachable states axiom *)
+  (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
-    create_reachable_state_axioms 
-      [ ]       
-      0
-      0
-  in
     
-  (* Create reachable states axiom *)
-  let reachable_state_conj_axiom = 
-    create_reachable_state_conj_axiom 0
+    match val_of_override !current_options.bmc1_axioms with 
+
+      (* All states are reachable *)
+      | BMC1_Axioms_Reachable_All -> 
+
+	(* Axiom for conjunction of reachable states *)
+	(create_reachable_state_conj_axiom 0) :: 
+	  
+	  (* Axioms for individual reachable states *)
+	  (create_reachable_state_axioms 
+	     [ ]       
+	     0
+	     0)
+
+      (* Only last state is reachable *)
+      | BMC1_Axioms_Reachable_Last -> 
+
+	(* Only final state is reachable in each bound *)
+	(create_reachable_state_on_bound_axioms [] 0 0) @
+
+	  (* Final state is reachable in next bound *)
+	  (create_only_bound_reachable_axioms [] 0 0)
+
   in
-    
+
   (* Create clock axiom *)
   let clock_axioms =
     create_all_clock_axioms_for_states 
@@ -818,8 +971,7 @@ let init_bound all_clauses =
     
   (* Return created path axioms and reachable state axiom *)
   let bound_axioms =
-    reachable_state_conj_axiom :: 
-      (reachable_state_axioms @ clock_axioms)
+    reachable_state_axioms @ clock_axioms
   in
     
     (* Save axioms to be instantiated *)
@@ -856,11 +1008,21 @@ let init_bound all_clauses =
     
     (* Return created axioms for bound *)
     bound_axioms, clauses
-      
-      
-      
+
+
 (* Increment bound from given bound *)
 let increment_bound cur_bound next_bound =
+
+  (* Create literals for current bound up to next bound,
+     i.e. $$iProver_bound{b_cur}, ..., $$iProver_bound{b_next - 1} *)
+  let bound_literals_cur_to_next = 
+    List.map
+      create_compl_lit
+      (create_bound_atom_list [] next_bound cur_bound)
+  in
+
+  (* Create literal for next bound, i.e. $$iProver_bound{b_next} *)
+  let bound_literal_next = create_bound_atom next_bound in
 
   (* Create path axioms for all states between next bound and current
      bound *)
@@ -870,17 +1032,38 @@ let increment_bound cur_bound next_bound =
 
   (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
-    create_reachable_state_axioms 
-      [ ]       
-      (succ cur_bound)
-      next_bound
-  in
+    
+    match val_of_override !current_options.bmc1_axioms with 
 
-  (* Create reachable states axiom for next bound *)
-  let reachable_state_conj_axiom = 
-    create_reachable_state_conj_axiom next_bound
-  in
+      (* All states are reachable *)
+      | BMC1_Axioms_Reachable_All -> 
 
+	(* Axiom for conjunction of reachable states *)
+	(create_reachable_state_conj_axiom next_bound) :: 
+	  
+	  (* Axioms for individual reachable states *)
+	  (create_reachable_state_axioms 
+	     [ ]       
+	     (succ cur_bound)
+	     next_bound)
+
+      (* Only last state is reachable *)
+      | BMC1_Axioms_Reachable_Last -> 
+
+	(* Only final state is reachable in each bound *)
+	(create_reachable_state_on_bound_axioms 
+	   [] 
+	   (succ cur_bound)
+	   next_bound) @
+
+	  (* Final state is reachable in next bound *)
+	  (create_only_bound_reachable_axioms 
+	     [] 
+	     (succ cur_bound)
+	     next_bound)
+
+  in
+  
   (* Create clock axioms up to next bound *)
   let clock_axioms =
     create_all_clock_axioms_for_states 
@@ -897,15 +1080,9 @@ let increment_bound cur_bound next_bound =
     instantiate_bound_axioms next_bound !bound_instantiate_axioms 
   in
 
-  (* Create literal for current bound, i.e. $$iProver_bound{b_cur} *)
-  let bound_literal_cur = create_bound_atom cur_bound in
-
-  (* Create literal for next bound, i.e. $$iProver_bound{b_next} *)
-  let bound_literal_next = create_bound_atom next_bound in
-
     (* Add complementary assumption for current bound *)
     invalid_bound_assumptions := 
-      (create_compl_lit bound_literal_cur) :: !invalid_bound_assumptions;
+      bound_literals_cur_to_next @ !invalid_bound_assumptions;
     
     (* Assume assumption literal for next_bound to be true in solver *)
     Prop_solver_exchange.assign_only_norm_solver_assumptions 
@@ -913,11 +1090,10 @@ let increment_bound cur_bound next_bound =
     
     (* Return created path axioms and reachable state axiom *)
     let bound_axioms =
-      reachable_state_conj_axiom :: 
-	(reachable_state_axioms @ 
-	   path_axioms @ 
-	   clock_axioms @ 
-	   bound_axioms_instantiated)
+      reachable_state_axioms @ 
+	path_axioms @ 
+	clock_axioms @ 
+	bound_axioms_instantiated
     in
       
       (* Output only in verbose mode *)
