@@ -1751,7 +1751,7 @@ let run_iprover () =
       (if (Prop_solver_exchange.solve ()) = PropSolver.Unsat
       then 
 	(raise PropSolver.Unsatisfiable));
-      Clause.out_clause_list_tptp !current_clauses;
+      (* Clause.out_clause_list_tptp !current_clauses; *)
       main !current_clauses finite_models_clauses
     end
   with
