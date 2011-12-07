@@ -629,16 +629,23 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 	  finite_models finite_model_clauses)
       else
 	begin
+(* Moved down to output the actual options 
 	  print_string ((s_pref_str ())^named_options.options_name
 			^" Time Limit: "^(time_to_string time_limit)^"\n"^
 			(options_to_str named_options.options)^"\n\n"
 			^(s_pref_str ())^"Proving...");
 	  flush stdout;
+*)
 	  (if not (!current_options.prolific_symb_bound = 
 		   named_options.options.prolific_symb_bound) 
 	  then change_prolific_symb_input input_clauses);
 	  (* current_options:= named_options.options; *)
 	  set_new_current_options named_options.options;
+	  print_string ((s_pref_str ())^named_options.options_name
+			^" Time Limit: "^(time_to_string time_limit)^"\n"^
+			(options_to_str !current_options)^"\n\n"
+			^(s_pref_str ())^"Proving...");
+	  flush stdout;
 (* debug *) 
 	(*     !current_options.out_options <- Out_All_Opt;
 	       out_str ("\n current options: "^(options_to_str !current_options)^"\n");
