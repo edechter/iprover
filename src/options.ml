@@ -161,7 +161,7 @@ let str_to_bmc1_out_stat_type = function
   | "last" -> BMC1_Out_Stat_Last
   | _ -> raise Unknown_bmc1_out_stat_type
 
-let bmc1_out_stat_str = "<none | full | last>"
+let bmc1_out_stat_type_list_str = "<none | full | last>"
 
 (*--------*)
 
@@ -178,7 +178,7 @@ let str_to_bmc1_axioms_type = function
   | "reachable_last" -> BMC1_Axioms_Reachable_Last
   | _ -> raise Unknown_bmc1_axioms_type
 
-let bmc1_axioms_str = "<reachable_all | reachable_last>"
+let bmc1_axioms_type_list_str = "<reachable_all | reachable_last>"
 
 (*--------*)
 
@@ -1092,7 +1092,7 @@ let sat_out_model_inf =
   inf_pref^"           Using debug it is possible to recover the justification of why each clause is true in the model\n"^
   inf_pref^"none     -- no model output \n"^
 (* ugly hack *)
-  (dash_str "Instantiation Options")^"\n"
+  (dash_str "BMC1 Options")^"\n"
 
 (*----BMC1---------------*)
 
@@ -1119,8 +1119,8 @@ let bmc1_axioms_fun str =
      Unknown_bmc1_axioms_type ->
        failwith (args_error_msg bmc1_axioms_str str)
 
-let bmc1_axioms_inf  =
-  bmc1_axioms_str^
+let bmc1_axioms_inf =
+  bmc1_axioms_type_list_str^
     inf_pref^"axioms for BMC1\n"
 
 (*--------*)
@@ -1132,7 +1132,7 @@ let bmc1_max_bound_fun b =
     override_cmd b !current_options.bmc1_max_bound
 
 let bmc1_max_bound_inf  =
-  bool_str^
+  int_str^
   inf_pref^"maximal bound in BMC1\n"
 
 (*--------*)
@@ -1161,7 +1161,7 @@ let bmc1_out_stat_fun str =
        failwith (args_error_msg bmc1_out_stat_str str)
 
 let bmc1_out_stat_inf  =
-  bmc1_out_stat_str^
+  bmc1_out_stat_type_list_str^
     inf_pref^"output no statistics, after the last bound only or after each bound (full)\n"
 
 (*--------*)
@@ -1174,7 +1174,9 @@ let bmc1_verbose_fun b =
 
 let bmc1_verbose_inf  =
   bool_str^
-  inf_pref^"print detailed output during incremental BMC1\n"
+  inf_pref^"print detailed output during incremental BMC1\n" ^
+(* ugly hack *)
+  (dash_str "Instantiation Options")^"\n"
 
 (*----Instantiation------*)
 
