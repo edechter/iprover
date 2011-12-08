@@ -1,19 +1,61 @@
-# Makefile for libhhlmuc
+# Makefile for utilities 
 # Created: 2011-12-01 Christoph Sticksel
 
-# This makefile is in the root of the MiniSat directory
-export MROOT = $(shell pwd)
+# Use C++ compiler
+CXX=g++
 
-# How the library we make is called
-export LIB = hhlmuc
+# Use native OCaml compiler
+OCAMLC=ocamlopt
 
-# Make a release library version of hhlmuc
-all:
-	cd $(MROOT)/simp && $(MAKE) libr
+OCAMLLIBDIR=/usr/lib/ocaml
+OCAMLINCDIR=/usr/lib/ocaml
+
+MINISATDIR=$(CURDIR)/minisat
+HHLMUCDIR=$(CURDIR)/Haifa-HLMUC
+
+all: hhlmuc minisat
 
 .PHONY : clean
 
-# Clean the library here and clean in the MiniSat directories
-clean:
-	@rm -f lib$(LIB).a lib$(LIB)_release.a
+clean: clean-hhlmuc clean-minisat
+
+# Set variables for hhlmuc and clean-hhlmuc
+hhlmuc clean-hhlmuc: export LIB = hhlmuc
+hhlmuc clean-hhlmuc: export MROOT = $(HHLMUCDIR)
+
+# Set variables for minisat and clean-minisat
+minisat clean-minisat: export LIB = minisat
+minisat clean-minisat: export MROOT = $(MINISATDIR)
+
+.PHONY : hhlmuc
+
+# Make hhlmuc release library 
+hhlmuc:
+	cd $(MROOT)/simp && $(MAKE) libr
+
+.PHONY : minisat 
+
+# Make minisat release library 
+minisat:
+	cd $(MROOT)/simp && $(MAKE) libr
+
+.PHONY : clean-hhlmuc
+
+# Clean hhlmuc
+clean-hhlmuc:
 	cd $(MROOT)/simp && $(MAKE) clean
+
+.PHONY : clean-minisat
+
+# Clean minisat
+clean-minisat:
+	cd $(MROOT)/simp && $(MAKE) clean
+
+
+src/minisat_stubs.o: src/minisat_stubs.cpp minisat
+	$(CXX) -c -o $@ -I $(OCAMLINCDIR) -I $(MINISATDIR) $<
+
+
+src/minisat-test: src/minisat_stubs.o src/minisat.ml
+# Must have -cclib -lminisat after src/minisat_stubs.o
+	$(OCAMLC) -cc $(CXX) -cclib -I$(CURDIR)/src -cclib -L$(MINISATDIR)/simp -cclib -I$(MINISATDIR) -o $@ $^ -cclib -lminisat
