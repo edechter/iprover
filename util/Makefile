@@ -57,5 +57,5 @@ src/minisat_stubs.o: src/minisat_stubs.cpp minisat
 
 
 src/minisat-test: src/minisat_stubs.o src/minisat.ml
-# Must have -cclib -lminisat after src/minisat_stubs.o
-	$(OCAMLC) -cc $(CXX) -cclib -I$(CURDIR)/src -cclib -L$(MINISATDIR)/simp -cclib -I$(MINISATDIR) -o $@ $^ -cclib -lminisat
+# Must have -cclib -lminisat and -cclib -lstdc++ after src/minisat_stubs.o
+	$(OCAMLC) -cclib -I$(CURDIR)/src -cclib -L$(MINISATDIR)/simp -cclib -I$(MINISATDIR) -o $@ $^ -cclib -lminisat -cclib -lstdc++ 

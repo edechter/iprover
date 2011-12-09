@@ -24,6 +24,22 @@ type minisat_solver
 
 type minisat_lit
 
+type lbool = 
+  | L_true
+  | L_false
+  | L_undef
+
+let int_to_lbool = function 
+  | 0 -> L_true
+  | 1 -> L_false
+  | 2 -> L_undef
+  | _ -> invalid_arg "int_to_lbool"
+
+let pp_lbool ppf = function 
+  | L_true -> Format.fprintf ppf "L_true"
+  | L_false -> Format.fprintf ppf "L_false"
+  | L_undef -> Format.fprintf ppf "L_undef"
+
 (*
 external dummy_unit : unit -> int = "dummy_unit"
 
@@ -44,63 +60,72 @@ external lit_to_int : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int
 
 external solve : minisat_solver ->  bool = "minisat_solve"
 
+external solve_assumptions : minisat_solver -> minisat_lit list -> int = "minisat_solve_assumptions"
+
+external model_value : minisat_solver -> minisat_lit -> int = "minisat_model_value"
+external fast_solve : minisat_solver -> minisat_lit list -> int = "minisat_fast_solve"
+
 let main () = 
 
   let s = create_solver () in
 
-  (* let s2 = create_solver () in *)
+  let p = create_lit s 0 true in
 
-  let p = create_lit s 1 true in
+  let q = create_lit s 1 true in
 
-  Format.printf "Literals: %d@." (lit_to_int s p);
+  let r = create_lit s 2 true in
 
-  let q = create_lit s 2 true in
+  let p' = create_lit s 0 false in
 
-  (* Format.printf "Literals: %d %d@." (lit_to_int s p) (lit_to_int s q); *)
+  let q' = create_lit s 1 false in
 
-  let p' = create_lit s 1 false in
-
-  (* Format.printf 
-    "Literals: %d %d %d@." 
-    (lit_to_int s p) 
-    (lit_to_int s q)
-    (lit_to_int s p'); *)
-
-  let q' = create_lit s 2 false in
-
-(*
-  Format.printf 
-    "Literals: %d %d %d %d@." 
-    (lit_to_int s q') 
-    (lit_to_int s p')
-    (lit_to_int s p)
-    (lit_to_int s q); 
-*)
-
-  let c1 = add_clause s [p; q] in 
+  let c1 = add_clause s [p; q; r] in 
 
   let c2 = add_clause s [p'] in 
 
-  let c3 = add_clause s [q'] in 
+  let res1 = solve s in
 
-  let res = solve s in
+  let res2 = int_to_lbool (solve_assumptions s []) in
 
-    Format.printf 
-      "variables: %d@\nc1: %B@\nc2: %B@\nc3: %B@\nres: %B@."
-      (stat_vars s)
-      c1
-      c2
-      c3
-      res;
+  let res3 = int_to_lbool (solve_assumptions s [q]) in
 
-  Format.printf 
-    "Literals: %d %d %d %d@." 
-    (lit_to_int s p) 
-    (lit_to_int s q)
-    (lit_to_int s p')
-    (lit_to_int s q')
+  let res4 = int_to_lbool (solve_assumptions s [r]) in
+  
+  let res1' = int_to_lbool (fast_solve s []) in
 
+  let res2' = int_to_lbool (fast_solve s []) in
 
+  let res3' = int_to_lbool (fast_solve s [q]) in
+
+  let res4' = int_to_lbool (fast_solve s [r]) in
+  
+  let m_p = int_to_lbool (model_value s p) in
+  let m_q = int_to_lbool (model_value s q) in
+  let m_p' = int_to_lbool (model_value s p') in
+  let m_q' = int_to_lbool (model_value s q') in
+  let m_r = int_to_lbool (model_value s r) in
+
+  Format.printf
+    "res1: %B@\nres2: %a@\nres3: %a@\nres4: %a@\n@."
+    res1
+    pp_lbool res2
+    pp_lbool res3
+    pp_lbool res4;
+
+  Format.printf
+    "res1': %a@\nres2': %a@\nres3': %a@\nres4': %a@\n@."
+    pp_lbool res1'
+    pp_lbool res2'
+    pp_lbool res3'
+    pp_lbool res4';
+
+  Format.printf
+    "p: %a@\nq: %a@\np': %a@\nq': %a@\nr: %a@\n@."
+    pp_lbool m_p
+    pp_lbool m_q
+    pp_lbool m_p'
+    pp_lbool m_q'
+    pp_lbool m_r
 ;;
 
 (* Call main when called as script *)
