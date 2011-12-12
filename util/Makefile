@@ -4,8 +4,10 @@
 # Use C++ compiler
 CXX=g++
 
-# Use native OCaml compiler
-OCAMLC=ocamlopt
+AR=ar
+OCAMLC=ocamlc
+OCAMLOPT=ocamlopt
+OCAMLMKLIB=ocamlmklib
 
 OCAMLLIBDIR=/usr/lib/ocaml
 OCAMLINCDIR=/usr/lib/ocaml
@@ -52,10 +54,35 @@ clean-minisat:
 	cd $(MROOT)/simp && $(MAKE) clean
 
 
-src/minisat_stubs.o: src/minisat_stubs.cpp minisat
+obj/minisat_stubs.o: src/minisat_stubs.cpp minisat
 	$(CXX) -c -o $@ -I $(OCAMLINCDIR) -I $(MINISATDIR) $<
 
+obj/minisat.cmi: src/minisat.mli
+	$(OCAMLC) -c -o $@ $<
 
-src/minisat-test: src/minisat_stubs.o src/minisat.ml
+obj/minisat.cmo:  obj/minisat.cmi src/minisat.ml
+	$(OCAMLC) -c -I $(CURDIR)/obj -o $@ $<
+
+obj/minisat.cmx: src/minisat.ml obj/minisat.cmi 
+	$(OCAMLOPT) -c -I $(CURDIR)/obj -o $@ $<
+
 # Must have -cclib -lminisat and -cclib -lstdc++ after src/minisat_stubs.o
-	$(OCAMLC) -cclib -I$(CURDIR)/src -cclib -L$(MINISATDIR)/simp -cclib -I$(MINISATDIR) -o $@ $^ -cclib -lminisat -cclib -lstdc++ 
+# lib/minisat.cmxa lib/minisat.cma: obj/minisat.cmx obj/minisat.cmo obj/minisat_stubs.o
+#	$(OCAMLMKLIB) -L$(MINISATDIR)/simp -I $(CURDIR)/obj -o lib/minisat $^ -lminisat -lstdc++
+
+lib/minisat.cma: obj/minisat.cmo
+	$(OCAMLC) -a -custom -o $@ $< -cclib -lminisat -cclib -lstdc++ -ccopt -L$(MINISATDIR)/simp
+
+lib/minisat.cmxa: obj/minisat.cmx
+#	$(OCAMLOPT) -a -o $@ $< -cclib -lminisat -cclib -lstdc++ -ccopt -L$(MINISATDIR)/simp
+	$(OCAMLOPT) -a -o $@ $< -cclib -lminisat -cclib -lstdc++ -ccopt -L$(MINISATDIR)/simp
+
+lib/minisat_stubs.a: obj/minisat_stubs.o
+	$(AR) rc $@ $<
+
+obj/minisat_test.cmx: src/minisat_test.ml
+	$(OCAMLOPT) -c -I $(CURDIR)/obj -o $@ $<
+
+bin/minisat-test: lib/minisat_stubs.a lib/minisat.cmxa obj/minisat_test.cmx
+	$(OCAMLOPT) -o $@ $^ -I $(CURDIR)/obj -cclib -L$(MINISATDIR)/simp -cclib -lminisat -cclib -lstdc++
+

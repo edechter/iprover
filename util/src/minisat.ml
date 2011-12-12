@@ -20,113 +20,298 @@
 
 *)
 
+
+(********** Types definitions and helper functions **********)
+
+
+(* An abstract solver instance *)
 type minisat_solver
 
-type minisat_lit
+(* An abstract literal in the solver *)
+type minisat_literal
 
+(* A solver instance with flags and counters for number of calls *)
+type solver = 
+    { solver : minisat_solver;
+      mutable num_of_solver_calls : int;
+      mutable num_of_fast_solver_calls : int;
+      mutable is_simplification : bool }
+
+
+(* A literal in the solver *)
+type literal = minisat_literal
+
+
+(* A lifted Boolean value *)
 type lbool = 
   | L_true
   | L_false
   | L_undef
 
+
+(* Convert an integer to a lifted Boolean
+
+   See SolverTypes.h in MiniSat sources for #define statements:
+   L_true = 0, L_false = 1, L_undef = 2 *)
 let int_to_lbool = function 
   | 0 -> L_true
   | 1 -> L_false
   | 2 -> L_undef
   | _ -> invalid_arg "int_to_lbool"
 
+
+(* The clause set is immediately unsatisfiable *)
+exception Unsatisfiable
+
+
+(********** Declarations of external functions **********)
+
+
+(* Create a new MiniSat instance *)
+external minisat_create_solver : unit -> minisat_solver = "minisat_create_solver" 
+
+(* Add the given variable to MiniSat, allocating space for it and all
+   preceding variables *)
+external minisat_add_var : minisat_solver -> int -> unit = "minisat_add_var"
+
+
+(* Create and return a literal in MiniSat
+
+   The variable is allocated if it was no allocated before, hence
+   calling minisat_add_var separately is not necessary *)
+external minisat_create_lit : minisat_solver -> bool -> int -> minisat_literal = "minisat_create_lit"
+
+(* Assert the clause in MiniSat. 
+
+   Return [false] if the clause set is immediately unsatisfiable *)
+external minisat_add_clause : minisat_solver -> minisat_literal list -> bool = "minisat_add_clause"
+
+
+(* Test the given clause set for satisfiability *)
+external minisat_solve : minisat_solver ->  bool = "minisat_solve"
+
+(* Test the given clause set for satisfiability when the given
+   literals are to be made true *)
+external minisat_solve_assumptions : minisat_solver -> minisat_literal list -> int = "minisat_solve_assumptions"
+
+
+(* Test the given clause set for satisfiability when the given
+   literals are to be made true. Limit the search to a number of
+   conflicts, which is a multiple of the number of literal
+   assumptions *)
+external minisat_fast_solve : minisat_solver -> minisat_literal list -> int -> int option = "minisat_fast_solve"
+
+
+(* Return the variable of the literal *)
+external minisat_lit_var : minisat_solver -> minisat_literal -> int = "minisat_lit_var"
+
+
+(* Return the sign of the literal *)
+external minisat_lit_sign : minisat_solver -> minisat_literal -> bool = "minisat_lit_sign"
+
+
+(* Return the truth value of the literal in the current model *)
+external minisat_model_value : minisat_solver -> minisat_literal -> int = "minisat_model_value"
+
+
+(* Return the number of variables allocated in MiniSat *)
+external minisat_stat_vars : minisat_solver -> int = "minisat_stat_vars" 
+
+
+(* Return the number of clauses in MiniSat *)
+external minisat_stat_clauses : minisat_solver -> int = "minisat_stat_clauses" 
+
+
+(********** Top-level functions **********)
+
+
+(* Create a new solver instance *)
+let create_solver is_simplification =
+
+  (* Create a new MiniSat instance *)
+  let solver = minisat_create_solver () in
+
+  (* Return record of solver instance *)
+  { solver = solver;
+    num_of_solver_calls = 0;
+    num_of_fast_solver_calls = 0;
+    is_simplification = is_simplification }
+    
+  
+(* Allocate the variable in the solver *)
+let add_var { solver = solver } var = minisat_add_var solver var
+
+
+(* Create and return a literal of the given variable and sign in the
+   solver *)
+let create_lit { solver = solver } sign var = 
+  minisat_create_lit solver sign var 
+    
+    
+(* Assert a clause given as a list of literals in the solver. Raise
+   {!Unsatisfiable} if the clause set becomes immediately
+   unsatisfiable. *)
+let add_clause { solver = solver } = function
+
+  (* The empty clause is immediately unsatisfiable *)
+  | [] -> raise Unsatisfiable 
+
+  | clause -> 
+
+    (* Add clause to MiniSat *)
+    if minisat_add_clause solver clause then
+
+      (* Raise exception if immediately unsatisfiable *)
+      raise Unsatisfiable
+
+    
+(* Test the given clause set for satisfiability *)
+let solve { solver = solver } = 
+  minisat_solve solver 
+  
+
+(** Test the given clause set for satisfiability when the given
+    literals are to be made true *)
+let solve_assumptions { solver = solver } assumptions =
+
+  (* Solve with literal assumptions *)
+  match int_to_lbool (minisat_solve_assumptions solver assumptions) with 
+
+    (* Satisfiable with assumptions *)
+    | L_true -> true
+
+    (* Unsatisfiable with assumptions *)
+    | L_false -> false 
+
+    (* Unsatisfiable without assumptions *)
+    | L_undef -> raise Unsatisfiable 
+
+
+(* Test the given clause set for satisfiability when the given
+   literals are to be made true. Limit the search to a number of
+   conflicts, which is a multiple of the number of literal
+   assumptions *)
+let fast_solve { solver = solver } assumptions = 
+
+  (* Solve with literal assumptions *)
+  match minisat_fast_solve solver assumptions 1 with 
+
+    (* Satisfiable with assumptions *)
+    | Some l when int_to_lbool (l) = L_true -> Some true
+
+    (* Unsatisfiable with assumptions *)
+    | Some l when int_to_lbool (l) = L_false -> Some false 
+
+    (* Unsatisfiable without assumptions *)
+    | Some l when int_to_lbool (l) = L_undef -> raise Unsatisfiable 
+
+    (* Unknown *)
+    | None -> None
+
+    (* Catch integers that are not mapped to a lifter Boolean, but the
+       exception would already be raised in when guards above *)
+    | Some _ -> invalid_arg "int_to_lbool"
+
+
+(* Return the propositional variable in the literal *)
+let lit_var { solver = solver } literal = 
+  minisat_lit_var solver literal
+
+
+(* Return the sign of the literal *)
+let lit_sign { solver = solver } literal = 
+  minisat_lit_sign solver literal
+
+
+(* Return the truth value of the literal in the current model *)
+let model_value { solver = solver } literal = 
+
+  (* Get model value of literal in solver *)
+  match int_to_lbool (minisat_model_value solver literal) with 
+
+    (* Literal is true *)
+    | L_true -> Some true 
+
+    (* Literal is false *)
+    | L_false -> Some false
+
+    (* Literal is undefined *)
+    | L_undef -> None
+
+
+(* Return the number of calls to {!solve} of the solver instance *)
+let num_of_solver_calls { num_of_solver_calls = n } = n
+
+
+(** Return the number of calls to {!fast_solve} of the solver instance *)
+let num_of_fast_solver_calls { num_of_fast_solver_calls = n } = n
+
+
+(* Return the number of propositional variables in the solver instance *)
+let num_of_vars { solver = solver } = minisat_stat_vars solver
+
+
+(* Return the number of propositional variables in the solver instance *)
+let num_of_clauses { solver = solver } = minisat_stat_clauses solver
+
+
+(* Return true if the solver was created as a simplification solver *)
+let is_simplification { is_simplification = b } = b
+
+
+(********** Output functions **********)
+
+
+(* Pretty-print a lifted Boolean value *)
 let pp_lbool ppf = function 
   | L_true -> Format.fprintf ppf "L_true"
   | L_false -> Format.fprintf ppf "L_false"
   | L_undef -> Format.fprintf ppf "L_undef"
 
-(*
-external dummy_unit : unit -> int = "dummy_unit"
 
-external dummy_int_id : int -> int = "dummy_int_id"
-*)
+(* Pretty-print a lifted Boolean value *)
+let pp_bool_option ppf = function 
+  | Some true -> Format.fprintf ppf "true"
+  | Some false -> Format.fprintf ppf "false"
+  | None -> Format.fprintf ppf "undef"
 
-external create_solver : unit -> minisat_solver = "minisat_create_solver" 
 
-external add_var : minisat_solver -> int -> unit = "minisat_add_var"
-
-external create_lit : minisat_solver -> int -> bool -> minisat_lit = "minisat_create_lit"
-
-external stat_vars : minisat_solver -> int = "minisat_stat_vars" 
-
-external add_clause : minisat_solver -> minisat_lit list -> bool = "minisat_add_clause"
-
-external lit_to_int : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
-
-external solve : minisat_solver ->  bool = "minisat_solve"
-
-external solve_assumptions : minisat_solver -> minisat_lit list -> int = "minisat_solve_assumptions"
-
-external model_value : minisat_solver -> minisat_lit -> int = "minisat_model_value"
-external fast_solve : minisat_solver -> minisat_lit list -> int = "minisat_fast_solve"
-
-let main () = 
-
-  let s = create_solver () in
-
-  let p = create_lit s 0 true in
-
-  let q = create_lit s 1 true in
-
-  let r = create_lit s 2 true in
-
-  let p' = create_lit s 0 false in
-
-  let q' = create_lit s 1 false in
-
-  let c1 = add_clause s [p; q; r] in 
-
-  let c2 = add_clause s [p'] in 
-
-  let res1 = solve s in
-
-  let res2 = int_to_lbool (solve_assumptions s []) in
-
-  let res3 = int_to_lbool (solve_assumptions s [q]) in
-
-  let res4 = int_to_lbool (solve_assumptions s [r]) in
+(* Pretty-print a literal *)
+let pp_literal solver ppf literal = 
   
-  let res1' = int_to_lbool (fast_solve s []) in
+  (* Open horizontal box *)
+  Format.fprintf ppf "@[<h>";
 
-  let res2' = int_to_lbool (fast_solve s []) in
+  (* Print sign of literal *)
+  (match lit_sign solver literal with 
+    | true -> ()
+    | false -> Format.fprintf ppf "-");
 
-  let res3' = int_to_lbool (fast_solve s [q]) in
+  (* Print variable of literal and close box *)
+  Format.fprintf ppf "%d@]" (lit_var solver literal)
 
-  let res4' = int_to_lbool (fast_solve s [r]) in
+
+(* Pretty-print a list of literals *)
+let rec pp_literal_list solver ppf = function 
+  | [] -> ()
+  | [l] -> Format.fprintf ppf "%a" (pp_literal solver) l
+  | l::tl -> 
+    Format.fprintf ppf "%a@ " (pp_literal solver) l; 
+    pp_literal_list solver ppf tl
+
+
+(* Return a string representation of the literal *)
+let literal_to_string solver literal = 
+  Format.fprintf Format.str_formatter "%a" (pp_literal solver) literal;
+  Format.flush_str_formatter ()
+
+
+(* Return a string representation of the list of literals *)
+let literal_list_to_string solver literals = 
+  Format.fprintf 
+    Format.str_formatter 
+    "@[<hv>%a@]" 
+    (pp_literal_list solver) 
+    literals;
+  Format.flush_str_formatter ()
   
-  let m_p = int_to_lbool (model_value s p) in
-  let m_q = int_to_lbool (model_value s q) in
-  let m_p' = int_to_lbool (model_value s p') in
-  let m_q' = int_to_lbool (model_value s q') in
-  let m_r = int_to_lbool (model_value s r) in
-
-  Format.printf
-    "res1: %B@\nres2: %a@\nres3: %a@\nres4: %a@\n@."
-    res1
-    pp_lbool res2
-    pp_lbool res3
-    pp_lbool res4;
-
-  Format.printf
-    "res1': %a@\nres2': %a@\nres3': %a@\nres4': %a@\n@."
-    pp_lbool res1'
-    pp_lbool res2'
-    pp_lbool res3'
-    pp_lbool res4';
-
-  Format.printf
-    "p: %a@\nq: %a@\np': %a@\nq': %a@\nr: %a@\n@."
-    pp_lbool m_p
-    pp_lbool m_q
-    pp_lbool m_p'
-    pp_lbool m_q'
-    pp_lbool m_r
-;;
-
-(* Call main when called as script *)
-main ();;
