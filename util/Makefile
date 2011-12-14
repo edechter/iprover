@@ -17,7 +17,7 @@ OCAMLINCDIR=/usr/lib/ocaml
 MINISATDIR=$(CURDIR)/minisat
 HHLMUCDIR=$(CURDIR)/Haifa-HLMUC
 
-all: hhlmuc minisat 
+all: hhlmuc minisat minisat-ocaml
 
 .PHONY : clean
 
