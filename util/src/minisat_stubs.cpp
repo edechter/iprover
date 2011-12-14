@@ -32,11 +32,11 @@ extern "C" {
 
 }
 
-// -D flags in mtl/template.mk 
+/* -D flags in MiniSat mtl/template.mk */
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 
-// includes from simp/Main.cc 
+/* includes from MiniSat simp/Main.cc */
 #include <errno.h>
 
 #include <signal.h>
@@ -49,10 +49,10 @@ extern "C" {
 #include <core/Dimacs.h>
 #include <simp/SimpSolver.h>
 
-// 'a option = None 
+/* 'a option = None */
 #define Val_none Val_int(0)
 
-// 'a option = Some of 'a 
+/* 'a option = Some of 'a */
 static inline value Val_some( value v )
 {   
     CAMLparam1 (v);
@@ -62,9 +62,19 @@ static inline value Val_some( value v )
     CAMLreturn (some);
 }
 
+/* Switch to MiniSat namespace */
 using namespace Minisat;
 
-// Custom OCaml operations for MiniSat literal
+/* Custom OCaml operations for MiniSat literal 
+   
+ None of the default operations are defined. 
+
+ TODO: think about defining some of them 
+ - finalisation is not needed
+ - comparing and hashing would be nice 
+ - serialisation is not needed 
+
+*/
 static struct custom_operations minisat_lit_custom_ops = {
     identifier: "Minisat::Lit",
     finalize:    custom_finalize_default,
@@ -74,7 +84,7 @@ static struct custom_operations minisat_lit_custom_ops = {
     deserialize: custom_deserialize_default
 };
 
-// Copy a MiniSat literal into a newly allocated OCaml custom tag 
+/* Copy a MiniSat literal into a newly allocated OCaml custom tag */
 static inline value copy_minisat_lit( Lit *lit )
 {
     CAMLparam0();
@@ -85,22 +95,14 @@ static inline value copy_minisat_lit( Lit *lit )
 }
 
 
-// extern "C" value dummy_unit(value unit)
-// {
-//   CAMLparam1 (unit);
-//   int res = Int_val(0);
-//   CAMLreturn(Val_unit);
-// }
+/* Create and return a MiniSat solver instance 
 
-// extern "C" value dummy_int_id(value int_in)
-// {
-//   CAMLparam1 (int_in);
-//   int in = Int_val(int_in);
-//   value res = Val_int(in);
-//   CAMLreturn(res);
-// }
+   external minisat_create_solver : unit -> minisat_solver = "minisat_create_solver" 
 
-// external minisat_create_solver : unit -> minisat_solver = "minisat_create_solver" 
+   The solver is created in the C++ heap, OCaml gets only a pointer in
+   an Abstract_tag.
+
+*/
 extern "C" value minisat_create_solver(value unit)
 {
 
@@ -119,7 +121,18 @@ extern "C" value minisat_create_solver(value unit)
 
 }
 
-// external minisat_add_var : minisat_solver -> int -> unit = "minisat_add_var"
+/* Add a variable to MiniSat
+
+   external minisat_add_var : minisat_solver -> int -> unit = "minisat_add_var"
+
+   Variables are integers, the first is 0. Integers do nat have to be
+   allocated for OCaml.
+
+   Each variable has to be allocated by calling newVar().
+   minisat_create_lit does this on literal creation if the variable
+   has not been allocated.
+
+ */
 extern "C" value minisat_add_var (value solver_in, value var_id_in)
 {  
 
@@ -136,7 +149,17 @@ extern "C" value minisat_add_var (value solver_in, value var_id_in)
 
 }
 
-// external minisat_create_lit : minisat_solver -> int -> bool -> minisat_lit = "minisat_create_lit"
+/* Create and return a literal of a variable 
+
+   external minisat_create_lit : minisat_solver -> int -> bool -> minisat_lit = "minisat_create_lit" 
+
+   Variables are integers, the first is 0. Use true for a positive
+   literal and false for a negative one.
+
+   A literal has to be created with the mkLit function, it is a custom
+   datatype stored on the OCaml heap.
+
+ */
 extern "C" value minisat_create_lit(value solver_in, value sign_in, value var_id_in)
 {
   
@@ -154,7 +177,9 @@ extern "C" value minisat_create_lit(value solver_in, value sign_in, value var_id
   // Must use mkLit to create literals 
   Lit lit = sign ? mkLit(var_id) : ~mkLit(var_id);
 
+#ifdef DEBUG
   printf("Created literal %d from %s%d\n", toInt(lit), sign ? "" : "~", var_id);
+#endif
 
   // Allocate and copy MiniSat literal to OCaml
   res = copy_minisat_lit(&lit);
@@ -164,7 +189,12 @@ extern "C" value minisat_create_lit(value solver_in, value sign_in, value var_id
 
 }
 
-// external minisat_add_clause : minisat_solver -> minisat_lit list -> bool = "minisat_add_clause"
+/* Assert a clause given as a list of literals, return false if the
+   clause set immediately becomes unsatisfiable, true otherwise.
+
+   external minisat_add_clause : minisat_solver -> minisat_lit list -> bool = "minisat_add_clause" 
+
+*/
 extern "C" value minisat_add_clause(value solver_in, value clause_in)
 {	
 
@@ -178,7 +208,9 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
   // Clause to be asserted
   vec<Lit> lits;
 
+#ifdef DEBUG
   printf("Asserting clause ");
+#endif
 
   // Iterate list of literals
   while (head != Val_emptylist) 
@@ -190,7 +222,9 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
       // Get MiniSat literal from value
       Lit* lit = (Lit*) Data_custom_val(lit_in);
 
+#ifdef DEBUG
       printf("%d ", toInt(*lit));
+#endif
 
       // Add literal to clause 
       lits.push(*lit);
@@ -200,7 +234,9 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
 
     }
 
+#ifdef DEBUG
   printf("\n");
+#endif
 
   // Add clause to solver
   if (solver->addClause(lits))
@@ -213,6 +249,10 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
   else
     {
 
+#ifdef DEBUG
+      printf("Unsatisfiable with added clause\n");
+#endif
+
       // Immediately unsatisfiable with added clause
       CAMLreturn (Val_false);
 
@@ -221,13 +261,22 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
 }
 
 
-// external minisat_solve : minisat_solver -> bool = "minisat_solve"
+/* Test the given clause set for satisfiability. Return true if
+   satisfiable, false if unsatisfiable.
+
+   external minisat_solve : minisat_solver -> bool = "minisat_solve" 
+
+*/
 extern "C" value minisat_solve(value solver_in)
 {
     
   // Declare parameters 
   CAMLparam1(solver_in);
   Solver* solver = (Solver*) Field(solver_in, 0);
+
+#ifdef DEBUG
+  printf("Solving without assumptions\n");
+#endif
 
   // Run MiniSat
   int res = solver->solve();
@@ -237,7 +286,15 @@ extern "C" value minisat_solve(value solver_in)
 }
 
 
-// external minisat_solve_assumptions : minisat_solver -> minisat_lit list -> lbool = "minisat_solve_assumptions"
+/* Test the given clause set for satisfiability when the given
+   literals are to be made true. Return l_True = 0 if the clause set
+   is satisfiable with assumptions, l_Undef = 2 if the clause set is
+   immediately unsatisfiable without assumptions and l_False = 1 if
+   the clause set is unsatisfiable with assumptions.
+
+   external minisat_solve_assumptions : minisat_solver -> minisat_lit list -> lbool = "minisat_solve_assumptions" 
+
+*/
 extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in)
 {
 
@@ -250,12 +307,15 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 
   // Assumptions for solving
   vec<Lit> lits;
+  lits.clear();
 
   // Only if satisfiable after simplifications
   if (solver->simplify())
     {
 
+#ifdef DEBUG
       printf("Assuming ");
+#endif
 
       // Iterate list of literals
       while (head != Val_emptylist) 
@@ -267,7 +327,11 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	  // Get MiniSat literal from value
 	  Lit* lit = (Lit*) Data_custom_val(lit_in);
 	  
-	  printf("%d ", toInt(*lit));
+#ifdef DEBUG
+	  printf("%s%d ", 
+		 var(*lit) ? "" : "~",
+		 toInt(*lit));
+#endif
 	  
 	  // Add literal to assumptions
 	  lits.push(*lit);
@@ -277,13 +341,17 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	  
 	}
       
+#ifdef DEBUG
       printf("\n");
+#endif
 
       // Solve with literal assumptions
       if (solver->solve(lits))
 	{
 	  
+#ifdef DEBUG
 	  printf("Satisfiable under assumptions\n");
+#endif
 
 	  // Satisfiable under assumptions
 	  CAMLreturn(Val_int(toInt(l_True)));
@@ -293,7 +361,9 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
       else
 	{
 
+#ifdef DEBUG
 	  printf("Unsatisfiable under assumptions\n");
+#endif
 
 	  // Unsatisfiable under assumptions
 	  CAMLreturn(Val_int(toInt(l_False)));
@@ -305,7 +375,9 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
   else  
     {
 
+#ifdef DEBUG
       printf("Unsatisfiable without assumptions\n");
+#endif
 
       // Unsatisfiable without assumptions
       CAMLreturn(Val_int(toInt(l_Undef)));
@@ -313,27 +385,45 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	
 }
 
-// external minisat_fast_solve : minisat_solver -> minisat_lit list -> lbool option = "minisat_fast_solve"
-extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value conflicts_per_lit_in)
+/* Test the given clause set for satisfiability in a limited search
+   when the given literals are to be made true.
+
+   This is similar to minisat_solve_assumptions above, but the search
+   is limited to the given number of conflicts. 
+
+   Return None if satisfiability could not be determined under the
+   conflict limit. Return Some l_True = Some 0 if the clause set is
+   satisfiable with assumptions, Some l_Undef = Some 2 if the clause
+   set is immediately unsatisfiable without assumptions and Some
+   l_False = Some 1 if the clause set is unsatisfiable with
+   assumptions.
+
+   external minisat_fast_solve : minisat_solver -> minisat_lit list -> int -> lbool option = "minisat_fast_solve"
+
+*/
+extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value max_conflicts_in)
 {
 
   // Declare parameters 
-  CAMLparam3 (solver_in, assumptions_in, conflicts_per_lit_in);
+  CAMLparam3 (solver_in, assumptions_in, max_conflicts_in);
   CAMLlocal1(head);
 
   Solver* solver = (Solver*) Field(solver_in, 0);
-  int conflicts_per_lit = Int_val(conflicts_per_lit_in);
+  int max_conflicts = Int_val(max_conflicts_in);
 
   head = assumptions_in;
 
   // Assumptions for solving
   vec<Lit> lits;
+  lits.clear();
 
   // Only if satisfiable after simplifications
   if (solver->simplify())
     {
 
+#ifdef DEBUG
       printf("Assuming ");
+#endif
 
       // Iterate list of literals
       while (head != Val_emptylist) 
@@ -345,7 +435,11 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 	  // Get MiniSat literal from value
 	  Lit* lit = (Lit*) Data_custom_val(lit_in);
 	  
-	  printf("%d ", toInt(*lit));
+#ifdef DEBUG
+	  printf("%s%d ", 
+		 sign(*lit) ? "" : "~",
+		 var(*lit));
+#endif
 	  
 	  // Add literal to assumptions
 	  lits.push(*lit);
@@ -355,34 +449,42 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 	  
 	}
       
+#ifdef DEBUG
       printf("\n");
 
       if (!lits.size()) printf("No assumptions\n");
+#endif
 
-      // Set budget to conflicts per literal, allow conflicts for
-      // empty assumptions
-      solver->setConfBudget(lits.size() ? 
-			    conflicts_per_lit * lits.size() : 
-			    conflicts_per_lit);
+      // Set budget for number of conflicts
+      solver->setConfBudget(max_conflicts);
 
       // Solve with literal assumptions 
       lbool res = solver->solveLimited(lits);
 
       if (res == l_True) 
 	{
-	  printf("Satisfiable with assumptions\n");
+#ifdef DEBUG
+	  printf("Satisfiable with assumptions (fast solve)\n");
+#endif
+
 	  CAMLreturn(Val_some(Val_int(toInt(l_True))));
 	}
 
       if (res == l_False) 
 	{
-	  printf("Unsatisfiable with assumptions\n");
+#ifdef DEBUG
+	  printf("Unsatisfiable with assumptions (fast solve)\n");
+#endif
+
 	  CAMLreturn(Val_some(Val_int(toInt(l_True))));
 	}
 
       if (res == l_Undef) 
 	{
-	  printf("Unknown\n");
+#ifdef DEBUG
+	  printf("Unknown (fast solve)\n");
+#endif
+
 	  CAMLreturn(Val_none);
 	}
       
@@ -391,7 +493,9 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
   else
     {
 
-      printf("Unsatisfiable without assumptions\n");
+#ifdef DEBUG
+      printf("Unsatisfiable without assumptions (fast solve)\n");
+#endif
 
       // Unsatisfiable without assumptions
       CAMLreturn(Val_some(Val_int(toInt(l_Undef))));
@@ -401,7 +505,13 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 }
 
 
-// external minisat_model_value : minisat_solver -> minisat_lit -> int = "minisat_model_value"
+/* Return the truth value of the literal in the current model: Some
+    true if the literal is true, Some false if the literal is false
+    and None if the literal value is undefined
+
+  external minisat_model_value : minisat_solver -> minisat_lit -> int = "minisat_model_value"
+
+*/
 extern "C" value minisat_model_value (value solver_in, value lit_in)
 {
 
@@ -410,14 +520,37 @@ extern "C" value minisat_model_value (value solver_in, value lit_in)
   Solver* solver = (Solver*) Field(solver_in, 0);
   Lit* lit = (Lit*) Data_custom_val(lit_in);
 
-  value res = Val_int(toInt(solver->modelValue (*lit)));
+  lbool val = solver->modelValue(*lit);
 
-  CAMLreturn(res);
+#ifdef DEBUG
+  printf ("Model value %s%d: %s (%d)\n", 
+	  sign(*lit) ? "" : "~",
+	  var(*lit),
+	  val == l_True ? "l_True" : (val == l_False ? "l_False" : "l_Undef"),
+	  val);
+#endif
 
+  if (val == l_True) 
+    { 
+      CAMLreturn(Val_int(toInt(l_True)));
+    }
+  else if (val == l_False) 
+    { 
+      CAMLreturn(Val_int(toInt(l_False)));
+    }
+  else
+    {
+      CAMLreturn(Val_int(toInt(l_Undef)));
+    }
+  
 }
 
 
-// external minisat_lit_to_int : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
+/* Return the propositional variable in the literal
+
+   external minisat_lit_var : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
+
+*/
 extern "C" value minisat_lit_var(value solver_in, value lit_in)
 {
 
@@ -432,7 +565,12 @@ extern "C" value minisat_lit_var(value solver_in, value lit_in)
 }
 
 
-// external minisat_lit_to_int : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
+/* Return the sign of the literal, true for a positive and false
+   for a negative literal 
+   
+   external minisat_lit_sign : minisat_solver -> minisat_lit -> bool = "minisat_lit_to_int"
+    
+*/
 extern "C" value minisat_lit_sign(value solver_in, value lit_in)
 {
 
@@ -447,9 +585,11 @@ extern "C" value minisat_lit_sign(value solver_in, value lit_in)
 }
 
 
+/* Return the number of propositional variables
 
+  external minisat_stat_vars : minisat_solver -> int = "minisat_stat_vars" 
 
-// external minisat_stat_vars : minisat_solver -> int = "minisat_stat_vars" 
+*/
 extern "C" value minisat_stat_vars(value solver_in)
 {
 
@@ -467,7 +607,10 @@ extern "C" value minisat_stat_vars(value solver_in)
 }
 
 
-// external minisat_stat_clauses : minisat_solver -> int = "minisat_stat_clauses" 
+/* Return the number of clauses
+  
+  external minisat_stat_clauses : minisat_solver -> int = "minisat_stat_clauses" 
+*/
 extern "C" value minisat_stat_clauses(value solver_in)
 {
 

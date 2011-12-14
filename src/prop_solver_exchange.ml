@@ -131,7 +131,8 @@ let normalise_assumptions assumptions =
   if assumptions = [] 
   then []
   else
-    let cmp l1 l2 = compare (PropSolver.get_var_id l1) (PropSolver.get_var_id l2)
+    let cmp l1 l2 = 
+      compare (PropSolver.lit_var solver l1) (PropSolver.lit_var solver l2)
     in 
     let sorted_assumptions = List.sort cmp assumptions in
     let rec elim_duplicates_compl rest lit_list = 
@@ -139,12 +140,12 @@ let normalise_assumptions assumptions =
       | [] -> rest 
       | l::[] -> l::rest
       | l1::l2::tl ->
-	  let id1 = (PropSolver.get_var_id l1) in 
-	  let id2 = (PropSolver.get_var_id l2) in 
+	  let id1 = (PropSolver.lit_var solver l1) in 
+	  let id2 = (PropSolver.lit_var solver l2) in 
 	  if id1 = id2 
 	  then 
-	  let sign1 = (PropSolver.lit_sign l1) in 
-	  let sign2 = (PropSolver.lit_sign l2) in 
+	  let sign1 = (PropSolver.lit_sign solver l1) in 
+	  let sign2 = (PropSolver.lit_sign solver l2) in 
 	  if sign1 = sign2 
 	  then 
 	    elim_duplicates_compl rest (l1::tl)
@@ -592,10 +593,12 @@ let assign_adjoint_preds preds =
 (*----- Simpifications of Propositional  clauses before adding to SAT -----*)
 
 let prop_norm_order pl1 pl2 = 
-  let cmp = (compare (PropSolver.get_var_id pl1) (PropSolver.get_var_id pl2)) in
+  let cmp = 
+    (compare (PropSolver.lit_var solver pl1) (PropSolver.lit_var solver pl2)) 
+  in
   if cmp = cequal 
   then 
-    compare (PropSolver.lit_sign pl1) (PropSolver.lit_sign pl2) 
+    compare (PropSolver.lit_sign solver pl1) (PropSolver.lit_sign solver pl2) 
   else
     cmp
 
@@ -607,7 +610,7 @@ let rec prop_remove_dupl_taut plit_list =
       if h1==h2 
       then prop_remove_dupl_taut (h2::tl) 
       else 
-	if ((PropSolver.get_var_id h1) = (PropSolver.get_var_id h2))
+	if ((PropSolver.lit_var solver h1) = (PropSolver.lit_var solver h2))
 	then 
 	  raise PropTaut (* if h1 h2 would have the same sign then h1==h2*)
 	else (h1::(prop_remove_dupl_taut (h2::tl)))
@@ -688,7 +691,7 @@ module PropHashKey =
   struct
     type t    = PropSolver.lit
     let equal = (=)
-    let hash  = PropSolver.get_var_id 
+    let hash  = PropSolver.lit_var solver
   end 
 
 (* will have several uses*)

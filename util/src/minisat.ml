@@ -57,7 +57,7 @@ let int_to_lbool = function
   | 0 -> L_true
   | 1 -> L_false
   | 2 -> L_undef
-  | _ -> invalid_arg "int_to_lbool"
+  | c -> invalid_arg (Format.sprintf "int_to_lbool %d" c)
 
 
 (* The clause set is immediately unsatisfiable *)
@@ -158,21 +158,28 @@ let add_clause { solver = solver } = function
 
   | clause -> 
 
-    (* Add clause to MiniSat *)
-    if minisat_add_clause solver clause then
+    (* Add clause to MiniSat and check if immediately unsatisfiable *)
+    if not (minisat_add_clause solver clause) then
 
       (* Raise exception if immediately unsatisfiable *)
       raise Unsatisfiable
 
     
 (* Test the given clause set for satisfiability *)
-let solve { solver = solver } = 
+let solve ({ solver = solver } as s) = 
+
+  (* Increment counter *)
+  s.num_of_solver_calls <- succ s.num_of_solver_calls;
+  
   minisat_solve solver 
   
 
 (** Test the given clause set for satisfiability when the given
     literals are to be made true *)
-let solve_assumptions { solver = solver } assumptions =
+let solve_assumptions ({ solver = solver } as s) assumptions =
+
+  (* Increment counter *)
+  s.num_of_solver_calls <- succ s.num_of_solver_calls;
 
   (* Solve with literal assumptions *)
   match int_to_lbool (minisat_solve_assumptions solver assumptions) with 
@@ -191,7 +198,10 @@ let solve_assumptions { solver = solver } assumptions =
    literals are to be made true. Limit the search to a number of
    conflicts, which is a multiple of the number of literal
    assumptions *)
-let fast_solve { solver = solver } assumptions = 
+let fast_solve ({ solver = solver } as s) assumptions = 
+
+  (* Increment counter *)
+  s.num_of_fast_solver_calls <- succ s.num_of_fast_solver_calls;
 
   (* Solve with literal assumptions *)
   match minisat_fast_solve solver assumptions 1 with 
