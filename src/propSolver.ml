@@ -84,14 +84,6 @@ let bool_option_to_val = function
   | Some false -> False
   | None -> Any
 
-let int_to_val int_in = 
-  match int_in with 
-  |  1    -> True 
-  | -1    -> False
-  |  0    -> Any
-  | _     -> 
-      failwith ("MiniSat error:int_to_val  unknown truth value: "^(string_of_int int_in))
-
 
 (*  cannot mach a int constant ...
   | l_True    -> True 

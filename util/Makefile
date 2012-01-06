@@ -11,8 +11,10 @@ OCAMLMKLIB=ocamlmklib
 OCAMLMKTOP=ocamlmktop
 RANLIB=ranlib
 
-OCAMLLIBDIR=/usr/lib/ocaml
-OCAMLINCDIR=/usr/lib/ocaml
+# OCAMLLIBDIR=/usr/lib/ocaml
+# OCAMLINCDIR=/usr/lib/ocaml
+OCAMLLIBDIR=/home/chris/lib/ocaml
+OCAMLINCDIR=/home/chris/lib/ocaml
 
 MINISATDIR=$(CURDIR)/minisat
 HHLMUCDIR=$(CURDIR)/Haifa-HLMUC

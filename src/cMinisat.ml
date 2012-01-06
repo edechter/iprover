@@ -109,7 +109,7 @@ let num_of_clauses solver =
 
 (* Adds the propositional variable [var_id] to the solver *)	
 let add_var solver var_id =
-  solver.num_of_vars <- solver.num_of_vars +1;
+  solver.num_of_vars <- solver.num_of_vars + 1;
   add_var_minisat solver.core var_id
 	
 (* Create and return a literal of the propositional
@@ -120,11 +120,11 @@ let add_var solver var_id =
 let create_lit solver sign var =
   (* TODO: var = 0 seems to be allowed, but check before changing
      calling code *)
-  if var < 0 then raise Create_lit_error 
+  if var <= 0 then raise Create_lit_error 
   else
-    (solver.num_of_vars <- solver.num_of_vars +1;
+    (solver.num_of_vars <- solver.num_of_vars + 1;
      let lit_minisat = create_lit_minisat var solver.core sign in
-     {var =var ;  sign = sign; minisat_val = lit_minisat})
+     { var = var ;  sign = sign ; minisat_val = lit_minisat })
       
 let get_minisat_lit minisat_lit =
   minisat_lit.minisat_val
@@ -194,15 +194,15 @@ let fast_solve solver (assumptions : lit_list) =
   let ass_array = Array.of_list list_of_minisat_lits in 
   let result = fast_solve_minisat solver.core ass_array in
   match result with 
-  | -1  -> Some true    (* under assumption *) 
-  |  1  -> Some false  (* under assumption *) 
+  | -1  -> Some false    (* under assumption *) 
+  |  1  -> Some true     (* under assumption *) 
   |  0  -> raise Unsatisfiable (* without assumptions*) 
   |  -2  -> None  (* from C++ MiniSat *) 
   |_    -> failwith "MiniSat error: fast_solve  unknown truth value"
 	
 
 (* First variable is 0, but here always use var > 0 *)
-let lit_var _ lit = pred lit.var 
+let lit_var _ lit = lit.var 
     
 let lit_sign _ lit = lit.sign
     
