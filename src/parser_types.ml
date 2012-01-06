@@ -450,6 +450,16 @@ let defined_pred_fun name =
 *)  
 
 
+let reg_exp_less  = Str.regexp_string "$$less_"
+let reg_exp_range = Str.regexp_string "$$range_"
+let reg_exp_clock = Str.regexp_string "$$bmc1_clock_"
+
+let system_pred_name_pref_reg_expr = 
+  Str.regexp 
+    (Str.quote "$$less_"^"\|"^
+     Str.quote "$$range_"^"\|"^
+     Str.quote "$$bmc1_clock_")
+
 let system_pred_fun name args = 
 
   match name with 
@@ -467,7 +477,7 @@ let system_pred_fun name args =
 	plain_term_fun_typed true name args
 
     (* Less predicate for BMC1 *)
-    | term when 
+(*    | term when 
 	(try 
 	   String.sub term 0 7 = "$$less_" 
 	 with 
@@ -487,11 +497,16 @@ let system_pred_fun name args =
 	(* Create term like plain term *)
 	plain_term_fun_typed true name args
 	
-
+*)
     (* Sorted equality  *)
     | "$$equality_sorted" -> 
 
 	create_theory_term Symbol.symb_typed_equality args
+
+    | pred_name 
+      when 
+	(Str.string_match system_pred_name_pref_reg_expr pred_name 0) ->
+	plain_term_fun_typed true name args
 
     | _ -> 
 
