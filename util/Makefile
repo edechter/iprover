@@ -11,10 +11,10 @@ OCAMLMKLIB=ocamlmklib
 OCAMLMKTOP=ocamlmktop
 RANLIB=ranlib
 
-# OCAMLLIBDIR=/usr/lib/ocaml
-# OCAMLINCDIR=/usr/lib/ocaml
-OCAMLLIBDIR=/home/chris/lib/ocaml
-OCAMLINCDIR=/home/chris/lib/ocaml
+OCAMLLIBDIR=/usr/lib/ocaml
+OCAMLINCDIR=/usr/lib/ocaml
+# OCAMLLIBDIR=/home/chris/lib/ocaml
+# OCAMLINCDIR=/home/chris/lib/ocaml
 
 MINISATDIR=$(CURDIR)/minisat
 HHLMUCDIR=$(CURDIR)/Haifa-HLMUC
@@ -23,7 +23,7 @@ all: hhlmuc minisat minisat-ocaml
 
 .PHONY : clean
 
-clean: clean-hhlmuc clean-minisat clean-minisat-lib
+clean: clean-hhlmuc clean-minisat clean-minisat-ocaml
 
 # Set variables for hhlmuc and clean-hhlmuc
 hhlmuc clean-hhlmuc: export LIB = hhlmuc
@@ -61,7 +61,6 @@ clean-minisat:
 
 clean-minisat-ocaml: 
 	rm lib/*
-	rm obj/*
 
 
 # Cannot use minisat, clashes with name of libminisat.a

@@ -32,6 +32,7 @@ extern "C" {
 
 }
 
+
 #define DEBUG
 
 /* -D flags in MiniSat mtl/template.mk */
