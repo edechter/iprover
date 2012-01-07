@@ -32,8 +32,7 @@ extern "C" {
 
 }
 
-
-#define DEBUG
+// #define DEBUG
 
 /* -D flags in MiniSat mtl/template.mk */
 #define __STDC_LIMIT_MACROS
@@ -226,7 +225,9 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
       Lit* lit = (Lit*) Data_custom_val(lit_in);
 
 #ifdef DEBUG
-      printf("%d ", toInt(*lit));
+      printf("%s%d ", 
+	     sign(*lit) ? "" : "~",
+	     var(*lit));
 #endif
 
       // Add literal to clause 
@@ -332,8 +333,8 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	  
 #ifdef DEBUG
 	  printf("%s%d ", 
-		 var(*lit) ? "" : "~",
-		 toInt(*lit));
+		 sign(*lit) ? "" : "~",
+		 var(*lit));
 #endif
 	  
 	  // Add literal to assumptions
@@ -530,7 +531,7 @@ extern "C" value minisat_model_value (value solver_in, value lit_in)
 	  sign(*lit) ? "" : "~",
 	  var(*lit),
 	  val == l_True ? "l_True" : (val == l_False ? "l_False" : "l_Undef"),
-	  val);
+	  toInt(val));
 #endif
 
   if (val == l_True) 
