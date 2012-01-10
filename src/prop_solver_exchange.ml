@@ -451,7 +451,12 @@ let get_prop_gr_compl_lit lit =
 
   in
   match def_lit with 
-  |Def(lit) -> lit 
+  |Def plit -> 
+    (* Format.eprintf 
+      "Literal %s is %s in simplification solver@." 
+      (Term.to_string lit) 
+      (PropSolver.lit_to_string solver_sim plit); *)
+    plit
   | _ -> failwith "Instantiation get_prop_gr_lit: lit is undefind"
 
 
@@ -468,7 +473,12 @@ let get_prop_gr_lit_assign lit =
      prop_var_entry.prop_var 
   in
   match def_lit with 
-  |Def(lit) -> lit 
+  |Def plit -> 
+    (* Format.eprintf 
+      "Literal %s is %s in satisfiability solver@." 
+      (Term.to_string lit) 
+      (PropSolver.lit_to_string solver plit); *)
+    plit
   | _ -> failwith "Instantiation get_prop_gr_lit_assign: lit is undefind"
 
 
@@ -878,8 +888,12 @@ let out_answer () =  out_answer_stream stdout_stream
 (* first version is used for simplifications *)
 exception PropImplied
 let add_clause_to_solver clause =
-(*  out_str "Add Clause To Solver: ";
-  out_str (Clause.to_string clause);*)
+(* out_str "Add Clause To Solver: ";
+   out_str (Clause.to_string clause); *)
+  (* Format.eprintf 
+    "Adding clause to solver %s@."
+    (Clause.to_string clause); *)
+
   if (Clause.get_bool_param Clause.in_prop_solver clause) 
   then ()
   else 
@@ -969,6 +983,13 @@ let add_clause_to_solver clause =
 
 (*----------------- change selection -----------------------------*)
 
+let pp_truth_val ppf = function
+  | Undef -> Format.fprintf ppf "Undef"
+  | Def PropSolver.True -> Format.fprintf ppf "True"
+  | Def PropSolver.False -> Format.fprintf ppf "False"
+  | Def PropSolver.Any -> Format.fprintf ppf "Any"
+  
+
 (* Warning both A and neg A can be consitent with the solver *)
 (* (if the solver returns Any) *)
 (* after grounding*)
@@ -977,14 +998,26 @@ let consistent_with_solver lit =
   let prop_var       = get_prop_var_var_entry var_entry in
   let var_truth_val  = PropSolver.lit_val solver prop_var in
   if var_truth_val = PropSolver.Any 
-  then true 
+  then 
+    ( (*Format.eprintf
+       "Literal %s is consistent with solver, since model value is Any@."
+       (Term.to_string lit); *)
+     true)
   else
     let is_neg = Term.is_neg_lit lit in    
     if
       ((var_truth_val = PropSolver.True)  & (not is_neg)) ||  
       ((var_truth_val = PropSolver.False) & is_neg)
-    then true
-    else false
+    then
+      ( (* Format.eprintf
+	 "Literal %s is consistent with solver, since model value is True@."
+	 (Term.to_string lit); *)
+       true)
+    else 
+      ( (* Format.eprintf
+	 "Literal %s is not consistent with solver, since model value is False@."
+	 (Term.to_string lit); *)
+       false)
 
 (* without grounding*)
 let consistent_with_solver_lit  lit = 
@@ -992,7 +1025,7 @@ let consistent_with_solver_lit  lit =
   let prop_var       = get_prop_var_var_entry var_entry in
   let var_truth_val  = PropSolver.lit_val solver prop_var in
   if var_truth_val = PropSolver.Any 
-  then true 
+  then true
   else
     let is_neg = Term.is_neg_lit lit in    
     if
@@ -1010,15 +1043,30 @@ let consistent_with_model lit =
       if (var_truth_val = PropSolver.Any)
       then  
 	((*out_str "consistent_with_model: Any\n "; *)
-	 true )
+	  (* Format.eprintf
+	    "Literal %s is consistent with model, since model value is Any@."
+	    (Term.to_string lit); *)
+	  true )
       else
       let is_neg = Term.is_neg_lit lit in    
       if
 	((var_truth_val = PropSolver.True)  & (not is_neg)) ||  
 	((var_truth_val = PropSolver.False) & is_neg)
-      then true
-      else false
-  | Undef -> true
+      then 
+ 	((* Format.eprintf
+	   "Literal %s is consistent with model, since model value is True@."
+	   (Term.to_string lit); *)
+	 true)
+      else
+  	((* Format.eprintf
+	   "Literal %s is not consistent with model, since model value is False@."
+	   (Term.to_string lit); *)
+	 false)
+  | Undef -> 
+    ((* Format.eprintf
+       "Literal %s is consistent with model, since model value is Undef@."
+       (Term.to_string lit); *)
+     true)
 
 
 
@@ -1153,7 +1201,7 @@ let change_model_solver  move_lit_from_active_to_passive var_entry =
 	 then out_str "change_model_solver: sel_clauses should be empty \n");*)
 	 var_entry.truth_val <- Def(new_truth_val)) 	
       else
-	if (old_truth_val = new_truth_val) || (new_truth_val = PropSolver.Any)
+	if (old_truth_val = new_truth_val) (* || (new_truth_val = PropSolver.Any) *)
 	then ()
 	else 
 	  (
@@ -1185,9 +1233,10 @@ let ass_if_consistent lit clause=
   then 
     (
 (*debug check *)
-     (*
+(*
       (if var_entry.sel_clauses !=[] 
-     then out_str "ass_if_consistent: sel_clauses should be empty \n");*)
+       then Format.eprintf "ass_if_consistent: sel_clauses should be empty@.");
+*)
      var_entry.sel_clauses <- [clause];
      if (Term.is_neg_lit lit)
      then var_entry.truth_val <- Def(PropSolver.False)
@@ -1209,8 +1258,17 @@ let remove_undef_model clause =
         (* if truth_val = Def(Any) the we assume that sel_clauses=[] *)
 	(let prop_var  = get_prop_var_var_entry var_entry in
 	let new_truth_val = PropSolver.lit_val solver prop_var in
+	(* Format.eprintf 
+	  "Changing model for atom %s from %a to %a@."
+	  (Term.to_string (Term.get_atom lit))
+	  pp_truth_val var_entry.truth_val
+	  pp_truth_val (Def new_truth_val); *)
 	var_entry.truth_val <- Def(new_truth_val))
-    |_ -> ()
+    | _ -> ()
+      (* Format.eprintf 
+	"Keeping model for atom %s as %a@."
+	(Term.to_string (Term.get_atom lit))
+	pp_truth_val var_entry.truth_val *)
   in 
   Clause.iter remove_undef_lit clause
 	
@@ -1219,6 +1277,11 @@ let remove_undef_model clause =
 exception Sel_Changed  
 exception Solver_Sel
 let rec selection_renew_model move_lit_from_active_to_passive selection_fun clause =  
+
+  (* Format.eprintf 
+    "selection_renew_model for clause %s@."
+    (Clause.to_string clause); *)
+
 (*  out_str (" selection_renew clause:  "^(Clause.to_string clause)^"\n");*)
 (*
   let accord lit = 
@@ -1230,18 +1293,24 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
     let var_entry = get_prop_gr_var_entry lit in
     let _= preserve_model_solver move_lit_from_active_to_passive solver var_entry in () in
   Clause.iter preserve_mod clause; *)
-    try
-      let sel_lit       = Clause.get_inst_sel_lit clause in    
-      let sel_var_entry = get_prop_gr_var_entry sel_lit in
-      if (consistent_with_model sel_lit)
-      then     
-	if (preserve_model_solver move_lit_from_active_to_passive sel_var_entry)
-	then ass_if_consistent sel_lit clause	  
-	else    
-	 (
-	  raise Sel_Changed)
-      else  raise Sel_Changed
-    with
+  try
+    let sel_lit       = Clause.get_inst_sel_lit clause in    
+    let sel_var_entry = get_prop_gr_var_entry sel_lit in
+    if 
+      (consistent_with_model sel_lit)
+    then     
+      if 
+	(preserve_model_solver move_lit_from_active_to_passive sel_var_entry)
+      then 
+	((* Format.eprintf "Selection is consistent and can be preserved@."; *)
+	 ass_if_consistent sel_lit clause)
+      else    
+	((* Format.eprintf "Selection is consistent but cannot be preserved@."; *)
+	 raise Sel_Changed)
+    else 
+      ((* Format.eprintf "Selection is not consistent@."; *)
+       raise Sel_Changed)
+  with
       Sel_Changed | Clause.Inst_sel_lit_undef ->
 	(
 	 try 	   

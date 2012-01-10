@@ -269,6 +269,100 @@ let inherit_param_modif from_c to_c =
 
 
 
+(*------------To stream/string-------------------------------*)
+
+
+let to_stream s clause = 
+  s.stream_add_char '{';
+  (list_to_stream s Term.to_stream clause.literals ";");
+  s.stream_add_char '}'
+
+let out = to_stream stdout_stream
+
+let to_string = 
+  to_string_fun_from_to_stream_fun 100 to_stream
+
+(*
+let to_string clause = 
+  "{"^(list_to_string Term.to_string clause.literals ";")^"}" (*^"\n"*)
+*)
+
+
+let tptp_to_stream s clause = 
+  begin
+    s.stream_add_str "cnf(";
+    s.stream_add_str "id_";
+    (match clause.fast_key with 
+    | Def(key) -> 
+	s.stream_add_str (string_of_int key)
+    | Undef -> 
+	s.stream_add_str "tmp"
+    );
+    s.stream_add_char ',';
+    (if (is_negated_conjecture clause) 
+    then 
+      s.stream_add_str "negated_conjecture"
+    else
+    s.stream_add_str "plain"
+    );
+    s.stream_add_char ',';
+    s.stream_add_char '(';
+    list_to_stream s Term.to_stream clause.literals "|";
+    s.stream_add_str "))."
+  end
+
+let out_tptp  = tptp_to_stream stdout_stream
+  
+
+let to_tptp = 
+  to_string_fun_from_to_stream_fun 30 tptp_to_stream
+
+(*
+  "cnf("^id_str^","^clause_type^","
+  ^"("^(list_to_string Term.to_string clause.literals "|")^")"^")."
+*)							  
+
+(*
+
+let to_tptp clause = 
+  let id_str = 
+    let pref_id = "id_" in   
+    match clause.fast_key with 
+    | Def(key) -> pref_id^(string_of_int key)
+    | Undef -> pref_id^"tmp"
+  in
+  let clause_type = "plain" in
+  "cnf("^id_str^","^clause_type^","
+  ^"("^(list_to_string Term.to_string clause.literals "|")^")"^")."
+								  
+*)
+
+let clause_list_to_stream s c_list =
+  list_to_stream s to_stream c_list "\n"
+
+let out_clause_list = clause_list_to_stream stdout_stream
+
+let clause_list_to_string =
+  to_string_fun_from_to_stream_fun 300 clause_list_to_stream
+
+
+let clause_list_tptp_to_stream s c_list =
+  list_to_stream s tptp_to_stream c_list "\n"
+
+let out_clause_list_tptp = clause_list_tptp_to_stream stdout_stream
+
+let clause_list_to_tptp =
+  to_string_fun_from_to_stream_fun 300 clause_list_tptp_to_stream
+
+
+(*
+let clause_list_to_string c_list = 
+  list_to_string to_string c_list "\n"
+
+let clause_list_to_tptp c_list = 
+  list_to_string to_tptp c_list "\n"
+*)
+
 (*----------*)
 (*!! is ground is used before it is put in a clauseDB!!*)
 
@@ -493,6 +587,13 @@ let rec find_sel_place sel_lit lit_list =
 
 let assign_inst_sel_lit sel_lit clause =
   let sel_place = find_sel_place sel_lit clause.literals in
+  (* Format.eprintf 
+    "Selecting literal %s in clause (%d) %s@."
+    (Term.to_string sel_lit)
+    (match clause.fast_key with 
+      | Def key -> key
+      | Undef -> -1)
+    (to_string clause); *)
   clause.inst_sel_lit <- Def((sel_lit,sel_place))
 
 let assign_dismatching dismatching clause = 
@@ -1128,99 +1229,6 @@ let normalise_bclause_list term_db_ref bsubst bclause_list =
   create new_term_list
 
 
-(*------------To stream/string-------------------------------*)
-
-
-let to_stream s clause = 
-  s.stream_add_char '{';
-  (list_to_stream s Term.to_stream clause.literals ";");
-  s.stream_add_char '}'
-
-let out = to_stream stdout_stream
-
-let to_string = 
-  to_string_fun_from_to_stream_fun 100 to_stream
-
-(*
-let to_string clause = 
-  "{"^(list_to_string Term.to_string clause.literals ";")^"}" (*^"\n"*)
-*)
-
-
-let tptp_to_stream s clause = 
-  begin
-    s.stream_add_str "cnf(";
-    s.stream_add_str "id_";
-    (match clause.fast_key with 
-    | Def(key) -> 
-	s.stream_add_str (string_of_int key)
-    | Undef -> 
-	s.stream_add_str "tmp"
-    );
-    s.stream_add_char ',';
-    (if (is_negated_conjecture clause) 
-    then 
-      s.stream_add_str "negated_conjecture"
-    else
-    s.stream_add_str "plain"
-    );
-    s.stream_add_char ',';
-    s.stream_add_char '(';
-    list_to_stream s Term.to_stream clause.literals "|";
-    s.stream_add_str "))."
-  end
-
-let out_tptp  = tptp_to_stream stdout_stream
-  
-
-let to_tptp = 
-  to_string_fun_from_to_stream_fun 30 tptp_to_stream
-
-(*
-  "cnf("^id_str^","^clause_type^","
-  ^"("^(list_to_string Term.to_string clause.literals "|")^")"^")."
-*)							  
-
-(*
-
-let to_tptp clause = 
-  let id_str = 
-    let pref_id = "id_" in   
-    match clause.fast_key with 
-    | Def(key) -> pref_id^(string_of_int key)
-    | Undef -> pref_id^"tmp"
-  in
-  let clause_type = "plain" in
-  "cnf("^id_str^","^clause_type^","
-  ^"("^(list_to_string Term.to_string clause.literals "|")^")"^")."
-								  
-*)
-
-let clause_list_to_stream s c_list =
-  list_to_stream s to_stream c_list "\n"
-
-let out_clause_list = clause_list_to_stream stdout_stream
-
-let clause_list_to_string =
-  to_string_fun_from_to_stream_fun 300 clause_list_to_stream
-
-
-let clause_list_tptp_to_stream s c_list =
-  list_to_stream s tptp_to_stream c_list "\n"
-
-let out_clause_list_tptp = clause_list_tptp_to_stream stdout_stream
-
-let clause_list_to_tptp =
-  to_string_fun_from_to_stream_fun 300 clause_list_tptp_to_stream
-
-
-(*
-let clause_list_to_string c_list = 
-  list_to_string to_string c_list "\n"
-
-let clause_list_to_tptp c_list = 
-  list_to_string to_tptp c_list "\n"
-*)
 
 (*----Orphan Search Not Finished--------------*)
 

@@ -36,9 +36,11 @@ type var_id = int
 
 (*
 module SatSolver = CMinisat 
-*)
 
 module SatSolver = Minisat 
+*)
+
+module SatSolver = Hhlmuc
 
 
 type lit = SatSolver.literal

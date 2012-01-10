@@ -51,6 +51,11 @@ extern "C" {
 #include <core/Dimacs.h>
 #include <simp/SimpSolver.h>
 
+/* Define lifted booleans as OCaml integers */
+#define Val_l_True Val_int(0)
+#define Val_l_False Val_int(1)
+#define Val_l_Undef Val_int(2)
+
 /* 'a option = None */
 #define Val_none Val_int(0)
 
@@ -115,8 +120,17 @@ extern "C" value minisat_create_solver(value unit)
   Solver* s = new Solver;
 
   // Allocate abstract datatype for MiniSat instance 
-  value res = caml_alloc(1, Abstract_tag);
+  value res = caml_alloc(2, Abstract_tag);
+
+  // First field is pointer to solver 
   Store_field(res, 0, (value) s); 
+
+  // Second field is number of variables on last solve call
+  Store_field(res, 1, (value) 0); 
+
+#ifdef DEBUG
+  fprintf(stderr, "Created new MiniSat instance\n");
+#endif
 
   // Return MiniSat instance 
   CAMLreturn(res);
@@ -127,7 +141,7 @@ extern "C" value minisat_create_solver(value unit)
 
    external minisat_add_var : minisat_solver -> int -> unit = "minisat_add_var"
 
-   Variables are integers, the first is 0. Integers do nat have to be
+   Variables are integers, the first is 0. Integers do not have to be
    allocated for OCaml.
 
    Each variable has to be allocated by calling newVar().
@@ -180,7 +194,11 @@ extern "C" value minisat_create_lit(value solver_in, value sign_in, value var_id
   Lit lit = sign ? mkLit(var_id) : ~mkLit(var_id);
 
 #ifdef DEBUG
-  printf("Created literal %d from %s%d\n", toInt(lit), sign ? "" : "~", var_id);
+  fprintf(stderr, 
+	  "Created literal %d from %s%d\n", 
+	  toInt(lit), 
+	  sign ? "" : "~", 
+	  var_id);
 #endif
 
   // Allocate and copy MiniSat literal to OCaml
@@ -211,7 +229,7 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
   vec<Lit> lits;
 
 #ifdef DEBUG
-  printf("Asserting clause ");
+  fprintf(stderr, "Asserting clause ");
 #endif
 
   // Iterate list of literals
@@ -225,9 +243,9 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
       Lit* lit = (Lit*) Data_custom_val(lit_in);
 
 #ifdef DEBUG
-      printf("%s%d ", 
-	     sign(*lit) ? "" : "~",
-	     var(*lit));
+      fprintf(stderr, "%s%d ", 
+	      sign(*lit) ? "" : "~",
+	      var(*lit));
 #endif
 
       // Add literal to clause 
@@ -239,7 +257,7 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
     }
 
 #ifdef DEBUG
-  printf("\n");
+  fprintf(stderr, "\n");
 #endif
 
   // Add clause to solver
@@ -254,7 +272,7 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
     {
 
 #ifdef DEBUG
-      printf("Unsatisfiable with added clause\n");
+      fprintf(stderr, "Unsatisfiable with added clause\n");
 #endif
 
       // Immediately unsatisfiable with added clause
@@ -279,11 +297,20 @@ extern "C" value minisat_solve(value solver_in)
   Solver* solver = (Solver*) Field(solver_in, 0);
 
 #ifdef DEBUG
-  printf("Solving without assumptions\n");
+  fprintf(stderr, "Solving without assumptions\n");
 #endif
 
+#ifdef DEBUG
+  fprintf(stderr, "Previous size of model: %d, updating to %d\n",
+	  (int) Field(solver_in, 1),
+	  solver->nVars());
+#endif
+
+  // Update number of variables
+  Store_field(solver_in, 1, (value) solver->nVars()); 
+
   // Run MiniSat
-  int res = solver->solve();
+  bool res = solver->solve();
 
   // Return result
   CAMLreturn(Val_bool(res));
@@ -318,7 +345,7 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
     {
 
 #ifdef DEBUG
-      printf("Assuming ");
+      fprintf(stderr, "Assuming ");
 #endif
 
       // Iterate list of literals
@@ -332,9 +359,9 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	  Lit* lit = (Lit*) Data_custom_val(lit_in);
 	  
 #ifdef DEBUG
-	  printf("%s%d ", 
-		 sign(*lit) ? "" : "~",
-		 var(*lit));
+	  fprintf(stderr, "%s%d ", 
+		  sign(*lit) ? "" : "~",
+		  var(*lit));
 #endif
 	  
 	  // Add literal to assumptions
@@ -346,19 +373,28 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	}
       
 #ifdef DEBUG
-      printf("\n");
+      fprintf(stderr, "\n");
 #endif
 
+#ifdef DEBUG
+      fprintf(stderr, "Previous size of model: %d, updating to %d\n",
+	      (int) Field(solver_in, 1),
+	      solver->nVars());
+#endif
+      
+      // Update number of variables
+      Store_field(solver_in, 1, (value) solver->nVars()); 
+      
       // Solve with literal assumptions
       if (solver->solve(lits))
 	{
 	  
 #ifdef DEBUG
-	  printf("Satisfiable under assumptions\n");
+	  fprintf(stderr, "Satisfiable under assumptions\n");
 #endif
 
 	  // Satisfiable under assumptions
-	  CAMLreturn(Val_int(toInt(l_True)));
+	  CAMLreturn(Val_l_True);
 
 	}
 
@@ -366,11 +402,11 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 	{
 
 #ifdef DEBUG
-	  printf("Unsatisfiable under assumptions\n");
+	  fprintf(stderr, "Unsatisfiable under assumptions\n");
 #endif
 
 	  // Unsatisfiable under assumptions
-	  CAMLreturn(Val_int(toInt(l_False)));
+	  CAMLreturn(Val_l_False);
 
 	}
 
@@ -380,11 +416,11 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
     {
 
 #ifdef DEBUG
-      printf("Unsatisfiable without assumptions\n");
+      fprintf(stderr, "Unsatisfiable without assumptions\n");
 #endif
 
       // Unsatisfiable without assumptions
-      CAMLreturn(Val_int(toInt(l_Undef)));
+      CAMLreturn(Val_l_Undef);
     }
 	
 }
@@ -426,7 +462,7 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
     {
 
 #ifdef DEBUG
-      printf("Assuming ");
+      fprintf(stderr, "Assuming ");
 #endif
 
       // Iterate list of literals
@@ -440,9 +476,9 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 	  Lit* lit = (Lit*) Data_custom_val(lit_in);
 	  
 #ifdef DEBUG
-	  printf("%s%d ", 
-		 sign(*lit) ? "" : "~",
-		 var(*lit));
+	  fprintf(stderr, "%s%d ", 
+		  sign(*lit) ? "" : "~",
+		  var(*lit));
 #endif
 	  
 	  // Add literal to assumptions
@@ -454,39 +490,48 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 	}
       
 #ifdef DEBUG
-      printf("\n");
+      fprintf(stderr, "\n");
 
-      if (!lits.size()) printf("No assumptions\n");
+      if (!lits.size()) fprintf(stderr, "No assumptions\n");
 #endif
 
       // Set budget for number of conflicts
       solver->setConfBudget(max_conflicts);
 
+#ifdef DEBUG
+      fprintf(stderr, "Previous size of model: %d, updating to %d\n",
+	      (int) Field(solver_in, 1),
+	      solver->nVars());
+#endif
+      
+      // Update number of variables
+      Store_field(solver_in, 1, (value) solver->nVars()); 
+      
       // Solve with literal assumptions 
       lbool res = solver->solveLimited(lits);
 
       if (res == l_True) 
 	{
 #ifdef DEBUG
-	  printf("Satisfiable with assumptions (fast solve)\n");
+	  fprintf(stderr, "Satisfiable with assumptions (fast solve)\n");
 #endif
 
-	  CAMLreturn(Val_some(Val_int(toInt(l_True))));
+	  CAMLreturn(Val_some(Val_l_True));
 	}
 
       if (res == l_False) 
 	{
 #ifdef DEBUG
-	  printf("Unsatisfiable with assumptions (fast solve)\n");
+	  fprintf(stderr, "Unsatisfiable with assumptions (fast solve)\n");
 #endif
 
-	  CAMLreturn(Val_some(Val_int(toInt(l_True))));
+	  CAMLreturn(Val_some(Val_l_True));
 	}
 
       if (res == l_Undef) 
 	{
 #ifdef DEBUG
-	  printf("Unknown (fast solve)\n");
+	  fprintf(stderr, "Unknown (fast solve)\n");
 #endif
 
 	  CAMLreturn(Val_none);
@@ -498,11 +543,11 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
     {
 
 #ifdef DEBUG
-      printf("Unsatisfiable without assumptions (fast solve)\n");
+      fprintf(stderr, "Unsatisfiable without assumptions (fast solve)\n");
 #endif
 
       // Unsatisfiable without assumptions
-      CAMLreturn(Val_some(Val_int(toInt(l_Undef))));
+      CAMLreturn(Val_some(Val_l_Undef));
       
     }
 
@@ -524,38 +569,56 @@ extern "C" value minisat_model_value (value solver_in, value lit_in)
   Solver* solver = (Solver*) Field(solver_in, 0);
   Lit* lit = (Lit*) Data_custom_val(lit_in);
 
-  lbool val = solver->modelValue(*lit);
+  // Variable not present in last solve call?
+  if (var(*lit) >= (int) Field(solver_in, 1))
+    {
 
 #ifdef DEBUG
-  printf ("Model value %s%d: %s (%d)\n", 
-	  sign(*lit) ? "" : "~",
-	  var(*lit),
-	  val == l_True ? "l_True" : (val == l_False ? "l_False" : "l_Undef"),
-	  toInt(val));
+      fprintf(stderr, "Variable %d not in model, set to l_Undef\n", var(*lit));
 #endif
-
-  if (val == l_True) 
-    { 
-      CAMLreturn(Val_int(toInt(l_True)));
-    }
-  else if (val == l_False) 
-    { 
-      CAMLreturn(Val_int(toInt(l_False)));
+      
+      // Return undefined without reading from model
+      CAMLreturn(Val_l_Undef);
+      
     }
   else
     {
-      CAMLreturn(Val_int(toInt(l_Undef)));
-    }
-  
-}
 
+      lbool val = solver->modelValue(*lit);
+
+#ifdef DEBUG
+      fprintf(stderr, "Model value %s%d: %s (%d)\n", 
+	      sign(*lit) ? "" : "~",
+	      var(*lit),
+	      val == l_True ? "l_True" : (val == l_False ? 
+					  "l_False" : 
+					  "l_Undef"),
+	      toInt(val));
+#endif
+
+      if (val == l_True) 
+	{ 
+	  CAMLreturn(Val_l_True);
+	}
+      else if (val == l_False) 
+	{ 
+	  CAMLreturn(Val_l_False);
+	}
+      else
+	{
+	  CAMLreturn(Val_l_Undef);
+	}
+      
+    }
+
+}
 
 /* Return the propositional variable in the literal
 
    external minisat_lit_var : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
 
 */
-extern "C" value minisat_lit_var(value solver_in, value lit_in)
+  extern "C" value minisat_lit_var(value solver_in, value lit_in)
 {
 
   // Declare parameters 
