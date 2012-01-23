@@ -18,8 +18,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Minisat_Solver_h
-#define Minisat_Solver_h
+#ifndef Hhlmuc_Solver_h
+#define Hhlmuc_Solver_h
 
 #include "mtl/Vec.h"
 #include "mtl/Heap.h"
@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "core/ResolutionGraph.h"
 #include <stdint.h>
 
-namespace Minisat {
+namespace Hhlmuc {
 
 //=================================================================================================
 // Solver -- the main class:

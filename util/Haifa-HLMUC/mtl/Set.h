@@ -17,14 +17,14 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Minisat_Set_h
-#define Minisat_Set_h
+#ifndef Hhlmuc_Set_h
+#define Hhlmuc_Set_h
 
 #include "mtl/IntTypes.h"
 #include "mtl/Vec.h"
 #include "mtl/Map.h"
 
-namespace Minisat {
+namespace Hhlmuc {
 
 //=================================================================================================
 // Hash table implementation of Maps

@@ -25,7 +25,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace Minisat;
+using namespace Hhlmuc;
 
 // TODO: split the memory reading functions into two: one for reading high-watermark of RSS, and
 // one for reading the current virtual memory size.
@@ -67,14 +67,14 @@ static inline int memReadPeak(void)
     return peak_kb;
 }
 
-double Minisat::memUsed() { return (double)memReadStat(0) * (double)getpagesize() / (1024*1024); }
-double Minisat::memUsedPeak() { 
+double Hhlmuc::memUsed() { return (double)memReadStat(0) * (double)getpagesize() / (1024*1024); }
+double Hhlmuc::memUsedPeak() { 
     double peak = memReadPeak() / 1024;
     return peak == 0 ? memUsed() : peak; }
 
 #else
 
-namespace Minisat {
+namespace Hhlmuc {
 
 double memUsed() { 
     return 0; }

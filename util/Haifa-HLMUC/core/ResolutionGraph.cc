@@ -4,13 +4,14 @@
 
 #include <stdint.h>
 
-namespace Minisat
+namespace Hhlmuc
 {
 
 void CResolutionGraph::AddNewResolution
     (uint32_t nNewClauseId, CRef ref, const vec<uint32_t>& parents)
 {
     assert((int)nNewClauseId == m_UidToData.size());
+
     m_UidToData.push();
     CRef refResol = m_RA.alloc(parents);
 

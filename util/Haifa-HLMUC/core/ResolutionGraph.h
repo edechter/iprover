@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-namespace Minisat
+namespace Hhlmuc
 {
 
 class Resol

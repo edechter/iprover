@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-namespace Minisat
+namespace Hhlmuc
 {
 
 static IntOption  remove_order("MinimalCore", "remove-order", "Which order to remove: 0 - from largest, 1 - smallest, 2 - highest, 3 - lowest\n", 0, IntRange(0, 3));

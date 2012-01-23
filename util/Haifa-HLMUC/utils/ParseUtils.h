@@ -18,8 +18,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Minisat_ParseUtils_h
-#define Minisat_ParseUtils_h
+#ifndef Hhlmuc_ParseUtils_h
+#define Hhlmuc_ParseUtils_h
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,7 +30,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #   include <zlib.h>
 #endif
 
-namespace Minisat {
+namespace Hhlmuc {
 
 //-------------------------------------------------------------------------------------------------
 // A simple buffered character stream class:

@@ -4,7 +4,7 @@
 #include "simp/SimpSolver.h"
 #include "mtl/Map.h"
 
-namespace Minisat 
+namespace Hhlmuc 
 {
 
 class CMinimalCore

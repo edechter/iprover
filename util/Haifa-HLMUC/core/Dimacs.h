@@ -18,8 +18,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Minisat_Dimacs_h
-#define Minisat_Dimacs_h
+#ifndef Hhlmuc_Dimacs_h
+#define Hhlmuc_Dimacs_h
 
 #include <stdio.h>
 
@@ -27,7 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "core/SolverTypes.h"
 #include "core/MinimalCore.h"
 
-namespace Minisat {
+namespace Hhlmuc {
 
 //=================================================================================================
 // DIMACS Parser:

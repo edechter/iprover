@@ -23,7 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtl/Sort.h"
 #include "core/Solver.h"
 
-using namespace Minisat;
+using namespace Hhlmuc;
 
 //=================================================================================================
 // Options:
@@ -181,7 +181,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool ic, vec<uint32_t>* parents)
         resol.AddNewResolution(ca[cr].uid(), cr, (parents == NULL) ? icParents : *parents);
     }
 
-    return true;
+   return true;
 }
 
 
@@ -884,8 +884,8 @@ lbool Solver::search(int nof_conflicts)
                 learntsize_adjust_cnt    = (int)learntsize_adjust_confl;
                 max_learnts             *= learntsize_inc;
 
-                if (verbosity >= 1)
-                    printf("c | %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", 
+                if (verbosity >= 1) 
+                   printf("c | %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", 
                            (int)conflicts, 
                            (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int)clauses_literals, 
                            (int)max_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progressEstimate()*100);
@@ -912,22 +912,43 @@ lbool Solver::search(int nof_conflicts)
                 reduceDB();
 
             Lit next = lit_Undef;
-/*
-            while (decisionLevel() < assumptions.size()){
+
+	    // Assumptions were commented out from here ...
+
+	    // Changed to decisionLevel() - 1, since interesting unit
+	    // clauses are propagated on decision level 1
+            while (decisionLevel() - 1 < assumptions.size()){
                 // Perform user provided assumption:
-                Lit p = assumptions[decisionLevel()];
+                Lit p = assumptions[decisionLevel() - 1];
                 if (value(p) == l_True){
                     // Dummy decision level:
-                    newDecisionLevel();
+                    newDecisionLevel(conflictC);
                 }else if (value(p) == l_False){
+
+		    fprintf(stderr, "Conflict with assumption %s%d on decision level %d\n",
+			    sign(p) ? "" : "~",
+			    var(p),
+			    decisionLevel());
+
                     analyzeFinal(~p, conflict);
-                    return l_False;
+
+		    cancelUntil(1);
+
+		    // Add clause literals to vector
+		    for (int j = 0; j < conflict.size(); j++) 
+		      uncheckedEnqueue(conflict[j]);
+		    
+		    next = lit_Undef;
+		    break;
+
+		    // return l_False;
                 }else{
                     next = p;
                     break;
                 }
             }
-*/
+
+	    // ... until here 
 
             if (next == lit_Undef){
                 // New variable decision:
@@ -1028,14 +1049,14 @@ lbool Solver::solve_()
     if (verbosity >= 1)
         printf("c ===============================================================================\n");
 
-
+/*
     if (status == l_True){
         // Extend & copy model:
         model.growTo(nVars());
         for (int i = 0; i < nVars(); i++) model[i] = value(i);
     }else if (status == l_False && conflict.size() == 0)
         ok = false;
-
+*/
     cancelUntil(0);
     return status;
 }
@@ -1209,7 +1230,7 @@ void Solver::CreateUnsatCore(CRef ref)
         {
             v = var(c[j]);
             assert(value(c[j]) == l_False);
-
+	    
             if (!seen[v] && level(v) > 0)
             {
                 seen[v] = 1;

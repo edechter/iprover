@@ -4,7 +4,7 @@
 #include "mtl/Vec.h"
 #include <stdint.h>
 
-namespace Minisat
+namespace Hhlmuc
 {
 
 template<class T>

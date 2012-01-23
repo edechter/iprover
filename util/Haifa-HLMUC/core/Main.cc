@@ -34,7 +34,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "core/Solver.h"
 #include "core/MinimalCore.h"
 
-using namespace Minisat;
+using namespace Hhlmuc;
 
 //=================================================================================================
 
