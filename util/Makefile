@@ -1,18 +1,8 @@
 # Makefile for utilities 
 # Created: 2011-12-01 Christoph Sticksel
 
-# These variables must be exported to be available in the sub-Makefile
-# Makefile.clib
-
-# C++ compiler
-export CXX=g++
-
-export AR=ar
-export OCAMLC=ocamlc
-export OCAMLOPT=ocamlopt
-export OCAMLMKLIB=ocamlmklib
-export OCAMLMKTOP=ocamlmktop
-export RANLIB=ranlib
+########################################################################
+# Configuration
 
 export OCAMLLIBDIR=/usr/lib/ocaml
 export OCAMLINCDIR=/usr/lib/ocaml
@@ -24,65 +14,230 @@ export OCAMLINCDIR=/usr/lib/ocaml
 MINISATDIR=$(CURDIR)/minisat
 HHLMUCDIR=$(CURDIR)/Haifa-HLMUC
 
-all: hhlmuc minisat minisat-ocaml hhlmuc-ocaml
+export CXX=g++
+export AR=ar
+export OCAMLC=ocamlc
+export OCAMLOPT=ocamlopt
+export OCAMLMKLIB=ocamlmklib
+export OCAMLMKTOP=ocamlmktop
+export RANLIB=ranlib
+
+
+########################################################################
+# Top-level targets
+
+all: minisat-ocaml hhlmuc-ocaml
 
 .PHONY : clean
 
-clean: clean-hhlmuc clean-minisat clean-minisat-ocaml
-
-# Set variables for hhlmuc and clean-hhlmuc
-hhlmuc clean-hhlmuc: export LIB = hhlmuc
-hhlmuc clean-hhlmuc: export MROOT = $(HHLMUCDIR)
-
-# Set variables for minisat and clean-minisat
-minisat clean-minisat: export LIB = minisat
-minisat clean-minisat: export MROOT = $(MINISATDIR)
-
-.PHONY : hhlmuc
-
-# Make hhlmuc release library 
-hhlmuc:
-	cd $(MROOT)/simp && $(MAKE) libr
-
-.PHONY : minisat 
-
-# Make minisat release library 
-minisat:
-	cd $(MROOT)/simp && $(MAKE) libr
-
-.PHONY : clean-hhlmuc
-
-# Clean hhlmuc
-clean-hhlmuc:
-	cd $(MROOT)/simp && $(MAKE) clean
-
-.PHONY : clean-minisat
-
-# Clean minisat
-clean-minisat:
-	cd $(MROOT)/simp && $(MAKE) clean
-
-.PHONY : clean-minisat-lib
+clean: clean-minisat-ocaml clean-hhlmuc-ocaml
 
 
-minisat-ocaml clean-minisat-ocaml: export CLIBNAME=minisat
-minisat-ocaml clean-minisat-ocaml: export CLIBINCDIR=$(MINISATDIR)
-minisat-ocaml clean-minisat-ocaml: export CLIBLIBDIR=$(MINISATDIR)/simp
+########################################################################
+# Make MiniSat using generic Makefile.minisat
 
-minisat-ocaml: 
+# Set variable $(MINISATDIR)
+minisat-lib-standard \
+minisat-lib-profile \
+minisat-lib-debug \
+minisat-lib-release \
+minisat-exec-standard \
+minisat-exec-profile \
+minisat-exec-debug \
+minisat-exec-release \
+minisat-exec-static \
+clean-minisat-lib: export MINISATDIR:=$(MINISATDIR)
+
+# Set variable $(MINISAT)
+minisat-lib-standard \
+minisat-lib-profile \
+minisat-lib-debug \
+minisat-lib-release \
+minisat-exec-standard \
+minisat-exec-profile \
+minisat-exec-debug \
+minisat-exec-release \
+minisat-exec-static \
+clean-minisat-lib: export MINISAT=minisat
+
+minisat-lib-standard:
+	$(MAKE) -f Makefile.minisat minisat-lib-standard
+
+minisat-lib-profile:
+	$(MAKE) -f Makefile.minisat minisat-lib-profile
+
+minisat-lib-debug:
+	$(MAKE) -f Makefile.minisat minisat-lib-debug
+
+minisat-lib-release:
+	$(MAKE) -f Makefile.minisat minisat-lib-release
+
+minisat-exec-standard:
+	$(MAKE) -f Makefile.minisat minisat-exec-standard
+
+minisat-exec-profile:
+	$(MAKE) -f Makefile.minisat minisat-exec-profile
+
+minisat-exec-debug:
+	$(MAKE) -f Makefile.minisat minisat-exec-debug
+
+minisat-exec-release:
+	$(MAKE) -f Makefile.minisat minisat-exec-release
+
+minisat-exec-static:
+	$(MAKE) -f Makefile.minisat minisat-exec-static
+
+clean-minisat-lib:
+	$(MAKE) -f Makefile.minisat clean-minisat
+
+
+########################################################################
+# Make Haifa-HLMUC using generic Makefile.minisat
+
+# Set variable $(MINISATDIR)
+hhlmuc-lib-standard \
+hhlmuc-lib-profile \
+hhlmuc-lib-debug \
+hhlmuc-lib-release \
+hhlmuc-exec-standard \
+hhlmuc-exec-profile \
+hhlmuc-exec-debug \
+hhlmuc-exec-release \
+hhlmuc-exec-static \
+clean-hhlmuc-lib: export MINISATDIR=$(HHLMUCDIR)
+
+# Set variable $(MINISAT)
+hhlmuc-lib-standard \
+hhlmuc-lib-profile \
+hhlmuc-lib-debug \
+hhlmuc-lib-release \
+hhlmuc-exec-standard \
+hhlmuc-exec-profile \
+hhlmuc-exec-debug \
+hhlmuc-exec-release \
+hhlmuc-exec-static \
+clean-hhlmuc-lib: export MINISAT=hhlmuc
+
+hhlmuc-lib-standard:
+	$(MAKE) -f Makefile.minisat hhlmuc-lib-standard
+
+hhlmuc-lib-profile:
+	$(MAKE) -f Makefile.minisat hhlmuc-lib-profile
+
+hhlmuc-lib-debug:
+	$(MAKE) -f Makefile.minisat hhlmuc-lib-debug
+
+hhlmuc-lib-release:
+	$(MAKE) -f Makefile.minisat hhlmuc-lib-release
+
+hhlmuc-exec-standard:
+	$(MAKE) -f Makefile.minisat hhlmuc-exec-standard
+
+hhlmuc-exec-profile:
+	$(MAKE) -f Makefile.minisat hhlmuc-exec-profile
+
+hhlmuc-exec-debug:
+	$(MAKE) -f Makefile.minisat hhlmuc-exec-debug
+
+hhlmuc-exec-release:
+	$(MAKE) -f Makefile.minisat hhlmuc-exec-release
+
+hhlmuc-exec-static:
+	$(MAKE) -f Makefile.minisat hhlmuc-exec-static
+
+clean-hhlmuc-lib:
+	$(MAKE) -f Makefile.minisat clean-hhlmuc
+
+
+########################################################################
+# Make MiniSat OCaml interface using generic Makefile.clib
+
+# Set variables $(CLIBNAME), $(CLIBINCDIR) and $(CLIBLIBDIR)
+minisat-ocaml-lib \
+minisat-test \
+clean-minisat-ocaml-lib: export CLIBNAME=minisat
+
+minisat-ocaml-lib \
+minisat-test \
+clean-minisat-ocaml-lib: export CLIBINCDIR=$(MINISATDIR)
+
+minisat-ocaml-lib \
+minisat-test \
+clean-minisat-ocaml-lib: export CLIBLIBDIR=$(MINISATDIR)/simp
+
+# Make release library by default
+minisat-ocaml: minisat-ocaml-release
+
+# Make test executable with debug library 
+minisat-test: minisat-ocaml-debug minisat-ocaml minisat-test-ocaml-lib
+
+# Clean library and interface 
+clean-minisat-ocaml: clean-minisat-lib clean-minisat-ocaml-lib
+
+# Make standard library and interface 
+minisat-ocaml-standard: minisat-lib-standard minisat-ocaml-lib
+
+# Make debug library and interface 
+minisat-ocaml-debug: minisat-lib-debug minisat-ocaml-lib
+
+# Make profiling library and interface 
+minisat-ocaml-profile: minisat-lib-profile minisat-ocaml-lib
+
+# Make release library and interface 
+minisat-ocaml-release: minisat-lib-release minisat-ocaml-lib
+
+# Make MiniSat interface
+minisat-ocaml-lib: 
 	$(MAKE) -f Makefile.clib minisat-ocaml
 
-clean-minisat-ocaml: 
+# Make testing executable for MiniSat interface
+minisat-test-ocaml-lib: 
+	$(MAKE) -f Makefile.clib minisat-test
+
+# Clean interface 
+clean-minisat-ocaml-lib: clean-minisat-lib
 	$(MAKE) -f Makefile.clib clean-minisat-ocaml
 
+########################################################################
+# Make Haifa-HLMUC OCaml interface using generic Makefile.clib
 
-hhlmuc-ocaml clean-hhlmuc-ocaml: export CLIBNAME=hhlmuc
-hhlmuc-ocaml clean-hhlmuc-ocaml: export CLIBINCDIR=$(HHLMUCDIR)
-hhlmuc-ocaml clean-hhlmuc-ocaml: export CLIBLIBDIR=$(HHLMUCDIR)/simp
-hhlmuc-ocaml clean-hhlmuc-ocaml: export EXTRACCLIB=-cclib -lz
+# Set variables $(CLIBNAME), $(CLIBINCDIR) and $(CLIBLIBDIR)
+hhlmuc-ocaml-lib \
+hhlmuc-test \
+clean-hhlmuc-ocaml-lib: export CLIBNAME=hhlmuc
 
-hhlmuc-ocaml: 
+hhlmuc-ocaml-lib \
+hhlmuc-test \
+clean-hhlmuc-ocaml-lib: export CLIBINCDIR=$(HHLMUCDIR)
+
+hhlmuc-ocaml-lib \
+hhlmuc-test \
+clean-hhlmuc-ocaml-lib: export CLIBLIBDIR=$(HHLMUCDIR)/simp
+
+# Make release library by default
+hhlmuc-ocaml: hhlmuc-ocaml-release
+
+# Clean library and interface 
+clean-hhlmuc-ocaml: clean-hhlmuc-lib clean-hhlmuc-ocaml-lib
+
+# Make standard library and interface 
+hhlmuc-ocaml-standard: hhlmuc-lib-standard hhlmuc-ocaml-lib
+
+# Make debug library and interface 
+hhlmuc-ocaml-debug: hhlmuc-lib-debug hhlmuc-ocaml-lib
+
+# Make profiling library and interface 
+hhlmuc-ocaml-profile: hhlmuc-lib-profile hhlmuc-ocaml-lib
+
+# Make release library and interface 
+hhlmuc-ocaml-release: hhlmuc-lib-release hhlmuc-ocaml-lib
+
+# Make Haifa-HLMUC interface
+hhlmuc-ocaml-lib: 
 	$(MAKE) -f Makefile.clib hhlmuc-ocaml
 
-clean-hhlmuc-ocaml: 
+# Clean interface 
+clean-hhlmuc-ocaml-lib: clean-hhlmuc-lib
 	$(MAKE) -f Makefile.clib clean-hhlmuc-ocaml
+
+
