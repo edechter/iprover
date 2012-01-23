@@ -268,10 +268,16 @@ let unsat_core () =
       Format.printf 
 	"Unsat core has size %d@\n%a@." 
 	(List.length unsat_core_ids)
-	pp_clause_list unsat_core_clauses;
+	(pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+
+      (* Print histories of clauses in unsat core *)
+      List.iter
+	(Format.printf "Clause histories:@\n@\n%a@\n@." Clause.pp_clause_history)
+	unsat_core_clauses;
 
       (* Return clauses in unsat core *)
       unsat_core_clauses
+
 
     (* Must not return sat when other solver returns unsat *)
     | PropSolver.Sat -> 
