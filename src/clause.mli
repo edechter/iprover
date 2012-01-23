@@ -295,6 +295,8 @@ val normalise_bclause_list :
 val to_stream                  : 'a string_stream -> clause -> unit
 val out                        : clause -> unit
 
+val pp_clause : Format.formatter -> clause -> unit
+
 val tptp_to_stream             : 'a string_stream -> clause -> unit
 val out_tptp                   : clause -> unit
 
@@ -310,5 +312,7 @@ val clause_list_to_string : clause list -> string
 val clause_list_to_tptp   : clause list -> string
 
 val to_stream_history : 'a string_stream -> clause -> unit
+
+val pp_clause_history : Format.formatter -> clause -> unit
 
 val out_history       : clause -> unit

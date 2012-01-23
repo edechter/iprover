@@ -811,6 +811,59 @@ let rec list_to_stream s to_str_el l separator_str =
       s.stream_add_str separator_str;
       (list_to_stream s to_str_el rest separator_str)
 
+
+
+(* Print an array of any type with separator from an index on *)
+let rec pp_any_array' pp_a sep ppf array = function
+  | i when i > Array.length array -> ()
+  | i when i < 0 -> ()
+  | i when i = Array.length array - 1 -> 
+      Format.fprintf ppf "%a" pp_a array.(i)
+  | i -> 
+    Format.fprintf ppf "%a%s" pp_a array.(i) sep; 
+    pp_any_array' pp_a sep ppf array (succ i)
+
+(* Print an array of any type with separator *)
+let pp_any_array pp_a sep ppf array = 
+  pp_any_array' pp_a sep ppf array 0
+
+
+(* Print a list of any type with separator *)
+let rec pp_any_list pp_a sep ppf = function
+  | [] -> 
+      ()
+  | [a] -> 
+      Format.fprintf ppf "%a" pp_a a
+  | a::tl -> 
+      Format.fprintf ppf "%a%s" pp_a a sep; pp_any_list pp_a sep ppf tl
+
+
+(* Print a list of strings with separator *)
+let pp_string_list = pp_any_list Format.pp_print_string
+
+
+(* Print a list of strings with separator *)
+let pp_string_array sep array = pp_any_array Format.pp_print_string sep array
+
+
+(* Print a list of strings with separator *)
+let pp_int_list = pp_any_list Format.pp_print_int
+
+
+(* Print an array of strings with separator *)
+let pp_int_array sep array = pp_any_array Format.pp_print_int sep array
+
+
+(* Print a list of floats with separator *)
+let pp_float_list = pp_any_list Format.pp_print_float
+
+
+(* Print an array of floats with separator *)
+let pp_float_array sep array = pp_any_array Format.pp_print_float sep array
+
+
+
+
 (* Examples a bit old: *)
 
 (*

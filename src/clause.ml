@@ -95,6 +95,12 @@ let axiom_to_string axiom =
   |Less_Axiom     -> "Less Axiom"
   |Range_Axiom -> "Range Axiom"
   
+let pp_axiom ppf = function
+  | Eq_Axiom -> Format.fprintf ppf "Eqaulity Axiom"
+  | Distinct_Axiom -> Format.fprintf ppf "Distinct Axiom"
+  | Less_Axiom -> Format.fprintf ppf "Less Axiom"
+  | Range_Axiom -> Format.fprintf ppf "Range Axiom"
+
 type clause = 
     {
      literals : literal_list;   
@@ -276,6 +282,9 @@ let to_stream s clause =
   s.stream_add_char '{';
   (list_to_stream s Term.to_stream clause.literals ";");
   s.stream_add_char '}'
+
+let pp_clause ppf clause = 
+  Format.fprintf ppf "{%a}" (pp_any_list Term.pp_term ";") clause.literals
 
 let out = to_stream stdout_stream
 
@@ -1389,6 +1398,116 @@ and
   (List.iter
      (fun p_clause -> (to_stream_history s p_clause)) 
      parents)
+    
+
+let rec pp_clause_history ppf = function
+
+  | { history = Undef } as clause -> 
+    Format.fprintf 
+      ppf 
+      "Undef history @\n%a@\n%s" 
+      pp_clause 
+      clause 
+      dash_str
+      
+  | { history = Def (Resolution (parents, upon_literals)) } as clause -> 
+
+    Format.fprintf 
+      ppf
+      "Resolution:@\nconcl:  %a@\nprem: [%a]@\nupon: [%a]@\n%s"
+      pp_clause clause
+      (pp_any_list pp_clause ",") parents
+      (pp_any_list Term.pp_term ", ") upon_literals
+      dash_str;
+    
+    pp_clause_list_history ppf parents
+
+  | { history = Def (Factoring (parent, upon_literals)) } as clause ->
+
+    Format.fprintf
+      ppf
+      "Factoring:@\nconcl:  %a@\nprem: [%a]@\nupon: [%a]@\n%s"
+      pp_clause clause
+      pp_clause parent
+      (pp_any_list Term.pp_term ", ") upon_literals
+      dash_str;
+
+    pp_clause_history ppf parent
+
+  | { history = Def Input } as clause -> 
+
+    Format.fprintf 
+      ppf
+      "Input clause:@\n%a@\n%s"
+      pp_clause clause
+      dash_str
+
+  | { history = Def (Global_Subsumption parent) } as clause ->
+    
+    Format.fprintf
+      ppf
+      "Global Subsumption:@\nconcl: %a@\nprem: [%a]@\n%s"
+      pp_clause clause
+      pp_clause parent
+      dash_str;
+
+    pp_clause_history ppf parent
+
+  | { history = Def (Non_eq_to_eq parent) } as clause ->
+
+    Format.fprintf 
+      ppf 
+      "Non Eq to Eq:@\nconcl: %a@\nprem: [%a]@\n%s"
+      pp_clause clause
+      pp_clause parent
+      dash_str;
+
+    pp_clause_history ppf parent
+	      
+  | { history = Def (Forward_Subsumption_Resolution (main_parent, parents)) } as clause ->	
+    
+    Format.fprintf
+      ppf
+      "Forward Subsumption Resolution:@\nconcl:  %a@\nprem: main: [%a]@\nprem: side: [%a]@\n%s"
+      pp_clause clause
+      pp_clause main_parent
+      (pp_any_list pp_clause ",") parents
+      dash_str;
+    
+    pp_clause_list_history ppf parents
+	  
+  | { history = Def (Backward_Subsumption_Resolution parents) } as clause ->	
+
+    Format.fprintf
+      ppf
+      "Backward Subsumption Resolution@\nconcl:  %a@\nprem: [%a]@\n%s"
+      pp_clause clause
+      (pp_any_list pp_clause ",") parents 
+      dash_str;
+
+    pp_clause_list_history ppf parents
+  
+  | { history = Def (Axiom axiom) } as clause -> 
+    
+    Format.fprintf
+      ppf
+      "%a@\n%a@\n%s"
+      pp_axiom axiom 
+      pp_clause clause
+      dash_str;
+
+  | { history = Def (Split parent) } as clause -> 
+
+    Format.fprintf
+      ppf
+      "Split@\n%a@\nFrom@\n%s"
+      pp_clause clause 
+      dash_str;
+	      
+    pp_clause_history ppf parent
+
+and pp_clause_list_history ppf clauses = 
+  List.iter (pp_clause_history ppf) clauses
     
 
 let out_history = to_stream_history stdout_stream

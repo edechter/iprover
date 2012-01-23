@@ -43,6 +43,8 @@ let to_stream s var =
   s.stream_add_char 'X';
   s.stream_add_str (string_of_int var)
 
+let pp_var ppf var = Format.fprintf ppf "X%d" var
+
 let out = to_stream stdout_stream
 
 let to_string =  

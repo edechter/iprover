@@ -876,6 +876,7 @@ let out = to_stream stdout_stream
 
 let to_string (s:symbol) = s.name
     
+let pp_symbol ppf { name = n } = Format.fprintf ppf "%s" n
     
 
 let rec to_stream_full s symb = 

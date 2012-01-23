@@ -37,5 +37,7 @@ val index          : var -> int
 val to_stream      : 'a string_stream -> var -> unit
 val out            : var -> unit
 
+val pp_var : Format.formatter -> var -> unit
+
 val to_string      : var -> string
 val to_prolog      : var -> string

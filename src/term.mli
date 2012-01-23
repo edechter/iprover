@@ -191,6 +191,8 @@ val lit_cmp_type_list_to_lex_fun :
 val to_stream           : 'a string_stream -> term -> unit
 val out                 : term -> unit
 
+val pp_term : Format.formatter -> term -> unit
+
 val term_list_to_stream : 'a string_stream -> (term list) -> unit
 val out_term_list       : (term list) -> unit
 

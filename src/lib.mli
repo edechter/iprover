@@ -309,6 +309,52 @@ val param_to_stream :
     ((('a string_stream) -> 'b -> unit )-> 
       ('a string_stream)  -> 'b param -> unit)
 
+
+(** [pp_any_array pp sep ppf a] prints the elements of the array [a]
+    formatted with the [pp] formatting function separated by the
+    string [sep] into the formatter [ppf]. *)
+val pp_any_array :
+  (Format.formatter -> 'a -> unit) ->
+  string -> Format.formatter -> 'a array -> unit
+
+(** [pp_any_list pp sep ppf l] prints the elements of the list [l]
+    formatted with the [pp] formatting function separated by the
+    string [sep] into the formatter [ppf]. *)
+val pp_any_list :
+  (Format.formatter -> 'a -> unit) ->
+  string -> Format.formatter -> 'a list -> unit
+
+(** [pp_string_list pp sep ppf l] prints the elements of the list of
+    strings [l] separated by the string [sep] into the formatter
+    [ppf]. *)
+val pp_string_list : string -> Format.formatter -> string list -> unit
+
+(** [pp_string_array pp sep ppf a] prints the elements of the array of
+    strings [a] separated by the string [sep] into the formatter
+    [ppf]. *)
+val pp_string_array : string -> Format.formatter -> string array -> unit
+
+(** [pp_int_list pp sep ppf l] prints the elements of the list of
+    integers [l] separated by the string [sep] into the formatter
+    [ppf]. *)
+val pp_int_list : string -> Format.formatter -> int list -> unit
+
+(** [pp_int_array pp sep ppf a] prints the elements of the array of
+    integers [a] separated by the string [sep] into the formatter
+    [ppf]. *)
+val pp_int_array : string -> Format.formatter -> int array -> unit
+
+(** [pp_float_list pp sep ppf l] prints the elements of the list of
+    floats [l] separated by the string [sep] into the formatter
+    [ppf]. *)
+val pp_float_list : string -> Format.formatter -> float list -> unit
+
+(** [pp_float_array pp sep ppf a] prints the elements of the array of
+    floats [a] separated by the string [sep] into the formatter
+    [ppf]. *)
+val pp_float_array : string -> Format.formatter -> float array -> unit
+
+
 (*---------strings-----------*)
 
 (*string filled with n spaces *)

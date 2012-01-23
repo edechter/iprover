@@ -200,6 +200,20 @@ let rec to_stream s t =
       end
   | Var(v,_) -> Var.to_stream s v
  
+
+let rec pp_term ppf = function
+  | Fun (sym, [], _) -> 
+    Format.fprintf ppf "%a" Symbol.pp_symbol sym
+  | Fun (sym, args, _) -> 
+    Format.fprintf 
+      ppf 
+      "%a(%a)" 
+      Symbol.pp_symbol sym 
+      (pp_any_list pp_term ",") args
+  | Var (v, _) -> 
+    Format.fprintf ppf "%a" Var.pp_var v
+
+
 let out = to_stream stdout_stream 
 
 (*
