@@ -542,6 +542,7 @@ type options = {
     mutable bmc1_axioms           : bmc1_axioms_type override;
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_symbol_reachability : bool; 
+    mutable bmc1_add_unsat_core   : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool override;
@@ -638,6 +639,7 @@ let default_options () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
     
@@ -716,6 +718,10 @@ let set_new_current_options o =
       (* Only override defaults *)
       bmc1_max_bound = 
 	override o.bmc1_max_bound !current_options.bmc1_max_bound;
+      
+      (* Only override defaults *)
+      bmc1_add_unsat_core = 
+	override o.bmc1_add_unsat_core !current_options.bmc1_add_unsat_core;
       
       (* Only override defaults *)
       bmc1_out_stat = 
@@ -1145,6 +1151,18 @@ let bmc1_symbol_reachability_fun b =
 let bmc1_symbol_reachability_inf  =
   bool_str^
   inf_pref^"calculate symbol reachability in BMC1\n"
+
+(*--------*)
+
+let bmc1_add_unsat_core_str = "--bmc1_add_unsat_core" 
+
+let bmc1_add_unsat_core_fun b =
+  !current_options.bmc1_add_unsat_core <- 
+    override_cmd b !current_options.bmc1_add_unsat_core
+
+let bmc1_add_unsat_core_inf  =
+  bool_str^
+  inf_pref^"add clauses in unsatisfiable core to next bound in BMC1\n"
 
 (*--------*)
 
@@ -1762,6 +1780,10 @@ let spec_list =
     Arg.Bool(bmc1_symbol_reachability_fun),
     bmc1_symbol_reachability_inf);
 
+   (bmc1_add_unsat_core_str, 
+    Arg.Bool(bmc1_add_unsat_core_fun),
+    bmc1_add_unsat_core_inf);
+
    (bmc1_out_stat_str, 
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
@@ -1902,6 +1924,8 @@ let bmc1_options_str_list opt =
    (bmc1_max_bound_str,(string_of_int (val_of_override opt.bmc1_max_bound)));
    (bmc1_symbol_reachability_str,
     (string_of_bool opt.bmc1_symbol_reachability));
+   (bmc1_add_unsat_core_str,
+    (string_of_bool (val_of_override opt.bmc1_add_unsat_core)));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
@@ -2277,6 +2301,7 @@ let option_1 () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -2419,6 +2444,7 @@ let option_2 () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -2534,6 +2560,7 @@ let option_3 () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -2645,6 +2672,7 @@ let option_4 () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -2766,6 +2794,7 @@ let option_finite_models () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -2883,6 +2912,7 @@ let option_epr_non_horn () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -3122,6 +3152,7 @@ let option_epr_horn () = {
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -3359,6 +3390,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -3477,6 +3509,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 
@@ -3593,6 +3626,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_symbol_reachability = false;
+  bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
 

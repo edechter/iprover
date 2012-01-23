@@ -46,8 +46,8 @@ val assign_adjoint_preds     : term list -> unit
 
 val solve                : unit -> PropSolver.solver_out
 
-(** Output an unsatisfiable core *)
-val unsat_core : unit -> unit
+(** Output and return an unsatisfiable core *)
+val unsat_core : unit -> Clause.clause list
 
 (* add_clause_to_solver  gr_by clause *)
 (* raises PropSolver.Unsatisfiable  trivially unsat *)

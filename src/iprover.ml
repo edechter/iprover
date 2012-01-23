@@ -1239,10 +1239,12 @@ let rec main clauses finite_model_clauses =
 	  );
 *)
 	  
-	  (* Output unsatisfiable core *)
-	  (try 
-	     Prop_solver_exchange.unsat_core () 
-	   with Invalid_argument _ -> ());
+	  (* Get clauses in unsatisfiable core *)
+	  let unsat_core_clauses = 
+	    (try 
+	       Prop_solver_exchange.unsat_core () 
+	     with Invalid_argument _ -> []);
+	  in
 
 	  (* Increment bound by one
 	     
@@ -1348,11 +1350,34 @@ let rec main clauses finite_model_clauses =
 		Preprocess.preprocess next_bound_axioms
 	      in
 
+	      (* Clauses in unsatisfiable core to be added to next
+		 bound *)
+	      let unsat_core_clauses' = 
+
+		if 
+
+		  (* Add clauses from unsatisfiable core to next bound *)
+		  val_of_override !current_options.bmc1_add_unsat_core 
+
+		then
+
+		  (* Preprocess clauses *)
+		  Preprocess.preprocess unsat_core_clauses
+
+		else
+
+		  (* Do not add clauses from unsatisfiable core *)
+		  []
+
+	      in
+
 		(* Save next bound as current *)
 		bmc1_cur_bound := next_bound;
 		
 		(* Run again for next bound *)
-		main (next_bound_axioms' @ clauses) finite_model_clauses
+		main 
+		  (next_bound_axioms' @ unsat_core_clauses' @ clauses) 
+		  finite_model_clauses
 	      
 	)
 
@@ -1788,7 +1813,7 @@ let run_iprover () =
     ->
     (* Output unsatisfiable core *)
     (try 
-       Prop_solver_exchange.unsat_core () 
+       ignore (Prop_solver_exchange.unsat_core ())
      with Invalid_argument _ -> ());
 
       out_str (proved_str ());
