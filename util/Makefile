@@ -4,8 +4,10 @@
 ########################################################################
 # Configuration
 
-export OCAMLLIBDIR=/usr/lib/ocaml
-export OCAMLINCDIR=/usr/lib/ocaml
+# export OCAMLLIBDIR=$(OCAMLLIB)
+# export OCAMLINCDIR=$(OCAMLLIB)
+# export OCAMLLIBDIR=/usr/lib/ocaml
+# export OCAMLINCDIR=/usr/lib/ocaml
 # export OCAMLLIBDIR=/home/chris/lib/ocaml
 # export OCAMLINCDIR=/home/chris/lib/ocaml
 # export OCAMLLIBDIR=/shareddata/homes/sticksec/lib/ocaml
@@ -61,34 +63,34 @@ minisat-exec-static \
 clean-minisat-lib: export MINISAT=minisat
 
 minisat-lib-standard:
-	$(MAKE) -f Makefile.minisat minisat-lib-standard
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-lib-standard
 
 minisat-lib-profile:
-	$(MAKE) -f Makefile.minisat minisat-lib-profile
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-lib-profile
 
 minisat-lib-debug:
-	$(MAKE) -f Makefile.minisat minisat-lib-debug
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-lib-debug
 
 minisat-lib-release:
-	$(MAKE) -f Makefile.minisat minisat-lib-release
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-lib-release
 
 minisat-exec-standard:
-	$(MAKE) -f Makefile.minisat minisat-exec-standard
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-exec-standard
 
 minisat-exec-profile:
-	$(MAKE) -f Makefile.minisat minisat-exec-profile
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-exec-profile
 
 minisat-exec-debug:
-	$(MAKE) -f Makefile.minisat minisat-exec-debug
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-exec-debug
 
 minisat-exec-release:
-	$(MAKE) -f Makefile.minisat minisat-exec-release
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-exec-release
 
 minisat-exec-static:
-	$(MAKE) -f Makefile.minisat minisat-exec-static
+	$(MAKE) -f $(CURDIR)/Makefile.minisat minisat-exec-static
 
 clean-minisat-lib:
-	$(MAKE) -f Makefile.minisat clean-minisat
+	$(MAKE) -f $(CURDIR)/Makefile.minisat clean-minisat
 
 
 ########################################################################
@@ -119,34 +121,34 @@ hhlmuc-exec-static \
 clean-hhlmuc-lib: export MINISAT=hhlmuc
 
 hhlmuc-lib-standard:
-	$(MAKE) -f Makefile.minisat hhlmuc-lib-standard
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-lib-standard
 
 hhlmuc-lib-profile:
-	$(MAKE) -f Makefile.minisat hhlmuc-lib-profile
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-lib-profile
 
 hhlmuc-lib-debug:
-	$(MAKE) -f Makefile.minisat hhlmuc-lib-debug
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-lib-debug
 
 hhlmuc-lib-release:
-	$(MAKE) -f Makefile.minisat hhlmuc-lib-release
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-lib-release
 
 hhlmuc-exec-standard:
-	$(MAKE) -f Makefile.minisat hhlmuc-exec-standard
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-exec-standard
 
 hhlmuc-exec-profile:
-	$(MAKE) -f Makefile.minisat hhlmuc-exec-profile
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-exec-profile
 
 hhlmuc-exec-debug:
-	$(MAKE) -f Makefile.minisat hhlmuc-exec-debug
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-exec-debug
 
 hhlmuc-exec-release:
-	$(MAKE) -f Makefile.minisat hhlmuc-exec-release
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-exec-release
 
 hhlmuc-exec-static:
-	$(MAKE) -f Makefile.minisat hhlmuc-exec-static
+	$(MAKE) -f $(CURDIR)/Makefile.minisat hhlmuc-exec-static
 
 clean-hhlmuc-lib:
-	$(MAKE) -f Makefile.minisat clean-hhlmuc
+	$(MAKE) -f $(CURDIR)/Makefile.minisat clean-hhlmuc
 
 
 ########################################################################
