@@ -65,6 +65,14 @@ val create_lit:  solver -> bool -> int -> literal
     unsatisfiable. *)
 val add_clause: solver -> literal list -> unit
 
+(** [add_clause s c] asserts the clause [c] given as a list of literals
+    as an interesting constraint in the solver instance [s]
+
+    May raise {!Unsatisfiable} if the clause set becomes immediately
+    unsatisfiable, otherwise return a unique identifier for the
+    clause. *)
+val add_clause_with_id : solver -> literal list -> int option
+
 (** Test the given clause set for satisfiability 
 
     Return [true] if satisfiable and [false] if unsatisfiable *)
@@ -96,12 +104,35 @@ val fast_solve: solver -> literal list -> bool option
     false and [None] if the literal value is undefined *)
 val model_value : solver -> literal -> bool option
 
+(** Return the model after a satisfiable solve call 
+
+    The n-th element of the array is the truth value of the n-th
+    variable. [None] if the truth value is undefined, [Some true] for
+    a variable that is assigned [true] and [Some false] for a variable
+    that is assigned false.
+*)
+val get_model : solver -> bool option array
+
+(** Return the final conflict clause after an unsatisfiable solve call 
+
+    Each signed integer in the list is a literal, the sign
+    representing the sign of the literal and the absolute value the
+    variable.
+*)
+val get_conflicts : solver -> int list 
+
+(** Return an unsatisfiable core *)
+val unsat_core : solver -> int list 
+
 (** Return the propositional variable in the literal *)
 val lit_var : solver -> literal -> int
 
 (** Return the sign of the literal, [true] for a positive and [false]
     for a negative literal *)
 val lit_sign : solver -> literal -> bool
+
+(** Return the number of clauses containing a unique tracking literal *)
+val clauses_with_id : solver -> int
 
 (** {1 Statistics} *)
 

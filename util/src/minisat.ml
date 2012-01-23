@@ -87,6 +87,20 @@ external minisat_create_lit : minisat_solver -> bool -> int -> minisat_literal =
 external minisat_add_clause : minisat_solver -> minisat_literal list -> bool = "minisat_add_clause"
 
 
+(* Assert a clause, given as a list of literals, as an interesting
+   constraint clause. Return both a flag if the clause is immediately
+   unsatisfiable and a possibly undefined unique id for the clause.
+   
+   The unique id is [None] if the clause was simplified or if it is
+   unsatisfiable. A return value of [(false, None)] means the clause
+   is immediately unsatisfiable, if [(true, None)] is returned, the
+   clause is already satisfied, otherwise the return value is [(true,
+   Some id)].
+
+   The clause is added with a tracking literal appended that is the
+   unique ID of the clause. *)
+external minisat_add_clause_with_id : minisat_solver -> minisat_literal list -> bool * int option = "minisat_add_clause_with_id" 
+
 (* Test the given clause set for satisfiability *)
 external minisat_solve : minisat_solver ->  bool = "minisat_solve"
 
@@ -110,9 +124,17 @@ external minisat_lit_var : minisat_solver -> minisat_literal -> int = "minisat_l
 external minisat_lit_sign : minisat_solver -> minisat_literal -> bool = "minisat_lit_sign"
 
 
+(* Return the number of clauses containing a unique tracking literal *)
+external minisat_clauses_with_id : minisat_solver -> int = "minisat_clauses_with_id"
+    
 (* Return the truth value of the literal in the current model *)
 external minisat_model_value : minisat_solver -> minisat_literal -> int = "minisat_model_value"
 
+(* Return the model after a satisfiable solve call *)
+external minisat_get_model : minisat_solver -> bool option array = "minisat_get_model"
+
+(* Return the final conflict clause after an unsatisfiable solve call *)
+external minisat_get_conflicts : minisat_solver -> int list = "minisat_get_conflicts"
 
 (* Return the number of variables allocated in MiniSat *)
 external minisat_stat_vars : minisat_solver -> int = "minisat_stat_vars" 
@@ -165,6 +187,30 @@ let add_clause { solver = solver } = function
       raise Unsatisfiable
 
     
+(* Assert a clause given as a list of literals in the solver. Raise
+   {!Unsatisfiable} if the clause set becomes immediately
+   unsatisfiable. *)
+let add_clause_with_id { solver = solver } = function
+
+  (* The empty clause is immediately unsatisfiable *)
+  | [] -> raise Unsatisfiable 
+
+  | clause -> 
+
+    (
+
+      (* Add clause and check if immediately unsatisfiable *)
+      match minisat_add_clause_with_id solver clause with
+	  
+	(* Raise exception if immediately unsatisfiable *)
+	| false, _ -> raise Unsatisfiable
+
+	(* Pass on any other result *)
+	| true, uid -> uid
+    
+    )
+
+
 (* Test the given clause set for satisfiability *)
 let solve ({ solver = solver } as s) = 
 
@@ -233,6 +279,11 @@ let lit_sign { solver = solver } literal =
   minisat_lit_sign solver literal
 
 
+(* Return the number of clauses containing a unique tracking literal *)
+let clauses_with_id { solver = solver } = 
+  minisat_clauses_with_id solver 
+
+
 (* Return the truth value of the literal in the current model *)
 let model_value { solver = solver } literal = 
 
@@ -249,11 +300,31 @@ let model_value { solver = solver } literal =
     | L_undef -> None
 
 
+(* Return the final conflicts clause after an unsatisfiable solve *)
+let get_model { solver = solver } =
+  minisat_get_model solver
+
+
+(* Return the model after a satisfiable solve *)
+let get_model { solver = solver } =
+  minisat_get_model solver
+
+
+(* Return the final conflicts clause after an unsatisfiable solve *)
+let get_conflicts { solver = solver } =
+  minisat_get_conflicts solver
+
+
+(* No support for unsatisfiable cores in MiniSat *)
+let unsat_core _ = 
+  invalid_arg "Unsatisfiable cores not supported"
+ 
+
 (* Return the number of calls to {!solve} of the solver instance *)
 let num_of_solver_calls { num_of_solver_calls = n } = n
 
 
-(** Return the number of calls to {!fast_solve} of the solver instance *)
+(* Return the number of calls to {!fast_solve} of the solver instance *)
 let num_of_fast_solver_calls { num_of_fast_solver_calls = n } = n
 
 

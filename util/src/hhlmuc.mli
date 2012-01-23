@@ -65,6 +65,14 @@ val create_lit:  solver -> bool -> int -> literal
     unsatisfiable. *)
 val add_clause: solver -> literal list -> unit
 
+(** [add_clause s c] asserts the clause [c] given as a list of
+    literals in the solver instance [s] and returns a unique id for
+    the clause
+
+    May raise {!Unsatisfiable} if the clause set becomes immediately
+    unsatisfiable. *)
+val add_clause_with_id: solver -> literal list -> int option
+
 (** Test the given clause set for satisfiability 
 
     Return [true] if satisfiable and [false] if unsatisfiable *)
@@ -95,6 +103,9 @@ val fast_solve: solver -> literal list -> bool option
     [Some true] if the literal is true, [Some false] if the literal is
     false and [None] if the literal value is undefined *)
 val model_value : solver -> literal -> bool option
+
+(** Return an unsatisfiable core *)
+val unsat_core : solver -> int list 
 
 (** Return the propositional variable in the literal *)
 val lit_var : solver -> literal -> int

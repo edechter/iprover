@@ -39,7 +39,9 @@ let prop_simp clause_list =
   List.iter 
     Prop_solver_exchange.add_clause_to_solver clause_list;
   (if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat)
-  then raise PropSolver.Unsatisfiable
+  then 
+      (Format.eprintf "Unsatisfiable after solve call in Preprocess.prop_sim@.";
+       raise PropSolver.Unsatisfiable)
   else ());
   let simplify_clause rest clause = 
     (Prop_solver_exchange.prop_subsumption clause)::rest

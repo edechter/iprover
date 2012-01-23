@@ -371,7 +371,8 @@ let full_loop prover_functions_ref input_clauses =
 	   )	     
 	 else
       (* learning: !current_options.inst_learning_loop_flag & !learning_counter >= !learning_bound *)	  	   
-	     (learning_bound:=!learning_bound * !current_options.inst_learning_factor;
+	   ((* Format.eprintf "Learning restart in instantiation@."; *)
+	     learning_bound:=!learning_bound * !current_options.inst_learning_factor;
 	      learning_counter:=0;
 	      incr_int_stat 1  inst_num_of_learning_restarts;
 	      apply_fun !prover_functions_ref.inst_clear_all ();
@@ -1216,14 +1217,33 @@ let rec main clauses finite_model_clauses =
 
     (* Incremental BMC1 solving: unsatisfiable when there are higher
        bounds left to check *)
-    | Discount.Unsatisfiable 
-    | Instantiation.Unsatisfiable  
-    | PropSolver.Unsatisfiable   
-    | Discount.Empty_Clause _ 
+    | (Discount.Unsatisfiable as e)
+    | (Instantiation.Unsatisfiable as e)
+    | (PropSolver.Unsatisfiable as e)
+    | ((Discount.Empty_Clause _) as e)
 	when !current_options.bmc1_incremental -> 
 	
 	(
+
+(*	  
+	  (match e with 
+	    | Discount.Unsatisfiable -> 
+	      Format.eprintf "Unsatisfiable in resolution@."
+	    | Instantiation.Unsatisfiable ->
+	      Format.eprintf "Unsatisfiable in instantiation@."
+	    | PropSolver.Unsatisfiable ->
+	      Format.eprintf "Unsatisfiable in propositional solver@."
+	    | Discount.Empty_Clause _ ->
+	      Format.eprintf "Unsatisfiable with empty clause in resolution@."
+	    | _ -> ()
+	  );
+*)
 	  
+	  (* Output unsatisfiable core *)
+	  (try 
+	     Prop_solver_exchange.unsat_core () 
+	   with Invalid_argument _ -> ());
+
 	  (* Increment bound by one
 	     
 	     TODO: option for arbitrary bound increments *)
@@ -1766,6 +1786,11 @@ let run_iprover () =
   |Discount.Unsatisfiable 
   |Instantiation.Unsatisfiable  |PropSolver.Unsatisfiable  
     ->
+    (* Output unsatisfiable core *)
+    (try 
+       Prop_solver_exchange.unsat_core () 
+     with Invalid_argument _ -> ());
+
       out_str (proved_str ());
        (if 
 	(!answer_mode_ref)

@@ -86,6 +86,13 @@ external hhlmuc_create_lit : hhlmuc_solver -> bool -> int -> hhlmuc_literal = "h
    Return [false] if the clause set is immediately unsatisfiable *)
 external hhlmuc_add_clause : hhlmuc_solver -> hhlmuc_literal list -> bool = "hhlmuc_add_clause"
 
+(* Assert the clause as interesting and return a unique id 
+   
+   Return [(true, Some uid)] if the clause was added as [uid] to the
+   solver, [(true, None)] if the clause was discarded by the solver
+   and [(false, None)] if the clause set is immediately unsatisfiable 
+*)
+external hhlmuc_add_clause_with_id : hhlmuc_solver -> hhlmuc_literal list -> bool *  int option = "hhlmuc_add_clause_with_id" 
 
 (* Test the given clause set for satisfiability *)
 external hhlmuc_solve : hhlmuc_solver ->  bool = "hhlmuc_solve"
@@ -112,6 +119,10 @@ external hhlmuc_lit_sign : hhlmuc_solver -> hhlmuc_literal -> bool = "hhlmuc_lit
 
 (* Return the truth value of the literal in the current model *)
 external hhlmuc_model_value : hhlmuc_solver -> hhlmuc_literal -> int = "hhlmuc_model_value"
+
+
+(* Return an unsatisfiable core as a list of clause ids *)
+external hhlmuc_unsat_core : hhlmuc_solver -> int list = "hhlmuc_unsat_core"
 
 
 (* Return the number of variables allocated *)
@@ -165,6 +176,29 @@ let add_clause { solver = solver } = function
       raise Unsatisfiable
 
     
+(* Assert a clause given as a list of literals in the solver. Raise
+   {!Unsatisfiable} if the clause set becomes immediately
+   unsatisfiable. *)
+let add_clause_with_id { solver = solver } = function
+
+  (* The empty clause is immediately unsatisfiable *)
+  | [] -> raise Unsatisfiable 
+
+  | clause -> 
+
+    (
+
+      (* Add clause and check if immediately unsatisfiable *)
+      match hhlmuc_add_clause_with_id solver clause with
+	  
+	(* Raise exception if immediately unsatisfiable *)
+	| false, _ -> raise Unsatisfiable
+
+	(* Pass on any other result *)
+	| true, uid -> uid
+    
+    )
+
 (* Test the given clause set for satisfiability *)
 let solve ({ solver = solver } as s) = 
 
@@ -247,6 +281,11 @@ let model_value { solver = solver } literal =
 
     (* Literal is undefined *)
     | L_undef -> None
+
+
+(* Return an unsatisfiable core *)
+let unsat_core { solver = solver } =
+  hhlmuc_unsat_core solver
 
 
 (* Return the number of calls to {!solve} of the solver instance *)

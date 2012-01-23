@@ -32,7 +32,7 @@ extern "C" {
 
 }
 
-// #define DEBUG
+#define DEBUG
 
 /* -D flags in mtl/template.mk */
 #define __STDC_LIMIT_MACROS
@@ -70,7 +70,7 @@ static inline value Val_some( value v )
 }
 
 /* Switch to MiniSat namespace */
-using namespace Minisat;
+using namespace Hhlmuc;
 
 /* Custom OCaml operations for MiniSat literal 
    
@@ -83,7 +83,7 @@ using namespace Minisat;
 
 */
 static struct custom_operations minisat_lit_custom_ops = {
-    identifier: "Minisat::Lit",
+    identifier: "Hhlmuc::Lit",
     finalize:    custom_finalize_default,
     compare:     custom_compare_default,
     hash:        custom_hash_default,
@@ -117,13 +117,14 @@ extern "C" value hhlmuc_create_solver(value unit)
   CAMLparam1 (unit);
 
   // Initialise solver instance 
-  Solver* s = new Solver;
+  Solver* solver = new Solver;
+  // SimpSolver* solver = new SimpSolver;
 
   // Allocate abstract datatype for instance 
   value res = caml_alloc(2, Abstract_tag);
 
-  // First field is pointer to solver 
-  Store_field(res, 0, (value) s); 
+  // First field is pointer to core manager
+  Store_field(res, 0, (value) solver); 
 
   // Second field is number of variables on last solve call
   Store_field(res, 1, (value) 0); 
@@ -155,6 +156,7 @@ extern "C" value hhlmuc_add_var (value solver_in, value var_id_in)
   // Declare parameters 
   CAMLparam2 (solver_in, var_id_in);
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
   int var_id = Int_val(var_id_in);
 
   // Declare variable in MiniSat
@@ -176,29 +178,31 @@ extern "C" value hhlmuc_add_var (value solver_in, value var_id_in)
    datatype stored on the OCaml heap.
 
  */
-extern "C" value hhlmuc_create_lit(value solver_in, value sign_in, value var_id_in)
+extern "C" value hhlmuc_create_lit(value solver_in, value lit_sign_in, value lit_var_in)
 {
   
   // Declare parameters 
-  CAMLparam3 (solver_in, sign_in, var_id_in);
+  CAMLparam3 (solver_in, lit_sign_in, lit_var_in);
   CAMLlocal1 (res);
 
   Solver* solver = (Solver*) Field(solver_in, 0);
-  int var_id = Int_val(var_id_in);
-  bool sign = Bool_val(sign_in);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
+  bool lit_sign = Bool_val(lit_sign_in);
+  int lit_var = Int_val(lit_var_in);
 
   // First declare variable in MiniSat
-  while (var_id >= solver->nVars()) solver->newVar();
+  while (lit_var >= solver->nVars()) solver->newVar();
 
   // Must use mkLit to create literals 
-  Lit lit = sign ? mkLit(var_id) : ~mkLit(var_id);
+  Lit lit = mkLit(lit_var, lit_sign);
 
 #ifdef DEBUG
   fprintf(stderr, 
 	  "Created literal %d from %s%d\n", 
 	  toInt(lit), 
-	  sign ? "" : "~", 
-	  var_id);
+	  lit_sign ? "" : "~", 
+	  lit_var);
 #endif
 
   // Allocate and copy MiniSat literal to OCaml
@@ -223,13 +227,16 @@ extern "C" value hhlmuc_add_clause(value solver_in, value clause_in)
   CAMLlocal1(head);
 
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
   head = clause_in;
 
   // Clause to be asserted
   vec<Lit> lits;
+  lits.clear();
 
 #ifdef DEBUG
-  fprintf(stderr, "Asserting clause ");
+  fprintf(stderr, "Asserting other clause ");
 #endif
 
   // Iterate list of literals
@@ -260,9 +267,17 @@ extern "C" value hhlmuc_add_clause(value solver_in, value clause_in)
   fprintf(stderr, "\n");
 #endif
 
-  // Add clause to solver
-  if (solver->addClause(lits))
+#ifdef DEBUG
+  fprintf(stderr, "GetLastUid = %d\n", Clause::GetLastUid());
+#endif
+
+  // Add clause to solver, mark as not interesting 
+  if (solver->addClause_(lits, false))
     {
+
+#ifdef DEBUG
+      fprintf(stderr, "GetLastUid = %d\n", Clause::GetLastUid());
+#endif
 
       // Not immediately unsatisfiable 
       CAMLreturn (Val_true);
@@ -275,8 +290,142 @@ extern "C" value hhlmuc_add_clause(value solver_in, value clause_in)
       fprintf(stderr, "Unsatisfiable with added clause\n");
 #endif
 
+#ifdef DEBUG
+      fprintf(stderr, "GetLastUid = %d\n", Clause::GetLastUid());
+#endif
+
       // Immediately unsatisfiable with added clause
       CAMLreturn (Val_false);
+
+    }
+
+}
+
+/* Assert a clause, given as a list of literals, as an interesting
+   constraint clause. Return both a flag if the clause is immediately
+   unsatisfiable and a possibly undefined unique id for the clause.
+   
+   The unique id is [None] if the clause was simplified or if it is
+   unsatisfiable. A return value of [(false, None)] means the clause
+   is immediately unsatisfiable, if [(true, None)] is returned, the
+   clause is already satisfied, otherwise the return value is [(true,
+   Some id)].
+   
+   external hhlmuc_add_clause_with_id : hhlmuc_solver -> hhlmuc_lit list -> bool * Some int = "hhlmuc_add_clause_with_id" 
+
+*/
+extern "C" value hhlmuc_add_clause_with_id(value solver_in, value clause_in)
+{	
+
+  // Declare parameters 
+  CAMLparam2(solver_in, clause_in);
+  CAMLlocal2(head, res);
+
+  // Allocate for OCaml pair 
+  res = caml_alloc(2, 0);
+
+  Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
+  head = clause_in;
+
+  // Clause to be asserted
+  vec<Lit> lits;
+  lits.clear();
+
+#ifdef DEBUG
+  fprintf(stderr, "Asserting interesting clause ");
+#endif
+
+  // Iterate list of literals
+  while (head != Val_emptylist) 
+    {
+
+      // Get head element of list 
+      value lit_in = Field(head, 0);
+
+      // Get MiniSat literal from value
+      Lit* lit = (Lit*) Data_custom_val(lit_in);
+
+#ifdef DEBUG
+      fprintf(stderr, "%s%d ", 
+	      sign(*lit) ? "" : "~",
+	      var(*lit));
+#endif
+
+      // Add literal to clause 
+      lits.push(*lit);
+
+      // Continue with tail of list
+      head = Field(head, 1);
+
+    }
+
+#ifdef DEBUG
+  fprintf(stderr, "\n");
+#endif
+
+  // Get uid before adding clause 
+  int last_uid = Clause::GetLastUid();
+
+#ifdef DEBUG
+  fprintf(stderr, "GetLastUid = %d\n", last_uid);
+#endif
+
+  // Add clause to solver, mark as interesting 
+  if (solver->addClause_(lits, true))
+    {
+
+      // Get uid after adding clause 
+      int clause_uid = Clause::GetLastUid();
+
+#ifdef DEBUG
+      fprintf(stderr, "GetLastUid = %d\n", clause_uid);
+#endif
+
+      if (last_uid == clause_uid)
+	{
+
+	  // Clause set is not immediately unsatisfiable
+	  Store_field(res, 0, Val_true);
+
+	  // Clause was not added, does not have a uid
+	  Store_field(res, 1, Val_none);
+
+	  // Return pair (true, None) as result 
+	  CAMLreturn(res);
+
+	}
+      else
+	{
+
+	  // Clause set is not immediately unsatisfiable
+	  Store_field(res, 0, Val_true);
+
+	  // Clause was added with uid
+	  Store_field(res, 1, Val_some(Val_int(clause_uid)));
+
+	  // Return pair (true, Some clause_uid) as result 
+	  CAMLreturn(res);
+
+	}
+      
+    }
+  else
+    {
+
+#ifdef DEBUG
+      fprintf(stderr, "Unsatisfiable with added clause\n");
+#endif
+
+      // Clause set is immediately unsatisfiable
+      Store_field(res, 0, Val_false);
+      
+      // Clause was not added, does not have a uid
+      Store_field(res, 1, Val_none);
+      
+      // Immediately unsatisfiable with added clause
+      CAMLreturn (res);
 
     }
 
@@ -294,7 +443,9 @@ extern "C" value hhlmuc_solve(value solver_in)
     
   // Declare parameters 
   CAMLparam1(solver_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
 
 #ifdef DEBUG
   fprintf(stderr, "Solving without assumptions\n");
@@ -334,6 +485,8 @@ extern "C" value hhlmuc_solve_assumptions(value solver_in, value assumptions_in)
   CAMLlocal1(head);
 
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
   head = assumptions_in;
 
   // Assumptions for solving
@@ -449,6 +602,8 @@ extern "C" value hhlmuc_fast_solve(value solver_in, value assumptions_in, value 
   CAMLlocal1(head);
 
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
   int max_conflicts = Int_val(max_conflicts_in);
 
   head = assumptions_in;
@@ -554,6 +709,69 @@ extern "C" value hhlmuc_fast_solve(value solver_in, value assumptions_in, value 
 }
 
 
+/* Return an unsatisfiable core 
+
+   external hhlmuc_unsat_core : hhlmuc_solver -> int list = "hhlmuc_unsat_core"
+ */
+extern "C" value hhlmuc_unsat_core(value solver_in)
+{
+
+#ifdef DEBUG
+  fprintf(stderr, "Entering hhlmuc_model_value\n");
+#endif
+
+  // Declare parameters 
+  CAMLparam1 (solver_in);
+
+  Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
+  // Initialise return value to empty list
+  CAMLlocal2(res, cons);
+  res = Val_emptylist;
+  
+  // Vector of Uids for unsat core
+  vec<uint32_t> vecUids;
+
+  // Get unsat core from solver
+  solver->GetUnsatCore(vecUids);
+  
+#ifdef DEBUG
+  fprintf(stderr, "Clauses in unsat core: ");
+#endif
+  
+  // Iterate clauses in unsat core backwards to preserve order
+  for (int nInd = vecUids.size() - 1; nInd >= 0; --nInd)
+    {
+
+#ifdef DEBUG
+      fprintf(stderr, "%d ", (int) vecUids[nInd]);
+#endif
+
+      // Allocate for new list elements
+      cons = caml_alloc(2, 0);
+
+      // Head of list is uid of clause in unsat core
+      Store_field(cons, 0, Val_int((int) vecUids[nInd]));
+
+      // Tail of list is previous list 
+      Store_field(cons, 1, res);
+
+      // Continue with constructed list 
+      res = cons;
+      
+    }
+
+#ifdef DEBUG
+  fprintf(stderr, "\n");
+#endif
+
+  // Return list
+  CAMLreturn(res);
+
+}
+
+
 /* Return the truth value of the literal in the current model: Some
     true if the literal is true, Some false if the literal is false
     and None if the literal value is undefined
@@ -570,7 +788,10 @@ extern "C" value hhlmuc_model_value (value solver_in, value lit_in)
 
   // Declare parameters 
   CAMLparam2 (solver_in, lit_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
   Lit* lit = (Lit*) Data_custom_val(lit_in);
 
 #ifdef DEBUG
@@ -636,7 +857,10 @@ extern "C" value hhlmuc_model_value (value solver_in, value lit_in)
 
   // Declare parameters 
   CAMLparam2 (solver_in, lit_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
   Lit* lit = (Lit*) Data_custom_val(lit_in);
   
   value res = Val_int(var(*lit));
@@ -656,7 +880,10 @@ extern "C" value hhlmuc_lit_sign(value solver_in, value lit_in)
 
   // Declare parameters 
   CAMLparam2 (solver_in, lit_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
+
   Lit* lit = (Lit*) Data_custom_val(lit_in);
   
   value res = Val_bool(sign(*lit));
@@ -675,7 +902,9 @@ extern "C" value hhlmuc_stat_vars(value solver_in)
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
 
   // Read number of variables 
   int vars = solver->nVars();
@@ -696,7 +925,9 @@ extern "C" value hhlmuc_stat_clauses(value solver_in)
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
+  // SimpSolver* solver = (SimpSolver*) Field(solver_in, 0);
 
   // Read number of clauses 
   int vars = solver->nClauses();

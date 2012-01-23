@@ -188,7 +188,8 @@ let add_to_simple_passive clause =
 let add_new_clause_to_sp clause = 
   if (Clause.is_empty_clause clause) 
   then
-    raise Unsatisfiable
+    ( (* Format.eprintf "Added empty clause to simple passive in instantiation@."; *)
+    raise Unsatisfiable)
   else 
     if (not (Clause.get_bool_param Clause.is_dead clause))  
     then 
@@ -271,7 +272,8 @@ let rec remove_from_passive () =
 let add_new_clause_to_passive clause = 
   if (Clause.is_empty_clause clause) 
   then
-    raise Unsatisfiable
+    ( (* Format.eprintf "Added empty clause to passive in instantiation@."; *)
+    raise Unsatisfiable)
   else 
     if (not (Clause.get_bool_param Clause.is_dead clause))  
     then 
@@ -845,7 +847,8 @@ let bmc1_bounds = ref []
           *)    
 	       if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat) 		 
 		   (* || (PropSolver.solve solver_sim) = PropSolver.Unsat)*)
-	       then (raise Unsatisfiable)
+	       then ( (* Format.eprintf "Unsatisfiable after solve call in lazy_loop_body in instantiation@."; *)
+		     raise Unsatisfiable)
 	       else 	
 		 (if !current_options.inst_eager_unprocessed_to_passive then
 		   (List.iter add_new_clause_to_passive !unprocessed_ref;
@@ -1352,7 +1355,8 @@ let clear_all () =
 (* refresh the model *)
 
   (if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat)
-  then raise Unsatisfiable);
+   then ( (* Format.eprintf "Unsatisfiable after solve call in Instantiation.clear_all@."; *)
+	raise Unsatisfiable));
   Prop_solver_exchange.clear_model ()
 
 

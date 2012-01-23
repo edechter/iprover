@@ -16,6 +16,8 @@
 
 type solver
 
+(* type solver_uc *)
+
 (*type var*)
 
 (*
@@ -24,6 +26,8 @@ val current_solver :  solver_name
 *)
 
 type lit
+
+(* type lit_uc *)
 
 type var_id = int
 
@@ -35,6 +39,9 @@ type fast_solve = FSat | FUnsat | FUnknown
 type lit_val    = True | False | Any
 type lit_sign   = Pos  | Neg
 
+val sign_to_bool : lit_sign -> bool
+
+val bool_to_sign : bool -> lit_sign
 
 exception Unsatisfiable
 exception Create_lit_error
@@ -42,6 +49,8 @@ exception Create_lit_error
 (* if true creates a simplifiaction solver and if false creates an incemental solver *)
 
 val create_solver            : bool -> solver 
+
+(* val create_solver_uc            : unit -> solver_uc *)
 
 val num_of_solver_calls      : solver -> int
 val num_of_fast_solver_calls : solver -> int
@@ -52,19 +61,35 @@ val is_simplification        : solver -> bool
 
 val add_var_solver : solver -> var_id -> unit
 (* val create_variable: solver -> var_id -> var *)
-val create_lit:  solver -> lit_sign -> var_id ->  lit
 
-val lit_sign: solver -> lit -> bool
+val create_lit : solver -> lit_sign -> var_id ->  lit
 
-val lit_var: solver -> lit -> int
+(* val create_lit_uc : solver_uc -> lit_sign -> var_id ->  lit_uc *)
+
+val lit_sign : solver -> lit -> bool
+
+val lit_var : solver -> lit -> int
 
 (* can raise Unsatisfiable if the solver state becomes trivialy unsat *)
-val add_clause: solver -> lit list -> unit
+val add_clause : solver -> lit list -> unit
 
-val solve: solver -> solver_out
+val add_clause_with_id : solver -> lit list -> int option
+
+val clauses_with_id : solver -> int
+
+
+val solve : solver -> solver_out
+
+(* val solve_uc : solver_uc -> solver_out *)
+
+(* val unsat_core : solver_uc -> int list  *)
+
+val get_conflicts : solver -> int list 
 
 (* can raise Unsatisfiable if unsat wihtout assumptions *)
 val solve_assumptions: solver -> lit list -> solver_out
+
+(* val solve_assumptions_uc : solver_uc -> lit_uc list -> solver_out *)
 
 (* can raise Unsatisfiable if unsat wihtout assumptions *)
 val fast_solve: solver -> lit list -> fast_solve
@@ -77,3 +102,5 @@ val lit_list_to_string:   solver -> lit list -> string
 val solver_out_to_string: solver_out ->string
 val lit_val_to_string:    lit_val -> string
 val lit_sign_to_string:   lit_sign -> string   
+
+val pp_lit : solver -> Format.formatter -> lit -> unit

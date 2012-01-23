@@ -36,16 +36,40 @@ type var_id = int
 
 (*
 module SatSolver = CMinisat 
-
-module SatSolver = Minisat 
 *)
 
-module SatSolver = Hhlmuc
+module SatSolver = Minisat 
 
 
 type lit = SatSolver.literal
 
 type solver = SatSolver.solver
+
+(* to_strings *)
+
+let pp_lit = SatSolver.pp_literal 
+    
+let lit_to_string solver lit = 
+  SatSolver.literal_to_string solver lit
+
+let lit_list_to_string solver lit_list = 
+  "[" ^ (Lib.list_to_string (lit_to_string solver) lit_list ",") ^ "]"
+
+let solver_out_to_string = function
+  |Sat   -> "Satisfiable"
+  |Unsat -> "Unsatisfiable"
+  
+
+
+let lit_val_to_string = function 
+  |True  -> "True"
+  |False -> "False"
+  |Any   -> "Any"
+
+let lit_sign_to_string = function
+  |Pos  -> "Positive"
+  |Neg  -> "Negative"
+
 
 let create_solver is_sim = 
   SatSolver.create_solver is_sim
@@ -69,6 +93,10 @@ let sign_to_bool = function
   |Pos -> true
   |Neg -> false
 	
+let bool_to_sign = function
+  | true -> Pos
+  | false -> Neg
+	
 let add_var_solver solver var_id =
   SatSolver.add_var solver var_id
 
@@ -79,8 +107,24 @@ let add_clause solver lits_in =
   try 
     SatSolver.add_clause solver lits_in
   with SatSolver.Unsatisfiable -> 
-    raise Unsatisfiable
+    (
+      (* Format.eprintf "Unsatisfiable with added clause@."; *)
+      raise Unsatisfiable
+    )
       
+let add_clause_with_id solver lits_in =
+  try 
+    SatSolver.add_clause_with_id solver lits_in
+  with SatSolver.Unsatisfiable -> 
+    (
+      (* Format.eprintf "Unsatisfiable with added clause in unsat core solver@."; *)
+      raise Unsatisfiable
+    )
+      
+let clauses_with_id solver =
+  SatSolver.clauses_with_id solver
+
+
 let bool_option_to_val = function
   | Some true -> True 
   | Some false -> False
@@ -111,8 +155,12 @@ let solve solver =
     add_float_stat (end_time -. start_time) prop_solver_time;
     if outcome = true then Sat else Unsat
   with SatSolver.Unsatisfiable -> 
-    raise Unsatisfiable
+    (
+      (* Format.eprintf "Unsatisfiable on solve call@."; *)
+      raise Unsatisfiable
+    )
       
+
 let solve_assumptions solver assumptions =
   try 
     let start_time = Unix.gettimeofday () in
@@ -123,7 +171,10 @@ let solve_assumptions solver assumptions =
       | true -> Sat    (* under assumption *) 
       | false -> Unsat)  (* under assumption *) 
   with SatSolver.Unsatisfiable -> 
-    raise Unsatisfiable
+    (
+      (* Format.eprintf "Unsatisfiable without assumptions@."; *)
+      raise Unsatisfiable
+    )
 
 let fast_solve solver assumptions =
   try 
@@ -136,32 +187,13 @@ let fast_solve solver assumptions =
       | Some true-> FUnknown  (* under assumption *) 
       | None  -> FUnknown)  
   with SatSolver.Unsatisfiable -> 
-    raise Unsatisfiable
+    (
+      (* Format.eprintf "Unsatisfiable without assumptions on fast solving@."; *)
+      raise Unsatisfiable
+    )
 
 let lit_var solver lit = SatSolver.lit_var solver lit
     
 let lit_sign solver lit = SatSolver.lit_sign solver lit
 
-
-(* to_strings *)
-    
-let lit_to_string solver lit = 
-  SatSolver.literal_to_string solver lit
-
-let lit_list_to_string solver lit_list = 
-  "[" ^ (Lib.list_to_string (lit_to_string solver) lit_list ",") ^ "]"
-
-let solver_out_to_string = function
-  |Sat   -> "Satisfiable"
-  |Unsat -> "Unsatisfiable"
-  
-
-
-let lit_val_to_string = function 
-  |True  -> "True"
-  |False -> "False"
-  |Any   -> "Any"
-
-let lit_sign_to_string = function
-  |Pos  -> "Positive"
-  |Neg  -> "Negative"
+let get_conflicts solver = SatSolver.get_conflicts solver
