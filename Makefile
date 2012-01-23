@@ -113,8 +113,9 @@ INTERFACE = $(BASE_NAMES_WITHOUT_LEXER:%=obj/%.cmi)
 
 IPROVER_NAME = $(IPROVER_BASE_NAME)$(ADDTONAME)$(ADDTONAME_CPP)
 
-$(IPROVER_NAME) : $(INTERFACE)\
-                  $(OBJ) $(IPROVER_C_OBJ) $(IPROVER_ADD_OBJ) src/$(IPROVER_BASE_NAME).ml util/lib/minisat.cmxa util/lib/hhlmuc.cmxa
+$(IPROVER_NAME) : util/lib/minisat.cmxa util/lib/hhlmuc.cmxa \
+		  $(INTERFACE)\
+                  $(OBJ) $(IPROVER_C_OBJ) $(IPROVER_ADD_OBJ) src/$(IPROVER_BASE_NAME).ml 
 	$(COMPILE) $(IPROVERFLAGS) $(IPROVER_C_OBJ) -o $@ \
         $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa util/lib/hhlmuc.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
 #        $(OCAMLFLAGS) unix.cmxa str.cmxa $(OBJ) $(IPROVER_ADD_OBJ) 

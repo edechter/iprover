@@ -168,7 +168,7 @@ minisat-test \
 clean-minisat-ocaml-lib: export CLIBLIBDIR=$(MINISATDIR)/simp
 
 # Make release library by default
-minisat-ocaml: minisat-ocaml-release
+minisat-ocaml: minisat-ocaml-release 
 
 # Make test executable with debug library 
 minisat-test: minisat-ocaml-debug minisat-ocaml minisat-test-ocaml-lib
