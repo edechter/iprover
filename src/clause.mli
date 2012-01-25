@@ -139,7 +139,9 @@ val get_inst_sel_lit            : clause -> literal
 
 val get_parent                  : clause -> clause Lib.param
 
-val get_history_parents : clause -> clause list 
+val clause_get_history_parents : clause -> clause list 
+
+val clause_list_get_history_parents : clause list -> clause list 
 
 (* comapares places of two clauses, is used to compare that   *)
 (* sel literal in parent corresponds to sel lit in child      *)

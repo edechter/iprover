@@ -1269,14 +1269,7 @@ let rec main clauses finite_model_clauses =
 
 	  (* Get parent clauses of unsat core clauses *)
 	  let unsat_core_parents = 
-	    List.fold_left
-	      (fun a l ->
-		List.fold_left 
-		  (fun a' e -> if List.memq e a' then a' else e :: a')
-		  a
-		  l)
-	      []
-	      (List.map Clause.get_history_parents unsat_core_clauses)
+	    Clause.clause_list_get_history_parents unsat_core_clauses
 	  in
 (*
 	    List.fold_left 

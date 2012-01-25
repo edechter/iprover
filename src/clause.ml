@@ -803,83 +803,119 @@ let assign_split_history concl parent =
   concl.history <- Def(Split(parent))
 
 
-let add_duplicate elem list =
-  if List.memq elem list then list else elem :: list 
-
-
-let rec get_history_parents' accum = function
-
+let rec get_history_parents' visited accum = function
+    
   (* No more clause histories to recurse *)
   | [] -> accum
-    
+      
+  (* Clause already seen *)
+  | (clause :: tl) when List.memq clause visited ->
+      
+      (* Skip clause *)
+      get_history_parents' visited accum tl
+	
   (* Undefined parents *)
   | ({ history = Undef } as clause) :: tl -> 
-    
-    (* Add clause as leaf *)
-    get_history_parents' (add_duplicate clause accum) tl
+      
+      (* Add clause as leaf *)
+      get_history_parents' (clause :: visited) (clause :: accum) tl
 
   (* Clause after instantiation *)
-  | { history = Def (Instantiation (parent, parents_side)) } :: tl -> 
+  | { history = Def (Instantiation (parent, parents_side)) } as clause :: tl -> 
 
     (* Recurse to get parents of premises *)
-    get_history_parents' accum ((parent :: parents_side) @ tl) 
+    get_history_parents' 
+      (clause :: visited) 
+      accum 
+      ((parent :: parents_side) @ tl) 
      
   (* Clause after resolution *)
-  | { history = Def (Resolution (parents, upon_literals)) } :: tl -> 
+  | { history = Def (Resolution (parents, upon_literals)) } as clause :: tl -> 
 
-    (* Recurse to get parents of premises *)
-    get_history_parents' accum (parents @ tl) 
-
+      (* Recurse to get parents of premises *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parents @ tl) 
+	
   (* Clause after factoring *)
-  | { history = Def (Factoring (parent, upon_literals)) } :: tl->
-
-    (* Recurse to get parent of premise *)
-    get_history_parents' accum (parent :: tl) 
+  | { history = Def (Factoring (parent, upon_literals)) } as clause :: tl->
+      
+      (* Recurse to get parent of premise *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parent :: tl) 
     
   (* Input clause *)
   | { history = Def Input } as clause :: tl -> 
 
-    (* Add clause as leaf *)
-    get_history_parents' (add_duplicate clause accum) tl
-
+      (* Add clause as leaf *)
+      get_history_parents' 
+	(clause :: visited) 
+	(clause :: accum) 
+	tl
+	
   (* Clause after global subsumption *)
-  | { history = Def (Global_Subsumption parent) } :: tl ->
+  | { history = Def (Global_Subsumption parent) } as clause :: tl ->
     
-    (* Recurse to get parent of premise *)
-    get_history_parents' accum (parent :: tl) 
+      (* Recurse to get parent of premise *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parent :: tl) 
     
   (* Clause after tranformation to pure equational clause *)
-  | { history = Def (Non_eq_to_eq parent) } :: tl ->
+  | { history = Def (Non_eq_to_eq parent) } as clause :: tl ->
 
-    (* Recurse to get parent of premise *)
-    get_history_parents' accum (parent :: tl) 
+      (* Recurse to get parent of premise *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parent :: tl) 
     
   (* Clause after forward subsumption resolution *)
-  | { history = Def (Forward_Subsumption_Resolution (main_parent, parents)) } :: tl  -> 
-    
-    (* Recurse to get parents of premises *)
-    get_history_parents' accum (parents @ tl) 
+  | { history = Def (Forward_Subsumption_Resolution (main_parent, parents)) } as clause :: tl  -> 
+      
+      (* Recurse to get parents of premises *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parents @ tl) 
 
   (* Clause after backward subsumption resolution *)
-  | { history = Def (Backward_Subsumption_Resolution parents) } :: tl ->  
+  | { history = Def (Backward_Subsumption_Resolution parents) } as clause :: tl ->  
 
-    (* Recurse to get parents of premises *)
-    get_history_parents' accum (parents @ tl) 
+      (* Recurse to get parents of premises *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parents @ tl) 
 
   (* Clause is an axiom *)
   | { history = Def (Axiom _) } as clause :: tl -> 
     
-    (* Add clause as leaf *)
-    get_history_parents' (add_duplicate clause accum) tl
+      (* Add clause as leaf *)
+      get_history_parents' 
+	(clause :: visited) 
+	(clause :: accum) 
+	tl
 
   (* Clause after splitting *)
-  | { history = Def (Split parent) } :: tl -> 
-
-    (* Recurse to get parent of premise *)
-    get_history_parents' accum (parent :: tl) 
+  | { history = Def (Split parent) } as clause :: tl -> 
+      
+      (* Recurse to get parent of premise *)
+      get_history_parents' 
+	(clause :: visited) 
+	accum 
+	(parent :: tl) 
     
 	      
-let get_history_parents clause = get_history_parents' [] [clause]
+let clause_get_history_parents clause = 
+  get_history_parents' [] [] [clause]
+
+let clause_list_get_history_parents clause_list = 
+  get_history_parents' [] [] clause_list
 
 
 

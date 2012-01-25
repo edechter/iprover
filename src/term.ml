@@ -792,21 +792,21 @@ let is_eq_lit lit =
 let is_clock_lit lit = 
   match get_atom lit with 
     | Fun(symb, _, _) -> 
-      Symbol.Map.mem symb !Parser_types.clock_map
+	Symbol.get_bool_param Symbol.is_clock symb
     | _ -> false
 
 
 let is_less_lit lit = 
   match get_atom lit with 
     | Fun(symb, _, _) -> 
-      Symbol.Map.mem symb !Parser_types.less_map
+	Symbol.get_bool_param Symbol.is_less symb
     | _ -> false
 
 
 let is_range_lit lit = 
   match get_atom lit with 
     | Fun(symb, _, _) -> 
-      Symbol.Map.mem symb !Parser_types.range_map
+	Symbol.get_bool_param Symbol.is_range symb
     | _ -> false
 
 

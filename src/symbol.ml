@@ -150,6 +150,11 @@ let is_essential_input             = 6
 (* we compute reachibility relation/and priorities based on these predicates *)
 let is_defined_symb_input           =7
 
+
+let is_clock = 8
+let is_less = 9
+let is_range = 10
+
 (* signature symbol is used to distinguish fun/preds from other symbols like connectives types etc.*)
 
 

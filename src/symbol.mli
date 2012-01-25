@@ -131,6 +131,10 @@ val large_ax_considered_non_gr    : symbol_bool_param
 
 val is_defined_symb_input         : symbol_bool_param
 
+val is_clock : symbol_bool_param
+val is_less : symbol_bool_param
+val is_range : symbol_bool_param
+
 val is_constant                 : symbol -> bool
 val is_pred                     : symbol -> bool
 val is_fun                      : symbol -> bool

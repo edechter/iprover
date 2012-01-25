@@ -145,6 +145,19 @@ let get_clauses_without_extra_axioms () = (!neg_conjectures)@(!parsed_clauses)
 let bot_term = TermDB.add_ref (Term.create_fun_term Symbol.symb_bot []) term_db_ref
 let top_term = TermDB.add_ref (Term.create_fun_term Symbol.symb_top []) term_db_ref
 
+let is_less_symb symb = 
+  SymbMap.mem symb !less_map
+
+let is_range_symb symb =
+  SymbMap.mem symb !range_map  
+
+let is_clock_symb symb =
+  SymbMap.mem symb !clock_map  
+
+let is_less_or_range_symb symb = 
+  (is_less_symb symb) || (is_range_symb symb)
+
+
 (*---------------Auxilary tables-----------------------------*)
 (*---------var table is a global mapping var_names -> vars---*)
 
@@ -312,6 +325,9 @@ let plain_term_fun symb_name symbol_type args =
 	 symb_name symbol_type) 
       symbol_db_ref in
   Symbol.assign_is_input true symb;
+  Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
+  Symbol.set_bool_param (is_less_symb symb) Symbol.is_less symb;
+  Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;
   Symbol.incr_num_input_occur symb;
 (*  (if !current_is_neg_conjecture then
 	Symbol.set_bool_param 
@@ -375,6 +391,9 @@ let plain_term_fun_typed ~is_top symb_name args =
 
 	   in
 	   Symbol.assign_is_input true symb;
+           Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
+           Symbol.set_bool_param (is_less_symb symb) Symbol.is_less symb;
+           Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;
 	   Symbol.incr_num_input_occur symb;	   
 	   Term.create_fun_term symb args   
 (* terms are not added to termDB at this point but added when the clause is created *)
@@ -568,6 +587,9 @@ let term_of_number_fun num =
       (Symbol.create_from_str_type 
 	 (string_of_int num) (Symbol.create_stype [] Symbol.symb_default_type)) symbol_db_ref in
   Symbol.assign_is_input true int_symb;
+  Symbol.set_bool_param (is_clock_symb int_symb) Symbol.is_clock int_symb;
+  Symbol.set_bool_param (is_less_symb int_symb) Symbol.is_less int_symb;
+  Symbol.set_bool_param (is_range_symb int_symb) Symbol.is_range int_symb;
   Symbol.incr_num_input_occur int_symb;
   Term.create_fun_term int_symb []
     
@@ -580,6 +602,9 @@ let ttf_atomic_type_fun symb_name =
 (*~is_sig:true since can occur in typed equalities*)
 	~is_sig:true symb_name) symbol_db_ref in
   Symbol.assign_is_input true symb; 
+  Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
+  Symbol.set_bool_param (is_less_symb symb) Symbol.is_less symb;
+  Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;
   Symbol.incr_num_input_occur symb;
   symb
 
@@ -601,6 +626,9 @@ let ttf_add_typed_atom_out_symb_fun symb_name stype =
   if (Symbol.is_defined_type added_symb)     
   then 
     (  Symbol.assign_is_input true added_symb; 
+       Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
+       Symbol.set_bool_param (is_less_symb symb) Symbol.is_less symb;
+       Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;
        Symbol.incr_num_input_occur added_symb;
        Symbol.incr_num_input_occur added_symb;
        added_symb
@@ -933,18 +961,6 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
        father_of_map := SymbMap.add symb all_father_of !father_of_map
       )
 
-
-let is_less_symb symb = 
-  SymbMap.mem symb !less_map
-
-let is_range_symb symb =
-  SymbMap.mem symb !range_map  
-
-let is_clock_symb symb =
-  SymbMap.mem symb !clock_map  
-
-let is_less_or_range_symb symb = 
-  (is_less_symb symb) || (is_range_symb symb)
 
 (*-------------All below is commented------------------------*)
 (* 
