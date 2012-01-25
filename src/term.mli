@@ -173,6 +173,10 @@ val is_neg_lit            : literal -> bool
 val get_atom              : literal -> term
 val is_eq_lit             : literal -> bool
 
+val is_clock_lit : literal -> bool
+val is_less_lit : literal -> bool
+val is_range_lit : literal -> bool
+
 
 exception Var_term
 val get_top_symb          : term -> symbol

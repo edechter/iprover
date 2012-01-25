@@ -21,6 +21,7 @@ open Statistics
 open Options
 
 type prop_lit = PropSolver.lit
+type prop_lit_uc = PropSolver.lit_uc
 
 type term       = Term.term
 type lit        = Term.literal
@@ -94,7 +95,7 @@ let solver = PropSolver.create_solver false
 
 let solver_sim = PropSolver.create_solver true
 
-let solver_uc = PropSolver.create_solver false
+let solver_uc = PropSolver.create_solver_uc false
 
 (* solver assumptions are used for finite models *)
 (* solver assumptions are changed assign_solver_assumptions below*)
@@ -156,6 +157,37 @@ let normalise_assumptions assumptions =
 	  then 
 	  let sign1 = (PropSolver.lit_sign solver l1) in 
 	  let sign2 = (PropSolver.lit_sign solver l2) in 
+	  if sign1 = sign2 
+	  then 
+	    elim_duplicates_compl rest (l1::tl)
+	  else
+	    raise AssumptionsInconsistent
+	  else
+  	    elim_duplicates_compl (l1::rest) (l2::tl)
+    in
+    elim_duplicates_compl [] sorted_assumptions
+
+let normalise_assumptions_uc assumptions = 
+  if assumptions = [] 
+  then []
+  else
+    let cmp l1 l2 = 
+      compare 
+	(PropSolver.lit_var_uc solver_uc l1) 
+	(PropSolver.lit_var_uc solver_uc l2)
+    in 
+    let sorted_assumptions = List.sort cmp assumptions in
+    let rec elim_duplicates_compl rest lit_list = 
+      match lit_list with
+      | [] -> rest 
+      | l::[] -> l::rest
+      | l1::l2::tl ->
+	  let id1 = (PropSolver.lit_var_uc solver_uc l1) in 
+	  let id2 = (PropSolver.lit_var_uc solver_uc l2) in 
+	  if id1 = id2 
+	  then 
+	  let sign1 = (PropSolver.lit_sign_uc solver_uc l1) in 
+	  let sign2 = (PropSolver.lit_sign_uc solver_uc l2) in 
 	  if sign1 = sign2 
 	  then 
 	    elim_duplicates_compl rest (l1::tl)
@@ -229,29 +261,34 @@ let rec pp_unsat_core ppf = function
 
 let unsat_core () = 
 
+  let start_time = Unix.gettimeofday () in
+  
   match 
     (
-
+      
       try 
 	
 	(* Run unsat core solver with assumptions *)
-	PropSolver.solve_assumptions
+	PropSolver.solve_assumptions_uc
 	  solver_uc
 	  (get_solver_uc_assumptions ())
 	  
       (* Catch exception and return normally *)
       with PropSolver.Unsatisfiable -> PropSolver.Unsat
-
+	
     )
       
   with 
-
+      
     (* Should return unsat, but check *)
     | PropSolver.Unsat -> 
-
+      
       (* Get the unsat core as a list of clause ids *)
       let unsat_core_ids = PropSolver.get_conflicts solver_uc in
 
+      let end_time = Unix.gettimeofday () in
+      add_float_stat (end_time -. start_time) prop_unsat_core_time;
+      
       (* Get first-order clauses from clause ids *)
       let unsat_core_clauses =
 	List.fold_left 
@@ -264,20 +301,8 @@ let unsat_core () =
 	  unsat_core_ids
       in
       
-      (* Print unsat core *)
-      Format.printf 
-	"Unsat core has size %d@\n%a@." 
-	(List.length unsat_core_ids)
-	(pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
-
-      (* Print histories of clauses in unsat core *)
-      List.iter
-	(Format.printf "Clause histories:@\n@\n%a@\n@." Clause.pp_clause_history)
-	unsat_core_clauses;
-
       (* Return clauses in unsat core *)
       unsat_core_clauses
-
 
     (* Must not return sat when other solver returns unsat *)
     | PropSolver.Sat -> 
@@ -289,8 +314,8 @@ type var_entry =
     {var_id              : int param;
      prop_var            : prop_lit param; 
      prop_neg_var        : prop_lit param;
-     prop_var_uc         : prop_lit param; 
-     prop_neg_var_uc     : prop_lit param;
+     prop_var_uc         : prop_lit_uc param; 
+     prop_neg_var_uc     : prop_lit_uc param;
 (* If  truth_val = Def(Any) the we assume that sel_clauses=[] *)
 (* So if we select a lit the we should change Def(Any) *)
     mutable truth_val       : PropSolver.lit_val param; 
@@ -367,11 +392,11 @@ let create_var_entry var_id ground_term =
    var_id       = Def(var_id);
    prop_var     = Def(PropSolver.create_lit solver PropSolver.Pos var_id); 
    prop_neg_var = Def(PropSolver.create_lit solver PropSolver.Neg var_id);
-   prop_var_uc = Def(PropSolver.create_lit 
+   prop_var_uc = Def(PropSolver.create_lit_uc 
 		       solver_uc 
 		       PropSolver.Pos 
 		       (var_id + (PropSolver.clauses_with_id solver_uc))); 
-   prop_neg_var_uc = Def(PropSolver.create_lit 
+   prop_neg_var_uc = Def(PropSolver.create_lit_uc 
 			   solver_uc 
 			   PropSolver.Neg 
 			   (var_id + (PropSolver.clauses_with_id solver_uc)));
@@ -693,7 +718,7 @@ let assign_solver_assumptions lit_list =
   in
 
   let new_assumptions_uc = 
-    normalise_assumptions (List.map get_prop_lit_uc_assign lit_list) 
+    normalise_assumptions_uc (List.map get_prop_lit_uc_assign lit_list) 
   in
 
    (*
@@ -727,7 +752,7 @@ let assign_only_norm_solver_assumptions lit_list =
     normalise_assumptions (List.map get_prop_lit_assign lit_list) 
   in
   let new_assumptions_uc =  
-    normalise_assumptions (List.map get_prop_lit_uc_assign lit_list) 
+    normalise_assumptions_uc (List.map get_prop_lit_uc_assign lit_list) 
   in
 
    (*

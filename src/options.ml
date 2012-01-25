@@ -221,6 +221,9 @@ type lit_cmp_type =
   | Lit_has_bound_constant         of bool 
   | Lit_has_non_prolific_conj_symb of bool  
   | Lit_eq                         of bool 
+  | Lit_clock                      of bool 
+  | Lit_less                       of bool 
+  | Lit_range                      of bool 
 
 let lit_cmp_type_to_str par = 
   match par with 
@@ -234,6 +237,9 @@ let lit_cmp_type_to_str par =
   |Lit_has_non_prolific_conj_symb b -> 
       if b then "+non_prol_conj_symb" else "-non_prol_conj_symb"
   |Lit_eq          b   -> if b then "+eq"     else "-eq"
+  |Lit_clock       b   -> if b then "+clock"  else "-clock"
+  |Lit_less        b   -> if b then "+less"   else "-less"
+  |Lit_range       b   -> if b then "+range"  else "-range"
 
 exception Unknown_lit_cmp_type
 let str_to_lit_cmp_type str = 
@@ -256,10 +262,16 @@ let str_to_lit_cmp_type str =
   | "-non_prol_conj_symb" -> Lit_has_non_prolific_conj_symb false
   | "+eq"          -> Lit_eq       true
   | "-eq"          -> Lit_eq       false  
+  | "+clock"       -> Lit_clock    true
+  | "-clock"       -> Lit_clock    false  
+  | "+less"        -> Lit_less     true
+  | "-less"        -> Lit_less     false  
+  | "+range"       -> Lit_range    true
+  | "-range"       -> Lit_range    false  
   | _              -> raise  Unknown_lit_cmp_type
 
 
-let lit_cmp_type_list_str = "<[((+|-)(sign|ground|num_var|num_symb|split|conj_symb|non_prol_conj_symb|eq|has_bound_constant)^+]>"
+let lit_cmp_type_list_str = "<[((+|-)(sign|ground|num_var|num_symb|split|conj_symb|non_prol_conj_symb|eq|clock|less|range|has_bound_constant)^+]>"
 
 (* if there is no conjectures then we can to remove corresponding comparisons*)
 
@@ -291,6 +303,7 @@ type cl_cmp_type =
   |Cl_Max_Atom_Input_Occur of bool
   |Cl_Horn         of bool
   |Cl_EPR          of bool
+  |Cl_in_unsat_core of bool
   |Cl_Has_Eq_Lit   of bool
 (* defined symbols as in father_of relatio (Intel) *)
   |Cl_min_defined_symb of bool
@@ -310,6 +323,7 @@ let cl_cmp_type_to_str par =
     "-max_atom_input_occur"
   |Cl_Horn         b -> if b then "+horn" else "-horn"
   |Cl_EPR          b -> if b then "+epr"  else "-epr"
+  |Cl_in_unsat_core b -> if b then "+uc"  else "-uc"
   |Cl_Has_Eq_Lit   b -> if b then "+has_eq" else "-has_eq"
   |Cl_min_defined_symb b -> if b then "+min_def_symb" else "-min_def_symb"
 
@@ -341,13 +355,15 @@ let str_to_cl_cmp_type str =
   |"-horn"      -> Cl_Horn        false
   |"+epr"       -> Cl_EPR         true
   |"-epr"       -> Cl_EPR         false
+  |"+uc"       -> Cl_in_unsat_core true
+  |"-uc"       -> Cl_in_unsat_core false
   |"+has_eq"    -> Cl_Has_Eq_Lit  true
   |"-has_eq"    -> Cl_Has_Eq_Lit  false
   |"+min_def_symb" -> Cl_min_defined_symb true
   |"-min_def_symb" -> Cl_min_defined_symb false
   | _           -> raise Unknown_cl_cmp_type 
 
-let cl_cmp_type_list_str = "<[((+|-)(age|num_var|num_symb|num_lits|ground|conj_dist|conj_symb|max_atom_input_occur|horn|epr|has_eq|has_bound_constant|min_def_symb)^+]>"
+let cl_cmp_type_list_str = "<[((+|-)(age|num_var|num_symb|num_lits|ground|conj_dist|conj_symb|max_atom_input_occur|horn|epr|uc|has_eq|has_bound_constant|min_def_symb)^+]>"
 
 
 let strip_conj_clause_type_list clause_type_list = 
@@ -546,6 +562,7 @@ type options = {
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool override;
+    mutable bmc1_dump_tptp        : bool override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
@@ -642,6 +659,7 @@ let default_options () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
     
 
 (*----Instantiation------*)
@@ -730,6 +748,10 @@ let set_new_current_options o =
       (* Only override defaults *)
       bmc1_verbose = 
 	override o.bmc1_verbose !current_options.bmc1_verbose;
+      
+      (* Only override defaults *)
+      bmc1_dump_tptp = 
+	override o.bmc1_dump_tptp !current_options.bmc1_dump_tptp;
       
     }
 
@@ -1181,6 +1203,18 @@ let bmc1_out_stat_fun str =
 let bmc1_out_stat_inf  =
   bmc1_out_stat_type_list_str^
     inf_pref^"output no statistics, after the last bound only or after each bound (full)\n"
+
+(*--------*)
+
+let bmc1_dump_tptp_str = "--bmc1_dump_tptp" 
+
+let bmc1_dump_tptp_fun b =
+  !current_options.bmc1_dump_tptp <- 
+    override_cmd b !current_options.bmc1_dump_tptp
+
+let bmc1_dump_tptp_inf  =
+  bool_str^
+  inf_pref^"dump clauses for each bound in BMC1 in TPTP format\n" 
 
 (*--------*)
 
@@ -1792,6 +1826,10 @@ let spec_list =
     Arg.Bool(bmc1_verbose_fun),
     bmc1_verbose_inf);
 
+   (bmc1_dump_tptp_str, 
+    Arg.Bool(bmc1_dump_tptp_fun),
+    bmc1_dump_tptp_inf);
+
 (*------Instantiation--*)
    (instantiation_flag_str, Arg.Bool(instantiation_flag_fun),instantiation_flag_inf);
    (inst_lit_sel_str, Arg.String(inst_lit_sel_fun), inst_lit_sel_inf);
@@ -1929,6 +1967,7 @@ let bmc1_options_str_list opt =
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
+   (bmc1_dump_tptp_str,(string_of_bool (val_of_override opt.bmc1_dump_tptp)));
   ]
 
 let inst_options_str_list opt = 
@@ -2304,6 +2343,7 @@ let option_1 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2447,6 +2487,7 @@ let option_2 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2563,6 +2604,7 @@ let option_3 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2675,6 +2717,7 @@ let option_4 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2797,6 +2840,7 @@ let option_finite_models () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2915,6 +2959,7 @@ let option_epr_non_horn () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3155,6 +3200,7 @@ let option_epr_horn () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----------------------Instantiation------*)
   instantiation_flag             = true;
@@ -3393,6 +3439,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3409,7 +3456,8 @@ let option_verification_epr ver_epr_opt =
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1               = [Cl_Conj_Dist false;
+  inst_pass_queue1               = [Cl_in_unsat_core true;
+				    Cl_Conj_Dist false;
                                     Cl_Has_Conj_Symb true;
 	(*			    Cl_Ground true;*)
                                     Cl_Num_of_Var false]; 
@@ -3512,6 +3560,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3528,7 +3577,8 @@ let option_verification_epr ver_epr_opt =
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1               = [Cl_Conj_Dist false;
+  inst_pass_queue1               = [Cl_in_unsat_core true;
+				    Cl_Conj_Dist false;
                                     Cl_Has_Conj_Symb true;
 	(*			    Cl_Ground true;*)
                                     Cl_Num_of_Var false]; 
@@ -3629,6 +3679,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
+  bmc1_dump_tptp          = ValueDefault false;
 
 (*----Instantiation------*)
        instantiation_flag             = true;
@@ -3664,7 +3715,8 @@ let option_verification_epr ver_epr_opt =
    (*[Cl_min_defined_symb false; Cl_Age true;Cl_Num_of_Symb false];
 *)  
 
-     [ Cl_Conj_Dist false;
+     [ Cl_in_unsat_core true;
+				    Cl_Conj_Dist false;
 					 Cl_Has_Conj_Symb true;
 	Cl_has_bound_constant true; (*Cl_Has_Eq_Lit false;*)
 	(*			    Cl_Ground true;*)

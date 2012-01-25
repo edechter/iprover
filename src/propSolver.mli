@@ -16,7 +16,7 @@
 
 type solver
 
-(* type solver_uc *)
+type solver_uc
 
 (*type var*)
 
@@ -27,7 +27,7 @@ val current_solver :  solver_name
 
 type lit
 
-(* type lit_uc *)
+type lit_uc
 
 type var_id = int
 
@@ -50,6 +50,8 @@ exception Create_lit_error
 
 val create_solver            : bool -> solver 
 
+val create_solver_uc            : bool -> solver_uc
+
 (* val create_solver_uc            : unit -> solver_uc *)
 
 val num_of_solver_calls      : solver -> int
@@ -64,32 +66,36 @@ val add_var_solver : solver -> var_id -> unit
 
 val create_lit : solver -> lit_sign -> var_id ->  lit
 
-(* val create_lit_uc : solver_uc -> lit_sign -> var_id ->  lit_uc *)
+val create_lit_uc : solver_uc -> lit_sign -> var_id ->  lit_uc
 
 val lit_sign : solver -> lit -> bool
 
 val lit_var : solver -> lit -> int
 
+val lit_sign_uc : solver_uc -> lit_uc -> bool
+
+val lit_var_uc : solver_uc -> lit_uc -> int
+
 (* can raise Unsatisfiable if the solver state becomes trivialy unsat *)
 val add_clause : solver -> lit list -> unit
 
-val add_clause_with_id : solver -> lit list -> int option
+val add_clause_with_id : solver_uc -> lit_uc list -> int option
 
-val clauses_with_id : solver -> int
+val clauses_with_id : solver_uc -> int
 
 
 val solve : solver -> solver_out
 
-(* val solve_uc : solver_uc -> solver_out *)
+val solve_uc : solver_uc -> solver_out 
 
 (* val unsat_core : solver_uc -> int list  *)
 
-val get_conflicts : solver -> int list 
+val get_conflicts : solver_uc -> int list 
 
 (* can raise Unsatisfiable if unsat wihtout assumptions *)
 val solve_assumptions: solver -> lit list -> solver_out
 
-(* val solve_assumptions_uc : solver_uc -> lit_uc list -> solver_out *)
+val solve_assumptions_uc : solver_uc -> lit_uc list -> solver_out 
 
 (* can raise Unsatisfiable if unsat wihtout assumptions *)
 val fast_solve: solver -> lit list -> fast_solve

@@ -38,12 +38,18 @@ type var_id = int
 module SatSolver = CMinisat 
 *)
 
-module SatSolver = Minisat 
+module SatSolver = CMinisat 
+
+module SatSolverUC = Minisat 
 
 
 type lit = SatSolver.literal
 
+type lit_uc = SatSolverUC.literal
+
 type solver = SatSolver.solver
+
+type solver_uc = SatSolverUC.solver
 
 (* to_strings *)
 
@@ -74,6 +80,9 @@ let lit_sign_to_string = function
 let create_solver is_sim = 
   SatSolver.create_solver is_sim
 
+let create_solver_uc is_sim = 
+  SatSolverUC.create_solver is_sim
+
 let is_simplification solver = 
   SatSolver.is_simplification solver
 
@@ -103,6 +112,9 @@ let add_var_solver solver var_id =
 let create_lit solver sign var =
   SatSolver.create_lit solver (sign_to_bool sign) var
     
+let create_lit_uc solver sign var =
+  SatSolverUC.create_lit solver (sign_to_bool sign) var
+    
 let add_clause solver lits_in =
   try 
     SatSolver.add_clause solver lits_in
@@ -114,15 +126,15 @@ let add_clause solver lits_in =
       
 let add_clause_with_id solver lits_in =
   try 
-    SatSolver.add_clause_with_id solver lits_in
-  with SatSolver.Unsatisfiable -> 
+    SatSolverUC.add_clause_with_id solver lits_in
+  with SatSolverUC.Unsatisfiable -> 
     (
       (* Format.eprintf "Unsatisfiable with added clause in unsat core solver@."; *)
       raise Unsatisfiable
     )
       
 let clauses_with_id solver =
-  SatSolver.clauses_with_id solver
+  SatSolverUC.clauses_with_id solver
 
 
 let bool_option_to_val = function
@@ -160,6 +172,19 @@ let solve solver =
       raise Unsatisfiable
     )
       
+let solve_uc solver =
+  try 
+    let start_time = Unix.gettimeofday () in
+    let outcome = SatSolverUC.solve solver in  
+    let end_time = Unix.gettimeofday () in
+    add_float_stat (end_time -. start_time) prop_solver_time;
+    if outcome = true then Sat else Unsat
+  with SatSolverUC.Unsatisfiable -> 
+    (
+      (* Format.eprintf "Unsatisfiable on solve call@."; *)
+      raise Unsatisfiable
+    )
+      
 
 let solve_assumptions solver assumptions =
   try 
@@ -171,6 +196,21 @@ let solve_assumptions solver assumptions =
       | true -> Sat    (* under assumption *) 
       | false -> Unsat)  (* under assumption *) 
   with SatSolver.Unsatisfiable -> 
+    (
+      (* Format.eprintf "Unsatisfiable without assumptions@."; *)
+      raise Unsatisfiable
+    )
+
+let solve_assumptions_uc solver assumptions =
+  try 
+    let start_time = Unix.gettimeofday () in
+    let result = SatSolverUC.solve_assumptions solver assumptions in
+    let end_time = Unix.gettimeofday () in
+    add_float_stat (end_time -. start_time) prop_solver_time;
+    (match result with 
+      | true -> Sat    (* under assumption *) 
+      | false -> Unsat)  (* under assumption *) 
+  with SatSolverUC.Unsatisfiable -> 
     (
       (* Format.eprintf "Unsatisfiable without assumptions@."; *)
       raise Unsatisfiable
@@ -196,4 +236,8 @@ let lit_var solver lit = SatSolver.lit_var solver lit
     
 let lit_sign solver lit = SatSolver.lit_sign solver lit
 
-let get_conflicts solver = SatSolver.get_conflicts solver
+let lit_var_uc solver lit = SatSolverUC.lit_var solver lit
+    
+let lit_sign_uc solver lit = SatSolverUC.lit_sign solver lit
+
+let get_conflicts solver = SatSolverUC.get_conflicts solver

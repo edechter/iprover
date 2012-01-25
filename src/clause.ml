@@ -78,6 +78,8 @@ let horn                             = 23
 
 let epr                              = 24
 
+let in_unsat_core = 25
+
 (*---------End bool params-------------*)
 
 type sel_place = int
@@ -87,19 +89,22 @@ type axiom =
   |Distinct_Axiom 
   |Less_Axiom 
   |Range_Axiom 
+  |BMC1_Axiom 
       
 let axiom_to_string axiom = 
   match axiom with 
-  |Eq_Axiom -> "Eqaulity Axiom"
+  |Eq_Axiom -> "Equality Axiom"
   |Distinct_Axiom -> "Distinct Axiom"
   |Less_Axiom     -> "Less Axiom"
   |Range_Axiom -> "Range Axiom"
+  |BMC1_Axiom -> "BMC1 Axiom"
   
 let pp_axiom ppf = function
-  | Eq_Axiom -> Format.fprintf ppf "Eqaulity Axiom"
+  | Eq_Axiom -> Format.fprintf ppf "Equality Axiom"
   | Distinct_Axiom -> Format.fprintf ppf "Distinct Axiom"
   | Less_Axiom -> Format.fprintf ppf "Less Axiom"
   | Range_Axiom -> Format.fprintf ppf "Range Axiom"
+  | BMC1_Axiom -> Format.fprintf ppf "BMC1 Axiom"
 
 type clause = 
     {
@@ -126,6 +131,7 @@ type clause =
       
 and history = 
   |Input
+  |Instantiation of clause * (clause list)
   |Resolution of (clause list) * (literal list)
   |Factoring  of clause * (literal list) 
 (* simplified from cluase*)
@@ -283,9 +289,33 @@ let to_stream s clause =
   (list_to_stream s Term.to_stream clause.literals ";");
   s.stream_add_char '}'
 
+let pp_clause_with_id ppf clause = 
+  Format.fprintf 
+    ppf 
+    "(%d) {%a}" 
+    (match clause.fast_key with Def k -> k | Undef -> -1)
+    (pp_any_list Term.pp_term ";") clause.literals
+	
 let pp_clause ppf clause = 
-  Format.fprintf ppf "{%a}" (pp_any_list Term.pp_term ";") clause.literals
+  Format.fprintf 
+    ppf 
+    "{%a}" 
+    (pp_any_list Term.pp_term ";") clause.literals
 
+
+let pp_clause_tptp ppf clause = 
+  Format.fprintf 
+    ppf 
+    "cnf(%s,%s,(%a)" 
+    (match clause.fast_key with
+      | Def k -> Format.sprintf "id_%d" k
+      | Undef -> "tmp")
+    (if (is_negated_conjecture clause) 
+     then "negated_conjecture"
+     else "plain")
+    (pp_any_list Term.pp_term " | ") clause.literals
+
+	
 let out = to_stream stdout_stream
 
 let to_string = 
@@ -432,7 +462,6 @@ let has_eq_lit c =
   else
     if (exists Term.is_eq_lit c) then true
     else false
-
 
 
 let inherit_history from_c to_c = 
@@ -721,6 +750,11 @@ let assign_when_born prem1 prem2 clause=
 
 (* history assignments *)
 
+let assign_instantiation_history clause parent parents_side =
+  match clause.history with
+    | Undef -> clause.history <- Def (Instantiation (parent, parents_side))
+    | Def _ -> failwith "clause: history  is already assigned"
+
 let assign_resolution_history clause parents upon_literals = 
   match clause.history with 
   |Undef -> clause.history <- Def(Resolution(parents, upon_literals)) 
@@ -769,6 +803,86 @@ let assign_split_history concl parent =
   concl.history <- Def(Split(parent))
 
 
+let add_duplicate elem list =
+  if List.memq elem list then list else elem :: list 
+
+
+let rec get_history_parents' accum = function
+
+  (* No more clause histories to recurse *)
+  | [] -> accum
+    
+  (* Undefined parents *)
+  | ({ history = Undef } as clause) :: tl -> 
+    
+    (* Add clause as leaf *)
+    get_history_parents' (add_duplicate clause accum) tl
+
+  (* Clause after instantiation *)
+  | { history = Def (Instantiation (parent, parents_side)) } :: tl -> 
+
+    (* Recurse to get parents of premises *)
+    get_history_parents' accum ((parent :: parents_side) @ tl) 
+     
+  (* Clause after resolution *)
+  | { history = Def (Resolution (parents, upon_literals)) } :: tl -> 
+
+    (* Recurse to get parents of premises *)
+    get_history_parents' accum (parents @ tl) 
+
+  (* Clause after factoring *)
+  | { history = Def (Factoring (parent, upon_literals)) } :: tl->
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' accum (parent :: tl) 
+    
+  (* Input clause *)
+  | { history = Def Input } as clause :: tl -> 
+
+    (* Add clause as leaf *)
+    get_history_parents' (add_duplicate clause accum) tl
+
+  (* Clause after global subsumption *)
+  | { history = Def (Global_Subsumption parent) } :: tl ->
+    
+    (* Recurse to get parent of premise *)
+    get_history_parents' accum (parent :: tl) 
+    
+  (* Clause after tranformation to pure equational clause *)
+  | { history = Def (Non_eq_to_eq parent) } :: tl ->
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' accum (parent :: tl) 
+    
+  (* Clause after forward subsumption resolution *)
+  | { history = Def (Forward_Subsumption_Resolution (main_parent, parents)) } :: tl  -> 
+    
+    (* Recurse to get parents of premises *)
+    get_history_parents' accum (parents @ tl) 
+
+  (* Clause after backward subsumption resolution *)
+  | { history = Def (Backward_Subsumption_Resolution parents) } :: tl ->  
+
+    (* Recurse to get parents of premises *)
+    get_history_parents' accum (parents @ tl) 
+
+  (* Clause is an axiom *)
+  | { history = Def (Axiom _) } as clause :: tl -> 
+    
+    (* Add clause as leaf *)
+    get_history_parents' (add_duplicate clause accum) tl
+
+  (* Clause after splitting *)
+  | { history = Def (Split parent) } :: tl -> 
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' accum (parent :: tl) 
+    
+	      
+let get_history_parents clause = get_history_parents' [] [clause]
+
+
+
 (*****)
 (*let add_to_prop_solver solver prop_var_db ground_term clause = *)
   
@@ -800,6 +914,11 @@ let cmp_horn c1 c2 =
 let cmp_epr c1 c2 =
   let gc1 = if (is_epr c1) then 1 else 0 in
   let gc2 = if (is_epr c2) then 1 else 0 in
+  Pervasives.compare gc1 gc2
+
+let cmp_in_unsat_core c1 c2 =
+  let gc1 = if (get_bool_param in_unsat_core c1) then 1 else 0 in
+  let gc2 = if (get_bool_param in_unsat_core c2) then 1 else 0 in
   Pervasives.compare gc1 gc2
 
 let cmp_has_eq_lit c1 c2 =
@@ -853,6 +972,7 @@ let cl_cmp_type_to_fun t =
   |Options.Cl_Max_Atom_Input_Occur b -> compose_sign b cmp_max_atom_input_occur
   |Options.Cl_Horn             b -> compose_sign b cmp_horn
   |Options.Cl_EPR              b -> compose_sign b cmp_epr
+  |Options.Cl_in_unsat_core    b -> compose_sign b cmp_in_unsat_core
   |Options.Cl_Has_Eq_Lit       b -> compose_sign b cmp_has_eq_lit
   |Options.Cl_min_defined_symb b -> compose_sign b cmp_min_defined_symb
 
@@ -1279,6 +1399,20 @@ let rec to_stream_history s clause =
   |Def(history) -> 
       begin
 	match history with  
+	|Instantiation(parent, parents_side) ->	  
+	    s.stream_add_str "Instantiation:\n";
+	    s.stream_add_str "concl:  ";
+	    to_stream s clause;
+	    s.stream_add_str "\n";
+	    s.stream_add_str "prem: [";
+	    to_stream s parent;
+	    s.stream_add_str "]\n";
+	    s.stream_add_str "side: [";
+	    clause_list_to_stream s parents_side;
+	    s.stream_add_str "]\n";
+	    s.stream_add_str dash_str;
+	    parents_str s [parent];
+	    parents_str s parents_side
 	|Resolution(parents, upon_literals) ->	  
 	    s.stream_add_str "Resolution:\n";
 	    s.stream_add_str "concl:  ";
@@ -1410,6 +1544,19 @@ let rec pp_clause_history ppf = function
       clause 
       dash_str
       
+  | { history = Def (Instantiation (parent, parents_side)) } as clause -> 
+     
+    Format.fprintf 
+      ppf
+      "Instantiation:@\nconcl:  %a@\nprem: %a@\nside: [%a]@\n%s"
+      pp_clause clause
+      pp_clause parent
+      (pp_any_list pp_clause ",") parents_side
+      dash_str;
+    
+    pp_clause_history ppf parent;
+    pp_clause_list_history ppf parents_side
+
   | { history = Def (Resolution (parents, upon_literals)) } as clause -> 
 
     Format.fprintf 

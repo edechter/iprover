@@ -1247,10 +1247,15 @@ let init_instantiation  input_clauses =
   
 let init_instantiation () = 
   let add_input_to_unprocessed clause = 
-    let added_clause = 	     
-      (ClauseAssignDB.add_ref  (Clause.copy_clause clause) clause_db_ref) in             
-    Clause.assign_when_born [] [] added_clause;
-    add_clause_to_unprocessed added_clause
+    try
+      let added_clause = 	     
+	ClauseAssignDB.add_ref (Clause.copy_clause clause) clause_db_ref
+      in
+      Clause.assign_when_born [] [] added_clause;
+      add_clause_to_unprocessed added_clause
+	
+    (* Skip duplicate clauses in the input *)
+    with Clause.Clause_fast_key_is_def -> ()
   in
 
   let input_clauses' =

@@ -296,26 +296,29 @@ let rec create_path_axioms accum lbound = function
 
   | b -> 
 
-      (* Create state term for state *)
-      let state_term_b = create_state_term b in
+    (* Create state term for state *)
+    let state_term_b = create_state_term b in
 
-      (* Create state term for preceding state *)
-      let state_term_pred_b = create_state_term (pred b) in
-	
-      (* Create path axiom for states *)
-      let path_atom_b = 
-	create_path_atom state_term_pred_b state_term_b 
-      in
-	
-      (* Create unit clause of atom *)
-      let path_axiom_b = 
-	Clause.normalise
-	  term_db
-	  (Clause.create [ path_atom_b ])
-      in
-	
-	(* Add path axioms for lesser states *)
-	create_path_axioms (path_axiom_b :: accum) lbound (pred b)
+    (* Create state term for preceding state *)
+    let state_term_pred_b = create_state_term (pred b) in
+    
+    (* Create path axiom for states *)
+    let path_atom_b = 
+      create_path_atom state_term_pred_b state_term_b 
+    in
+    
+    (* Create unit clause of atom *)
+    let path_axiom_b = 
+      Clause.normalise
+	term_db
+	(Clause.create [ path_atom_b ])
+    in
+    
+    (* Assign clause history as axiom *)
+    Clause.assign_axiom_history Clause.BMC1_Axiom path_axiom_b;
+
+    (* Add path axioms for lesser states *)
+    create_path_axioms (path_axiom_b :: accum) lbound (pred b)
 
 
 (********** Reachable state axioms (for all states) **********)
@@ -329,24 +332,27 @@ let rec create_reachable_state_axioms accum lbound = function
 
   | b -> 
 
-      (* Create state term for state *)
-      let state_term_b = create_state_term b in
-
-      (* Create reachable state axiom for state *)
-      let reachable_state_atom_b = 
-	create_reachable_state_atom state_term_b 
-      in
-	
-      (* Create unit clause of atom *)
-      let reachable_state_axiom_b = 
-	Clause.normalise
-	  term_db
-	  (Clause.create [ reachable_state_atom_b ])
-      in
-	
-	(* Add reachable state axioms for lesser states *)
-	create_reachable_state_axioms
-	  (reachable_state_axiom_b :: accum) lbound (pred b)
+    (* Create state term for state *)
+    let state_term_b = create_state_term b in
+    
+    (* Create reachable state axiom for state *)
+    let reachable_state_atom_b = 
+      create_reachable_state_atom state_term_b 
+    in
+    
+    (* Create unit clause of atom *)
+    let reachable_state_axiom_b = 
+      Clause.normalise
+	term_db
+	(Clause.create [ reachable_state_atom_b ])
+    in
+    
+    (* Assign clause history as axiom *)
+    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    
+    (* Add reachable state axioms for lesser states *)
+    create_reachable_state_axioms
+      (reachable_state_axiom_b :: accum) lbound (pred b)
 
 
 (* Create reachable state literals for all states down to zero *)
@@ -355,22 +361,22 @@ let rec create_reachable_state_literals accum = function
   | b when b = -1 -> accum 
 
   | b -> 
-      
-      (* Create state term for state *)
-      let state_term_b = create_state_term b in
-	
-      (* Create equation X0 = constB{b} *)
-      let reachable_state_literal_b =
-	create_typed_equation 
-	  state_type
-	  state_term_b
-	  term_x0
-      in
+    
+    (* Create state term for state *)
+    let state_term_b = create_state_term b in
+    
+    (* Create equation X0 = constB{b} *)
+    let reachable_state_literal_b =
+      create_typed_equation 
+	state_type
+	state_term_b
+	term_x0
+    in
 
-	(* Add literals for lesser states *)
-	create_reachable_state_literals 
-	  (reachable_state_literal_b :: accum)
-	  (pred b)
+    (* Add literals for lesser states *)
+    create_reachable_state_literals 
+      (reachable_state_literal_b :: accum)
+      (pred b)
 	     
 
 (* Create reachable state axiom for bound *)
@@ -384,7 +390,7 @@ let create_reachable_state_conj_axiom bound =
 
   (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
   let bound_literal = create_compl_lit (create_bound_atom bound) in
-    
+  
   (* Create head of clause, 
      i.e. {~$$iProver_bound{b}; ~reachableState(X0)] *)
   let reachable_state_axiom_head =
@@ -396,10 +402,18 @@ let create_reachable_state_conj_axiom bound =
     create_reachable_state_literals reachable_state_axiom_head bound 
   in
 
-    (* Create axiom *)
-    Clause.normalise term_db (Clause.create reachable_state_literals)
-
-
+  (* Create axiom *)
+  let reachable_state_conj_axiom = 
+    Clause.normalise term_db (Clause.create reachable_state_literals);
+  in
+  
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_conj_axiom;
+  
+  (* Return created clause *)
+  reachable_state_conj_axiom
+    
+    
 (* Create reachable state axioms for all bounds down to [lbound] *)
 let rec create_reachable_state_axioms accum lbound = function 
 
@@ -408,24 +422,27 @@ let rec create_reachable_state_axioms accum lbound = function
 
   | b -> 
 
-      (* Create state term for state *)
-      let state_term_b = create_state_term b in
+    (* Create state term for state *)
+    let state_term_b = create_state_term b in
 
-      (* Create reachable state axiom for state *)
-      let reachable_state_atom_b = 
-	create_reachable_state_atom state_term_b 
-      in
-	
-      (* Create unit clause of atom *)
-      let reachable_state_axiom_b = 
-	Clause.normalise
-	  term_db
-	  (Clause.create [ reachable_state_atom_b ])
-      in
-	
-	(* Add reachable state axioms for lesser states *)
-	create_reachable_state_axioms
-	  (reachable_state_axiom_b :: accum) lbound (pred b)
+    (* Create reachable state axiom for state *)
+    let reachable_state_atom_b = 
+      create_reachable_state_atom state_term_b 
+    in
+    
+    (* Create unit clause of atom *)
+    let reachable_state_axiom_b = 
+      Clause.normalise
+	term_db
+	(Clause.create [ reachable_state_atom_b ])
+    in
+    
+    (* Assign clause history as axiom *)
+    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    
+    (* Add reachable state axioms for lesser states *)
+    create_reachable_state_axioms
+      (reachable_state_axiom_b :: accum) lbound (pred b)
 
 
 (********** Reachable state axioms (last state only) **********)
@@ -439,29 +456,32 @@ let rec create_reachable_state_on_bound_axioms accum lbound = function
 
   | b -> 
 
-      (* Create state term for state *)
-      let state_term_b = create_state_term b in
+    (* Create state term for state *)
+    let state_term_b = create_state_term b in
 
-      (* Create reachable state axiom for state *)
-      let reachable_state_atom_b = 
-	create_reachable_state_atom state_term_b 
-      in
-	
-      (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-      let bound_literal = create_compl_lit (create_bound_atom b) in
+    (* Create reachable state axiom for state *)
+    let reachable_state_atom_b = 
+      create_reachable_state_atom state_term_b 
+    in
     
-      (* Create unit clause of atom *)
-      let reachable_state_axiom_b = 
-	Clause.normalise
-	  term_db
-	  (Clause.create [ bound_literal; reachable_state_atom_b ])
-      in
-	
-	(* Add reachable state axioms for lesser states *)
-      create_reachable_state_on_bound_axioms
-	(reachable_state_axiom_b :: accum) 
-	lbound 
-	(pred b)
+    (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+    let bound_literal = create_compl_lit (create_bound_atom b) in
+    
+    (* Create unit clause of atom *)
+    let reachable_state_axiom_b = 
+      Clause.normalise
+	term_db
+	(Clause.create [ bound_literal; reachable_state_atom_b ])
+    in
+    
+    (* Assign clause history as axiom *)
+    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    
+    (* Add reachable state axioms for lesser states *)
+    create_reachable_state_on_bound_axioms
+      (reachable_state_axiom_b :: accum) 
+      lbound 
+      (pred b)
 
 
 (* Create reachable state literals for all states down to zero *)
@@ -471,42 +491,45 @@ let rec create_only_bound_reachable_axioms accum lbound = function
   | b when b < lbound -> accum 
 
   | b -> 
-      
-      (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-      let bound_literal = create_compl_lit (create_bound_atom b) in
     
-      (* Create literal ~$$reachableState(X0) *)
-      let reachable_state_x0_literal = 
-	create_compl_lit (create_reachable_state_atom term_x0)
-      in
-	
-      (* Create state term for state *)
-      let state_term_b = create_state_term b in
-	
-      (* Create equation X0 = constB{b} *)
-      let reachable_state_literal_b =
-	create_typed_equation 
-	  state_type
-	  state_term_b
-	  term_x0
-      in
+    (* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+    let bound_literal = create_compl_lit (create_bound_atom b) in
+    
+    (* Create literal ~$$reachableState(X0) *)
+    let reachable_state_x0_literal = 
+      create_compl_lit (create_reachable_state_atom term_x0)
+    in
+    
+    (* Create state term for state *)
+    let state_term_b = create_state_term b in
+    
+    (* Create equation X0 = constB{b} *)
+    let reachable_state_literal_b =
+      create_typed_equation 
+	state_type
+	state_term_b
+	term_x0
+    in
 
-      (* Create clause 
-	 ~$$iProver_bound{b} | ~$$reachableState(X0) | X0 = constB{b} *)
-      let reachable_state_axiom_b = 
-	Clause.normalise
-	  term_db
-	  (Clause.create 
-	     [ bound_literal; 
-	       reachable_state_x0_literal;
-	       reachable_state_literal_b ])
-      in
-      
-	(* Add clauses for lesser states *)
-        create_only_bound_reachable_axioms
-	  (reachable_state_axiom_b :: accum)
-	  lbound
-	  (pred b)
+    (* Create clause 
+       ~$$iProver_bound{b} | ~$$reachableState(X0) | X0 = constB{b} *)
+    let reachable_state_axiom_b = 
+      Clause.normalise
+	term_db
+	(Clause.create 
+	   [ bound_literal; 
+	     reachable_state_x0_literal;
+	     reachable_state_literal_b ])
+    in
+    
+    (* Assign clause history as axiom *)
+    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    
+    (* Add clauses for lesser states *)
+    create_only_bound_reachable_axioms
+      (reachable_state_axiom_b :: accum)
+      lbound
+      (pred b)
 	     
 
 (********** Clock pattern **********)
@@ -546,8 +569,16 @@ let create_clock_axiom state clock pattern accum =
 	
   in
 
-    (* Return clock axiom in accumulator *)
-    (Clause.normalise term_db (Clause.create [ clock_literal ])) :: accum
+  (* Create clock axiom *)
+  let clock_axiom = 
+    Clause.normalise term_db (Clause.create [ clock_literal ])  
+  in
+
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom clock_axiom;
+
+  (* Return clock axiom in accumulator *)
+  clock_axiom :: accum
 
 
 
@@ -632,8 +663,8 @@ let create_address_domain_axiom () =
       axiom_head
   in
 
-    (* Return the two address_domain axioms *)
-    [ address_domain_axiom_1; address_domain_axiom_2 ]
+  (* Return the two address_domain axioms *)
+  [ address_domain_axiom_1; address_domain_axiom_2 ]
 
 
 (* Accumulate atoms addressDiff(A1,A2,bitindex{n}) from n to 0 *)
@@ -645,15 +676,15 @@ let rec create_address_diff_disjunction accum = function
   (* Create axiom for current i *)
   | i -> 
 
-      (* Create atom addressDiff(X0,X1,bitindex{i}) *)
-      let address_diff_disjunct = 
-	create_address_diff_atom term_x0 term_x1 (create_bitindex_term i) 
-      in
+    (* Create atom addressDiff(X0,X1,bitindex{i}) *)
+    let address_diff_disjunct = 
+      create_address_diff_atom term_x0 term_x1 (create_bitindex_term i) 
+    in
 
-	(* Recursively create remaining atoms *)
-	create_address_diff_disjunction 
-	  (address_diff_disjunct :: accum)
-	  (pred i)
+    (* Recursively create remaining atoms *)
+    create_address_diff_disjunction 
+      (address_diff_disjunct :: accum)
+      (pred i)
 
       
 (* Create address_diff axiom with the maximal bit width of all
@@ -669,10 +700,17 @@ let create_address_domain_axiom address_max_width =
   let address_domain_axiom_literals =
     create_address_diff_disjunction [ ] address_max_width 
   in
-    
-    (* Create axiom *)
+  
+  (* Create axiom *)
+  let address_domain_axiom =
     Clause.normalise term_db (Clause.create address_domain_axiom_literals)
-    
+  in
+
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom address_domain_axiom;
+
+  (* Return axiom *)
+  address_domain_axiom
 
 
 (* Return address definition for given constant bit vector b000 as 
@@ -701,12 +739,12 @@ let create_constant_address_definition accum bitvector_symbol =
   let address_term = 
     create_skolem_term constant_address_term_format address_type bitvector_name
   in
-    
+  
   (* Create atom for address: addressVal(b000_address_term, X0) *)
   let address_val_atom =
     create_address_val_atom address_term term_x0
   in
-    
+  
   (* Create atom for bitvector with variable: b000(X0) *)
   let bitvector_atom = 
     create_bitvector_atom bitvector_name term_x0
@@ -717,19 +755,43 @@ let create_constant_address_definition accum bitvector_symbol =
     create_address_atom address_term
   in
 
-    (* Return clauses in accumulator *)
-    (Clause.normalise 
+  (* Create first axiom *)
+  let constant_address_definition_1 = 
+    Clause.normalise 
       term_db 
       (Clause.create 
-	 [ create_compl_lit bitvector_atom; address_val_atom ])) ::
-      (Clause.normalise 
-	 term_db 
-	 (Clause.create 
-	    [ bitvector_atom; create_compl_lit address_val_atom ])) ::
-      (Clause.normalise 
-	 term_db 
-	 (Clause.create [ address_atom ])) ::
-      accum
+	 [ create_compl_lit bitvector_atom; address_val_atom ])
+  in
+
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_1;
+
+  (* Create second axiom *)
+  let constant_address_definition_2 =
+    Clause.normalise 
+      term_db 
+      (Clause.create 
+	 [ bitvector_atom; create_compl_lit address_val_atom ])
+  in
+
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_2;
+
+  (* Create third axiom *)
+  let constant_address_definition_3 = 
+    Clause.normalise 
+      term_db 
+      (Clause.create [ address_atom ])
+  in
+
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_3;
+
+  (* Return clauses in accumulator *)
+  constant_address_definition_1 ::
+    constant_address_definition_2 ::
+    constant_address_definition_3 ::
+    accum
 
 
 (********** Instantiate clauses for bound **********)
@@ -745,48 +807,48 @@ let rec is_bound_term = function
   | Term.Fun (symb, args, _) 
       when Symbol.Map.mem symb !Parser_types.state_constant_map -> 
 
-      (* Only instantiate the state constant for bound 1 *)
-      Symbol.Map.find symb !Parser_types.state_constant_map = 1 
+    (* Only instantiate the state constant for bound 1 *)
+    Symbol.Map.find symb !Parser_types.state_constant_map = 1 
 
   (* Symbol has a base name *)
   | Term.Fun (symb, args, _) 
       when Symbol.Map.mem symb !Parser_types.address_base_name_map -> 
 
-      (* Get base name of symbol *)
-      let base_name = 
-	Symbol.Map.find symb !Parser_types.address_base_name_map 
-      in
+    (* Get base name of symbol *)
+    let base_name = 
+      Symbol.Map.find symb !Parser_types.address_base_name_map 
+    in
 
-	(
+    (
 
-	  try 
-	    
-	    (* Only instantiate if base name of symbol has a "1"
-	       appended? *)
-	    String.sub 
-	      (Symbol.get_name symb)
-	      (String.length base_name) 
-	      ((String.length (Symbol.get_name symb)) - 
-		 (String.length base_name))
-	    = "1" 
-	    
-	  with Invalid_argument _ -> 
-	    
-	    failwith 
-	      (Format.sprintf 
-		 ("Bmc1Axioms.is_bound_term: name of symbol %s " ^^ 
-		    "and base name %s do not match")
-		 (Symbol.get_name symb)
-		 base_name)
+      try 
+	
+	(* Only instantiate if base name of symbol has a "1"
+	   appended? *)
+	String.sub 
+	  (Symbol.get_name symb)
+	  (String.length base_name) 
+	  ((String.length (Symbol.get_name symb)) - 
+	      (String.length base_name))
+	= "1" 
+	
+      with Invalid_argument _ -> 
+	
+	failwith 
+	  (Format.sprintf 
+	     ("Bmc1Axioms.is_bound_term: name of symbol %s " ^^ 
+		 "and base name %s do not match")
+	     (Symbol.get_name symb)
+	     base_name)
 
-	)
+    )
 
 
   (* Check if term has a subterm to be instantiated *)
   | Term.Fun (_, args, _) -> 
 
-      (* Is one of the subterms a term to be instantiated? *)
-      List.exists (fun b -> b) (Term.arg_map_list is_bound_term args)
+    (* Is one of the subterms a term to be instantiated? *)
+    List.exists (fun b -> b) (Term.arg_map_list is_bound_term args)
 
 
 (* Is the clause to be instantiated at each bound? *)
@@ -802,88 +864,90 @@ let rec bound_instantiate_term bound = function
 
   (* No instantiation for variables *)
   | Term.Var _ as t -> t
-
+    
   (* Symbol is a state constant *)
   | Term.Fun (symb, args, _) as t 
       when Symbol.Map.mem symb !Parser_types.state_constant_map -> 
+    
+    if 
 
-      if 
-
-	(* Only replace state constant for bound 1 *)
-	Symbol.Map.find symb !Parser_types.state_constant_map = 1 
-
-      then
-
-	(* Replace term with state term for current bound *)
-	create_state_term bound
-
-      else
-
-	(* Keep state constant for bounds other than 1*)
-	t
-
-
+      (* Only replace state constant for bound 1 *)
+      Symbol.Map.find symb !Parser_types.state_constant_map = 1 
+      
+    then
+      
+      (* Replace term with state term for current bound *)
+      create_state_term bound
+	
+    else
+      
+      (* Keep state constant for bounds other than 1*)
+      t
+	
+	
   (* Symbol has a base name *)
   | Term.Fun (symb, args, _) as t 
       when Symbol.Map.mem symb !Parser_types.address_base_name_map -> 
+    
+    (* Get base name of symbol *)
+    let base_name = 
+      Symbol.Map.find symb !Parser_types.address_base_name_map 
+    in
+    
+    if 
 
-      (* Get base name of symbol *)
-      let base_name = 
-	Symbol.Map.find symb !Parser_types.address_base_name_map 
-      in
-
-	if 
-
-	  try 
+      (      
+	try 
+	  
+	  (* Base name of symbol has "1" appended? *)
+	  String.sub 
+	    (Symbol.get_name symb)
+	    (String.length base_name) 
+	    ((String.length (Symbol.get_name symb)) - 
+		(String.length base_name))
+	  = "1" 
+	  
+	with Invalid_argument _ -> 
+	  
+	  failwith 
+	    (Format.sprintf 
+	       ("Bmc1Axioms.bound_instantiate_term: name of symbol %s " ^^ 
+		   "and base name %s do not match")
+	       (Symbol.get_name symb)
+	       base_name)
 	    
-	    (* Base name of symbol has "1" appended? *)
-	    String.sub 
-	      (Symbol.get_name symb)
-	      (String.length base_name) 
-	      ((String.length (Symbol.get_name symb)) - 
-		 (String.length base_name))
-	    = "1" 
+      )
 
-	  with Invalid_argument _ -> 
-
-	    failwith 
-	      (Format.sprintf 
-		 ("Bmc1Axioms.bound_instantiate_term: name of symbol %s " ^^ 
-		    "and base name %s do not match")
-		 (Symbol.get_name symb)
-		 base_name)
-	      
-	then
-
-	  (* Append bound to base name *)
-	  let term_bound_name = base_name ^ (string_of_int bound) in
-	    
-	    (* Replace term with term for current bound *)
-	    create_term term_bound_name address_type 
-
-	else
-
-	  (* Keep term for bounds other than 1 *)
-	  t
-
-
+    then
+      
+      (* Append bound to base name *)
+      let term_bound_name = base_name ^ (string_of_int bound) in
+      
+      (* Replace term with term for current bound *)
+      create_term term_bound_name address_type 
+	
+    else
+      
+      (* Keep term for bounds other than 1 *)
+      t
+	
   (* Instantiate withing functional term *)
   | Term.Fun (symb, args, _) -> 
-
-      (* Instantiate arguments of term *)
-      let args' =
-	Term.arg_map_list (bound_instantiate_term bound) args
-      in
-
-	(* Return term with instantiated arguments *)
-	TermDB.add_ref
-	  (Term.create_fun_term 
-	     symb
-	     args')
-	  term_db
-	
-
-
+    
+    (* Instantiate arguments of term *)
+    let args' =
+      Term.arg_map_list (bound_instantiate_term bound) args
+    in
+    
+    (* Return term with instantiated arguments *)
+    TermDB.add_ref
+      (Term.create_fun_term 
+	 symb
+	 args')
+      term_db
+      
+      
+      
 (* Instantiate clause for current bound *)
 let bound_instantiate_clause bound clause =
 
@@ -896,12 +960,20 @@ let bound_instantiate_clause bound clause =
   let clause_literals' =
     List.map (bound_instantiate_term bound) clause_literals 
   in
-    
-    (* Create new clause of instantiated literals *)
+  
+  (* Create new clause of instantiated literals *)
+  let instantiated_clause =
     Clause.normalise
       term_db
       (Clause.create clause_literals')
-      
+  in
+
+  (* Assign clause history as axiom *)
+  Clause.assign_axiom_history Clause.BMC1_Axiom instantiated_clause;
+
+  (* Return instantiated clause *)
+  instantiated_clause
+
 
 (* Instantiate clauses for current bound *)
 let instantiate_bound_axioms bound clauses = 
@@ -929,7 +1001,7 @@ let init_bound all_clauses =
   let bound_instantiate_axioms_of_clauses, clauses = 
     separate_bound_axioms all_clauses 
   in
-    
+  
   (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
     
@@ -965,49 +1037,49 @@ let init_bound all_clauses =
       0
       0
   in
-    
+  
   (* Create literal for current bound, i.e. $$iProver_bound{b_cur} *)
   let bound_literal_0 = create_bound_atom 0 in
-    
+  
   (* Return created path axioms and reachable state axiom *)
   let bound_axioms =
     reachable_state_axioms @ clock_axioms
   in
+  
+  (* Save axioms to be instantiated *)
+  bound_instantiate_axioms := bound_instantiate_axioms_of_clauses;
+  
+  (* Assume assumption literal for next_bound to be true in solver *)
+  Prop_solver_exchange.assign_only_norm_solver_assumptions 
+    [ bound_literal_0 ];
+  
+  (* Output only in verbose mode *)
+  if val_of_override !current_options.bmc1_verbose then
     
-    (* Save axioms to be instantiated *)
-    bound_instantiate_axioms := bound_instantiate_axioms_of_clauses;
-    
-    (* Assume assumption literal for next_bound to be true in solver *)
-    Prop_solver_exchange.assign_only_norm_solver_assumptions 
-      [ bound_literal_0 ];
-    
-    (* Output only in verbose mode *)
-    if val_of_override !current_options.bmc1_verbose then
+    (
       
-      (
+      (* Output axioms to be instantiated for each bound *)
+      Format.printf 
+	"BMC1 axioms to be instantiated at bounds@.";
+      
+      List.iter
+	(fun c -> Format.printf "%s@\n@." (Clause.to_string c))
+	!bound_instantiate_axioms;
+      
+      (* Output created axioms for bound *)
+      Format.printf 
+	"BMC1 axioms for initial bound 0@.";
+      
+      List.iter
+	(function c -> Format.printf "%s@." (Clause.to_string c))
+	bound_axioms;
+      
+      Format.printf "@."
 	
-	(* Output axioms to be instantiated for each bound *)
-	Format.printf 
-	  "BMC1 axioms to be instantiated at bounds@.";
-	
-	List.iter
-	  (fun c -> Format.printf "%s@\n@." (Clause.to_string c))
-	  !bound_instantiate_axioms;
-	  
-	(* Output created axioms for bound *)
-	Format.printf 
-	  "BMC1 axioms for initial bound 0@.";
-	
-	List.iter
-	  (function c -> Format.printf "%s@." (Clause.to_string c))
-	  bound_axioms;
-	
-	Format.printf "@."
-	  
-      );
-    
-    (* Return created axioms for bound *)
-    bound_axioms, clauses
+    );
+  
+  (* Return created axioms for bound *)
+  bound_axioms, clauses
 
 
 (* Increment bound from given bound *)
@@ -1080,43 +1152,43 @@ let increment_bound cur_bound next_bound =
     instantiate_bound_axioms next_bound !bound_instantiate_axioms 
   in
 
-    (* Add complementary assumption for current bound *)
-    invalid_bound_assumptions := 
-      bound_literals_cur_to_next @ !invalid_bound_assumptions;
+  (* Add complementary assumption for current bound *)
+  invalid_bound_assumptions := 
+    bound_literals_cur_to_next @ !invalid_bound_assumptions;
+  
+  (* Assume assumption literal for next_bound to be true in solver *)
+  Prop_solver_exchange.assign_only_norm_solver_assumptions 
+    (bound_literal_next :: !invalid_bound_assumptions);
+  
+  (* Return created path axioms and reachable state axiom *)
+  let bound_axioms =
+    reachable_state_axioms @ 
+      path_axioms @ 
+      clock_axioms @ 
+      bound_axioms_instantiated
+  in
+  
+  (* Output only in verbose mode *)
+  if val_of_override !current_options.bmc1_verbose then
     
-    (* Assume assumption literal for next_bound to be true in solver *)
-    Prop_solver_exchange.assign_only_norm_solver_assumptions 
-      (bound_literal_next :: !invalid_bound_assumptions);
-    
-    (* Return created path axioms and reachable state axiom *)
-    let bound_axioms =
-      reachable_state_axioms @ 
-	path_axioms @ 
-	clock_axioms @ 
-	bound_axioms_instantiated
-    in
+    (
+
+      (* Output created axioms for bound *)
+      Format.printf 
+	"BMC1 axioms for bound %d after bound %d@." 
+	next_bound 
+	cur_bound;
       
-      (* Output only in verbose mode *)
-      if val_of_override !current_options.bmc1_verbose then
+      List.iter
+	(function c -> Format.printf "%s@." (Clause.to_string c))
+	bound_axioms;
+      
+      Format.printf "@."
 	
-	(
+    );
 
-	  (* Output created axioms for bound *)
-	  Format.printf 
-	    "BMC1 axioms for bound %d after bound %d@." 
-	    next_bound 
-	    cur_bound;
-	  
-	  List.iter
-	    (function c -> Format.printf "%s@." (Clause.to_string c))
-	    bound_axioms;
-	  
-	  Format.printf "@."
-	    
-	);
-
-      
-      (* Return created axioms for bound *)
-      bound_axioms
+  
+  (* Return created axioms for bound *)
+  bound_axioms
 
 

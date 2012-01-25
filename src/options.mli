@@ -81,6 +81,9 @@ type lit_cmp_type =
   | Lit_has_bound_constant of bool
   | Lit_has_non_prolific_conj_symb of bool  
   | Lit_eq                         of bool 
+  | Lit_clock                      of bool 
+  | Lit_less                       of bool 
+  | Lit_range                      of bool 
 
 (*----Clause Param---------*)
 type cl_cmp_type = 
@@ -96,6 +99,7 @@ type cl_cmp_type =
   |Cl_Max_Atom_Input_Occur of bool
   |Cl_Horn         of bool
   |Cl_EPR          of bool
+  |Cl_in_unsat_core of bool
   |Cl_Has_Eq_Lit   of bool
   |Cl_min_defined_symb of bool
 
@@ -179,6 +183,7 @@ type options = {
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool override;
+    mutable bmc1_dump_tptp        : bool override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;

@@ -365,7 +365,8 @@ let assign_param_clause parent parents_side conj_dist clause =
   Clause.assign_when_born [parent] parents_side clause;
   Clause.assign_activity ((Clause.get_activity parent)+1) parent;
   Clause.add_child parent clause;
-  Clause.assign_conjecture_distance conj_dist clause
+  Clause.assign_conjecture_distance conj_dist clause;
+  Clause.assign_instantiation_history clause parent parents_side 
     
 
   

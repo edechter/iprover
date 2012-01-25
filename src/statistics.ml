@@ -186,6 +186,13 @@ let prop_fast_solver_time =
  }
 
 
+let prop_unsat_core_time = 
+  {
+   float_entry_name  = "prop_unsat_core_time";
+   float_value = 0.;
+ }
+
+
 let prop_num_of_clauses = 
   {
    int_entry_name = "prop_num_of_clauses";
@@ -217,6 +224,12 @@ let bmc1_current_bound =
 let bmc1_last_solved_bound = 
   {
    int_entry_name = "bmc1_last_solved_bound";
+   value = -1;
+ }
+
+let bmc1_unsat_core_size = 
+  {
+   int_entry_name = "bmc1_unsat_core_size";
    value = -1;
  }
 
@@ -532,15 +545,16 @@ let prop_solver_int_stat_list =
  ]
 
 let prop_solver_float_stat_list =
-  [prop_solver_time;
-   prop_fast_solver_time]
+  [ prop_solver_time ;
+    prop_fast_solver_time ;
+    prop_unsat_core_time ]
 
 
 let bmc1_fun_stat_list =
   [ bmc1_current_bound ]
 
 let bmc1_int_stat_list =
-  [ bmc1_last_solved_bound ]
+  [ bmc1_last_solved_bound; bmc1_unsat_core_size ]
 
 let bmc1_float_stat_list =
   [  ]

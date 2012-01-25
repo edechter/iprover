@@ -56,6 +56,7 @@ val prop_solver_calls              : stat_fun_entry
 val prop_solver_time               : stat_float_entry 
 val prop_fast_solver_calls         : stat_fun_entry 
 val prop_fast_solver_time          : stat_float_entry 
+val prop_unsat_core_time           : stat_float_entry 
 val prop_num_of_clauses            : stat_int_entry 
 val prop_preprocess_simplified     : stat_int_entry 
 val prop_fo_subsumed               : stat_int_entry 
@@ -63,6 +64,7 @@ val prop_fo_subsumed               : stat_int_entry
 (*----BMC1---------------------*)
 val bmc1_current_bound             : stat_fun_entry
 val bmc1_last_solved_bound         : stat_int_entry
+val bmc1_unsat_core_size           : stat_int_entry
 
 (*----Instantiation------------*)
 val inst_num_of_clauses            : stat_fun_entry 

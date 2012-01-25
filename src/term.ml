@@ -787,6 +787,30 @@ let is_eq_lit lit =
       if ((*(sym == Symbol.symb_equality) ||*) (sym == Symbol.symb_typed_equality))  
       then true else false
   |_-> false
+
+
+let is_clock_lit lit = 
+  match get_atom lit with 
+    | Fun(symb, _, _) -> 
+      Symbol.Map.mem symb !Parser_types.clock_map
+    | _ -> false
+
+
+let is_less_lit lit = 
+  match get_atom lit with 
+    | Fun(symb, _, _) -> 
+      Symbol.Map.mem symb !Parser_types.less_map
+    | _ -> false
+
+
+let is_range_lit lit = 
+  match get_atom lit with 
+    | Fun(symb, _, _) -> 
+      Symbol.Map.mem symb !Parser_types.range_map
+    | _ -> false
+
+
+
 	
 let is_var term = 
   match term with
@@ -883,6 +907,24 @@ let is_eq_lit_int t =
 let cmp_is_eq_lit t1 t2 = 
   Pervasives.compare (is_eq_lit_int t1) (is_eq_lit_int t2)
 
+let is_clock_lit_int t = 
+  if (is_clock_lit t) then 1 else -1
+
+let cmp_is_clock_lit t1 t2 = 
+  Pervasives.compare (is_clock_lit_int t1) (is_clock_lit_int t2)
+
+let is_less_lit_int t = 
+  if (is_less_lit t) then 1 else -1
+
+let cmp_is_less_lit t1 t2 = 
+  Pervasives.compare (is_less_lit_int t1) (is_less_lit_int t2)
+
+let is_range_lit_int t = 
+  if (is_range_lit t) then 1 else -1
+
+let cmp_is_range_lit t1 t2 = 
+  Pervasives.compare (is_range_lit_int t1) (is_range_lit_int t2)
+
 
 let lit_cmp_type_to_fun t = 
   match t with 
@@ -896,6 +938,9 @@ let lit_cmp_type_to_fun t =
   |Options.Lit_has_non_prolific_conj_symb b -> 
       compose_sign b cmp_has_non_prolific_conj_symb
   |Options.Lit_eq          b -> compose_sign b cmp_is_eq_lit 
+  |Options.Lit_clock       b -> compose_sign b cmp_is_clock_lit 
+  |Options.Lit_less        b -> compose_sign b cmp_is_less_lit 
+  |Options.Lit_range       b -> compose_sign b cmp_is_range_lit 
 
 
 let lit_cmp_type_list_to_lex_fun l = 

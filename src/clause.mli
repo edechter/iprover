@@ -32,6 +32,7 @@ type axiom =
   |Distinct_Axiom 
   |Less_Axiom 
   |Range_Axiom 
+  |BMC1_Axiom 
  
 
 (* all boolean param are set false and other Undef*)
@@ -60,6 +61,7 @@ val input_under_eq               : clause_bool_param
 val has_conj_symb                : clause_bool_param 
 val has_bound_constant           : clause_bool_param  
 val has_non_prolific_conj_symb   : clause_bool_param 
+val in_unsat_core                : clause_bool_param 
 val large_ax_considered          : clause_bool_param  
 
  (* if used in simplifications then simplifying is true *)
@@ -137,6 +139,8 @@ val get_inst_sel_lit            : clause -> literal
 
 val get_parent                  : clause -> clause Lib.param
 
+val get_history_parents : clause -> clause list 
+
 (* comapares places of two clauses, is used to compare that   *)
 (* sel literal in parent corresponds to sel lit in child      *)
 (* do not renormalise parents and children!*)
@@ -151,6 +155,8 @@ val assign_dismatching : dismatching -> clause -> unit
 
 exception Dismatching_undef
 val get_dismatching : clause -> dismatching
+
+val assign_instantiation_history : clause -> clause -> clause list -> unit
 
 (* history when this clause is obtined by resolution from parents upon_literals*)
 (* first arg is the conclusion, sencod arg are parents *) 
@@ -194,6 +200,8 @@ val assign_activity : int -> clause -> unit
 (******)
 
 val assign_all_for_clause_db : clause -> unit
+
+exception Clause_fast_key_is_def
 
 (* only to be used in clauseDB where the fast_key is assigned*)
 val assign_fast_key : clause -> int -> unit
@@ -242,6 +250,7 @@ val cmp_num_symb : clause -> clause -> int
 val cmp_num_lits : clause -> clause -> int
 val cmp_age      : clause -> clause -> int
 val cmp_ground   : clause -> clause -> int
+val cmp_in_unsat_core : clause -> clause -> int
 
 
 val assign_has_conj_symb              : clause -> unit
@@ -296,6 +305,7 @@ val to_stream                  : 'a string_stream -> clause -> unit
 val out                        : clause -> unit
 
 val pp_clause : Format.formatter -> clause -> unit
+val pp_clause_tptp : Format.formatter -> clause -> unit
 
 val tptp_to_stream             : 'a string_stream -> clause -> unit
 val out_tptp                   : clause -> unit

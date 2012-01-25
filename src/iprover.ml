@@ -1246,6 +1246,62 @@ let rec main clauses finite_model_clauses =
 	     with Invalid_argument _ -> []);
 	  in
 
+	  (* Print unsat core *)
+	  Format.printf 
+	    "@\nUnsat core has size %d@\n%a@." 
+	    (List.length unsat_core_clauses)
+	    (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+
+	  (* Don't do this: very long output 
+	  (* Print histories of clauses in unsat core *)
+	  Format.printf "@\nClause histories:@\n@.";
+	  List.iter
+	    (Format.printf "@\n%a@\n@." Clause.pp_clause_history)
+	    unsat_core_clauses;
+	  *)
+
+	  (* Assign size of unsat core in statistics *)
+	  assign_int_stat 
+	    (List.length unsat_core_clauses) 
+	    bmc1_unsat_core_size;
+
+	  let start_time = Unix.gettimeofday () in
+
+	  (* Get parent clauses of unsat core clauses *)
+	  let unsat_core_parents = 
+	    List.fold_left
+	      (fun a l ->
+		List.fold_left 
+		  (fun a' e -> if List.memq e a' then a' else e :: a')
+		  a
+		  l)
+	      []
+	      (List.map Clause.get_history_parents unsat_core_clauses)
+	  in
+(*
+	    List.fold_left 
+	      (fun a c -> 
+		List.fold_left 
+		  (fun a' c' -> if List.memq c' a' then a' else (c' :: a'))
+		  a
+		  (Clause.get_history_parents c))
+	      []
+	      unsat_core_clauses
+	  in
+*)
+
+	  let end_time = Unix.gettimeofday () in
+	  
+	  Format.printf 
+	    "Time for finding parents of unsat core clauses: %.3f@\n@."
+	    (end_time -. start_time);
+	  
+	  (* Print parents of unsat core *)
+	  Format.printf 
+	    "@\nUnsat core parents has size %d@\n%a@." 
+	    (List.length unsat_core_parents)
+	    (pp_any_list Clause.pp_clause "\n") unsat_core_parents;
+	  
 	  (* Increment bound by one
 	     
 	     TODO: option for arbitrary bound increments *)
@@ -1361,9 +1417,24 @@ let rec main clauses finite_model_clauses =
 
 		then
 
-		  (* Preprocess clauses *)
-		  Preprocess.preprocess unsat_core_clauses
+		  (
 
+		    (* Flag clauses as in unsat core *)
+		    List.iter 
+		      (Clause.set_bool_param true Clause.in_unsat_core)
+		      unsat_core_parents;
+
+(*
+		    List.iter 
+		      (Clause.set_bool_param true Clause.in_unsat_core)
+		      unsat_core_clauses;
+*)
+
+		    (* Preprocess clauses *)
+		    Preprocess.preprocess unsat_core_clauses
+
+		  )
+		    
 		else
 
 		  (* Do not add clauses from unsatisfiable core *)
@@ -1371,13 +1442,28 @@ let rec main clauses finite_model_clauses =
 
 	      in
 
-		(* Save next bound as current *)
-		bmc1_cur_bound := next_bound;
+	      (* Save next bound as current *)
+	      bmc1_cur_bound := next_bound;
+	      
+	      (* Input clauses for next bound *)
+	      let all_clauses = 
+		next_bound_axioms' @ unsat_core_clauses' @ clauses
+	      in
+
+	      if 
 		
-		(* Run again for next bound *)
-		main 
-		  (next_bound_axioms' @ unsat_core_clauses' @ clauses) 
-		  finite_model_clauses
+		(* Dump clauses to TPTP format? *)
+		val_of_override !current_options.bmc1_dump_tptp 
+
+	      then
+
+		Format.printf "%a@." 
+		  (pp_any_list Clause.pp_clause_tptp "@\n@.") all_clauses;
+
+	      (* Run again for next bound *)
+	      main 
+		all_clauses
+		finite_model_clauses
 	      
 	)
 
