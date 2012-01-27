@@ -97,7 +97,7 @@ else
 endif
 
 ifeq ($(PROFILE),true)
-  OCAMLFLAGS= -p -I obj/
+  OCAMLFLAGS= -p -I obj/ -I util/lib 
   CFLAGS = -I$(OCAMLLIB) -p 
   ADDTONAME=prof
 endif

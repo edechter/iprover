@@ -1941,6 +1941,7 @@ let lit_activity_check move_lit_from_active_to_passive lit =
       with Activity_Undef -> ()
     end
 
+
 let increase_lit_activity i lit = 
   try 
     let var_entry = get_prop_gr_var_entry lit in 

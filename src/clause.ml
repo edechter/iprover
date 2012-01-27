@@ -208,8 +208,12 @@ let assign_fast_key clause (fkey : int) =
   |_     -> raise Clause_fast_key_is_def
 
 
+let compare_literals c1 c2 = 
+  list_compare_lex Term.compare c1.literals c2.literals 
+  
+
 let compare_key cl1 cl2 = 
-    list_compare_lex Term.compare cl1.literals cl2.literals 
+  list_compare_lex Term.compare cl1.literals cl2.literals 
 
 exception Clause_fast_key_undef
 
@@ -803,13 +807,27 @@ let assign_split_history concl parent =
   concl.history <- Def(Split(parent))
 
 
+module ClauseHashed =
+struct
+  type t = clause
+  let hash c = 
+    List.fold_left 
+      (fun a t -> hash_sum a (Term.get_fast_key t))
+      0
+      c.literals
+  let compare c1 c2 = compare_literals c1 c2
+  let equal c1 c2 = (compare c1 c2) = 0
+end
+
+module ClauseHashtbl = Hashtbl.Make(ClauseHashed)
+
 let rec get_history_parents' visited accum = function
     
   (* No more clause histories to recurse *)
   | [] -> accum
       
   (* Clause already seen *)
-  | (clause :: tl) when List.memq clause visited ->
+  | (clause :: tl) when ClauseHashtbl.mem visited clause ->
       
       (* Skip clause *)
       get_history_parents' visited accum tl
@@ -817,105 +835,141 @@ let rec get_history_parents' visited accum = function
   (* Undefined parents *)
   | ({ history = Undef } as clause) :: tl -> 
       
-      (* Add clause as leaf *)
-      get_history_parents' (clause :: visited) (clause :: accum) tl
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Add clause as leaf *)
+    get_history_parents' 
+      visited
+      (clause :: accum) 
+      tl
 
   (* Clause after instantiation *)
   | { history = Def (Instantiation (parent, parents_side)) } as clause :: tl -> 
 
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
     (* Recurse to get parents of premises *)
     get_history_parents' 
-      (clause :: visited) 
+      visited 
       accum 
       ((parent :: parents_side) @ tl) 
      
   (* Clause after resolution *)
   | { history = Def (Resolution (parents, upon_literals)) } as clause :: tl -> 
 
-      (* Recurse to get parents of premises *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parents @ tl) 
-	
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+    
+    (* Recurse to get parents of premises *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parents @ tl) 
+      
   (* Clause after factoring *)
   | { history = Def (Factoring (parent, upon_literals)) } as clause :: tl->
       
-      (* Recurse to get parent of premise *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parent :: tl) 
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parent :: tl) 
     
   (* Input clause *)
   | { history = Def Input } as clause :: tl -> 
 
-      (* Add clause as leaf *)
-      get_history_parents' 
-	(clause :: visited) 
-	(clause :: accum) 
-	tl
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Add clause as leaf *)
+    get_history_parents' 
+      visited 
+      (clause :: accum) 
+      tl
 	
   (* Clause after global subsumption *)
   | { history = Def (Global_Subsumption parent) } as clause :: tl ->
     
-      (* Recurse to get parent of premise *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parent :: tl) 
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parent :: tl) 
     
   (* Clause after tranformation to pure equational clause *)
   | { history = Def (Non_eq_to_eq parent) } as clause :: tl ->
 
-      (* Recurse to get parent of premise *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parent :: tl) 
-    
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parent :: tl) 
+      
   (* Clause after forward subsumption resolution *)
   | { history = Def (Forward_Subsumption_Resolution (main_parent, parents)) } as clause :: tl  -> 
       
-      (* Recurse to get parents of premises *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parents @ tl) 
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
 
+    (* Recurse to get parents of premises *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parents @ tl) 
+      
   (* Clause after backward subsumption resolution *)
   | { history = Def (Backward_Subsumption_Resolution parents) } as clause :: tl ->  
 
-      (* Recurse to get parents of premises *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parents @ tl) 
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Recurse to get parents of premises *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parents @ tl) 
 
   (* Clause is an axiom *)
   | { history = Def (Axiom _) } as clause :: tl -> 
     
-      (* Add clause as leaf *)
-      get_history_parents' 
-	(clause :: visited) 
-	(clause :: accum) 
-	tl
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
 
+    (* Add clause as leaf *)
+    get_history_parents' 
+      visited 
+      (clause :: accum) 
+      tl
+      
   (* Clause after splitting *)
   | { history = Def (Split parent) } as clause :: tl -> 
       
-      (* Recurse to get parent of premise *)
-      get_history_parents' 
-	(clause :: visited) 
-	accum 
-	(parent :: tl) 
+    (* Remeber clause *)
+    ClauseHashtbl.add visited clause ();
+
+    (* Recurse to get parent of premise *)
+    get_history_parents' 
+      visited 
+      accum 
+      (parent :: tl) 
     
 	      
 let clause_get_history_parents clause = 
-  get_history_parents' [] [] [clause]
+  get_history_parents' (ClauseHashtbl.create 101) [] [clause]
 
 let clause_list_get_history_parents clause_list = 
-  get_history_parents' [] [] clause_list
+  get_history_parents' (ClauseHashtbl.create 101) [] clause_list
 
 
 

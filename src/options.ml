@@ -655,7 +655,7 @@ let default_options () = {
   bmc1_incremental        = false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_max_bound          = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = ValueDefault false;
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
@@ -3687,7 +3687,10 @@ let option_verification_epr ver_epr_opt =
 (*
        inst_lit_sel                   = [Lit_Ground true;Lit_Sign false;];
 *)
-       inst_lit_sel                   = [Lit_Ground true;Lit_Sign false;];
+       inst_lit_sel                   = 
+	  [ Lit_clock true;
+	    Lit_Ground true; 
+	    Lit_Sign false; ];
 
   (*     inst_lit_sel                   = [Lit_Sign false;];*)
 (* before Intel example bpbimodalm_miter_full.focnf.bit_blast.Mclk1 *)
@@ -3715,15 +3718,22 @@ let option_verification_epr ver_epr_opt =
    (*[Cl_min_defined_symb false; Cl_Age true;Cl_Num_of_Symb false];
 *)  
 
-     [ Cl_in_unsat_core true;
-				    Cl_Conj_Dist false;
-					 Cl_Has_Conj_Symb true;
-	Cl_has_bound_constant true; (*Cl_Has_Eq_Lit false;*)
-	(*			    Cl_Ground true;*)
-					 Cl_Num_of_Var false; (*Cl_min_defined_symb false;*)]; 
-	 
+	  [ Cl_in_unsat_core true;
+	    Cl_min_defined_symb false;
+	    Cl_Conj_Dist false;
+	    Cl_Has_Conj_Symb true;
+	    Cl_has_bound_constant true; 
+	    (* Cl_Has_Eq_Lit false;*)
+	    (* Cl_Ground true;*)
+	    Cl_Num_of_Var false; 
+(* Cl_min_defined_symb false;*)]; 
+       
   (*     inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];*)
-       inst_pass_queue2               = [Cl_Age true; Cl_min_defined_symb false; (*Cl_min_defined_symb false;*) Cl_Num_of_Symb false];
+       inst_pass_queue2 = 
+	  [ Cl_Age true; 
+	    Cl_min_defined_symb false; 
+	    (*Cl_min_defined_symb false;*) 
+	    Cl_Num_of_Symb false ];
 
 (*"[+age;-num_symb]";*)
 (*       inst_pass_queue1_mult          = 100;*)
@@ -3742,8 +3752,8 @@ let option_verification_epr ver_epr_opt =
        inst_prop_sim_given               = true;
        inst_prop_sim_new                 = false;
   (*     inst_prop_sim_new                 = true;*)
-       (* inst_learning_loop_flag           = true; *)
-       inst_learning_loop_flag           = false;
+       inst_learning_loop_flag           = true; 
+(*       inst_learning_loop_flag           = false; *)
        inst_learning_start               = 30000;
        inst_learning_factor              = 3;
        inst_start_prop_sim_after_learn   = 0;
