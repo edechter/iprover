@@ -1306,14 +1306,7 @@ let rec main clauses finite_model_clauses =
 	      val_of_override !current_options.bmc1_verbose 
 
 	    then 
-
-		(* Print parents of unsat core *)
-		Format.printf 
-		  "@\nUnsat core parents has size %d@\n@." 
-		  (List.length unsat_core_parents)
-
-	    else
-
+	      
 	      (
 
 		Format.printf 
@@ -1324,8 +1317,19 @@ let rec main clauses finite_model_clauses =
 		Format.printf 
 		  "@\nUnsat core parents has size %d@\n%a@." 
 		  (List.length unsat_core_parents)
-		  (pp_any_list Clause.pp_clause "\n") unsat_core_parents;
+		  (pp_any_list Clause.pp_clause "\n") unsat_core_parents
+
+	      )
 		
+	    else
+
+	      (
+
+		(* Print parents of unsat core *)
+		Format.printf 
+		  "@\nUnsat core parents has size %d@\n@." 
+		  (List.length unsat_core_parents)
+
 	      );
 
 	  (* Increment bound by one
