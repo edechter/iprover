@@ -13,30 +13,33 @@
 $(MINISAT): $(MINISAT)-lib-release
 
 # Set variable $(LIB) for library targets
-$(MINISAT)-lib-standard \
-$(MINISAT)-lib-profile \
-$(MINISAT)-lib-debug \
-$(MINISAT)-lib-release \
-clean-$(MINISAT): export LIB = $(MINISAT)
+# $(MINISAT)-lib-standard \
+# $(MINISAT)-lib-profile \
+# $(MINISAT)-lib-debug \
+# $(MINISAT)-lib-release \
+# clean-$(MINISAT): export LIB = $(MINISAT)
+export LIB = $(MINISAT)
 
-# Set variable $(EXEC) for executable targets
-$(MINISAT)-exec-standard \
-$(MINISAT)-exec-profile \
-$(MINISAT)-exec-debug \
-$(MINISAT)-exec-release \
-clean-$(MINISAT): export EXEC = $(MINISAT)
+# # Set variable $(EXEC) for executable targets
+# $(MINISAT)-exec-standard \
+# $(MINISAT)-exec-profile \
+# $(MINISAT)-exec-debug \
+# $(MINISAT)-exec-release \
+# clean-$(MINISAT): export EXEC = $(MINISAT)
+export EXEC = $(MINISAT)
 
-# Set variable $(MROOT) for library and executable targets
-$(MINISAT)-lib-standard \
-$(MINISAT)-lib-profile \
-$(MINISAT)-lib-debug \
-$(MINISAT)-lib-release \
-$(MINISAT)-exec-standard \
-$(MINISAT)-exec-profile \
-$(MINISAT)-exec-debug \
-$(MINISAT)-exec-release \
-$(MINISAT)-exec-static \
-clean-$(MINISAT): export MROOT = $(MINISATDIR)
+# # Set variable $(MROOT) for library and executable targets
+# $(MINISAT)-lib-standard \
+# $(MINISAT)-lib-profile \
+# $(MINISAT)-lib-debug \
+# $(MINISAT)-lib-release \
+# $(MINISAT)-exec-standard \
+# $(MINISAT)-exec-profile \
+# $(MINISAT)-exec-debug \
+# $(MINISAT)-exec-release \
+# $(MINISAT)-exec-static \
+# clean-$(MINISAT): export MROOT = $(MINISATDIR)
+export MROOT = $(MINISATDIR)
 
 ########################################################################
 # Library targets

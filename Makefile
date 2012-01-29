@@ -113,22 +113,30 @@ INTERFACE = $(BASE_NAMES_WITHOUT_LEXER:%=obj/%.cmi)
 
 IPROVER_NAME = $(IPROVER_BASE_NAME)$(ADDTONAME)$(ADDTONAME_CPP)
 
-$(IPROVER_NAME) : util/lib/minisat.cmxa util/lib/hhlmuc.cmxa \
+# $(IPROVER_NAME) : util/lib/minisat.cmxa util/lib/hhlmuc.cmxa \
+
+$(IPROVER_NAME) : util/lib/minisat.cmxa \
 		  $(INTERFACE)\
                   $(OBJ) $(IPROVER_C_OBJ) $(IPROVER_ADD_OBJ) src/$(IPROVER_BASE_NAME).ml 
 	$(COMPILE) $(IPROVERFLAGS) $(IPROVER_C_OBJ) -o $@ \
-        $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa util/lib/hhlmuc.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
+        $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
+#        $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa util/lib/hhlmuc.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
 #        $(OCAMLFLAGS) unix.cmxa str.cmxa $(OBJ) $(IPROVER_ADD_OBJ) 
 
 
-util/lib/minisat.cmxa: export OCAMLLIBDIR=$(OCAMLLIB)
-util/lib/minisat.cmxa: export OCAMLINCDIR=$(OCAMLLIB)
+# util/lib/minisat.cmxa: export OCAMLLIBDIR=$(OCAMLLIB)
+# util/lib/minisat.cmxa: export OCAMLINCDIR=$(OCAMLLIB)
+
+# Better use per-target exports as above, also restore in
+# util/lib/hhlmuc.cmxa target below
+export OCAMLLIBDIR=$(OCAMLLIB)
+export OCAMLINCDIR=$(OCAMLLIB)
 
 util/lib/minisat.cmxa:
 	cd util && $(MAKE) -f Makefile minisat-ocaml
 
-util/lib/hhlmuc.cmxa: export OCAMLLIBDIR=$(OCAMLLIB)
-util/lib/hhlmuc.cmxa: export OCAMLINCDIR=$(OCAMLLIB)
+# util/lib/hhlmuc.cmxa: export OCAMLLIBDIR=$(OCAMLLIB)
+# util/lib/hhlmuc.cmxa: export OCAMLINCDIR=$(OCAMLLIB)
 
 util/lib/hhlmuc.cmxa:
 	cd util && $(MAKE) -f Makefile hhlmuc-ocaml

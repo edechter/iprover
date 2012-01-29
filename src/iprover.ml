@@ -1246,11 +1246,26 @@ let rec main clauses finite_model_clauses =
 	     with Invalid_argument _ -> []);
 	  in
 
-	  (* Print unsat core *)
-	  Format.printf 
-	    "@\nUnsat core has size %d@\n%a@." 
-	    (List.length unsat_core_clauses)
-	    (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+	    if 
+	      
+	      (* Verbose output for BMC1?*)
+	      val_of_override !current_options.bmc1_verbose 
+
+	    then 
+
+	      (* Print unsat core *)
+	      Format.printf 
+		"@\nUnsat core has size %d@\n%a@." 
+		(List.length unsat_core_clauses)
+		(pp_any_list Clause.pp_clause "\n") unsat_core_clauses
+
+	    else
+	      
+	      (* Print size of unsat core only *)
+	      Format.printf 
+		"@\nUnsat core has size %d@\n@." 
+		(List.length unsat_core_clauses);
+
 
 	  (* Don't do this: very long output 
 	  (* Print histories of clauses in unsat core *)
@@ -1285,16 +1300,34 @@ let rec main clauses finite_model_clauses =
 
 	  let end_time = Unix.gettimeofday () in
 	  
-	  Format.printf 
-	    "Time for finding parents of unsat core clauses: %.3f@\n@."
-	    (end_time -. start_time);
-	  
-	  (* Print parents of unsat core *)
-	  Format.printf 
-	    "@\nUnsat core parents has size %d@\n%a@." 
-	    (List.length unsat_core_parents)
-	    (pp_any_list Clause.pp_clause "\n") unsat_core_parents;
-	  
+	    if 
+	      
+	      (* Verbose output for BMC1?*)
+	      val_of_override !current_options.bmc1_verbose 
+
+	    then 
+
+		(* Print parents of unsat core *)
+		Format.printf 
+		  "@\nUnsat core parents has size %d@\n@." 
+		  (List.length unsat_core_parents)
+
+	    else
+
+	      (
+
+		Format.printf 
+		  "Time for finding parents of unsat core clauses: %.3f@\n@."
+		  (end_time -. start_time);
+		
+		(* Print parents of unsat core *)
+		Format.printf 
+		  "@\nUnsat core parents has size %d@\n%a@." 
+		  (List.length unsat_core_parents)
+		  (pp_any_list Clause.pp_clause "\n") unsat_core_parents;
+		
+	      );
+
 	  (* Increment bound by one
 	     
 	     TODO: option for arbitrary bound increments *)
@@ -1616,7 +1649,7 @@ let run_iprover () =
     change_conj_symb_input ();
 
     (* Calculate symbol reachability? *)
-    if !current_options.bmc1_symbol_reachability then
+    if val_of_override !current_options.bmc1_symbol_reachability then
 
       (
 	
