@@ -506,7 +506,7 @@ let less_axioms' max_ind =
 	(
 	 let symb_axs = 
 	   (less_eq_ax symb i)::((less_pos_axs symb i) 
-            (*@(less_neg_axs symb i max_ind)*)) in	 
+            @(less_neg_axs symb i max_ind)) in	 
 	 symb_axs@rest
 	)
     else 
