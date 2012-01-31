@@ -1783,27 +1783,71 @@ let run_iprover () =
 	  
 	  (* BMC1 with incremental bounds? *)
 	  if !current_options.bmc1_incremental then
-	    
-	    (* Create clauses for initial bound *)
-	    let bmc1_axioms, current_clauses' = 
-	      Bmc1Axioms.init_bound !current_clauses 
-	    in
+
+	    (
+
+	      (* Return axioms for all bounds from [i] to [n] *)
+	      let rec skip_to_bound accum n i = 
+
+		(* Axioms for all bounds added? *)
+		if i >= n then 
+		  
+		  (* Return axioms *)
+		  accum 
+
+		else
+
+		  (
+
+		    (* Add axioms for next bound *)
+		    let next_bound_axioms = 
+		      Bmc1Axioms.increment_bound i (succ i)
+		    in
+		    
+		    (* Output next bound *)
+		    Format.printf 
+		      "%s Incrementing BMC1 bound to %d@\n@."
+		      (pref_str)
+		      (succ i);
+		    
+		    (* Recurse until all axioms for all bounds added *)
+		    skip_to_bound 
+		      (next_bound_axioms @ accum)
+		      n
+		      (succ i)
+		  )
+
+	      in
+
+	      (* Create clauses for initial bound *)
+	      let bmc1_axioms, current_clauses' = 
+		Bmc1Axioms.init_bound !current_clauses 
+	      in
 	      
 	      out_str 
 		(Format.sprintf 
 		   "%sAdded initial BMC1 axioms@\n"
 		   pref_str);
-	      
+
+	      (* Add axioms from bound 0 to starting bound *)
+	      let bmc1_axioms' = 
+		skip_to_bound 
+		  bmc1_axioms
+		  (val_of_override !current_options.bmc1_min_bound)
+		  0
+	      in
+
 	      (* Clauses are input clauses *)
-	      assign_is_essential_input_symb bmc1_axioms;
+	      assign_is_essential_input_symb bmc1_axioms';
 	      
 	      (* Add clauses for initial bound *)
 	      current_clauses := 
-		bmc1_axioms @ current_clauses'
+		bmc1_axioms' @ current_clauses'
 		  
+	    )
+
 	);
-
-
+	
 	(* Output maxial bound for BMC1 *)
 	let max_bound = val_of_override !current_options.bmc1_max_bound in
 

@@ -188,9 +188,13 @@ obj/%.cmx : src/%.ml
 
 
 
-.PHONY: clean depend archive
-clean:
+.PHONY: clean clean-util depend archive
+
+clean: clean-util
 	rm -f $(IPROVER_NAME) $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp src/$(LEXER).ml src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o
+
+clean-util:
+	cd util && $(MAKE) -f Makefile clean
 
 
 clean_all: clean

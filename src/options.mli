@@ -177,6 +177,7 @@ type options = {
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
     mutable bmc1_axioms           : bmc1_axioms_type override;
+    mutable bmc1_min_bound        : int override; 
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_symbol_reachability : bool; 
     mutable bmc1_add_unsat_core   : bool override; 
