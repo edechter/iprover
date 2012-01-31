@@ -1285,16 +1285,38 @@ let rec main clauses finite_model_clauses =
 
 	  let end_time = Unix.gettimeofday () in
 	  
-	  Format.printf 
-	    "Time for finding parents of unsat core clauses: %.3f@\n@."
-	    (end_time -. start_time);
-	  
-	  (* Print parents of unsat core *)
-	  Format.printf 
-	    "@\nUnsat core parents has size %d@\n%a@." 
-	    (List.length unsat_core_parents)
-	    (pp_any_list Clause.pp_clause "\n") unsat_core_parents;
-	  
+	    if 
+	      
+	      (* Verbose output for BMC1?*)
+	      val_of_override !current_options.bmc1_verbose 
+
+	    then 
+	      
+	      (
+
+		Format.printf 
+		  "Time for finding parents of unsat core clauses: %.3f@\n@."
+		  (end_time -. start_time);
+		
+		(* Print parents of unsat core *)
+		Format.printf 
+		  "@\nUnsat core parents has size %d@\n%a@." 
+		  (List.length unsat_core_parents)
+		  (pp_any_list Clause.pp_clause "\n") unsat_core_parents
+
+	      )
+		
+	    else
+
+	      (
+
+		(* Print parents of unsat core *)
+		Format.printf 
+		  "@\nUnsat core parents has size %d@\n@." 
+		  (List.length unsat_core_parents)
+
+	      );
+
 	  (* Increment bound by one
 	     
 	     TODO: option for arbitrary bound increments *)
