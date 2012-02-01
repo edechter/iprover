@@ -213,6 +213,24 @@ let rec pp_term ppf = function
   | Var (v, _) -> 
     Format.fprintf ppf "%a" Var.pp_var v
 
+let rec pp_term_tptp ppf = function
+  | Fun (sym, [], _) -> 
+      Format.fprintf ppf "%a" Symbol.pp_symbol sym
+  | Fun (sym, args, _) when sym == Symbol.symb_neg -> 
+      Format.fprintf 
+	ppf 
+	"%a%a" 
+	Symbol.pp_symbol sym 
+	(pp_any_list pp_term ",") args
+  | Fun (sym, args, _) -> 
+      Format.fprintf 
+	ppf 
+	"%a(%a)" 
+	Symbol.pp_symbol sym 
+	(pp_any_list pp_term ",") args
+  | Var (v, _) -> 
+    Format.fprintf ppf "%a" Var.pp_var v
+
 
 let out = to_stream stdout_stream 
 

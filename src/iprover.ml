@@ -1472,8 +1472,10 @@ let rec main clauses finite_model_clauses =
 
 	      then
 
-		Format.printf "%a@." 
-		  (pp_any_list Clause.pp_clause_tptp "@\n@.") all_clauses;
+		Format.printf 
+		  "%a@." 
+		  (pp_any_list Clause.pp_clause_tptp "\n") 
+		  all_clauses;
 
 	      (* Run again for next bound *)
 	      main 
@@ -1842,8 +1844,20 @@ let run_iprover () =
 	      
 	      (* Add clauses for initial bound *)
 	      current_clauses := 
-		bmc1_axioms' @ current_clauses'
+		bmc1_axioms' @ current_clauses';
 		  
+	      if 
+		
+		(* Dump clauses to TPTP format? *)
+		val_of_override !current_options.bmc1_dump_tptp 
+
+	      then
+
+		Format.printf 
+		  "%a@." 
+		  (pp_any_list Clause.pp_clause_tptp "\n") 
+		  !current_clauses;
+
 	    )
 
 	);

@@ -310,14 +310,14 @@ let pp_clause ppf clause =
 let pp_clause_tptp ppf clause = 
   Format.fprintf 
     ppf 
-    "cnf(%s,%s,(%a)" 
+    "cnf(%s,%s,(%a))." 
     (match clause.fast_key with
       | Def k -> Format.sprintf "id_%d" k
       | Undef -> "tmp")
     (if (is_negated_conjecture clause) 
      then "negated_conjecture"
      else "plain")
-    (pp_any_list Term.pp_term " | ") clause.literals
+    (pp_any_list Term.pp_term_tptp " | ") clause.literals
 
 	
 let out = to_stream stdout_stream
