@@ -310,6 +310,14 @@ val param_to_stream :
       ('a string_stream)  -> 'b param -> unit)
 
 
+(** [formatter_of_filename a n] opens the file [n] and returns a
+    formatter writing into the opened file. If [a] is true and the
+    file exists it is opened for appending, otherwise it is truncated
+    to zero length if it exists. Return the formatter writing to
+    stdout if file name is "-".  The [Sys_error] exception is not
+    caught here but passed to the calling function. *)
+val formatter_of_filename : bool -> string -> Format.formatter
+
 (** [pp_any_array pp sep ppf a] prints the elements of the array [a]
     formatted with the [pp] formatting function separated by the
     string [sep] into the formatter [ppf]. *)
@@ -353,6 +361,13 @@ val pp_float_list : string -> Format.formatter -> float list -> unit
     floats [a] separated by the string [sep] into the formatter
     [ppf]. *)
 val pp_float_array : string -> Format.formatter -> float array -> unit
+
+val pp_option : 
+  (Format.formatter -> 'a -> unit) -> string -> Format.formatter -> 'a option -> unit
+
+val pp_string_option : string -> Format.formatter -> string option -> unit
+
+val string_of_string_option : string -> string option -> string
 
 
 (*---------strings-----------*)

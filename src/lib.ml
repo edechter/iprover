@@ -812,6 +812,52 @@ let rec list_to_stream s to_str_el l separator_str =
       (list_to_stream s to_str_el rest separator_str)
 
 
+(* Opens a file [filename] and return a formatter writing into the
+   opened file. If [append] is true and the file exists it is opened
+   for appending, otherwise it is truncated to zero length if it
+   exists. Return the formatter writing to stdout if [filename] is
+   "-".  The [Sys_error] exception is not caught here but passed to
+   the calling function. *)
+let formatter_of_filename append filename =
+
+  (* Output to stdout? *)
+  if filename = "-" then 
+
+    (* Use formatter for stdout *)
+    Format.std_formatter
+
+  else
+
+    (* Opening mode for file *)
+    let open_flags = 
+
+      (* Append to file only? *)
+      if append then 
+
+	(* Append to file, create if not existing and use text mode *)
+	[Open_append; Open_creat; Open_text]
+
+      else
+	
+	(* Write to file, create if not existing, truncate if existing
+	   and use text mode, this is the default from open_out in
+	   OCaml's pervasives.ml *)
+	[Open_wronly; Open_creat; Open_trunc; Open_text]
+
+    in
+
+    (* Permissions if file is created, this is the default from
+       open_out in OCaml's pervasives.ml *)
+    let open_perm =  0o666 in
+    
+    (* Open file for writing or appending *)
+    let formatter_channel = 
+      Pervasives.open_out_gen open_flags open_perm filename 
+    in
+      
+    (* Return formatter writing to file *)
+    Format.formatter_of_out_channel formatter_channel
+
 
 (* Print an array of any type with separator from an index on *)
 let rec pp_any_array' pp_a sep ppf array = function
@@ -862,6 +908,22 @@ let pp_float_list = pp_any_list Format.pp_print_float
 let pp_float_array sep array = pp_any_array Format.pp_print_float sep array
 
 
+(* Print an 'a option value *)
+let pp_option pp none_str ppf = function
+  | None -> Format.fprintf ppf "%s" none_str
+  | Some s -> Format.fprintf ppf "%a" pp s
+
+
+(* Print a string option value *)
+let pp_string_option none_str ppf str = 
+  pp_option Format.pp_print_string none_str ppf str
+
+
+(* Return a string of a string option value *)
+let string_of_string_option none_str str =
+  ignore (Format.flush_str_formatter ());
+  Format.fprintf Format.str_formatter "%a" (pp_string_option none_str) str;
+  Format.flush_str_formatter ()
 
 
 (* Examples a bit old: *)

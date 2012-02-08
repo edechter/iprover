@@ -1252,13 +1252,13 @@ let rec main clauses finite_model_clauses =
 	    (List.length unsat_core_clauses)
 	    (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
 
-	  (* Don't do this: very long output 
+	  (* Don't do this: very long output *)
 	  (* Print histories of clauses in unsat core *)
 	  Format.printf "@\nClause histories:@\n@.";
 	  List.iter
 	    (Format.printf "@\n%a@\n@." Clause.pp_clause_history)
 	    unsat_core_clauses;
-	  *)
+	  (* *)
 
 	  (* Assign size of unsat core in statistics *)
 	  assign_int_stat 
@@ -1317,9 +1317,39 @@ let rec main clauses finite_model_clauses =
 
 	      );
 
-	  (* Increment bound by one
-	     
-	     TODO: option for arbitrary bound increments *)
+	  if 
+	    
+	    (* Dump unsat core in TPTP format? *)
+	    val_of_override !current_options.bmc1_dump_unsat_core_tptp 
+		    
+	  then
+		  
+	    (
+	      
+	      (* Formatter to write to, i.e. stdout or file *)
+	      let dump_formatter =
+		Bmc1Axioms.get_bmc1_dump_formatter ()
+	      in
+	      
+	      (* Output clauses *)
+	      Format.fprintf 
+		dump_formatter
+		"%% ------------------------------------------------------------------------@\n%% Unsat core for bound %d@\n%a@." 
+		!bmc1_cur_bound
+		Clause.pp_clause_list_tptp
+		unsat_core_clauses;
+	      
+	      (* Output clauses *)
+	      Format.fprintf 
+		dump_formatter
+		"%% ------------------------------------------------------------------------@\n%% Lifted unsat core for bound %d@\n%a@." 
+		!bmc1_cur_bound
+		Clause.pp_clause_list_tptp
+		unsat_core_parents;
+	      
+	    );
+	  
+	  (* Increment bound by one *)
 	  let cur_bound, next_bound =
 	    !bmc1_cur_bound, succ !bmc1_cur_bound
 	  in
@@ -1465,18 +1495,31 @@ let rec main clauses finite_model_clauses =
 		next_bound_axioms' @ unsat_core_clauses' @ clauses
 	      in
 
-	      if 
-		
-		(* Dump clauses to TPTP format? *)
-		val_of_override !current_options.bmc1_dump_tptp 
 
-	      then
+		if 
+		  
+		  (* Dump clauses to TPTP format? *)
+		  val_of_override !current_options.bmc1_dump_clauses_tptp 
+		    
+		then
+		  
+		  (
+		    
+		    (* Formatter to write to, i.e. stdout or file *)
+		    let dump_formatter =
+		      Bmc1Axioms.get_bmc1_dump_formatter ()
+		    in
 
-		Format.printf 
-		  "%a@." 
-		  (pp_any_list Clause.pp_clause_tptp "\n") 
-		  all_clauses;
+		    (* Output clauses *)
+		    Format.fprintf 
+		      dump_formatter
+		      "%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@." 
+		      next_bound
+		      (pp_any_list Clause.pp_clause_tptp "\n") 
+		      all_clauses;
 
+		  );
+	      
 	      (* Run again for next bound *)
 	      main 
 		all_clauses
@@ -1844,20 +1887,8 @@ let run_iprover () =
 	      
 	      (* Add clauses for initial bound *)
 	      current_clauses := 
-		bmc1_axioms' @ current_clauses';
+		bmc1_axioms' @ current_clauses'
 		  
-	      if 
-		
-		(* Dump clauses to TPTP format? *)
-		val_of_override !current_options.bmc1_dump_tptp 
-
-	      then
-
-		Format.printf 
-		  "%a@." 
-		  (pp_any_list Clause.pp_clause_tptp "\n") 
-		  !current_clauses;
-
 	    )
 
 	);
@@ -1878,7 +1909,29 @@ let run_iprover () =
       let finite_models_clauses = !current_clauses in 
 
       current_clauses := less_range_axioms@(!current_clauses);
+	
+      (
 
+	if 
+	  
+	  (* Dump clauses to TPTP format? *)
+	  val_of_override !current_options.bmc1_dump_clauses_tptp 
+	    
+	then
+	  
+	  (* Formatter to write to, i.e. stdout or file *)
+	  let dump_formatter =
+	    Bmc1Axioms.get_bmc1_dump_formatter ()
+	  in
+	  
+	  Format.fprintf 
+	    dump_formatter
+	    "%% ------------------------------------------------------------------------@\n%% Input clauses including axioms for bound 0@\n%a@." 
+	    (pp_any_list Clause.pp_clause_tptp "\n") 
+	    !current_clauses
+
+      );
+	  
       (if (not (omit_eq_axioms ())) 
       then
 	(
@@ -1946,6 +1999,7 @@ let run_iprover () =
       out_str "\n\nInput_Preproccessed clauses\n\n";
       out_str (Clause.clause_list_to_tptp !current_clauses);
 *)
+
 
 
 

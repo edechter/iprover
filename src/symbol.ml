@@ -882,6 +882,18 @@ let out = to_stream stdout_stream
 let to_string (s:symbol) = s.name
     
 let pp_symbol ppf { name = n } = Format.fprintf ppf "%s" n
+
+let pp_symbol_tptp ppf { name = n } = 
+  let n' = 
+    if 
+      String.sub n 0 2 = "$$" 
+    then 
+      String.sub n 2 ((String.length n) - 2)
+    else
+      n
+  in
+
+    Format.fprintf ppf "%s" n'
     
 
 let rec to_stream_full s symb = 

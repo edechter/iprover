@@ -164,6 +164,7 @@ val to_string             : symbol -> string
 val to_prolog             : symbol -> string
 
 val pp_symbol : Format.formatter -> symbol -> unit
+val pp_symbol_tptp : Format.formatter -> symbol -> unit
 
 val to_stream_full        : 'a string_stream -> symbol -> unit
 val to_string_full        : symbol -> string

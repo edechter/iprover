@@ -563,7 +563,9 @@ type options = {
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool override;
-    mutable bmc1_dump_tptp        : bool override;
+    mutable bmc1_dump_clauses_tptp : bool override;
+    mutable bmc1_dump_unsat_core_tptp : bool override;
+    mutable bmc1_dump_file        : string option override;
     
 (*----Instantiation------*)
     mutable instantiation_flag                : bool;
@@ -661,7 +663,9 @@ let default_options () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp  = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
     
 
 (*----Instantiation------*)
@@ -756,8 +760,20 @@ let set_new_current_options o =
 	override o.bmc1_verbose !current_options.bmc1_verbose;
       
       (* Only override defaults *)
-      bmc1_dump_tptp = 
-	override o.bmc1_dump_tptp !current_options.bmc1_dump_tptp;
+      bmc1_dump_clauses_tptp = 
+	override 
+	  o.bmc1_dump_clauses_tptp 
+	  !current_options.bmc1_dump_clauses_tptp;
+      
+      (* Only override defaults *)
+      bmc1_dump_unsat_core_tptp = 
+	override 
+	  o.bmc1_dump_unsat_core_tptp 
+	  !current_options.bmc1_dump_unsat_core_tptp;
+      
+      (* Only override defaults *)
+      bmc1_dump_file = 
+	override o.bmc1_dump_file !current_options.bmc1_dump_file;
       
     }
 
@@ -1224,15 +1240,39 @@ let bmc1_out_stat_inf  =
 
 (*--------*)
 
-let bmc1_dump_tptp_str = "--bmc1_dump_tptp" 
+let bmc1_dump_clauses_tptp_str = "--bmc1_dump_clauses_tptp" 
 
-let bmc1_dump_tptp_fun b =
-  !current_options.bmc1_dump_tptp <- 
-    override_cmd b !current_options.bmc1_dump_tptp
+let bmc1_dump_clauses_tptp_fun b =
+  !current_options.bmc1_dump_clauses_tptp <- 
+    override_cmd b !current_options.bmc1_dump_clauses_tptp
 
-let bmc1_dump_tptp_inf  =
+let bmc1_dump_clauses_tptp_inf  =
   bool_str^
   inf_pref^"dump clauses for each bound in BMC1 in TPTP format\n" 
+
+(*--------*)
+
+let bmc1_dump_unsat_core_tptp_str = "--bmc1_dump_unsat_core_tptp" 
+
+let bmc1_dump_unsat_core_tptp_fun b =
+  !current_options.bmc1_dump_unsat_core_tptp <- 
+    override_cmd b !current_options.bmc1_dump_unsat_core_tptp
+
+let bmc1_dump_unsat_core_tptp_inf  =
+  bool_str^
+  inf_pref^"dump unsat core for each bound in BMC1 in TPTP format\n" 
+
+(*--------*)
+
+let bmc1_dump_file_str = "--bmc1_dump_file" 
+
+let bmc1_dump_file_fun b =
+  !current_options.bmc1_dump_file <- 
+    override_cmd (Some b) !current_options.bmc1_dump_file
+
+let bmc1_dump_file_inf  =
+  bool_str^
+  inf_pref^"file to write clauses into\n" 
 
 (*--------*)
 
@@ -1844,13 +1884,21 @@ let spec_list =
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
 
+   (bmc1_dump_clauses_tptp_str, 
+    Arg.Bool(bmc1_dump_clauses_tptp_fun),
+    bmc1_dump_clauses_tptp_inf);
+
+   (bmc1_dump_unsat_core_tptp_str, 
+    Arg.Bool(bmc1_dump_unsat_core_tptp_fun),
+    bmc1_dump_unsat_core_tptp_inf);
+
+   (bmc1_dump_file_str, 
+    Arg.String(bmc1_dump_file_fun),
+    bmc1_dump_file_inf);
+
    (bmc1_verbose_str, 
     Arg.Bool(bmc1_verbose_fun),
     bmc1_verbose_inf);
-
-   (bmc1_dump_tptp_str, 
-    Arg.Bool(bmc1_dump_tptp_fun),
-    bmc1_dump_tptp_inf);
 
 (*------Instantiation--*)
    (instantiation_flag_str, Arg.Bool(instantiation_flag_fun),instantiation_flag_inf);
@@ -1990,7 +2038,12 @@ let bmc1_options_str_list opt =
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
-   (bmc1_dump_tptp_str,(string_of_bool (val_of_override opt.bmc1_dump_tptp)));
+   (bmc1_dump_clauses_tptp_str,
+    (string_of_bool (val_of_override opt.bmc1_dump_clauses_tptp)));
+   (bmc1_dump_unsat_core_tptp_str,
+    (string_of_bool (val_of_override opt.bmc1_dump_unsat_core_tptp)));
+   (bmc1_dump_file_str,
+    (string_of_string_option "-" (val_of_override opt.bmc1_dump_file)));
   ]
 
 let inst_options_str_list opt = 
@@ -2367,7 +2420,9 @@ let option_1 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2512,7 +2567,9 @@ let option_2 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2630,7 +2687,9 @@ let option_3 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2744,7 +2803,9 @@ let option_4 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2868,7 +2929,9 @@ let option_finite_models () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -2988,7 +3051,9 @@ let option_epr_non_horn () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3230,7 +3295,9 @@ let option_epr_horn () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----------------------Instantiation------*)
   instantiation_flag             = true;
@@ -3470,7 +3537,9 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3592,7 +3661,9 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
   instantiation_flag             = true;
@@ -3712,7 +3783,9 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
-  bmc1_dump_tptp          = ValueDefault false;
+  bmc1_dump_clauses_tptp  = ValueDefault false;
+  bmc1_dump_unsat_core_tptp = ValueDefault false;
+  bmc1_dump_file          = ValueDefault None;
 
 (*----Instantiation------*)
        instantiation_flag             = true;

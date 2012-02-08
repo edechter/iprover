@@ -213,21 +213,71 @@ let rec pp_term ppf = function
   | Var (v, _) -> 
     Format.fprintf ppf "%a" Var.pp_var v
 
+
 let rec pp_term_tptp ppf = function
+
+  (* Nullary symbol without arguments *)
   | Fun (sym, [], _) -> 
-      Format.fprintf ppf "%a" Symbol.pp_symbol sym
-  | Fun (sym, args, _) when sym == Symbol.symb_neg -> 
+      Format.fprintf ppf "%a" Symbol.pp_symbol_tptp sym
+
+  (* Negated typed equation as != *)
+  | Fun (s, [Fun(t, [_; l; r], _)], _)
+      when s == Symbol.symb_neg &&
+	t == Symbol.symb_typed_equality -> 
       Format.fprintf 
 	ppf 
-	"%a%a" 
-	Symbol.pp_symbol sym 
-	(pp_any_list pp_term ",") args
+	"%a != %a" 
+	pp_term_tptp l
+	pp_term_tptp r
+
+  (* Negated untyped equation as != *)
+  | Fun (s, [Fun(t, [l; r], _)], _)
+      when s == Symbol.symb_neg &&
+	t == Symbol.symb_equality -> 
+      Format.fprintf 
+	ppf 
+	"%a != %a" 
+	pp_term_tptp l
+	pp_term_tptp r
+
+  (* Negation as ~P without parentheses *)
+  | Fun (s, [arg], _) when s == Symbol.symb_neg -> 
+      Format.fprintf 
+	ppf 
+	"~%a" 
+	pp_term_tptp arg
+
+  (* Non-unary negation *)
+  | Fun (s, _, _) when s == Symbol.symb_neg -> 
+      failwith "Term.pp_term_tptp: Non-unary negation"
+
+  (* Untyped equation as = *)
+  | Fun(s, [_; l; r], _)
+      when s == Symbol.symb_typed_equality -> 
+      Format.fprintf 
+	ppf 
+	"%a = %a" 
+	pp_term_tptp l
+	pp_term_tptp r
+
+  (* Typed equation as = *)
+  | Fun(s, [_; l; r], _)
+      when s == Symbol.symb_typed_equality -> 
+      Format.fprintf 
+	ppf 
+	"%a = %a" 
+	pp_term_tptp l
+	pp_term_tptp r
+
+  (* Non-nullary symbol as s(_) *)
   | Fun (sym, args, _) -> 
       Format.fprintf 
 	ppf 
 	"%a(%a)" 
-	Symbol.pp_symbol sym 
-	(pp_any_list pp_term ",") args
+	Symbol.pp_symbol_tptp sym 
+	(pp_any_list pp_term_tptp ",") args
+
+  (* Variable *)
   | Var (v, _) -> 
     Format.fprintf ppf "%a" Var.pp_var v
 

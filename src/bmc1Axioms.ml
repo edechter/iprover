@@ -991,6 +991,68 @@ let separate_bound_axioms clauses =
   List.partition is_bound_clause clauses
        
 
+
+(********** Utility functions **********)
+
+
+(* Formatter for output, None if uninitialised. Use
+   get_bmc1_dump_formatter as access function *)
+let bmc1_dump_formatter = ref None 
+
+
+(* Return a formatter for writing into the file given in the option
+   --bmc1_dump_file *)
+let get_bmc1_dump_formatter () = 
+
+  match !bmc1_dump_formatter with
+
+    (* Return formatter if initialised *)
+    | Some f -> f 
+
+
+    (* Formatter is not initialised *)
+    | None -> 
+      
+      (* Filename from options *)
+      let dump_filename = 
+
+	(* Get value of option *)
+	match val_of_override !current_options.bmc1_dump_file with
+
+	  (* Default is stdout *)
+	  | None -> "-" 
+
+	  (* Use filename if non-default *)
+	  | Some f -> f
+	    
+      in
+      
+      (* Formatter of channel of opened file *)
+      let new_bmc1_dump_formatter = 
+	
+	try 
+	  
+	  (* Open formatter writing into file *)
+	  formatter_of_filename false dump_filename
+	  
+	with
+	    
+	  (* Catch errors when opening *)
+	  | Sys_error _ -> 
+	    failwith 
+	      (Format.sprintf 
+		 "Could not open file %s for output"
+		 dump_filename)
+	      
+      in
+
+      (* Save formatter *)
+      bmc1_dump_formatter := Some new_bmc1_dump_formatter;
+
+      (* Return formatter *)
+      new_bmc1_dump_formatter
+  
+
 (********** Top functions **********)
 
 
