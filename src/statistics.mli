@@ -65,6 +65,7 @@ val prop_fo_subsumed               : stat_int_entry
 val bmc1_current_bound             : stat_fun_entry
 val bmc1_last_solved_bound         : stat_int_entry
 val bmc1_unsat_core_size           : stat_int_entry
+val bmc1_unsat_core_parents_size   : stat_int_entry
 
 (*----Instantiation------------*)
 val inst_num_of_clauses            : stat_fun_entry 

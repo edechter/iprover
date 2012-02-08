@@ -1246,12 +1246,24 @@ let rec main clauses finite_model_clauses =
 	     with Invalid_argument _ -> []);
 	  in
 
-	  (* Print unsat core *)
-	  Format.printf 
-	    "@\nUnsat core has size %d@\n%a@." 
-	    (List.length unsat_core_clauses)
-	    (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+	  if 
+	    
+	    (* Verbose output for BMC1?*)
+	    val_of_override !current_options.bmc1_verbose 
+	      
+	  then 
+	    
+	    (
 
+	      (* Print unsat core *)
+	      Format.printf 
+		"@\n%sUnsat core has size %d@\n@\n%a@." 
+		pref_str
+		(List.length unsat_core_clauses)
+		(pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+	      
+	    );
+	  
 	  (* Don't do this: very long output 
 	  (* Print histories of clauses in unsat core *)
 	  Format.printf "@\nClause histories:@\n@.";
@@ -1271,6 +1283,12 @@ let rec main clauses finite_model_clauses =
 	  let unsat_core_parents = 
 	    Clause.clause_list_get_history_parents unsat_core_clauses
 	  in
+
+	  (* Assign size of unsat core in statistics *)
+	  assign_int_stat 
+	    (List.length unsat_core_parents) 
+	    bmc1_unsat_core_parents_size;
+
 (*
 	    List.fold_left 
 	      (fun a c -> 
@@ -1285,38 +1303,30 @@ let rec main clauses finite_model_clauses =
 
 	  let end_time = Unix.gettimeofday () in
 	  
-	    if 
+	  if 
+	    
+	    (* Verbose output for BMC1?*)
+	    val_of_override !current_options.bmc1_verbose 
+
+	  then 
 	      
-	      (* Verbose output for BMC1?*)
-	      val_of_override !current_options.bmc1_verbose 
-
-	    then 
+	    (
 	      
-	      (
-
-		Format.printf 
-		  "Time for finding parents of unsat core clauses: %.3f@\n@."
-		  (end_time -. start_time);
+	      (* Print time to find parents of unsat core *)
+	      Format.printf 
+		"@\n%sTime to find parents of unsat core clauses: %.3f@."
+		pref_str
+		(end_time -. start_time);
+	      
+	      (* Print parents of unsat core *)
+	      Format.printf 
+		"@\n%sUnsat core parents has size %d@\n@\n%a@." 
+		pref_str
+		(List.length unsat_core_parents)
+		(pp_any_list Clause.pp_clause "\n") unsat_core_parents
 		
-		(* Print parents of unsat core *)
-		Format.printf 
-		  "@\nUnsat core parents has size %d@\n%a@." 
-		  (List.length unsat_core_parents)
-		  (pp_any_list Clause.pp_clause "\n") unsat_core_parents
-
-	      )
-		
-	    else
-
-	      (
-
-		(* Print parents of unsat core *)
-		Format.printf 
-		  "@\nUnsat core parents has size %d@\n@." 
-		  (List.length unsat_core_parents)
-
-	      );
-
+	    );
+	  
 	  if 
 	    
 	    (* Dump unsat core in TPTP format? *)
@@ -1346,7 +1356,15 @@ let rec main clauses finite_model_clauses =
 		!bmc1_cur_bound
 		Clause.pp_clause_list_tptp
 		unsat_core_parents;
-	      
+
+	      (* Output bound assumptions *)
+	      Format.fprintf 
+		dump_formatter
+		"%% ------------------------------------------------------------------------@\n%% Clause assumptions for bound %d@\n%a@." 
+		!bmc1_cur_bound
+		Clause.pp_clause_list_tptp
+		(Bmc1Axioms.get_bound_assumptions !bmc1_cur_bound)
+
 	    );
 	  
 	  (* Increment bound by one *)

@@ -1056,6 +1056,16 @@ let get_bmc1_dump_formatter () =
 (********** Top functions **********)
 
 
+(* Return clauses with assumptions for given bound *)
+let get_bound_assumptions bound =
+  
+  (* Get atom iProver_bound{n} *)
+  let bound_literal = create_bound_atom bound in
+  
+  (* Return unit clause containing positive bound atom *)
+  [ Clause.normalise term_db (Clause.create [ bound_literal ]) ]
+    
+
 (* Axioms for bound 0 *)
 let init_bound all_clauses = 
 
