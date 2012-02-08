@@ -1252,13 +1252,13 @@ let rec main clauses finite_model_clauses =
 	    (List.length unsat_core_clauses)
 	    (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
 
-	  (* Don't do this: very long output *)
+	  (* Don't do this: very long output 
 	  (* Print histories of clauses in unsat core *)
 	  Format.printf "@\nClause histories:@\n@.";
 	  List.iter
 	    (Format.printf "@\n%a@\n@." Clause.pp_clause_history)
 	    unsat_core_clauses;
-	  (* *)
+	  *)
 
 	  (* Assign size of unsat core in statistics *)
 	  assign_int_stat 
