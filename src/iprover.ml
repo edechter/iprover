@@ -1374,7 +1374,9 @@ let rec main clauses finite_model_clauses =
 
 	  (* Get value of maximal bound *)
 	  let max_bound = 
-	    val_of_override !current_options.bmc1_max_bound
+	    max
+	      (val_of_override !current_options.bmc1_max_bound)
+	      (val_of_override !current_options.bmc1_max_bound_default)
 	  in
 
 	    (* Output current bound *)
@@ -1912,14 +1914,18 @@ let run_iprover () =
 	);
 	
 	(* Output maxial bound for BMC1 *)
-	let max_bound = val_of_override !current_options.bmc1_max_bound in
-
-	  if max_bound >= 0 then 
-	    out_str 
-	      (Format.sprintf 
-		 "%sMaximal bound for BMC1 is %d@\n"
-		 pref_str
-		 max_bound);
+	let max_bound = 
+	  max
+	    (val_of_override !current_options.bmc1_max_bound)
+	    (val_of_override !current_options.bmc1_max_bound_default)
+	in
+	
+	if max_bound >= 0 then 
+	  out_str 
+	    (Format.sprintf 
+	       "%sMaximal bound for BMC1 is %d@\n"
+	       pref_str
+	       max_bound);
 	
  
 (* for finite models we ommit equality axioms! *)
