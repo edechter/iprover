@@ -1225,7 +1225,7 @@ let rec main clauses finite_model_clauses =
 	
 	(
 
-(*	  
+(*
 	  (match e with 
 	    | Discount.Unsatisfiable -> 
 	      Format.eprintf "Unsatisfiable in resolution@."
