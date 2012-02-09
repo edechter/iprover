@@ -17,7 +17,9 @@
 
 
 
-(* semantic filter *)
+(* semantic filter based on top symbol, *)
+(* more general based on unification is in prep_sem_filer_unif.ml*)
+
 open Lib
 type clause = Clause.clause
 type lit = Term.literal
@@ -61,7 +63,7 @@ let init_filter_state clause_list =
    filtered_clauses    = [];
    undef_pred_queue    = [];
    undef_pred_set      = SymbSet.empty;
-   watch_symbol_table  =  SymbHash.create 100000 
+   watch_symbol_table  = SymbHash.create 100000 
  }
 
 
