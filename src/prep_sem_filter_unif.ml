@@ -22,6 +22,11 @@ type lit = Term.literal
 type term = Term.term
 type symbol = Symbol.symbol  
 
+let symbol_db_ref  = Parser_types.symbol_db_ref
+let term_db_ref    = Parser_types.term_db_ref
+
+
+(*-------------------------------*)
 type filter_clause = 
     {orig_clause : clause;
 (* order literals first in the order of preferred selection *)
@@ -67,3 +72,24 @@ type filter_state =
 
      mutable watch_unif_index : (watch_unif_index_elem DiscrTreeM.index);
    }
+
+let clause_to_filter_clause order_lit_fun clause = 
+  {
+   orig_clause = clause;
+   lits_to_try = order_lit_fun (Clause.get_literals clause);
+ }
+
+
+let init_filter_state clause_list order_lit_fun = 
+  {
+   unprocessed_clauses = 
+   List.map (clause_to_filter_clause order_lit_fun) clause_list;
+
+   filtered_in_clauses    = [];
+
+   atom_unif_index     = (DiscrTreeM.create ());
+   watch_unif_index    = (DiscrTreeM.create ());
+ }
+
+(* dummy *)
+let sem_filter_unif clause_list = clause_list
