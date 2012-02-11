@@ -176,6 +176,64 @@ exception Skip_error
 	!candis_ref
 
 
+(*--------unif_cand_exists' checks whether there is a unif candidate in the index-------------------------*)	
+(*-----raises Found if unif candidate is found otherwise returns unit----*)
+
+    exception Found
+
+    let rec unif_cand_exists' index skip term_list = 
+      (* let key_list = get_key_list term in*)
+	begin
+	  if skip = 0 then 
+	    match term_list with 
+	    |Term.Fun(sym,args,_)::tl ->
+		( 
+		  try 
+		    unif_cand_exists' 
+		      (DTM.get_subtrie (Sym(sym)) index)
+		      skip ((Term.arg_to_list args)@tl)
+		  with 
+		    Not_found ->
+		      (try	       
+			(unif_cand_exists'  
+			   (DTM.get_subtrie Var index) skip tl
+			)
+		      with Not_found -> ()
+		      )
+		 )		       
+	    | Term.Var(v,_)::tl ->  	
+		unif_cand_exists' index 1 tl
+		  
+	    | [] -> 
+		(match !(DTM.get_from_leaf index) with
+		|Elem _elem_list -> 
+		    raise Found
+		   (* candis_ref := (List.rev_append elem_list !candis_ref)*)
+		|_ -> raise Empty_elem_in_disc_tree
+		)    
+	  else 
+	    if skip > 0 then 
+	      let f key_sym trie = 
+		(match key_sym with 
+		|Sym(s) -> 
+		    (unif_cand_exists' 
+		       trie (skip-1+(Symbol.get_arity s)) term_list)
+		      
+		|Var -> 
+		    (unif_cand_exists'
+		       trie (skip-1) term_list)
+		)	
+	      in	
+	      DTM.iter_level0 f index  
+	    else raise Skip_error 
+	end
+
+let unif_cand_exists index term =
+  try  
+    (unif_cand_exists' index 0 [term]);
+    false
+  with 
+    Found -> true
 
 (* TO FINISH *)	  	  
 (*    let remove_grounding_path' index_ref grounding_term term_list =
