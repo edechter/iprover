@@ -62,6 +62,13 @@ module type Trie =
     val mem         : keylist -> 'a trie -> bool 
     val find          : keylist -> 'a trie -> 'a ref_elem  
     val add_path    : keylist -> ('a trie) ref -> 'a ref_elem
+
+(* remove_path/_ret can raise:
+    Trie_remove_path_too_long
+    Trie_remove_path_too_short
+    Trie_remove_remove_from_emptytrie
+    Not_in_tree
+ *)
     val remove_path : keylist -> ('a trie) ref -> unit
     val remove_path_ret : keylist -> ('a trie) ref -> 'a ref_elem
 (*    val map    : ('a elem -> 'a elem) ->'a trie ->'a trie *)

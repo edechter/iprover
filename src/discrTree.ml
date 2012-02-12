@@ -30,6 +30,8 @@ type sym_or_var = Sym of symbol | Var
 
 let init_num_of_kes_bound = 11
 
+exception Not_in_discr_tree
+
 module type Param = 
   sig
     val num_of_symb : int
@@ -48,6 +50,7 @@ module type DiscrTree =
 (*    val remove_grounding_path : term -> grounding_term -> 
       ('a index) ref -> 'a list *)
     val unif_candidates : (('a list) index) -> term -> 'a list 
+    val unif_cand_exists : 'a index -> term -> bool 
 (*only for debug*)
 (*    val get_key_list : term -> sym_or_var list *)
   end
@@ -118,11 +121,24 @@ module Make (P:Param) =
      DTM.add_path key_list ref_index 
 
     let remove_term_path term ref_index = 
-      DTM.remove_path (get_key_list term) ref_index
+      try
+	DTM.remove_path (get_key_list term) ref_index
+      with 
+	DTM.Trie_remove_path_too_long 
+      |DTM.Trie_remove_path_too_short
+      |DTM.Trie_remove_remove_from_emptytrie
+      |DTM.Not_in_tree  -> raise Not_in_discr_tree
+
 
     let remove_term_path_ret term ref_index = 
-      DTM.remove_path_ret (get_key_list term) ref_index
-
+      try
+	DTM.remove_path_ret (get_key_list term) ref_index
+      with 
+	DTM.Trie_remove_path_too_long 
+      |DTM.Trie_remove_path_too_short
+      |DTM.Trie_remove_remove_from_emptytrie
+      |DTM.Not_in_tree  -> raise Not_in_discr_tree
+	    
 
 exception Skip_error 
 	
@@ -209,7 +225,11 @@ exception Skip_error
 		|Elem _elem_list -> 
 		    raise Found
 		   (* candis_ref := (List.rev_append elem_list !candis_ref)*)
-		|_ -> raise Empty_elem_in_disc_tree
+		|Empty_Elem ->  
+		    raise Found 
+		      (* we allow empty element, in some cases index is needed to *)
+                      (* check unif candidates without storing actual elements *)
+                  (*raise Empty_elem_in_disc_tree*)
 		)    
 	  else 
 	    if skip > 0 then 
@@ -234,6 +254,7 @@ let unif_cand_exists index term =
     false
   with 
     Found -> true
+
 
 (* TO FINISH *)	  	  
 (*    let remove_grounding_path' index_ref grounding_term term_list =

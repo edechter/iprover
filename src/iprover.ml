@@ -21,7 +21,7 @@ open Options
 open Statistics
 open Printf
 
-
+exception SZS_Unknown
 
 type clause = Clause.clause 
 
@@ -1920,21 +1920,29 @@ let run_iprover () =
 
 (*--------------semantic filter---------------------------*)
       if !current_options.prep_sem_filter_out 
-    then  
-      (
-       out_str (pref_str^"Semantically Preprocessed Clauses:\n");
-       let prep_clauses = 
-	 Prep_sem_filter.filter !(Parser_types.all_current_clauses) in 
-       Clause.out_clause_list_tptp prep_clauses; 
-       out_str "\n\n";
-       exit(0);
-      )
+      then  
+	(
+	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");
+	 let prep_clauses = 
+	   Prep_sem_filter.filter !(Parser_types.all_current_clauses) in 
+	 Clause.out_clause_list_tptp prep_clauses; 
+	 out_str "\n\n";
+	(* exit(0);*)
+	 raise SZS_Unknown 
+	)
     else 
-      (if (!current_options.prep_sem_filter && 
+      (
+       (* if (!current_options.prep_sem_filter && 
 	   (not (Symbol.is_input Symbol.symb_equality)))
-      then 
-        current_clauses := Prep_sem_filter.filter !current_clauses
-      else ()
+	*)
+       (* was as above but equality should be ok, *)
+       (* problem with finite models and bmc1     *)
+
+       if (!current_options.prep_sem_filter != Sem_Filter_None) 
+       then 
+	 (out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
+          current_clauses := Prep_sem_filter.filter !current_clauses)
+       else ()
       );
   
 (*--------------End sem filter---------------------------*)

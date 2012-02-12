@@ -21,6 +21,7 @@ type symbol = Symbol.symbol
 type var    = Var.var
 type sym_or_var = Sym of symbol | Var 
 
+exception Not_in_discr_tree
 
 module type Param = 
   sig
@@ -38,6 +39,7 @@ module type DiscrTree =
     val remove_term_path : term -> ('a index) ref -> unit
     val remove_term_path_ret : term -> ('a index) ref -> 'a ref_elem
     val unif_candidates : (('a list) index) -> term -> 'a list 
+    val unif_cand_exists : 'a index -> term -> bool 
   end
 
 module Make (P:Param) : DiscrTree

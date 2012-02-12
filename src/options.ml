@@ -141,6 +141,28 @@ let str_to_ground_splitting_type str =
   |_       -> raise Unknown_ground_splitting_type
 
 
+(*--------*)
+type prep_sem_filter_type = 
+    Sem_Filter_None | Sem_Filter_Pos | Sem_Filter_Neg | Sem_Filter_Exhaustive
+
+let prep_sem_filter_type_to_str opt = 
+  match opt with 
+  | Sem_Filter_None       -> "none"
+  | Sem_Filter_Pos        -> "pos"
+  | Sem_Filter_Neg        -> "neg"
+  | Sem_Filter_Exhaustive -> "exhaustive"
+
+exception Unknown_sem_filter_type
+let str_to_prep_sem_filter_type str = 
+  match str with 
+  |"none" ->  Sem_Filter_None      
+  |"pos"  -> Sem_Filter_Pos        
+  |"neg"  -> Sem_Filter_Neg        
+  |"exhaustive" -> Sem_Filter_Exhaustive 
+  |_-> raise Unknown_sem_filter_type
+
+let prep_sem_filter_type_str = "<none|pos|neg|exhaustive>"
+
 
 (*--------*)
 
@@ -536,7 +558,7 @@ type options = {
     mutable prep_prop_sim         : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
-    mutable prep_sem_filter       : bool;
+    mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
     mutable brand_transform       : bool;
 
@@ -634,7 +656,7 @@ let default_options () = {
   prep_prop_sim           = true;
   symbol_type_check       = false;
   clausify_out            = false;
-  prep_sem_filter         = false;
+  prep_sem_filter         = Sem_Filter_None;
   prep_sem_filter_out     = false;
   brand_transform         = false;
 
@@ -948,6 +970,8 @@ let ground_splitting_inf  =
   "<input | full | off >"^
   inf_pref^"splitting of clauses on maximal variable-disjoint parts\n"
 
+
+
 (*--------*)
 
 
@@ -1000,12 +1024,16 @@ let clausify_out_inf =
 (*-------*)
 let prep_sem_filter_str = "--prep_sem_filter"
 
-let prep_sem_filter_fun b = 
-  !current_options.prep_sem_filter <- b
-
-let prep_sem_filter_inf = 
-  bool_str^
-  inf_pref^"semantic preproscessing of the input set\n"
+let prep_sem_filter_fun str = 
+  try 
+    !current_options.prep_sem_filter <- (str_to_prep_sem_filter_type str)
+  with 
+     Unknown_sem_filter_type -> 
+        failwith (args_error_msg prep_sem_filter_str str)
+  
+let prep_sem_filter_inf  =
+  prep_sem_filter_type_str^
+  inf_pref^"apply semantic filter to the input clauses \n"
 
 
 (*-------*)
@@ -1799,7 +1827,7 @@ let spec_list =
   (prep_prop_sim_str, Arg.Bool(prep_prop_sim_fun), prep_prop_sim_inf);
    (symbol_type_check_str, Arg.Bool(symbol_type_check_fun), symbol_type_check_inf);
    (clausify_out_str,  Arg.Bool(clausify_out_fun), clausify_out_inf);
-   (prep_sem_filter_str, Arg.Bool(prep_sem_filter_fun), prep_sem_filter_inf);
+   (prep_sem_filter_str, Arg.String(prep_sem_filter_fun), prep_sem_filter_inf);
    (prep_sem_filter_out_str, Arg.Bool(prep_sem_filter_out_fun), prep_sem_filter_out_inf);
    (brand_transform_str, Arg.Bool(brand_transform_fun), brand_transform_inf);
 
@@ -1961,7 +1989,7 @@ let general_options_str_list opt =
        (symbol_type_check_str, (string_of_bool opt.symbol_type_check));
        (clausify_out_str, (string_of_bool opt.clausify_out));
        (large_theory_mode_str, (string_of_bool opt.large_theory_mode));
-       (prep_sem_filter_str, (string_of_bool opt.prep_sem_filter));
+       (prep_sem_filter_str, (prep_sem_filter_type_to_str opt.prep_sem_filter));
        (prep_sem_filter_out_str, (string_of_bool opt.prep_sem_filter_out));
        (brand_transform_str, (string_of_bool opt.brand_transform));
        (prolific_symb_bound_str, (string_of_int opt.prolific_symb_bound));
@@ -2209,7 +2237,7 @@ let named_opt_to_many_axioms_named_opt1 opt =
        {opt.options with 
 
 	large_theory_mode       = true; 
-	prep_sem_filter         = true;
+	prep_sem_filter         = Sem_Filter_Neg;
 	prep_sem_filter_out     = false;
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
@@ -2241,7 +2269,7 @@ let named_opt_to_many_axioms_named_opt2 opt =
        {opt.options with 
 
 	large_theory_mode       = true; 
-	prep_sem_filter         = true;
+	prep_sem_filter         = Sem_Filter_Neg;
 	prep_sem_filter_out     = false;
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
@@ -2293,7 +2321,7 @@ let named_opt_to_many_axioms_named_opt3 opt =
        {opt.options with 
 
 	large_theory_mode       = true; 
-	prep_sem_filter         = true;
+	prep_sem_filter         = Sem_Filter_Neg;
 	prep_sem_filter_out     = false;
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
