@@ -1922,11 +1922,24 @@ let run_iprover () =
       if !current_options.prep_sem_filter_out 
       then  
 	(
-	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");
+
+(*	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");*)
 	 let prep_clauses = 
-	   Prep_sem_filter.filter !(Parser_types.all_current_clauses) in 
-	 Clause.out_clause_list_tptp prep_clauses; 
+	   Prep_sem_filter_unif.sem_filter_unif !current_clauses in 
+(*
+	  let prep_clauses = 
+	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
+*)
+
+(*
+	  out_str (pref_str^"Before sem filter:\n");
+	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
+
+	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
+	  Clause.out_clause_list_tptp prep_clauses; 
+*)
 	 out_str "\n\n";
+	 out_stat ();
 	(* exit(0);*)
 	 raise SZS_Unknown 
 	)

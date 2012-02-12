@@ -102,6 +102,7 @@ let is_unif unif_index lit =
 (* find_watch_lit raise Not_found if no watch_symb found *)  
 
 let rec find_watch_lit filter_state fclause =
+(*  out_str ("\n Find watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
   match fclause.lits_to_try with
   |[] -> raise Not_found
   |h::tl -> 
@@ -129,6 +130,7 @@ let add_to_watch filter_state watch_lit fclause =
   (match !ind_elem with 
   |Elem(old) -> 
       (
+(*       out_str ("\n Added to watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
        ind_elem:= Elem (fclause::old)
       )
   |Empty_Elem   -> 	       
@@ -161,6 +163,7 @@ let remove_from_watch filter_state fclause =
 (* atom(lit) will be in filter_state.atom_unif_index *)
  fclause.lits_to_try <- tl;
 (* add fclause to unprocessed *)
+(* out_str ("\n Added to unprocessed: "^(Clause.to_string fclause.orig_clause)^"\n");*)
  filter_state.unprocessed_fclauses <- fclause::(filter_state.unprocessed_fclauses)
 
 (*---------------------------*)
@@ -191,19 +194,21 @@ let rec filter_clauses filter_state =
   match filter_state.unprocessed_fclauses with 
   |[] ->  filter_state.filtered_in_clauses
   |fclause::tl ->
-      (try 
-	let watch_lit = find_watch_lit filter_state fclause in 
+      begin
+	filter_state.unprocessed_fclauses <- tl;
+	(try 
+	  let watch_lit = find_watch_lit filter_state fclause in 
 	(add_to_watch filter_state watch_lit fclause)
-      with
-	Not_found -> 
-	  (
-	   add_filtered_in_clause filter_state fclause;
-	  )
-      );
-      filter_state.unprocessed_fclauses <- tl;
-      filter_clauses filter_state
-    
-    
+	with
+	  Not_found -> 
+	    (
+(*	     out_str ("\n Not Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
+	     add_filtered_in_clause filter_state fclause;
+	    )
+	);
+
+	filter_clauses filter_state    
+      end
 
 
 let neg_order_fun () =  
@@ -222,9 +227,10 @@ let sem_filter_unif_order order_fun clause_list =
   ignore(filter_clauses filter_state);
   let time_after = Unix.gettimeofday () in 
   add_float_stat (time_after-.time_before) sem_filter_time;
-  incr_int_stat  
-    ((List.length clause_list)-(List.length filter_state.filtered_in_clauses)) 
-    num_of_sem_filtered_clauses;
+  let num_of_filtered_out =
+    (List.length clause_list) - (List.length filter_state.filtered_in_clauses) in
+(*  out_str ("Num of : num_of_filtered_out "^(string_of_int num_of_filtered_out));*)
+  incr_int_stat num_of_filtered_out num_of_sem_filtered_clauses;
   filter_state.filtered_in_clauses
  
 
