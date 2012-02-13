@@ -97,7 +97,9 @@ let init_filter_state clause_list order_lit_fun =
 
 (* lit is unifiable with the element in the index*)
 let is_unif unif_index lit =
-     (DiscrTreeM.unif_cand_exists unif_index lit)
+  (DiscrTreeM.unif_cand_exists unif_index lit)
+
+
 
 (* find_watch_lit raise Not_found if no watch_symb found *)  
 
@@ -109,6 +111,19 @@ let rec find_watch_lit filter_state fclause =
      (* fclause.lits_to_try <- tl;*)
       let atom = Term.get_atom h in       
       let compl_h = (Term.compl_lit h) in     
+(*      
+      out_str 
+	(
+	 " clause: "^(Clause.to_string fclause.orig_clause)
+	 ^" to try "^(Term.term_list_to_string fclause.lits_to_try) 
+	 ^" Compl_h: "^(Term.to_string compl_h)^" unif watch ind: "
+	 ^(string_of_bool (is_unif filter_state.watch_unif_index compl_h))
+	 ^" unif cand: "
+	 ^(Clause.clause_list_to_string 
+	     (List.map (fun fcl -> fcl.orig_clause)
+		(DiscrTreeM.unif_candidates 
+		   filter_state.watch_unif_index compl_h))^"\n"));
+*)
       if 
 	(* check that the atom is not unif with  atom_unif_index *)
 	(not (is_unif filter_state.atom_unif_index atom))
@@ -122,7 +137,7 @@ let rec find_watch_lit filter_state fclause =
 	 fclause.lits_to_try <- tl;
 	 find_watch_lit filter_state fclause
 	)
-	  	
+	  
 let add_to_watch filter_state watch_lit fclause = 
   let ind_ref = ref filter_state.watch_unif_index in
   let ind_elem = DiscrTreeM.add_term_path watch_lit ind_ref in
@@ -130,11 +145,18 @@ let add_to_watch filter_state watch_lit fclause =
   (match !ind_elem with 
   |Elem(old) -> 
       (
-(*       out_str ("\n Added to watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
+(*       out_str ("\n Added to watch lit: "
+		^(Term.to_string watch_lit)^" clause: "
+		^(Clause.to_string fclause.orig_clause)^"\n");
+*)
        ind_elem:= Elem (fclause::old)
       )
   |Empty_Elem   -> 	       
       (
+(*      out_str ("\n Added to watch new lit: "
+		^(Term.to_string watch_lit)^" clause: "
+		^(Clause.to_string fclause.orig_clause)^"\n");
+  *)     
        ind_elem := Elem([fclause])
       )
   )     
@@ -150,6 +172,7 @@ let get_watched_list_fclause fclause =
 (*remove_from_watch: assumes that fclause is in filter_state.watch_unif_index *)
 let remove_from_watch filter_state fclause =
  let (w_lit,tl) = get_watched_list_fclause fclause in
+(* out_str ("\n Remove from watch:"^(Term.to_string w_lit)^"\n");*)
  (* we assume that all clauses for removal are already collected *)
  let ind_ref = ref filter_state.watch_unif_index in
  (try 
@@ -198,6 +221,7 @@ let rec filter_clauses filter_state =
 	filter_state.unprocessed_fclauses <- tl;
 	(try 
 	  let watch_lit = find_watch_lit filter_state fclause in 
+(*	  out_str ("\n Found watch: "^(Term.to_string watch_lit)^" : "^(Clause.to_string fclause.orig_clause)^"\n");*)
 	(add_to_watch filter_state watch_lit fclause)
 	with
 	  Not_found -> 
@@ -224,7 +248,9 @@ let pos_order_fun () =
 let sem_filter_unif_order order_fun clause_list = 
   let time_before = Unix.gettimeofday () in       	
   let filter_state = init_filter_state clause_list order_fun in
+
   ignore(filter_clauses filter_state);
+
   let time_after = Unix.gettimeofday () in 
   add_float_stat (time_after-.time_before) sem_filter_time;
   let num_of_filtered_out =
@@ -241,7 +267,7 @@ let sem_filter_unif clause_list =
       sem_filter_unif_order 
 	(pos_order_fun ()) 
 	clause_list
-  | Sem_Filter_Neg -> sem_filter_unif_order (pos_order_fun ()) clause_list
+  | Sem_Filter_Neg -> sem_filter_unif_order (neg_order_fun ()) clause_list
   | Sem_Filter_Exhaustive 
     -> 
       begin

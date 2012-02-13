@@ -1955,7 +1955,10 @@ let run_iprover () =
        if (!current_options.prep_sem_filter != Sem_Filter_None) 
        then 
 	 (out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
-          current_clauses := Prep_sem_filter.filter !current_clauses)
+(*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
+	  current_clauses := Prep_sem_filter_unif.sem_filter_unif !current_clauses;
+	  
+	 ) 
        else ()
       );
   

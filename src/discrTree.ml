@@ -198,7 +198,7 @@ exception Skip_error
     exception Found
 
     let rec unif_cand_exists' index skip term_list = 
-      (* let key_list = get_key_list term in*)
+      (* let key_list = get_key_list term in *)
 	begin
 	  if skip = 0 then 
 	    match term_list with 
@@ -207,16 +207,16 @@ exception Skip_error
 		  try 
 		    unif_cand_exists' 
 		      (DTM.get_subtrie (Sym(sym)) index)
-		      skip ((Term.arg_to_list args)@tl)
-		  with 
-		    Not_found ->
-		      (try	       
-			(unif_cand_exists'  
-			   (DTM.get_subtrie Var index) skip tl
-			)
-		      with Not_found -> ()
-		      )
-		 )		       
+		      skip ((Term.arg_to_list args)@tl)		  
+		  with Not_found -> ());	       
+		(try	       
+		  (
+		   unif_cand_exists'  
+		     (DTM.get_subtrie Var index) skip tl
+		  )
+		with Not_found -> ()
+		)
+	 		       
 	    | Term.Var(v,_)::tl ->  	
 		unif_cand_exists' index 1 tl
 		  
