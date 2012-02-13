@@ -1939,9 +1939,10 @@ let run_iprover () =
 	  Clause.out_clause_list_tptp prep_clauses; 
 *)
 	 out_str "\n\n";
+	 out_str (unknown_str  ());
 	 out_stat ();
-	(* exit(0);*)
-	 raise SZS_Unknown 
+	 exit(0);
+	(* raise SZS_Unknown *)
 	)
     else 
       (

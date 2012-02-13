@@ -201,7 +201,7 @@ clean_all: clean
 	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi
 
 
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util
 
 #use this to temporally adding some names
 ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
