@@ -3,7 +3,8 @@
 # make CPP=true for c++ version of minisat
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
-# for debugging make debug
+# for debugging "make debug=true"
+
 OCAML=ocaml
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
@@ -18,6 +19,7 @@ PROFILE=
 OCAMLOPTOPT=ocamlopt.opt
 OCAMLDEP=ocamldep
 INCLUDES=
+debug=
 #OCAMLFLAGS=$(INCLUDES)
 #OCAMLOPTFLAGS=$(INCLUDES)
 
@@ -102,6 +104,11 @@ ifeq ($(PROFILE),true)
   ADDTONAME=prof
 endif
 
+ifeq ($(debug),true)
+#:= "Simply expanded variable"
+#-g for debugging recording backtraces
+  OCAMLFLAGS:=$(OCAMLFLAGS) -g
+endif
 
 IPROVER_C_OBJ= $(PROP_SOLVER_NAMES:%=obj/%.o)
 

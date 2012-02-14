@@ -153,7 +153,7 @@ type options = {
     mutable clausifier            : string;
     mutable clausifier_options    : string;
     mutable stdin                 : bool;
-
+    mutable dbg_backtrace         : bool;
 (*----General--------*)
     mutable fof                   : bool;    
     mutable time_out_real         : float;

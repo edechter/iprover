@@ -1768,13 +1768,14 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 	     |PropSolver.Sat   ->
 
 		   let new_solver_sel_lit = 
-		     try
+		     try 
 		     selection_fun consistent_with_solver clause 
 		     with 
 		       Not_found -> 
 			 ( out_str ("\n Selection is not found for clause: "
 				    ^(Clause.to_tptp clause)^"\n");
 			   failwith "selection_renew_model")
+
 		   in	  
 		   let new_solver_sel_var_entry  = 
 		     get_prop_gr_var_entry new_solver_sel_lit in

@@ -21,12 +21,10 @@ open Options
 open Statistics
 open Printf
 
-let () = 
-  out_str "\n\n Debugging: remove Printexc.record_backtrace true in iprover.ml \n\n "
 
 (* record backtrace for debugging          *)
 (* compile with -g option to get the trace *)
-let () = Printexc.record_backtrace true
+(*let () = Printexc.record_backtrace true*)
 
 
 exception SZS_Unknown
@@ -2127,18 +2125,18 @@ let run_iprover () =
      out_str (unknown_str ()); 
      out_str "Schedule_Terminated:  try an extended schedule or with an unbounded time limit";
      
-       (* Do not output statistics in BMC1 mode with
-	  --bmc1_out_stat none *)
+     (* Do not output statistics in BMC1 mode with
+	--bmc1_out_stat none *)
      if (not !current_options.bmc1_incremental) || 
-       (not (val_of_override !current_options.bmc1_out_stat = 
+     (not (val_of_override !current_options.bmc1_out_stat = 
 	   BMC1_Out_Stat_None)) then
        out_stat ())
-      
+	
   (* Silently terminate after BMC1 maximal bound proved *)
   | Exit -> ()
   
   | x -> 
-      (out_str ("Backtrace: \n"^(Printexc.get_backtrace ()));
+      ((*out_str ("Backtrace: \n"^(Printexc.get_backtrace ()));*)
        kill_all_child_processes ();
        out_str (unknown_str ());
        raise x)

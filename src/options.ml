@@ -547,6 +547,7 @@ type options = {
     mutable clausifier            : string;
     mutable clausifier_options    : string;
     mutable stdin                 : bool;
+    mutable dbg_backtrace         : bool;
 
 (*----General--------*)
     mutable fof                   : bool;
@@ -645,6 +646,7 @@ let default_options () = {
   clausifier              = "";
   clausifier_options      = "";
   stdin                   = false;
+  dbg_backtrace           = false;
 
 (*----General--------*)
   fof                     = false;
@@ -899,6 +901,20 @@ let stdin_inf =
   inf_pref^"if the problem is in fof then add \"--fof true\" flag \n"^
   (* ugly hack*)
   (dash_str "General Options")^"\n"
+
+(*--------*)
+let dbg_backtrace_str = "--dbg_backtrace"
+
+let dbg_backtrace_fun b = 
+  (if b 
+  then 
+    Printexc.record_backtrace b
+  else());
+  !current_options.dbg_backtrace <- b
+      
+let dbg_backtrace_inf = 
+  bool_str^
+  inf_pref^"debug: backtrace is recorderd and displayed, make iProver with \"make debug=true\" \n"
 
 (*----General--------*)
 
@@ -1815,7 +1831,7 @@ let spec_list =
    (clausifier_str,Arg.String(clausifier_fun),clausifier_inf); 
    (clausifier_options_str,Arg.String(clausifier_options_fun),clausifier_options_inf); 
    (stdin_str,Arg.Bool(stdin_fun),stdin_inf);
-
+   (dbg_backtrace_str, Arg.Bool(dbg_backtrace_fun), dbg_backtrace_inf);
 
 (*------General-------*)
    (fof_str, Arg.Bool(fof_fun), fof_inf);
@@ -1974,7 +1990,8 @@ let input_options_str_list opt =
     (include_path_str, opt.include_path);
     (clausifier_str, opt.clausifier);
     (clausifier_options_str, opt.clausifier_options);
-    (stdin_str,        (string_of_bool opt.stdin));
+    (stdin_str,         (string_of_bool opt.stdin));
+    (dbg_backtrace_str, (string_of_bool opt.dbg_backtrace));
   ]
 
 let general_options_str_list opt = 
@@ -2361,6 +2378,7 @@ let option_1 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
 
 (*----General--------*)
   fof                     = false;
@@ -2506,6 +2524,8 @@ let option_2 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+ dbg_backtrace           = !current_options.dbg_backtrace;
+
 (*----General--------*)
   fof                     = false;
   time_out_real           = -1.;
@@ -2623,7 +2643,8 @@ let option_3 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
-  
+  dbg_backtrace           = !current_options.dbg_backtrace;
+
 (*----General--------*)
   fof                     = false;
   time_out_real           = -1.;
@@ -2737,6 +2758,7 @@ let option_4 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
 
 (*----General--------*) 
   fof                     = false;
@@ -2862,7 +2884,8 @@ let option_finite_models () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
-  
+  dbg_backtrace           = !current_options.dbg_backtrace;
+
 (*----General--------*)
   fof                     = false;
   time_out_real           = -1.;
@@ -2981,6 +3004,7 @@ let option_epr_non_horn () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
 
 (*----General--------*)
  fof                     = false;
@@ -3222,7 +3246,7 @@ let option_epr_horn () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;  
-
+  dbg_backtrace           = !current_options.dbg_backtrace;
 
 (*----General--------*)
 
@@ -3461,6 +3485,7 @@ let option_verification_epr ver_epr_opt =
 
                           
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
 
 (*----General--------*)   
   fof                     = false;
@@ -3583,6 +3608,7 @@ let option_verification_epr ver_epr_opt =
 
                           
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
 
 (*----General--------*)   
     fof                     = false;
@@ -3703,7 +3729,8 @@ let option_verification_epr ver_epr_opt =
        
                           
        stdin                   = !current_options.stdin;
-       
+       dbg_backtrace           = !current_options.dbg_backtrace;
+
 (*----General--------*)   
        fof                     = false;
        time_out_real           = -1.;
