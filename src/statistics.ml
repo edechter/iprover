@@ -248,6 +248,12 @@ let bmc1_unsat_core_size =
    value = -1;
  }
 
+let bmc1_unsat_core_parents_size = 
+  {
+   int_entry_name = "bmc1_unsat_core_parents_size";
+   value = -1;
+ }
+
 
 (*------Instantiation------------------*)
 
@@ -571,7 +577,9 @@ let bmc1_fun_stat_list =
   [ bmc1_current_bound ]
 
 let bmc1_int_stat_list =
-  [ bmc1_last_solved_bound; bmc1_unsat_core_size ]
+  [ bmc1_last_solved_bound; 
+    bmc1_unsat_core_size; 
+    bmc1_unsat_core_parents_size ]
 
 let bmc1_float_stat_list =
   [  ]

@@ -307,6 +307,7 @@ let pp_clause ppf clause =
     (pp_any_list Term.pp_term ";") clause.literals
 
 
+(* Output clause in TPTP format *)
 let pp_clause_tptp ppf clause = 
   Format.fprintf 
     ppf 
@@ -318,7 +319,27 @@ let pp_clause_tptp ppf clause =
      then "negated_conjecture"
      else "plain")
     (pp_any_list Term.pp_term_tptp " | ") clause.literals
+    
 
+(* Output list of clauses in TPTP format, skipping equality axioms *)
+let rec pp_clause_list_tptp ppf = function
+
+  | [] -> ()
+
+  (* Skip equality axioms *)
+  | { history = Def (Axiom Eq_Axiom) } :: tl ->     
+    pp_clause_list_tptp ppf tl
+
+
+  (* Clause at last position in list *)
+  | [c] -> pp_clause_tptp ppf c
+
+  (* Clause at middle position in list *)
+  | c :: tl -> 
+    pp_clause_tptp ppf c;
+    Format.pp_print_newline ppf ();
+    pp_clause_list_tptp ppf tl
+  
 	
 let out = to_stream stdout_stream
 

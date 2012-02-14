@@ -15,7 +15,27 @@
 (*----------------------------------------------------------------------[C]-*)
  
 
+(** Return a formatter for writing into the file given in the option
+    --bmc1_dump_file **)
+val get_bmc1_dump_formatter : unit -> Format.formatter
+
+
+(** Return list of clause assumptions for given bound 
+
+    Currently return just one unit clause with the activation literal
+    for bound dependant clauses *)
+val get_bound_assumptions : int -> Clause.clause list 
+
+
+(** Initialise BMC1 axioms from input clauses, return the axioms
+    generated for bound 0 and the modified input clauses *)
 val init_bound : Clause.clause list -> Clause.clause list * Clause.clause list
 
+(** Add BMC1 axioms incrementing the bound from given current bound to
+    given next bound. Difference between current and next bound must
+    be 1.
+
+    TODO: Fix this to arbitrary bound increments 
+*)
 val increment_bound : int -> int -> Clause.clause list
 

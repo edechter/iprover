@@ -1252,12 +1252,24 @@ let rec main clauses finite_model_clauses =
 	     with Invalid_argument _ -> []);
 	  in
 
-	  (* Print unsat core *)
-	  Format.printf 
-	    "@\nUnsat core has size %d@\n%a@." 
-	    (List.length unsat_core_clauses)
-	    (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+	  if 
+	    
+	    (* Verbose output for BMC1?*)
+	    val_of_override !current_options.bmc1_verbose 
+	      
+	  then 
+	    
+	    (
 
+	      (* Print unsat core *)
+	      Format.printf 
+		"@\n%sUnsat core has size %d@\n@\n%a@." 
+		pref_str
+		(List.length unsat_core_clauses)
+		(pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+	      
+	    );
+	  
 	  (* Don't do this: very long output 
 	  (* Print histories of clauses in unsat core *)
 	  Format.printf "@\nClause histories:@\n@.";
@@ -1277,6 +1289,12 @@ let rec main clauses finite_model_clauses =
 	  let unsat_core_parents = 
 	    Clause.clause_list_get_history_parents unsat_core_clauses
 	  in
+
+	  (* Assign size of unsat core in statistics *)
+	  assign_int_stat 
+	    (List.length unsat_core_parents) 
+	    bmc1_unsat_core_parents_size;
+
 (*
 	    List.fold_left 
 	      (fun a c -> 
@@ -1291,41 +1309,71 @@ let rec main clauses finite_model_clauses =
 
 	  let end_time = Unix.gettimeofday () in
 	  
-	    if 
+	  if 
+	    
+	    (* Verbose output for BMC1?*)
+	    val_of_override !current_options.bmc1_verbose 
+
+	  then 
 	      
-	      (* Verbose output for BMC1?*)
-	      val_of_override !current_options.bmc1_verbose 
-
-	    then 
+	    (
 	      
-	      (
-
-		Format.printf 
-		  "Time for finding parents of unsat core clauses: %.3f@\n@."
-		  (end_time -. start_time);
+	      (* Print time to find parents of unsat core *)
+	      Format.printf 
+		"@\n%sTime to find parents of unsat core clauses: %.3f@."
+		pref_str
+		(end_time -. start_time);
+	      
+	      (* Print parents of unsat core *)
+	      Format.printf 
+		"@\n%sUnsat core parents has size %d@\n@\n%a@." 
+		pref_str
+		(List.length unsat_core_parents)
+		(pp_any_list Clause.pp_clause "\n") unsat_core_parents
 		
-		(* Print parents of unsat core *)
-		Format.printf 
-		  "@\nUnsat core parents has size %d@\n%a@." 
-		  (List.length unsat_core_parents)
-		  (pp_any_list Clause.pp_clause "\n") unsat_core_parents
+	    );
+	  
+	  if 
+	    
+	    (* Dump unsat core in TPTP format? *)
+	    val_of_override !current_options.bmc1_dump_unsat_core_tptp 
+		    
+	  then
+		  
+	    (
+	      
+	      (* Formatter to write to, i.e. stdout or file *)
+	      let dump_formatter =
+		Bmc1Axioms.get_bmc1_dump_formatter ()
+	      in
+	      
+	      (* Output clauses *)
+	      Format.fprintf 
+		dump_formatter
+		"%% ------------------------------------------------------------------------@\n%% Unsat core for bound %d@\n%a@." 
+		!bmc1_cur_bound
+		Clause.pp_clause_list_tptp
+		unsat_core_clauses;
+	      
+	      (* Output clauses *)
+	      Format.fprintf 
+		dump_formatter
+		"%% ------------------------------------------------------------------------@\n%% Lifted unsat core for bound %d@\n%a@." 
+		!bmc1_cur_bound
+		Clause.pp_clause_list_tptp
+		unsat_core_parents;
 
-	      )
-		
-	    else
+	      (* Output bound assumptions *)
+	      Format.fprintf 
+		dump_formatter
+		"%% ------------------------------------------------------------------------@\n%% Clause assumptions for bound %d@\n%a@." 
+		!bmc1_cur_bound
+		Clause.pp_clause_list_tptp
+		(Bmc1Axioms.get_bound_assumptions !bmc1_cur_bound)
 
-	      (
-
-		(* Print parents of unsat core *)
-		Format.printf 
-		  "@\nUnsat core parents has size %d@\n@." 
-		  (List.length unsat_core_parents)
-
-	      );
-
-	  (* Increment bound by one
-	     
-	     TODO: option for arbitrary bound increments *)
+	    );
+	  
+	  (* Increment bound by one *)
 	  let cur_bound, next_bound =
 	    !bmc1_cur_bound, succ !bmc1_cur_bound
 	  in
@@ -1471,18 +1519,31 @@ let rec main clauses finite_model_clauses =
 		next_bound_axioms' @ unsat_core_clauses' @ clauses
 	      in
 
-	      if 
-		
-		(* Dump clauses to TPTP format? *)
-		val_of_override !current_options.bmc1_dump_tptp 
 
-	      then
+		if 
+		  
+		  (* Dump clauses to TPTP format? *)
+		  val_of_override !current_options.bmc1_dump_clauses_tptp 
+		    
+		then
+		  
+		  (
+		    
+		    (* Formatter to write to, i.e. stdout or file *)
+		    let dump_formatter =
+		      Bmc1Axioms.get_bmc1_dump_formatter ()
+		    in
 
-		Format.printf 
-		  "%a@." 
-		  (pp_any_list Clause.pp_clause_tptp "\n") 
-		  all_clauses;
+		    (* Output clauses *)
+		    Format.fprintf 
+		      dump_formatter
+		      "%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@." 
+		      next_bound
+		      (pp_any_list Clause.pp_clause_tptp "\n") 
+		      all_clauses;
 
+		  );
+	      
 	      (* Run again for next bound *)
 	      main 
 		all_clauses
@@ -1850,20 +1911,8 @@ let run_iprover () =
 	      
 	      (* Add clauses for initial bound *)
 	      current_clauses := 
-		bmc1_axioms' @ current_clauses';
+		bmc1_axioms' @ current_clauses'
 		  
-	      if 
-		
-		(* Dump clauses to TPTP format? *)
-		val_of_override !current_options.bmc1_dump_tptp 
-
-	      then
-
-		Format.printf 
-		  "%a@." 
-		  (pp_any_list Clause.pp_clause_tptp "\n") 
-		  !current_clauses;
-
 	    )
 
 	);
@@ -1884,7 +1933,29 @@ let run_iprover () =
       let finite_models_clauses = !current_clauses in 
 
       current_clauses := less_range_axioms@(!current_clauses);
+	
+      (
 
+	if 
+	  
+	  (* Dump clauses to TPTP format? *)
+	  val_of_override !current_options.bmc1_dump_clauses_tptp 
+	    
+	then
+	  
+	  (* Formatter to write to, i.e. stdout or file *)
+	  let dump_formatter =
+	    Bmc1Axioms.get_bmc1_dump_formatter ()
+	  in
+	  
+	  Format.fprintf 
+	    dump_formatter
+	    "%% ------------------------------------------------------------------------@\n%% Input clauses including axioms for bound 0@\n%a@." 
+	    (pp_any_list Clause.pp_clause_tptp "\n") 
+	    !current_clauses
+
+      );
+	  
       (if (not (omit_eq_axioms ())) 
       then
 	(
@@ -1977,6 +2048,7 @@ let run_iprover () =
       out_str "\n\nInput_Preproccessed clauses\n\n";
       out_str (Clause.clause_list_to_tptp !current_clauses);
 *)
+
 
 
 
