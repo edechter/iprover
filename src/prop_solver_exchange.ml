@@ -1260,7 +1260,7 @@ let add_clause_to_solver clause =
      (* Map literals in simplified clause in satisfiability solver to
 	literals in unsat core solver *)
 
-(* KK: List.assoc should never be used on long and even not so long lists, use hashtables! *)
+(* KK: List.assoc should not be used on long and even not so long lists, use hashtables etc. *)
      let simpl_gr_lit_uc_list = 
        List.map 
 	 (function e -> List.assoc e lit_to_lit_uc) 
