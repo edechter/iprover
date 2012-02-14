@@ -1259,6 +1259,8 @@ let add_clause_to_solver clause =
 
      (* Map literals in simplified clause in satisfiability solver to
 	literals in unsat core solver *)
+
+(* KK: List.assoc should never be used on long and even not so long lists, use hashtables! *)
      let simpl_gr_lit_uc_list = 
        List.map 
 	 (function e -> List.assoc e lit_to_lit_uc) 
@@ -1266,7 +1268,7 @@ let add_clause_to_solver clause =
      in
      
      (*    out_str ("Added Prop Clause: "
-	   ^(PropSolver.lit_list_to_string simpl_gr_lit_list)^"\n");*)
+	   ^(PropSolver.lit_list_to_string simpl_gr_lit_list)^"\n"); *)
 
      
      (* Format.eprintf 
@@ -1276,8 +1278,11 @@ let add_clause_to_solver clause =
 
 	Ignore if unsatisfiable, must add clause also to unsat core
 	solver *)
-     (try
-	PropSolver.add_clause solver simpl_gr_lit_list
+
+(* KK: PropSolver.Unsatisfiable should not be ignored!  *)
+ 
+    (try
+	PropSolver.add_clause solver simpl_gr_lit_list;
       with PropSolver.Unsatisfiable -> ());
      
      (* Format.eprintf 
@@ -1761,18 +1766,27 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 	       ( (* Format.eprintf "Unsatisfiable after solve call in selection_renew_model@."; *)
 		raise PropSolver.Unsatisfiable)
 	     |PropSolver.Sat   ->
-		 let new_solver_sel_lit = 
-		   selection_fun consistent_with_solver clause in	  
-		 let new_solver_sel_var_entry  = 
-		   get_prop_gr_var_entry new_solver_sel_lit in
+
+		   let new_solver_sel_lit = 
+		     try
+		     selection_fun consistent_with_solver clause 
+		     with 
+		       Not_found -> 
+			 ( out_str ("\n Selection is not found for clause: "
+				    ^(Clause.to_tptp clause)^"\n");
+			   failwith "selection_renew_model")
+		   in	  
+		   let new_solver_sel_var_entry  = 
+		     get_prop_gr_var_entry new_solver_sel_lit in
 (*		 out_str "\n Change here!!!!\n";*)
-		 change_model_solver move_lit_from_active_to_passive new_solver_sel_var_entry;
+		   change_model_solver move_lit_from_active_to_passive new_solver_sel_var_entry;
 (*		 out_str ("Solver select:"^
 			  "Sel_Lit: "^(Term.to_string new_solver_sel_lit)^"\n"
 			  ^"Sel_lit entry: "
 			  ^(var_entry_to_string new_solver_sel_var_entry)^"\n");*)
-		 Clause.assign_inst_sel_lit new_solver_sel_lit clause; 
-		 ass_if_consistent new_solver_sel_lit clause
+		   Clause.assign_inst_sel_lit new_solver_sel_lit clause; 
+		   ass_if_consistent new_solver_sel_lit clause
+		
 	     )
 	)
 

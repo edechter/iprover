@@ -3,7 +3,7 @@
 # make CPP=true for c++ version of minisat
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
-
+# for debugging make debug
 OCAML=ocaml
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
@@ -29,7 +29,7 @@ CPP=
 CSOLVER=solver
 #CSOLVER=solver_basic
 
-OCAMLFLAGS=-inline 10 -I obj/ -I util/lib 
+OCAMLFLAGS=-inline 10 -I obj/ -I util/lib  
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
 LEXER = lexer_tptp

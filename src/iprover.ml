@@ -21,6 +21,14 @@ open Options
 open Statistics
 open Printf
 
+let () = 
+  out_str "\n\n Debugging: remove Printexc.record_backtrace true in iprover.ml \n\n "
+
+(* record backtrace for debugging          *)
+(* compile with -g option to get the trace *)
+let () = Printexc.record_backtrace true
+
+
 exception SZS_Unknown
 
 type clause = Clause.clause 
@@ -1931,13 +1939,13 @@ let run_iprover () =
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
 *)
 
-(*
+
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
 
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
-*)
+
 	 out_str "\n\n";
 	 out_str (unknown_str  ());
 	 out_stat ();
@@ -2130,7 +2138,8 @@ let run_iprover () =
   | Exit -> ()
   
   | x -> 
-      (kill_all_child_processes ();
+      (out_str ("Backtrace: \n"^(Printexc.get_backtrace ()));
+       kill_all_child_processes ();
        out_str (unknown_str ());
        raise x)
   )    

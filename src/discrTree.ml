@@ -138,7 +138,7 @@ module Make (P:Param) =
       |DTM.Trie_remove_path_too_short
       |DTM.Trie_remove_remove_from_emptytrie
       |DTM.Not_in_tree  -> raise Not_in_discr_tree
-	    
+
 
 exception Skip_error 
 	
@@ -186,11 +186,10 @@ exception Skip_error
 	    
     let unif_candidates index term = 
       if  DTM.is_empty index then [] 
-      else
-	let candis_ref = ref [] in 
-	unif_candidates' candis_ref index 0 [term];
-	!candis_ref
-
+      else	
+	  let candis_ref = ref [] in 
+	  unif_candidates' candis_ref index 0 [term];
+	  !candis_ref
 
 (*--------unif_cand_exists' checks whether there is a unif candidate in the index-------------------------*)	
 (*-----raises Found if unif candidate is found otherwise returns unit----*)
@@ -253,7 +252,8 @@ let unif_cand_exists index term =
     (unif_cand_exists' index 0 [term]);
     false
   with 
-    Found -> true
+  |Found -> true
+  |Not_found -> failwith "unif_cand_exists should not happen"
 
 
 (* TO FINISH *)	  	  
