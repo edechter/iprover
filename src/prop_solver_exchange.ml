@@ -1259,8 +1259,6 @@ let add_clause_to_solver clause =
 
      (* Map literals in simplified clause in satisfiability solver to
 	literals in unsat core solver *)
-
-(* KK: List.assoc should not be used on long and even not so long lists, use hashtables etc. *)
      let simpl_gr_lit_uc_list = 
        List.map 
 	 (function e -> List.assoc e lit_to_lit_uc) 
@@ -1268,27 +1266,17 @@ let add_clause_to_solver clause =
      in
      
      (*    out_str ("Added Prop Clause: "
-	   ^(PropSolver.lit_list_to_string simpl_gr_lit_list)^"\n"); *)
+	   ^(PropSolver.lit_list_to_string simpl_gr_lit_list)^"\n");*)
 
      
      (* Format.eprintf 
        "Adding to satisfiability solver@."; *)
 
-     (* Add simplified clause to satisfiability solver
+     (* Add simplified clause to unsat core solver and get id  
 
-	Ignore if unsatisfiable, must add clause also to unsat core
-	solver *)
-
-(* KK: PropSolver.Unsatisfiable should not be ignored!  *)
- 
-    (try
-	PropSolver.add_clause solver simpl_gr_lit_list;
-      with PropSolver.Unsatisfiable -> ());
-     
-     (* Format.eprintf 
-	"Adding to simplification solver@."; *)
-
-     (* Add simplified clause to unsat core solver and get id  *)
+	Must do this first, since adding a clause to satisfiability
+	solver can be immediately unsatisfiable, but not in unsat
+	core solver *)
      let clause_id = 
        PropSolver.add_clause_with_id solver_uc simpl_gr_lit_uc_list
      in
@@ -1296,7 +1284,7 @@ let add_clause_to_solver clause =
      (
 
        match clause_id with 
-	
+	   
 	 (* Clause was discarded in solver *)
 	 | None -> ()
 	   
@@ -1315,6 +1303,15 @@ let add_clause_to_solver clause =
 	    
 	   )
      );
+
+     (* Add simplified clause to satisfiability solver
+
+	Clause must already be in unsat core solver, since this may
+	raise the PropSolver.Unsatisfiable exception *)
+     PropSolver.add_clause solver simpl_gr_lit_list;
+     
+     (* Format.eprintf 
+	"Adding to simplification solver@."; *)
 
      PropSolver.add_clause solver_sim simpl_gr_lit_list;
 
@@ -1388,7 +1385,7 @@ let consistent_with_solver lit =
   then 
     ( (*Format.eprintf
        "Literal %s is consistent with solver, since model value is Any@."
-       (Term.to_string lit); *)
+       (Term.to_string lit);  *)
      true)
   else
     let is_neg = Term.is_neg_lit lit in    
@@ -1845,7 +1842,11 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 		raise PropSolver.Unsatisfiable)
 	     |PropSolver.Sat   ->
 		 let new_solver_sel_lit = 
-		   selection_fun consistent_with_solver clause in	  
+		   try
+		     selection_fun consistent_with_solver clause 
+		   with Not_found ->
+		     failwith (Format.sprintf "No selection possible for %s@." (Clause.to_string clause))
+		 in	  
 		 let new_solver_sel_var_entry  = 
 		   get_prop_gr_var_entry new_solver_sel_lit in
 (*		 out_str "\n Change here!!!!\n";*)

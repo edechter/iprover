@@ -1231,7 +1231,7 @@ let rec main clauses finite_model_clauses =
 	
 	(
 
-(*	  
+(*
 	  (match e with 
 	    | Discount.Unsatisfiable -> 
 	      Format.eprintf "Unsatisfiable in resolution@."
@@ -1380,7 +1380,9 @@ let rec main clauses finite_model_clauses =
 
 	  (* Get value of maximal bound *)
 	  let max_bound = 
-	    val_of_override !current_options.bmc1_max_bound
+	    max
+	      (val_of_override !current_options.bmc1_max_bound)
+	      (val_of_override !current_options.bmc1_max_bound_default)
 	  in
 
 	    (* Output current bound *)
@@ -1918,14 +1920,18 @@ let run_iprover () =
 	);
 	
 	(* Output maxial bound for BMC1 *)
-	let max_bound = val_of_override !current_options.bmc1_max_bound in
-
-	  if max_bound >= 0 then 
-	    out_str 
-	      (Format.sprintf 
-		 "%sMaximal bound for BMC1 is %d@\n"
-		 pref_str
-		 max_bound);
+	let max_bound = 
+	  max
+	    (val_of_override !current_options.bmc1_max_bound)
+	    (val_of_override !current_options.bmc1_max_bound_default)
+	in
+	
+	if max_bound >= 0 then 
+	  out_str 
+	    (Format.sprintf 
+	       "%sMaximal bound for BMC1 is %d@\n"
+	       pref_str
+	       max_bound);
 	
  
 (* for finite models we ommit equality axioms! *)
@@ -1994,6 +2000,15 @@ let run_iprover () =
 	 out_str (pref_str^"Omitting Equality Axioms\n"))
       );    
  
+(* when clauses are not in db length is not defined, may change this later *)
+      let cmp_clause_length c1 c2 = 
+	compare 
+	  (List.length (Clause.get_literals c1)) 
+	  (List.length (Clause.get_literals c2)) 
+      in
+(* the order of clauses can affect the prep_sem_filter*)
+      current_clauses:=
+	List.sort cmp_clause_length !current_clauses;
 
 (*--------------semantic filter---------------------------*)
       if !current_options.prep_sem_filter_out 
@@ -2008,13 +2023,13 @@ let run_iprover () =
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
 *)
 
-
+(*
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
 
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
-
+*)
 	 out_str "\n\n";
 	 out_str (unknown_str  ());
 	 out_stat ();
@@ -2032,7 +2047,9 @@ let run_iprover () =
        if (!current_options.prep_sem_filter != Sem_Filter_None) 
        then 
 	 (out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
+
 (*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
+	  current_clauses := List.sort cmp_clause_length !current_clauses;
 	  current_clauses := Prep_sem_filter_unif.sem_filter_unif !current_clauses;
 	  
 	 ) 

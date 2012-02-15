@@ -475,8 +475,8 @@ let reg_exp_clock = Str.regexp_string "$$bmc1_clock_"
 
 let system_pred_name_pref_reg_expr = 
   Str.regexp 
-    (Str.quote "$$less_"^"\|"^
-     Str.quote "$$range_"^"\|"^
+    (Str.quote "$$less_"^"\\|"^
+     Str.quote "$$range_"^"\\|"^
      Str.quote "$$bmc1_clock_")
 
 let system_pred_fun name args = 
