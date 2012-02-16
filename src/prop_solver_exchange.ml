@@ -1308,8 +1308,15 @@ let add_clause_to_solver clause =
 
 	Clause must already be in unsat core solver, since this may
 	raise the PropSolver.Unsatisfiable exception *)
+
+     (if !current_options.dbg_dump_prop_clauses
+     then
+       out_str ((PropSolver.lit_list_to_string solver simpl_gr_lit_list)^"\n")
+     else ()
+     ); 
+
      PropSolver.add_clause solver simpl_gr_lit_list;
-     
+ 
      (* Format.eprintf 
 	"Adding to simplification solver@."; *)
 

@@ -154,6 +154,8 @@ type options = {
     mutable clausifier_options    : string;
     mutable stdin                 : bool;
     mutable dbg_backtrace         : bool;
+    mutable dbg_dump_prop_clauses : bool;
+
 (*----General--------*)
     mutable fof                   : bool;    
     mutable time_out_real         : float;
