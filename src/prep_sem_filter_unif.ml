@@ -235,13 +235,24 @@ let rec filter_clauses filter_state =
       end
 
 
-let neg_order_fun () =  
+let neg_order_fun_1 () =  
   Term.lit_cmp_type_list_to_lex_fun 
-    [Lit_Sign false; Lit_Ground true;]
+    [Lit_Sign false; Lit_Ground true]
 
-let pos_order_fun () = 
+let neg_order_fun_2 () =  
   Term.lit_cmp_type_list_to_lex_fun 
-    [Lit_Sign true; Lit_Ground true;]
+    [Lit_Sign false;  Lit_Num_of_Symb(true); Lit_Num_of_Var (false)]
+
+
+let pos_order_fun_1 () = 
+  Term.lit_cmp_type_list_to_lex_fun 
+    [Lit_Sign true;  Lit_Ground true]
+
+let pos_order_fun_2 () = 
+  Term.lit_cmp_type_list_to_lex_fun 
+    [Lit_Sign true; Lit_Num_of_Symb(true); Lit_Num_of_Var (false)]
+
+
 
 
 
@@ -259,25 +270,36 @@ let sem_filter_unif_order order_fun clause_list =
   incr_int_stat num_of_filtered_out num_of_sem_filtered_clauses;
   filter_state.filtered_in_clauses
  
+(* when clauses are not in db length is not defined, may change this later *)
+let cmp_clause_length c1 c2 = 
+  (compare 
+     (List.length (Clause.get_literals c1)) 
+     (List.length (Clause.get_literals c2)) )
+
+let cmp_clause_length_compl c1 c2 = -cmp_clause_length c1 c2
+    
+
 
 let sem_filter_unif clause_list = 
   match !current_options.prep_sem_filter with
   | Sem_Filter_None -> clause_list
   | Sem_Filter_Pos -> 
       sem_filter_unif_order 
-	(pos_order_fun ()) 
+	(pos_order_fun_1 ()) 
 	clause_list
-  | Sem_Filter_Neg -> sem_filter_unif_order (neg_order_fun ()) clause_list
+  | Sem_Filter_Neg -> sem_filter_unif_order (neg_order_fun_1 ()) clause_list
   | Sem_Filter_Exhaustive 
     -> 
       begin
 	let changed = ref true in
 	let current_clauses = ref clause_list in
-	let order_fun_list = [(neg_order_fun ());(pos_order_fun ())] in
+(*	let current_clauses = ref (List.sort cmp_clause_length  clause_list) in*)
+	let order_fun_list = [(neg_order_fun_1 ());(pos_order_fun_1 ());(pos_order_fun_2 ());(neg_order_fun_2 ())] in
 	while !changed 
 	do
 	  let num_of_sem_filtered_clauses_before = num_of_sem_filtered_clauses in
 	  let f order_fun  = 
+	 (*   current_clauses := (List.sort cmp_clause_length  !current_clauses);*)
 	    current_clauses := sem_filter_unif_order order_fun !current_clauses;
 	  in	  
 	  List.iter f order_fun_list;

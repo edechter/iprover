@@ -2001,19 +2001,24 @@ let run_iprover () =
       );    
  
 (* when clauses are not in db length is not defined, may change this later *)
-      let cmp_clause_length c1 c2 = 
-	compare 
+(*      let cmp_clause_length c1 c2 = 
+	- (compare 
 	  (List.length (Clause.get_literals c1)) 
-	  (List.length (Clause.get_literals c2)) 
+	  (List.length (Clause.get_literals c2)) )
       in
 (* the order of clauses can affect the prep_sem_filter*)
       current_clauses:=
 	List.sort cmp_clause_length !current_clauses;
+*)
 
 (*--------------semantic filter---------------------------*)
       if !current_options.prep_sem_filter_out 
       then  
 	(
+
+(*-------------------------------------------------*)
+	  out_str (pref_str^"Semantic Filtering...\n");
+(*-------------------------------------------------*)
 
 (*	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");*)
 	 let prep_clauses = 
@@ -2023,13 +2028,13 @@ let run_iprover () =
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
 *)
 
-(*
+
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
 
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
-*)
+
 	 out_str "\n\n";
 	 out_str (unknown_str  ());
 	 out_stat ();
@@ -2038,6 +2043,10 @@ let run_iprover () =
 	)
     else 
       (
+(*-------------------------------------------------*)
+	  out_str (pref_str^"Semantic Filtering...\n");
+(*-------------------------------------------------*)
+ 
        (* if (!current_options.prep_sem_filter && 
 	   (not (Symbol.is_input Symbol.symb_equality)))
 	*)
@@ -2049,7 +2058,7 @@ let run_iprover () =
 	 (out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
 
 (*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
-	  current_clauses := List.sort cmp_clause_length !current_clauses;
+(*	  current_clauses := List.sort cmp_clause_length !current_clauses;*)
 	  current_clauses := Prep_sem_filter_unif.sem_filter_unif !current_clauses;
 	  
 	 ) 
