@@ -1309,7 +1309,7 @@ let get_bitindex_from_str str =
   try
     let name = Str.string_before str 8 in 
     match name with 
-    |"bitIndex"-> 
+    |"$$bitIndex"-> 
 	Def((int_of_string (Str.string_after str 8)))
     |_-> Undef
   with  
