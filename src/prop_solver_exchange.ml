@@ -1311,7 +1311,7 @@ let add_clause_to_solver clause =
 
      (if !current_options.dbg_dump_prop_clauses
      then
-       out_str ((PropSolver.lit_list_to_string solver simpl_gr_lit_list)^"\n")
+       out_err_str ((PropSolver.lit_list_to_string solver simpl_gr_lit_list)^"\n")
      else ()
      ); 
 
