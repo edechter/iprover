@@ -549,6 +549,7 @@ type options = {
     mutable stdin                 : bool;
     mutable dbg_backtrace         : bool;
     mutable dbg_dump_prop_clauses : bool;
+    mutable dbg_dump_prop_clauses_file : string;
   
 (*----General--------*)
     mutable fof                   : bool;
@@ -652,6 +653,7 @@ let default_options () = {
   stdin                   = false;
   dbg_backtrace           = false;
   dbg_dump_prop_clauses   = false;
+  dbg_dump_prop_clauses_file = "-";
 
 (*----General--------*)
   fof                     = false;
@@ -951,6 +953,16 @@ let dbg_dump_prop_clauses_fun b =
 let dbg_dump_prop_clauses_inf = 
   bool_str^
   inf_pref^"debug: dump propositional clauses\n"
+
+(*--------*)
+let dbg_dump_prop_clauses_file_str = "--dbg_dump_prop_clauses_file"
+
+let dbg_dump_prop_clauses_file_fun b = 
+  !current_options.dbg_dump_prop_clauses_file <- b
+
+let dbg_dump_prop_clauses_file_inf = 
+  bool_str^
+  inf_pref^"debug: file to dump propositional clauses tp, use - for stdout\n"
 
 (*----General--------*)
 
@@ -1904,7 +1916,12 @@ let spec_list =
    (clausifier_options_str,Arg.String(clausifier_options_fun),clausifier_options_inf); 
    (stdin_str,Arg.Bool(stdin_fun),stdin_inf);
    (dbg_backtrace_str, Arg.Bool(dbg_backtrace_fun), dbg_backtrace_inf);
-   (dbg_dump_prop_clauses_str, Arg.Bool(dbg_dump_prop_clauses_fun), dbg_dump_prop_clauses_inf);
+   (dbg_dump_prop_clauses_str, 
+    Arg.Bool(dbg_dump_prop_clauses_fun), 
+    dbg_dump_prop_clauses_inf);
+   (dbg_dump_prop_clauses_file_str, 
+    Arg.String(dbg_dump_prop_clauses_file_fun), 
+    dbg_dump_prop_clauses_file_inf);
 
 (*------General-------*)
    (fof_str, Arg.Bool(fof_fun), fof_inf);
@@ -2078,6 +2095,8 @@ let input_options_str_list opt =
     (stdin_str,         (string_of_bool opt.stdin));
     (dbg_backtrace_str, (string_of_bool opt.dbg_backtrace));
     (dbg_dump_prop_clauses_str, (string_of_bool opt.dbg_dump_prop_clauses));
+    (dbg_dump_prop_clauses_file_str, 
+     opt.dbg_dump_prop_clauses_file);
   ]
 
 let general_options_str_list opt = 
@@ -2473,6 +2492,8 @@ let option_1 () = {
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)
   fof                     = false;
@@ -2623,6 +2644,8 @@ let option_2 () = {
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)
   fof                     = false;
@@ -2746,6 +2769,8 @@ let option_3 () = {
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)
   fof                     = false;
@@ -2865,6 +2890,8 @@ let option_4 () = {
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*) 
   fof                     = false;
@@ -2995,6 +3022,8 @@ let option_finite_models () = {
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)
   fof                     = false;
@@ -3119,6 +3148,8 @@ let option_epr_non_horn () = {
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)
  fof                     = false;
@@ -3365,6 +3396,8 @@ let option_epr_horn () = {
   stdin                   = !current_options.stdin;  
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+    !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)
 
@@ -3608,6 +3641,8 @@ let option_verification_epr ver_epr_opt =
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+	  !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)   
   fof                     = false;
@@ -3735,6 +3770,8 @@ let option_verification_epr ver_epr_opt =
   stdin                   = !current_options.stdin;
   dbg_backtrace           = !current_options.dbg_backtrace;
   dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+  dbg_dump_prop_clauses_file = 
+       !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)   
     fof                     = false;
@@ -3860,6 +3897,8 @@ let option_verification_epr ver_epr_opt =
        stdin                   = !current_options.stdin;
        dbg_backtrace           = !current_options.dbg_backtrace;
        dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+       dbg_dump_prop_clauses_file = 
+	  !current_options.dbg_dump_prop_clauses_file;
 
 (*----General--------*)   
        fof                     = false;

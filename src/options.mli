@@ -155,6 +155,7 @@ type options = {
     mutable stdin                 : bool;
     mutable dbg_backtrace         : bool;
     mutable dbg_dump_prop_clauses : bool;
+    mutable dbg_dump_prop_clauses_file : string;
 
 (*----General--------*)
     mutable fof                   : bool;    

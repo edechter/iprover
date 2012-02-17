@@ -192,8 +192,10 @@ let add_clause { solver = solver } = function
    unsatisfiable. *)
 let add_clause_with_id { solver = solver } = function
 
-  (* The empty clause is immediately unsatisfiable *)
-  | [] -> raise Unsatisfiable 
+  (* The empty clause is immediately unsatisfiable, but do not catch
+     this, since we might want to get an unsat core containing the empty
+     clause *)
+  (* | [] -> raise Unsatisfiable *)
 
   | clause -> 
 
