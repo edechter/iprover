@@ -135,6 +135,14 @@ let num_of_split_atoms =
    int_entry_name  = "num_of_split_atoms";
    value = 0;
  }
+
+
+let num_of_sem_filtered_clauses = 
+  {
+   int_entry_name  = "num_of_sem_filtered_clauses";
+   value = 0;
+ }
+
    
 let forced_gc_time = 
   {
@@ -153,6 +161,13 @@ let parsing_time =
    float_entry_name  = "parsing_time";
    float_value = 0.;
  }
+
+let sem_filter_time = 
+  {
+   float_entry_name  = "sem_filter_time";
+   float_value = 0.;
+ }
+ 
 
 
 
@@ -527,14 +542,16 @@ let gen_int_stat_list =
    num_of_input_neg_conjectures;
    num_of_splits;
    num_of_split_atoms;
+   num_of_sem_filtered_clauses;
    forced_gc_time;
 
  ]
 
 let gen_float_stat_list = 
   [
-   total_time;
-   parsing_time
+   parsing_time;
+   sem_filter_time;
+   total_time
  ]    
 
 let prop_solver_fun_stat_list = 

@@ -3,6 +3,7 @@
 # make CPP=true for c++ version of minisat
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
+# for debugging "make debug=true"
 
 OCAML=ocaml
 OCAMLC=ocamlc
@@ -18,6 +19,7 @@ PROFILE=
 OCAMLOPTOPT=ocamlopt.opt
 OCAMLDEP=ocamldep
 INCLUDES=
+debug=
 #OCAMLFLAGS=$(INCLUDES)
 #OCAMLOPTFLAGS=$(INCLUDES)
 
@@ -29,7 +31,7 @@ CPP=
 CSOLVER=solver
 #CSOLVER=solver_basic
 
-OCAMLFLAGS=-inline 10 -I obj/ -I util/lib 
+OCAMLFLAGS=-inline 10 -I obj/ -I util/lib  
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
 LEXER = lexer_tptp
@@ -48,7 +50,7 @@ BASE_NAMES_BEFORE_LEXER = lib options statistics bit_vec tableArray heap priorit
 
 #BASE_NAMES_AFTER_LEXER = parser_tptp parsed_input_to_db parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms propSolver prop_solver_exchange inference_rules model_inst finite_models preprocess prep_sem_filter large_theories discount instantiation
 
-BASE_NAMES_AFTER_LEXER = parser_tptp parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms cMinisat propSolver prop_solver_exchange bmc1Axioms inference_rules model_inst finite_models preprocess prep_sem_filter large_theories discount instantiation
+BASE_NAMES_AFTER_LEXER = parser_tptp parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms cMinisat propSolver prop_solver_exchange bmc1Axioms inference_rules model_inst finite_models preprocess prep_sem_filter prep_sem_filter_unif large_theories discount instantiation
 
 BASE_NAMES_WITHOUT_LEXER = $(BASE_NAMES_BEFORE_LEXER) $(BASE_NAMES_AFTER_LEXER)
 BASE_NAMES_WITH_LEXER = $(BASE_NAMES_BEFORE_LEXER) $(LEXER) $(BASE_NAMES_AFTER_LEXER)
@@ -102,6 +104,11 @@ ifeq ($(PROFILE),true)
   ADDTONAME=prof
 endif
 
+ifeq ($(debug),true)
+#:= "Simply expanded variable"
+#-g for debugging recording backtraces
+  OCAMLFLAGS:=$(OCAMLFLAGS) -g
+endif
 
 IPROVER_C_OBJ= $(PROP_SOLVER_NAMES:%=obj/%.o)
 
@@ -201,7 +208,7 @@ clean_all: clean
 	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi
 
 
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util
 
 #use this to temporally adding some names
 ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile

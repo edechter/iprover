@@ -98,7 +98,7 @@ module Make(Key:Key)  =
 	  (try !(KeyDB.find keydb key) with
 	    Not_found -> raise Not_found)
       | Leaf(_)    -> raise Is_Leaf
-      | Empty_Trie -> raise Is_Empty_Trie
+      | Empty_Trie -> raise Not_found (*Is_Empty_Trie*)
 
     let fold_level0 f trie a = 
       match trie with 

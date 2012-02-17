@@ -22,6 +22,12 @@ open Statistics
 open Printf
 
 
+(* record backtrace for debugging          *)
+(* compile with -g option to get the trace *)
+(*let () = Printexc.record_backtrace true*)
+
+
+exception SZS_Unknown
 
 type clause = Clause.clause 
 
@@ -1994,24 +2000,69 @@ let run_iprover () =
 	 out_str (pref_str^"Omitting Equality Axioms\n"))
       );    
  
+(* when clauses are not in db length is not defined, may change this later *)
+(*      let cmp_clause_length c1 c2 = 
+	- (compare 
+	  (List.length (Clause.get_literals c1)) 
+	  (List.length (Clause.get_literals c2)) )
+      in
+(* the order of clauses can affect the prep_sem_filter*)
+      current_clauses:=
+	List.sort cmp_clause_length !current_clauses;
+*)
 
 (*--------------semantic filter---------------------------*)
       if !current_options.prep_sem_filter_out 
-    then  
-      (
-       out_str (pref_str^"Semantically Preprocessed Clauses:\n");
-       let prep_clauses = 
-	 Prep_sem_filter.filter !(Parser_types.all_current_clauses) in 
-       Clause.out_clause_list_tptp prep_clauses; 
-       out_str "\n\n";
-       exit(0);
-      )
+      then  
+	(
+
+(*-------------------------------------------------*)
+	  out_str (pref_str^"Semantic Filtering...\n");
+(*-------------------------------------------------*)
+
+(*	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");*)
+	 let prep_clauses = 
+	   Prep_sem_filter_unif.sem_filter_unif !current_clauses in 
+(*
+	  let prep_clauses = 
+	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
+*)
+
+
+	  out_str (pref_str^"Before sem filter:\n");
+	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
+
+	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
+	  Clause.out_clause_list_tptp prep_clauses; 
+
+	 out_str "\n\n";
+	 out_str (unknown_str  ());
+	 out_stat ();
+	 exit(0);
+	(* raise SZS_Unknown *)
+	)
     else 
-      (if (!current_options.prep_sem_filter && 
+      (
+(*-------------------------------------------------*)
+	  out_str (pref_str^"Semantic Filtering...\n");
+(*-------------------------------------------------*)
+ 
+       (* if (!current_options.prep_sem_filter && 
 	   (not (Symbol.is_input Symbol.symb_equality)))
-      then 
-        current_clauses := Prep_sem_filter.filter !current_clauses
-      else ()
+	*)
+       (* was as above but equality should be ok, *)
+       (* problem with finite models and bmc1     *)
+
+       if (!current_options.prep_sem_filter != Sem_Filter_None) 
+       then 
+	 (out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
+
+(*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
+(*	  current_clauses := List.sort cmp_clause_length !current_clauses;*)
+	  current_clauses := Prep_sem_filter_unif.sem_filter_unif !current_clauses;
+	  
+	 ) 
+       else ()
       );
   
 (*--------------End sem filter---------------------------*)
@@ -2172,18 +2223,19 @@ let run_iprover () =
      out_str (unknown_str ()); 
      out_str "Schedule_Terminated:  try an extended schedule or with an unbounded time limit";
      
-       (* Do not output statistics in BMC1 mode with
-	  --bmc1_out_stat none *)
+     (* Do not output statistics in BMC1 mode with
+	--bmc1_out_stat none *)
      if (not !current_options.bmc1_incremental) || 
-       (not (val_of_override !current_options.bmc1_out_stat = 
+     (not (val_of_override !current_options.bmc1_out_stat = 
 	   BMC1_Out_Stat_None)) then
        out_stat ())
-      
+	
   (* Silently terminate after BMC1 maximal bound proved *)
   | Exit -> ()
   
   | x -> 
-      (kill_all_child_processes ();
+      ((*out_str ("Backtrace: \n"^(Printexc.get_backtrace ()));*)
+       kill_all_child_processes ();
        out_str (unknown_str ());
        raise x)
   )    

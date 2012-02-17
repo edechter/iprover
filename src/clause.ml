@@ -78,7 +78,7 @@ let horn                             = 23
 
 let epr                              = 24
 
-let in_unsat_core = 25
+let in_unsat_core                    = 25
 
 (*---------End bool params-------------*)
 

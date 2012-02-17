@@ -1,0 +1,3 @@
+# git ignores everything in this directory
+*
+# Except this file

@@ -59,7 +59,13 @@ type bmc1_out_stat_type =
 type bmc1_axioms_type = 
     BMC1_Axioms_Reachable_All | BMC1_Axioms_Reachable_Last
 
+(*--------*)
 type ground_splitting_type = Split_Input |Split_Full | Split_Off 
+
+(*--------*)
+type prep_sem_filter_type = 
+    Sem_Filter_None | Sem_Filter_Pos | Sem_Filter_Neg | Sem_Filter_Exhaustive
+
 
 type schedule_type = 
   |Schedule_none 
@@ -147,6 +153,8 @@ type options = {
     mutable clausifier            : string;
     mutable clausifier_options    : string;
     mutable stdin                 : bool;
+    mutable dbg_backtrace         : bool;
+    mutable dbg_dump_prop_clauses : bool;
 
 (*----General--------*)
     mutable fof                   : bool;    
@@ -158,7 +166,7 @@ type options = {
     mutable prep_prop_sim         : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
-    mutable prep_sem_filter       : bool;
+    mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
     mutable brand_transform       : bool;
     

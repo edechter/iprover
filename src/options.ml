@@ -141,6 +141,28 @@ let str_to_ground_splitting_type str =
   |_       -> raise Unknown_ground_splitting_type
 
 
+(*--------*)
+type prep_sem_filter_type = 
+    Sem_Filter_None | Sem_Filter_Pos | Sem_Filter_Neg | Sem_Filter_Exhaustive
+
+let prep_sem_filter_type_to_str opt = 
+  match opt with 
+  | Sem_Filter_None       -> "none"
+  | Sem_Filter_Pos        -> "pos"
+  | Sem_Filter_Neg        -> "neg"
+  | Sem_Filter_Exhaustive -> "exhaustive"
+
+exception Unknown_sem_filter_type
+let str_to_prep_sem_filter_type str = 
+  match str with 
+  |"none" ->  Sem_Filter_None      
+  |"pos"  -> Sem_Filter_Pos        
+  |"neg"  -> Sem_Filter_Neg        
+  |"exhaustive" -> Sem_Filter_Exhaustive 
+  |_-> raise Unknown_sem_filter_type
+
+let prep_sem_filter_type_str = "<none|pos|neg|exhaustive>"
+
 
 (*--------*)
 
@@ -525,7 +547,9 @@ type options = {
     mutable clausifier            : string;
     mutable clausifier_options    : string;
     mutable stdin                 : bool;
-
+    mutable dbg_backtrace         : bool;
+    mutable dbg_dump_prop_clauses : bool;
+  
 (*----General--------*)
     mutable fof                   : bool;
     mutable time_out_real         : float;
@@ -536,7 +560,7 @@ type options = {
     mutable prep_prop_sim         : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
-    mutable prep_sem_filter       : bool;
+    mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
     mutable brand_transform       : bool;
 
@@ -626,6 +650,8 @@ let default_options () = {
   clausifier              = "";
   clausifier_options      = "";
   stdin                   = false;
+  dbg_backtrace           = false;
+  dbg_dump_prop_clauses   = false;
 
 (*----General--------*)
   fof                     = false;
@@ -637,7 +663,7 @@ let default_options () = {
   prep_prop_sim           = true;
   symbol_type_check       = false;
   clausify_out            = false;
-  prep_sem_filter         = false;
+  prep_sem_filter         = Sem_Filter_None;
   prep_sem_filter_out     = false;
   brand_transform         = false;
 
@@ -902,6 +928,30 @@ let stdin_inf =
   (* ugly hack*)
   (dash_str "General Options")^"\n"
 
+(*--------*)
+let dbg_backtrace_str = "--dbg_backtrace"
+
+let dbg_backtrace_fun b = 
+  (if b 
+  then 
+    Printexc.record_backtrace b
+  else());
+  !current_options.dbg_backtrace <- b
+      
+let dbg_backtrace_inf = 
+  bool_str^
+  inf_pref^"debug: backtrace is recorderd and displayed, make iProver with \"make debug=true\" \n"
+
+(*--------*)
+let dbg_dump_prop_clauses_str = "--dbg_dump_prop_clauses"
+
+let dbg_dump_prop_clauses_fun b = 
+  !current_options.dbg_dump_prop_clauses <- b
+
+let dbg_dump_prop_clauses_inf = 
+  bool_str^
+  inf_pref^"debug: dump propositional clauses\n"
+
 (*----General--------*)
 
 
@@ -972,6 +1022,8 @@ let ground_splitting_inf  =
   "<input | full | off >"^
   inf_pref^"splitting of clauses on maximal variable-disjoint parts\n"
 
+
+
 (*--------*)
 
 
@@ -1024,12 +1076,16 @@ let clausify_out_inf =
 (*-------*)
 let prep_sem_filter_str = "--prep_sem_filter"
 
-let prep_sem_filter_fun b = 
-  !current_options.prep_sem_filter <- b
-
-let prep_sem_filter_inf = 
-  bool_str^
-  inf_pref^"semantic preproscessing of the input set\n"
+let prep_sem_filter_fun str = 
+  try 
+    !current_options.prep_sem_filter <- (str_to_prep_sem_filter_type str)
+  with 
+     Unknown_sem_filter_type -> 
+        failwith (args_error_msg prep_sem_filter_str str)
+  
+let prep_sem_filter_inf  =
+  prep_sem_filter_type_str^
+  inf_pref^"apply semantic filter to the input clauses \n"
 
 
 (*-------*)
@@ -1847,7 +1903,8 @@ let spec_list =
    (clausifier_str,Arg.String(clausifier_fun),clausifier_inf); 
    (clausifier_options_str,Arg.String(clausifier_options_fun),clausifier_options_inf); 
    (stdin_str,Arg.Bool(stdin_fun),stdin_inf);
-
+   (dbg_backtrace_str, Arg.Bool(dbg_backtrace_fun), dbg_backtrace_inf);
+   (dbg_dump_prop_clauses_str, Arg.Bool(dbg_dump_prop_clauses_fun), dbg_dump_prop_clauses_inf);
 
 (*------General-------*)
    (fof_str, Arg.Bool(fof_fun), fof_inf);
@@ -1859,7 +1916,7 @@ let spec_list =
   (prep_prop_sim_str, Arg.Bool(prep_prop_sim_fun), prep_prop_sim_inf);
    (symbol_type_check_str, Arg.Bool(symbol_type_check_fun), symbol_type_check_inf);
    (clausify_out_str,  Arg.Bool(clausify_out_fun), clausify_out_inf);
-   (prep_sem_filter_str, Arg.Bool(prep_sem_filter_fun), prep_sem_filter_inf);
+   (prep_sem_filter_str, Arg.String(prep_sem_filter_fun), prep_sem_filter_inf);
    (prep_sem_filter_out_str, Arg.Bool(prep_sem_filter_out_fun), prep_sem_filter_out_inf);
    (brand_transform_str, Arg.Bool(brand_transform_fun), brand_transform_inf);
 
@@ -2018,7 +2075,9 @@ let input_options_str_list opt =
     (include_path_str, opt.include_path);
     (clausifier_str, opt.clausifier);
     (clausifier_options_str, opt.clausifier_options);
-    (stdin_str,        (string_of_bool opt.stdin));
+    (stdin_str,         (string_of_bool opt.stdin));
+    (dbg_backtrace_str, (string_of_bool opt.dbg_backtrace));
+    (dbg_dump_prop_clauses_str, (string_of_bool opt.dbg_dump_prop_clauses));
   ]
 
 let general_options_str_list opt = 
@@ -2033,7 +2092,7 @@ let general_options_str_list opt =
        (symbol_type_check_str, (string_of_bool opt.symbol_type_check));
        (clausify_out_str, (string_of_bool opt.clausify_out));
        (large_theory_mode_str, (string_of_bool opt.large_theory_mode));
-       (prep_sem_filter_str, (string_of_bool opt.prep_sem_filter));
+       (prep_sem_filter_str, (prep_sem_filter_type_to_str opt.prep_sem_filter));
        (prep_sem_filter_out_str, (string_of_bool opt.prep_sem_filter_out));
        (brand_transform_str, (string_of_bool opt.brand_transform));
        (prolific_symb_bound_str, (string_of_int opt.prolific_symb_bound));
@@ -2288,7 +2347,7 @@ let named_opt_to_many_axioms_named_opt1 opt =
        {opt.options with 
 
 	large_theory_mode       = true; 
-	prep_sem_filter         = true;
+	prep_sem_filter         = Sem_Filter_Neg;
 	prep_sem_filter_out     = false;
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
@@ -2320,7 +2379,7 @@ let named_opt_to_many_axioms_named_opt2 opt =
        {opt.options with 
 
 	large_theory_mode       = true; 
-	prep_sem_filter         = true;
+	prep_sem_filter         = Sem_Filter_Neg;
 	prep_sem_filter_out     = false;
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
@@ -2372,7 +2431,7 @@ let named_opt_to_many_axioms_named_opt3 opt =
        {opt.options with 
 
 	large_theory_mode       = true; 
-	prep_sem_filter         = true;
+	prep_sem_filter         = Sem_Filter_Neg;
 	prep_sem_filter_out     = false;
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
@@ -2412,6 +2471,8 @@ let option_1 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
 
 (*----General--------*)
   fof                     = false;
@@ -2560,6 +2621,9 @@ let option_2 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+
 (*----General--------*)
   fof                     = false;
   time_out_real           = -1.;
@@ -2680,7 +2744,9 @@ let option_3 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
-  
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+
 (*----General--------*)
   fof                     = false;
   time_out_real           = -1.;
@@ -2797,6 +2863,8 @@ let option_4 () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
 
 (*----General--------*) 
   fof                     = false;
@@ -2925,7 +2993,9 @@ let option_finite_models () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
-  
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+
 (*----General--------*)
   fof                     = false;
   time_out_real           = -1.;
@@ -3047,6 +3117,8 @@ let option_epr_non_horn () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
 
 (*----General--------*)
  fof                     = false;
@@ -3291,7 +3363,8 @@ let option_epr_horn () = {
   clausifier              = !current_options.clausifier;
   clausifier_options      = !current_options.clausifier_options;
   stdin                   = !current_options.stdin;  
-
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
 
 (*----General--------*)
 
@@ -3533,6 +3606,8 @@ let option_verification_epr ver_epr_opt =
 
                           
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
 
 (*----General--------*)   
   fof                     = false;
@@ -3658,6 +3733,8 @@ let option_verification_epr ver_epr_opt =
 
                           
   stdin                   = !current_options.stdin;
+  dbg_backtrace           = !current_options.dbg_backtrace;
+  dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
 
 (*----General--------*)   
     fof                     = false;
@@ -3781,7 +3858,9 @@ let option_verification_epr ver_epr_opt =
        
                           
        stdin                   = !current_options.stdin;
-       
+       dbg_backtrace           = !current_options.dbg_backtrace;
+       dbg_dump_prop_clauses   = !current_options.dbg_dump_prop_clauses;
+
 (*----General--------*)   
        fof                     = false;
        time_out_real           = -1.;

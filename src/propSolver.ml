@@ -59,7 +59,10 @@ let lit_to_string solver lit =
   SatSolver.literal_to_string solver lit
 
 let lit_list_to_string solver lit_list = 
-  "[" ^ (Lib.list_to_string (lit_to_string solver) lit_list ",") ^ "]"
+(*  "[" ^ (Lib.list_to_string (lit_to_string solver) lit_list ",") ^ "]"*)
+
+(* in DIMACS format *)
+  ( (Lib.list_to_string (lit_to_string solver) lit_list " ")^" 0")
 
 let solver_out_to_string = function
   |Sat   -> "Satisfiable"

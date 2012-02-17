@@ -30,6 +30,8 @@ type sym_or_var = Sym of symbol | Var
 
 let init_num_of_kes_bound = 11
 
+exception Not_in_discr_tree
+
 module type Param = 
   sig
     val num_of_symb : int
@@ -48,6 +50,7 @@ module type DiscrTree =
 (*    val remove_grounding_path : term -> grounding_term -> 
       ('a index) ref -> 'a list *)
     val unif_candidates : (('a list) index) -> term -> 'a list 
+    val unif_cand_exists : 'a index -> term -> bool 
 (*only for debug*)
 (*    val get_key_list : term -> sym_or_var list *)
   end
@@ -118,10 +121,23 @@ module Make (P:Param) =
      DTM.add_path key_list ref_index 
 
     let remove_term_path term ref_index = 
-      DTM.remove_path (get_key_list term) ref_index
+      try
+	DTM.remove_path (get_key_list term) ref_index
+      with 
+	DTM.Trie_remove_path_too_long 
+      |DTM.Trie_remove_path_too_short
+      |DTM.Trie_remove_remove_from_emptytrie
+      |DTM.Not_in_tree  -> raise Not_in_discr_tree
+
 
     let remove_term_path_ret term ref_index = 
-      DTM.remove_path_ret (get_key_list term) ref_index
+      try
+	DTM.remove_path_ret (get_key_list term) ref_index
+      with 
+	DTM.Trie_remove_path_too_long 
+      |DTM.Trie_remove_path_too_short
+      |DTM.Trie_remove_remove_from_emptytrie
+      |DTM.Not_in_tree  -> raise Not_in_discr_tree
 
 
 exception Skip_error 
@@ -170,11 +186,74 @@ exception Skip_error
 	    
     let unif_candidates index term = 
       if  DTM.is_empty index then [] 
-      else
-	let candis_ref = ref [] in 
-	unif_candidates' candis_ref index 0 [term];
-	!candis_ref
+      else	
+	  let candis_ref = ref [] in 
+	  unif_candidates' candis_ref index 0 [term];
+	  !candis_ref
 
+(*--------unif_cand_exists' checks whether there is a unif candidate in the index-------------------------*)	
+(*-----raises Found if unif candidate is found otherwise returns unit----*)
+
+    exception Found
+
+    let rec unif_cand_exists' index skip term_list = 
+      (* let key_list = get_key_list term in *)
+	begin
+	  if skip = 0 then 
+	    match term_list with 
+	    |Term.Fun(sym,args,_)::tl ->
+		( 
+		  try 
+		    unif_cand_exists' 
+		      (DTM.get_subtrie (Sym(sym)) index)
+		      skip ((Term.arg_to_list args)@tl)		  
+		  with Not_found -> ());	       
+		(try	       
+		  (
+		   unif_cand_exists'  
+		     (DTM.get_subtrie Var index) skip tl
+		  )
+		with Not_found -> ()
+		)
+	 		       
+	    | Term.Var(v,_)::tl ->  	
+		unif_cand_exists' index 1 tl
+		  
+	    | [] -> 
+		(match !(DTM.get_from_leaf index) with
+		|Elem _elem_list -> 
+		    raise Found
+		   (* candis_ref := (List.rev_append elem_list !candis_ref)*)
+		|Empty_Elem ->  
+		    raise Found 
+		      (* we allow empty element, in some cases index is needed to *)
+                      (* check unif candidates without storing actual elements *)
+                  (*raise Empty_elem_in_disc_tree*)
+		)    
+	  else 
+	    if skip > 0 then 
+	      let f key_sym trie = 
+		(match key_sym with 
+		|Sym(s) -> 
+		    (unif_cand_exists' 
+		       trie (skip-1+(Symbol.get_arity s)) term_list)
+		      
+		|Var -> 
+		    (unif_cand_exists'
+		       trie (skip-1) term_list)
+		)	
+	      in	
+	      DTM.iter_level0 f index  
+	    else raise Skip_error 
+	end
+
+let unif_cand_exists index term =
+  try  
+    (unif_cand_exists' index 0 [term]);
+    false
+  with 
+  |Found -> true
+  |Not_found -> failwith "unif_cand_exists should not happen"
 
 
 (* TO FINISH *)	  	  
