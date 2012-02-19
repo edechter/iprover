@@ -110,3 +110,5 @@ val lit_val_to_string:    lit_val -> string
 val lit_sign_to_string:   lit_sign -> string   
 
 val pp_lit : solver -> Format.formatter -> lit -> unit
+
+val pp_lit_list_dimacs : solver -> Format.formatter -> lit list -> unit

@@ -54,6 +54,15 @@ type solver_uc = SatSolverUC.solver
 (* to_strings *)
 
 let pp_lit = SatSolver.pp_literal 
+
+let pp_lit_dimacs = pp_lit 
+
+let rec pp_lit_list_dimacs solver ppf = function
+  | [] -> 
+    Format.fprintf ppf "0"
+  | l::tl -> 
+    Format.fprintf ppf "%a " (pp_lit_dimacs solver) l; 
+    pp_lit_list_dimacs solver ppf tl
     
 let lit_to_string solver lit = 
   SatSolver.literal_to_string solver lit

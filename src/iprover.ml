@@ -24,7 +24,6 @@ open Printf
 
 (* record backtrace for debugging          *)
 (* compile with -g option to get the trace *)
-(*let () = Printexc.record_backtrace true*)
 
 
 exception SZS_Unknown
@@ -1231,6 +1230,9 @@ let rec main clauses finite_model_clauses =
 	
 	(
 
+	  if !current_options.dbg_backtrace then
+	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n" (Printexc.get_backtrace ());
+
 (*
 	  (match e with 
 	    | Discount.Unsatisfiable -> 
@@ -1247,9 +1249,7 @@ let rec main clauses finite_model_clauses =
 	  
 	  (* Get clauses in unsatisfiable core *)
 	  let unsat_core_clauses = 
-	    (try 
-	       Prop_solver_exchange.unsat_core () 
-	     with Invalid_argument _ -> []);
+	    Prop_solver_exchange.unsat_core () 
 	  in
 
 	  if 
@@ -2098,27 +2098,42 @@ let run_iprover () =
   |Discount.Unsatisfiable 
   |Instantiation.Unsatisfiable  |PropSolver.Unsatisfiable  
     ->
-    (* Output unsatisfiable core *)
-    (try 
-       ignore (Prop_solver_exchange.unsat_core ())
-     with Invalid_argument _ -> ());
+    (
 
-      out_str (proved_str ());
-       (if 
-	(!answer_mode_ref)
-      then
-	Prop_solver_exchange.out_answer ()
-      else
-	()
+      if !current_options.dbg_backtrace then
+	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n" (Printexc.get_backtrace ());
+      
+    (* Output unsatisfiable core *)
+      (
+
+	let unsat_core_clauses = Prop_solver_exchange.unsat_core () in
+	
+	(* Print unsat core *)
+	Format.printf 
+	  "@\n%sUnsat core has size %d@\n@\n%a@." 
+	  pref_str
+	  (List.length unsat_core_clauses)
+	  (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+	
       );
-       	    
+      
+      out_str (proved_str ());
+      (if 
+	  (!answer_mode_ref)
+       then
+	  Prop_solver_exchange.out_answer ()
+       else
+	  ()
+      );
+      
        (* Do not output statistics in BMC1 mode with
 	  --bmc1_out_stat none *)
-       if (not !current_options.bmc1_incremental) || 
-	 (not (val_of_override !current_options.bmc1_out_stat = 
-	     BMC1_Out_Stat_None)) then
-	 out_stat ()
-	   
+      if (not !current_options.bmc1_incremental) || 
+	(not (val_of_override !current_options.bmc1_out_stat = 
+	    BMC1_Out_Stat_None)) then
+	out_stat ()
+    )
+
   | Discount.Empty_Clause (clause) -> 
     (
       out_str (proved_str ());
@@ -2234,10 +2249,15 @@ let run_iprover () =
   | Exit -> ()
   
   | x -> 
-      ((*out_str ("Backtrace: \n"^(Printexc.get_backtrace ()));*)
-       kill_all_child_processes ();
-       out_str (unknown_str ());
-       raise x)
+
+    (
+
+      if !current_options.dbg_backtrace then
+	Format.eprintf "Backtrace:@\n%s@\n" (Printexc.get_backtrace ());
+      
+      kill_all_child_processes ();
+      out_str (unknown_str ());
+      raise x)
   )    
 
 
