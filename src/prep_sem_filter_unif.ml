@@ -216,7 +216,7 @@ let add_filtered_in_clause filter_state fclause =
 let rec filter_clauses filter_state = 
   match filter_state.unprocessed_fclauses with 
   |[] ->  filter_state.filtered_in_clauses
-  |fclause::tl ->
+  |fclause::tl -> 
       begin
 	filter_state.unprocessed_fclauses <- tl;
 	(try 
