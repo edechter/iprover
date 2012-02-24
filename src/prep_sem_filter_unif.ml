@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------(C)-*)
-(* Copyright (C) 2006-2011 The University of Manchester. 
+(* Copyright (C) 2006-2012 The University of Manchester. 
    This file is part of iProver - a theorem prover for first-order logic.
 
    iProver is free software: you can redistribute it and/or modify
@@ -109,7 +109,9 @@ let rec find_watch_lit filter_state fclause =
   |[] -> raise Not_found
   |h::tl -> 
      (* fclause.lits_to_try <- tl;*)
-      let atom = Term.get_atom h in       
+
+(*      let atom = Term.get_atom h in       *)
+
       let compl_h = (Term.compl_lit h) in     
 (*      
       out_str 
@@ -125,9 +127,9 @@ let rec find_watch_lit filter_state fclause =
 		   filter_state.watch_unif_index compl_h))^"\n"));
 *)
       if 
-	(* check that the atom is not unif with  atom_unif_index *)
-	(not (is_unif filter_state.atom_unif_index atom))
-	  &&
+	(* check that the atom is not unif with  atom_unif_index; now moved up front *)
+(*	(not (is_unif filter_state.atom_unif_index atom))
+	  &&*)
 	(* check that the complement of the lit  is not unif with  watch_unif_index *)
         (not (is_unif filter_state.watch_unif_index compl_h))
       then 
@@ -169,8 +171,10 @@ let get_watched_list_fclause fclause =
   |h::tl -> (h,tl)
   |[] -> failwith "get_watched_list_fclause: list should not be empty"
 
-(*remove_from_watch: assumes that fclause is in filter_state.watch_unif_index *)
-let remove_from_watch filter_state fclause =
+
+(*---------------------------*)
+(*move_from_watch_to_unprocessed: assumes that fclause is in filter_state.watch_unif_index *)
+let move_from_watch_to_unprocessed filter_state fclause =
  let (w_lit,tl) = get_watched_list_fclause fclause in
 (* out_str ("\n Remove from watch:"^(Term.to_string w_lit)^"\n");*)
  (* we assume that all clauses for removal are already collected *)
@@ -188,10 +192,11 @@ let remove_from_watch filter_state fclause =
 (* add fclause to unprocessed *)
 (* out_str ("\n Added to unprocessed: "^(Clause.to_string fclause.orig_clause)^"\n");*)
  filter_state.unprocessed_fclauses <- fclause::(filter_state.unprocessed_fclauses)
+			
 
 (*---------------------------*)
 
-let add_filtered_in_clause filter_state fclause = 
+let no_watch_found filter_state fclause = 
   let lits = Clause.get_literals fclause.orig_clause in
   let compl_lits = List.map Term.compl_lit lits in
   let atoms = List.map Term.get_atom lits in
@@ -199,7 +204,7 @@ let add_filtered_in_clause filter_state fclause =
   let remove_unif_from_watch lit = 
     let fclause_list = 
       DiscrTreeM.unif_candidates filter_state.watch_unif_index lit in 
-    List.iter (remove_from_watch filter_state) fclause_list      
+    List.iter (move_from_watch_to_unprocessed filter_state) fclause_list      
   in
   List.iter remove_unif_from_watch compl_lits;
 (* add atoms to filter_state.atom_unif_index *)
@@ -212,25 +217,71 @@ let add_filtered_in_clause filter_state fclause =
   filter_state.filtered_in_clauses <- 
     (fclause.orig_clause)::(filter_state.filtered_in_clauses)
 
-(*----------------*)
+(*---------------------------*)
+
+let rec find_movable_watch filter_state fclause = 
+  match fclause.lits_to_try with
+  |[] -> raise Not_found
+  |h::tl -> 
+      let compl_h = (Term.compl_lit h) in     
+      let fclause_list = 
+	DiscrTreeM.unif_candidates filter_state.watch_unif_index compl_h in 
+      (* we cannot move further in this clause *)
+      let is_not_movable fc = 
+	match fc.lits_to_try with 
+	|_h::[] -> true 
+	| [] -> true 
+	|_-> false
+      in
+      if (List.exists is_not_movable fclause_list) 
+      then
+	(fclause.lits_to_try <-tl;
+	 find_movable_watch filter_state fclause)
+      else
+	(h,fclause_list)
+
+
+
+let process_given filter_state fclause = 
+  let lits_to_try_not_in_unif = 
+    List.filter 
+      (fun l -> 
+	let atom = Term.get_atom l in
+	(not (is_unif filter_state.atom_unif_index atom))	
+      )  fclause.lits_to_try in
+  fclause.lits_to_try <- lits_to_try_not_in_unif;
+  let old_lits_to_try  = fclause.lits_to_try in
+  (try 
+    let watch_lit = find_watch_lit filter_state fclause in 
+(*	  out_str ("\n Found watch: "^(Term.to_string watch_lit)^" : "^(Clause.to_string fclause.orig_clause)^"\n");*)
+    (add_to_watch filter_state watch_lit fclause)
+  with
+    Not_found -> 
+      (
+(*  out_str ("\n Not Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
+       fclause.lits_to_try <- old_lits_to_try;
+       try 
+	let (lit, fclause_list) = (find_movable_watch filter_state fclause) in
+(* move_from_watch_to_unprocessed it also moves in lits_to_try by one lit *)
+	List.iter (move_from_watch_to_unprocessed filter_state) fclause_list;
+	
+(* add fclause to unprocessed; do not need to move in lits_to_try *)
+	filter_state.unprocessed_fclauses <- 
+	  fclause::(filter_state.unprocessed_fclauses)    
+       with 
+	 Not_found ->
+	   (no_watch_found filter_state fclause; )
+      )
+  )
+  
+
 let rec filter_clauses filter_state = 
   match filter_state.unprocessed_fclauses with 
   |[] ->  filter_state.filtered_in_clauses
   |fclause::tl -> 
       begin
-	filter_state.unprocessed_fclauses <- tl;
-	(try 
-	  let watch_lit = find_watch_lit filter_state fclause in 
-(*	  out_str ("\n Found watch: "^(Term.to_string watch_lit)^" : "^(Clause.to_string fclause.orig_clause)^"\n");*)
-	(add_to_watch filter_state watch_lit fclause)
-	with
-	  Not_found -> 
-	    (
-(*	     out_str ("\n Not Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
-	     add_filtered_in_clause filter_state fclause;
-	    )
-	);
-
+	filter_state.unprocessed_fclauses <- tl;	
+	process_given filter_state fclause ;
 	filter_clauses filter_state    
       end
 
@@ -314,6 +365,9 @@ let sem_filter_unif clause_list =
 
 (*
 (*--junk------------*)
+
+
+
 
 let rec filter_clauses filter_state = 
   match filter_state.unprocessed_clauses with 
