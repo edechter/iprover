@@ -79,6 +79,7 @@ let lower_word         = ['a'-'z']word_char*
 
 rule token = parse
   [' ' '\t'] {token lexbuf} 
+  | "\r\n" {(increment_lnumber_lexbuf lexbuf); (token lexbuf)} 
   | '\n' {(increment_lnumber_lexbuf lexbuf); (token lexbuf)} 
   | ','  {Comma}
   | '.'  {Dot}
