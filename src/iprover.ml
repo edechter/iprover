@@ -1231,7 +1231,7 @@ let rec main clauses finite_model_clauses =
 	(
 
 	  if !current_options.dbg_backtrace then
-	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n" (Printexc.get_backtrace ());
+	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
 
 (*
 	  (match e with 
@@ -1464,18 +1464,18 @@ let rec main clauses finite_model_clauses =
 	      Bmc1Axioms.increment_bound cur_bound next_bound
 	    in
 
-	      (* Symbols in axioms are input symbols *)
-	      assign_is_essential_input_symb next_bound_axioms;
-
-	      (* Add axioms to solver *)
-	      List.iter 
-		Prop_solver_exchange.add_clause_to_solver 
-		next_bound_axioms;
-
 	      (* Preprocess axioms *)
 	      let next_bound_axioms' = 
 		Preprocess.preprocess next_bound_axioms
 	      in
+
+	      (* Symbols in axioms are input symbols *)
+	      assign_is_essential_input_symb next_bound_axioms';
+
+	      (* Add axioms to solver *)
+	      List.iter 
+		Prop_solver_exchange.add_clause_to_solver 
+		next_bound_axioms';
 
 	      (* Clauses in unsatisfiable core to be added to next
 		 bound *)
@@ -1502,7 +1502,20 @@ let rec main clauses finite_model_clauses =
 *)
 
 		    (* Preprocess clauses *)
-		    Preprocess.preprocess unsat_core_clauses
+		    let unsat_core_clauses' =
+		      Preprocess.preprocess unsat_core_clauses
+		    in
+
+		    (* Add preprocessed clauses to solver
+
+		       Clauses may be split or simplified and must be
+		       added to the solver then *)
+		    List.iter 
+		      Prop_solver_exchange.add_clause_to_solver 
+		      unsat_core_clauses';
+		    
+		    (* Return preprocessed unsat core clauses *)
+		    unsat_core_clauses'
 
 		  )
 		    
@@ -2101,7 +2114,7 @@ let run_iprover () =
     (
 
       if !current_options.dbg_backtrace then
-	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n" (Printexc.get_backtrace ());
+	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
       
     (* Output unsatisfiable core *)
       (
@@ -2253,7 +2266,7 @@ let run_iprover () =
     (
 
       if !current_options.dbg_backtrace then
-	Format.eprintf "Backtrace:@\n%s@\n" (Printexc.get_backtrace ());
+	Format.eprintf "Backtrace:@\n%s@\n@." (Printexc.get_backtrace ());
       
       kill_all_child_processes ();
       out_str (unknown_str ());
