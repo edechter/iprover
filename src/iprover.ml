@@ -2130,7 +2130,96 @@ let run_iprover () =
 	
       );
       
-      out_str (proved_str ());
+      (* In incremental BMC1? *)
+      if !current_options.bmc1_incremental then
+	
+	(
+
+	  Format.printf 
+	    "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
+	    pref_str
+	    !bmc1_cur_bound;
+	  
+	  (* Get maximal bound *)
+	  let max_bound = 
+	    max
+	      (val_of_override !current_options.bmc1_max_bound)
+	      (val_of_override !current_options.bmc1_max_bound_default)
+	  in
+	  
+	  let rec skip_all_bounds () = 
+
+	    (* Next bound *)
+	    let next_bound = succ !bmc1_cur_bound in
+
+	    (* Output current bound *)
+	    Format.printf 
+	      "@.@\n%s BMC1 bound %d UNSAT@\n@."
+	      pref_str
+	      !bmc1_cur_bound;
+	    
+	    (* Output unsatisfiable result *)
+	    out_str (proved_str ());
+	    
+	    (* Assign last solved bound in statistics *)
+	    assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
+	    
+	    (
+	      
+	      (* When to output statistics? *)
+	      match val_of_override !current_options.bmc1_out_stat with
+		  
+		(* Output statistics after each bound *)
+		| BMC1_Out_Stat_Full -> out_stat ()
+
+		(* Output statistics after last bound *)
+		| BMC1_Out_Stat_Last 
+		    when next_bound > max_bound -> out_stat ()
+
+		(* Do not output statistics for bounds before last *)
+		| BMC1_Out_Stat_Last -> ()
+
+		(* Never output statistics *)
+		| BMC1_Out_Stat_None -> ()
+
+	    );
+	    
+	    if 
+	      
+	      (* Next bound less than or equal maximal bound? *)
+	      next_bound <= max_bound &&
+		
+		(* No maximal bound for -1 *)
+		max_bound >= 0 
+		
+	    then
+	 
+	      (
+
+		(* Increment bound *)
+		bmc1_cur_bound := next_bound;
+		
+		(* Recurse to output all bounds up to maximum *)
+		skip_all_bounds ()
+
+	      )
+		
+	  in
+
+	  (* Output results for all bounds up to maximum *)
+	  skip_all_bounds ()
+	    
+	)
+
+      else
+      
+	(
+
+	  (* Output SZS status once if not in incremental BMC1 *)
+	  out_str (proved_str ())
+
+	);
+
       (if 
 	  (!answer_mode_ref)
        then
