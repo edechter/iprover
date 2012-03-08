@@ -53,10 +53,10 @@ let get_prop_clauses_dump_formatter () =
 	    
 	  (* Catch errors when opening *)
 	  | Sys_error _ -> 
-	    failwith 
+	    raise (Failure 
 	      (Format.sprintf 
 		 "Could not open file %s for output"
-		 !current_options.dbg_dump_prop_clauses_file)
+		 !current_options.dbg_dump_prop_clauses_file))
 	      
       in
 
@@ -356,7 +356,7 @@ let unsat_core () =
 
     (* Must not return sat when other solver returns unsat *)
     | PropSolver.Sat -> 
-       raise (Failure "Unsat core solver returned satisfiable") 
+       raise (Failure "Unsat core solver returned satisfiable")
       (*failwith "Unsat core solver returned satisfiable"*)
 
 (*------------ propositional interpretation-------------------*)
@@ -417,7 +417,7 @@ let var_entry_sel_to_string prop_var_entry =
     (var_entry_to_string prop_var_entry)^clause_list_str
   with
     Clause.Inst_sel_lit_undef -> 
-      failwith "var_entry_sel_cl_to_string: Sel_lits_undef "
+      raise (Failure "var_entry_sel_cl_to_string: Sel_lits_undef")
 
 
 let empty_var_entry = 
@@ -572,7 +572,7 @@ let get_prop_lit_assign lit =
   in
   match def_lit with 
   |Def(lit) -> lit 
-  | _ -> failwith "Instantiation get_prop_lit: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_lit: lit is undefind")
   
 (* adds literal without grounding to propositional solver and to var_table *)
 let get_prop_lit_uc_assign lit = 
@@ -588,7 +588,7 @@ let get_prop_lit_uc_assign lit =
   in
   match def_lit with 
   |Def(lit) -> lit 
-  | _ -> failwith "Instantiation get_prop_lit: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_lit: lit is undefind")
 
 
 (*returns prop literal;  assume that prop key is def. *)
@@ -605,7 +605,7 @@ let get_prop_lit lit =
   in
   match def_lit with 
   |Def(lit) -> lit 
-  | _ -> failwith "Instantiation get_prop_lit: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_lit: lit is undefind")
   
 
 (*returns complementary prop literal;  assume that prop key is def. *)
@@ -622,7 +622,7 @@ let get_prop_lit lit =
       in
       match def_lit with 
       |Def(lit) -> lit 
-      | _ -> failwith "Instantiation get_prop_compl_lit: lit is undefind"
+      | _ -> raise (Failure "Instantiation get_prop_compl_lit: lit is undefind")
 	    
 
 let get_prop_gr_lit lit =
@@ -638,7 +638,7 @@ let get_prop_gr_lit lit =
   in
   match def_lit with 
   |Def(lit) -> lit 
-  | _ -> failwith "Instantiation get_prop_gr_lit: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_gr_lit: lit is undefind")
 
 
 let get_prop_gr_compl_lit lit =
@@ -660,7 +660,7 @@ let get_prop_gr_compl_lit lit =
       (Term.to_string lit) 
       (PropSolver.lit_to_string solver_sim plit); *)
     plit
-  | _ -> failwith "Instantiation get_prop_gr_lit: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_gr_lit: lit is undefind")
 
 
 (* adds literal after grounding to propositional solver and to var_table *)
@@ -677,7 +677,7 @@ let get_prop_gr_lit_assign lit =
   in
   match def_lit with 
   |Def plit -> plit
-  | _ -> failwith "Instantiation get_prop_gr_lit_assign: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_gr_lit_assign: lit is undefind")
 
 let get_prop_gr_lit_uc_assign lit =
   let atom = Term.get_atom lit in 
@@ -692,7 +692,7 @@ let get_prop_gr_lit_uc_assign lit =
   in
   match def_lit with 
   |Def plit -> plit
-  | _ -> failwith "Instantiation get_prop_gr_lit_assign: lit is undefind"
+  | _ -> raise (Failure "Instantiation get_prop_gr_lit_assign: lit is undefind")
 
 
 let get_prop_gr_var_entry lit = 
@@ -701,7 +701,7 @@ let get_prop_gr_var_entry lit =
     let prop_gr_key    = Term.get_prop_gr_key atom in
     TableArray.get var_table prop_gr_key
   with 
-    Term.Prop_gr_key_undef -> failwith "get_prop_gr_var_entry : Term.Prop_key_undef"
+    Term.Prop_gr_key_undef -> raise (Failure (Format.sprintf "get_prop_gr_var_entry : Term.Prop_key_undef for %s@." (Term.to_string lit)))
 
 
 let get_prop_var_entry lit = 
@@ -710,22 +710,22 @@ let get_prop_var_entry lit =
     let prop_key       = Term.get_prop_key atom in
     TableArray.get var_table prop_key
   with 
-    Term.Prop_key_undef -> failwith "get_prop_var_entry : Term.Prop_key_undef"
+    Term.Prop_key_undef -> raise (Failure "get_prop_var_entry : Term.Prop_key_undef")
 
 let get_truth_var_entry var_entry = 
   match var_entry.truth_val with	
   |Def(truth_val) -> truth_val
-  |Undef ->   failwith "get_truth_var_entry: truth_val is Undef\n"
+  |Undef ->   raise (Failure "get_truth_var_entry: truth_val is Undef\n")
 
 let get_prop_var_var_entry var_entry =
   match var_entry.prop_var with	
   |Def(prop_var) -> prop_var
-  |Undef ->   failwith "get_prop_var_var_entry: prop_var is Undef\n"
+  |Undef ->   raise (Failure "get_prop_var_var_entry: prop_var is Undef\n")
 
 let get_prop_neg_var_var_entry var_entry =
   match var_entry.prop_neg_var with	
   |Def(prop_neg_var) -> prop_neg_var
-  |Undef ->   failwith "get_prop_neg_var_var_entry: prop_var is Undef\n"
+  |Undef ->   raise (Failure "get_prop_neg_var_var_entry: prop_var is Undef\n")
 
 
 	
@@ -1256,12 +1256,23 @@ exception PropImplied
 let add_clause_to_solver clause =
 
   (* Skip if clause already in solver *)
-  if Clause.get_bool_param Clause.in_prop_solver clause then ()
+  if Clause.get_bool_param Clause.in_prop_solver clause then 
+
+    (
+      (* Format.eprintf
+	"Clause %a is already in solver, skipping@."
+	Clause.pp_clause clause *)
+
+    )
 
   else 
     
     (
       
+      (* Format.eprintf
+	"Adding clause %a to solver@."
+	Clause.pp_clause clause; *)
+
       (* Dump propositional clause *)
       if !current_options.dbg_dump_prop_clauses then
 	Format.fprintf 
@@ -1609,6 +1620,9 @@ let pp_truth_val ppf = function
 (* (if the solver returns Any) *)
 (* after grounding*)
 let consistent_with_solver lit = 
+  (* Format.eprintf
+    "consistent_with_solver %a@."
+    Term.pp_term lit; *)
   let var_entry      = get_prop_gr_var_entry lit in
   let prop_var       = get_prop_var_var_entry var_entry in
   let var_truth_val  = PropSolver.lit_val solver prop_var in
@@ -1866,7 +1880,13 @@ let find_nex_true_lit
 *)
 
 let remove_undef_model clause = 
+  (* Format.eprintf 
+    "remove_undef_model %a@."
+    Clause.pp_clause clause; *)
   let remove_undef_lit lit = 
+    (* Format.eprintf 
+      "remove_undef_lit %a@."
+      Term.pp_term lit; *)
     let var_entry = get_prop_gr_var_entry lit in
     match var_entry.truth_val with 
     |Def(PropSolver.Any)|Undef ->
@@ -2002,7 +2022,7 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 		       Not_found -> 
 			 ( out_str ("\n Selection is not found for clause: "
 				    ^(Clause.to_tptp clause)^"\n");
-			   failwith "selection_renew_model")
+			   raise (Failure "selection_renew_model"))
 
 		   in	  
 		   let new_solver_sel_var_entry  = 
@@ -2076,7 +2096,7 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 		   try
 		     selection_fun consistent_with_solver clause 
 		   with Not_found ->
-		     failwith (Format.sprintf "No selection possible for %s@." (Clause.to_string clause))
+		     raise (Failure (Format.sprintf "No selection possible for %s@." (Clause.to_string clause)))
 		 in	  
 		 let new_solver_sel_var_entry  = 
 		   get_prop_gr_var_entry new_solver_sel_lit in

@@ -1231,7 +1231,7 @@ let rec main clauses finite_model_clauses =
 	(
 
 	  if !current_options.dbg_backtrace then
-	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n" (Printexc.get_backtrace ());
+	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
 
 (*
 	  (match e with 
@@ -1464,18 +1464,18 @@ let rec main clauses finite_model_clauses =
 	      Bmc1Axioms.increment_bound cur_bound next_bound
 	    in
 
-	      (* Symbols in axioms are input symbols *)
-	      assign_is_essential_input_symb next_bound_axioms;
-
-	      (* Add axioms to solver *)
-	      List.iter 
-		Prop_solver_exchange.add_clause_to_solver 
-		next_bound_axioms;
-
 	      (* Preprocess axioms *)
 	      let next_bound_axioms' = 
 		Preprocess.preprocess next_bound_axioms
 	      in
+
+	      (* Symbols in axioms are input symbols *)
+	      assign_is_essential_input_symb next_bound_axioms';
+
+	      (* Add axioms to solver *)
+	      List.iter 
+		Prop_solver_exchange.add_clause_to_solver 
+		next_bound_axioms';
 
 	      (* Clauses in unsatisfiable core to be added to next
 		 bound *)
@@ -1502,7 +1502,20 @@ let rec main clauses finite_model_clauses =
 *)
 
 		    (* Preprocess clauses *)
-		    Preprocess.preprocess unsat_core_clauses
+		    let unsat_core_clauses' =
+		      Preprocess.preprocess unsat_core_clauses
+		    in
+
+		    (* Add preprocessed clauses to solver
+
+		       Clauses may be split or simplified and must be
+		       added to the solver then *)
+		    List.iter 
+		      Prop_solver_exchange.add_clause_to_solver 
+		      unsat_core_clauses';
+		    
+		    (* Return preprocessed unsat core clauses *)
+		    unsat_core_clauses'
 
 		  )
 		    
@@ -2103,7 +2116,7 @@ let run_iprover () =
     (
 
       if !current_options.dbg_backtrace then
-	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n" (Printexc.get_backtrace ());
+	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
       
     (* Output unsatisfiable core *)
       (
@@ -2119,7 +2132,96 @@ let run_iprover () =
 	
       );
       
-      out_str (proved_str ());
+      (* In incremental BMC1? *)
+      if !current_options.bmc1_incremental then
+	
+	(
+
+	  Format.printf 
+	    "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
+	    pref_str
+	    !bmc1_cur_bound;
+	  
+	  (* Get maximal bound *)
+	  let max_bound = 
+	    max
+	      (val_of_override !current_options.bmc1_max_bound)
+	      (val_of_override !current_options.bmc1_max_bound_default)
+	  in
+	  
+	  let rec skip_all_bounds () = 
+
+	    (* Next bound *)
+	    let next_bound = succ !bmc1_cur_bound in
+
+	    (* Output current bound *)
+	    Format.printf 
+	      "@.@\n%s BMC1 bound %d UNSAT@\n@."
+	      pref_str
+	      !bmc1_cur_bound;
+	    
+	    (* Output unsatisfiable result *)
+	    out_str (proved_str ());
+	    
+	    (* Assign last solved bound in statistics *)
+	    assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
+	    
+	    (
+	      
+	      (* When to output statistics? *)
+	      match val_of_override !current_options.bmc1_out_stat with
+		  
+		(* Output statistics after each bound *)
+		| BMC1_Out_Stat_Full -> out_stat ()
+
+		(* Output statistics after last bound *)
+		| BMC1_Out_Stat_Last 
+		    when next_bound > max_bound -> out_stat ()
+
+		(* Do not output statistics for bounds before last *)
+		| BMC1_Out_Stat_Last -> ()
+
+		(* Never output statistics *)
+		| BMC1_Out_Stat_None -> ()
+
+	    );
+	    
+	    if 
+	      
+	      (* Next bound less than or equal maximal bound? *)
+	      next_bound <= max_bound &&
+		
+		(* No maximal bound for -1 *)
+		max_bound >= 0 
+		
+	    then
+	 
+	      (
+
+		(* Increment bound *)
+		bmc1_cur_bound := next_bound;
+		
+		(* Recurse to output all bounds up to maximum *)
+		skip_all_bounds ()
+
+	      )
+		
+	  in
+
+	  (* Output results for all bounds up to maximum *)
+	  skip_all_bounds ()
+	    
+	)
+
+      else
+      
+	(
+
+	  (* Output SZS status once if not in incremental BMC1 *)
+	  out_str (proved_str ())
+
+	);
+
       (if 
 	  (!answer_mode_ref)
        then
@@ -2255,7 +2357,7 @@ let run_iprover () =
     (
 
       if !current_options.dbg_backtrace then
-	Format.eprintf "Backtrace:@\n%s@\n" (Printexc.get_backtrace ());
+	Format.eprintf "Backtrace:@\n%s@\n@." (Printexc.get_backtrace ());
       
       kill_all_child_processes ();
       out_str (unknown_str ());
