@@ -100,6 +100,8 @@ let is_unif unif_index lit =
   (DiscrTreeM.unif_cand_exists unif_index lit)
 
 
+let fclause_to_string fclause = 
+ (Clause.to_string fclause.orig_clause)^" : "^(Term.term_list_to_string fclause.lits_to_try)
 
 (* find_watch_lit raise Not_found if no watch_symb found *)  
 
@@ -250,19 +252,31 @@ let process_given filter_state fclause =
 	(not (is_unif filter_state.atom_unif_index atom))	
       )  fclause.lits_to_try in
   fclause.lits_to_try <- lits_to_try_not_in_unif;
+(*--debug---*)
+  out_str ("\n\n-----------------\n");
+  out_str ("\n Process: "^(fclause_to_string fclause)^"\n");
+(*--debug---*)
   let old_lits_to_try  = fclause.lits_to_try in
   (try 
     let watch_lit = find_watch_lit filter_state fclause in 
-(*	  out_str ("\n Found watch: "^(Term.to_string watch_lit)^" : "^(Clause.to_string fclause.orig_clause)^"\n");*)
+(*--debug---*)
+    out_str ("\n Found watch: "^(Term.to_string watch_lit)^" ; "
+	     ^(fclause_to_string fclause)^"\n");
+(*--debug---*)
     (add_to_watch filter_state watch_lit fclause)
   with
     Not_found -> 
       (
-(*  out_str ("\n Not Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
+    (*   out_str ("\n Try to Find Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
        fclause.lits_to_try <- old_lits_to_try;
        try 
 	let (lit, fclause_list) = (find_movable_watch filter_state fclause) in
 (* move_from_watch_to_unprocessed it also moves in lits_to_try by one lit *)
+(*--debug---*)
+	out_str ("Found Movable watch: "^(Term.to_string lit)^" ; "
+		 ^(fclause_to_string fclause)^"\n");
+	out_str ("Compl clauses: "^(list_to_string fclause_to_string fclause_list "\n     "));
+(*--debug---*)
 	List.iter (move_from_watch_to_unprocessed filter_state) fclause_list;
 	
 (* add fclause to unprocessed; do not need to move in lits_to_try *)
@@ -270,7 +284,8 @@ let process_given filter_state fclause =
 	  fclause::(filter_state.unprocessed_fclauses)    
        with 
 	 Not_found ->
-	   (no_watch_found filter_state fclause; )
+	   (out_str "Whatch Not Found\n";
+	    no_watch_found filter_state fclause; )
       )
   )
   
