@@ -2042,11 +2042,13 @@ let run_iprover () =
 *)
 
 
+(*
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
 
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
+*)
 
 	 out_str "\n\n";
 	 out_str (unknown_str  ());

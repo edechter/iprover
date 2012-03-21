@@ -952,7 +952,7 @@ let dbg_dump_prop_clauses_fun b =
 
 let dbg_dump_prop_clauses_inf = 
   bool_str^
-  inf_pref^"debug: dump propositional clauses\n"
+  inf_pref^"debug: dump propositional clauses into stderr\n"
 
 (*--------*)
 let dbg_dump_prop_clauses_file_str = "--dbg_dump_prop_clauses_file"

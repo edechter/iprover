@@ -156,6 +156,9 @@ val out_str : string -> unit
 (* out if debug is on *)
 (*val out_str_debug : string -> unit*)
 
+val out_err_str : string->unit 
+(* out in stderr *)
+
 val list_compare_lex : ('a -> 'a -> int) -> 'a list -> 'a list ->int
 val lex_combination  : ('a -> 'a -> int) list -> 'a -> 'a -> int
 
