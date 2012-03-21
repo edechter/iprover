@@ -70,6 +70,8 @@ static inline value Val_some( value v )
     CAMLreturn (some);
 }
 
+#define Some_val(v) Field(v,0)
+
 /* Switch to MiniSat namespace */
 using namespace Minisat;
 
@@ -338,21 +340,22 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
    clause is already satisfied, otherwise the return value is [(true,
    Some id)].
 
-   A new tracking variable is created and to be added to the clause as
-   well as its complement assumed on each solve call in addition to
-   given assumptions. The tracking variable is assumed negatively and
-   added to the clause positively, hence the conflict clause will
-   contain the tracking literal, i.e. the identifier of the clause,
-   positively.
+   A tracking variable is added to the clause as well as its
+   complement assumed on each solve call in addition to given
+   assumptions. The tracking variable is assumed negatively and added
+   to the clause positively, hence the conflict clause will contain
+   the tracking literal, i.e. the identifier of the clause,
+   positively. If the tracking variable is None, a new variable is
+   created, otherwise the variable given is used to track the clause.
 
-   external minisat_add_clause_with_id : minisat_solver -> minisat_literal list -> bool * int option = "minisat_add_clause_with_id" 
+   external minisat_add_clause_with_id : minisat_solver -> minisat_literal list -> int option -> bool * int option = "minisat_add_clause_with_id" 
 
 */
-extern "C" value minisat_add_clause_with_id(value solver_in, value clause_in)
+extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value clause_in)
 {	
 
   // Declare parameters 
-  CAMLparam2 (solver_in, clause_in);
+  CAMLparam3 (solver_in, id_in, clause_in);
   CAMLlocal2(head, res);
 
   // Allocate for OCaml pair 
@@ -366,9 +369,16 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value clause_in)
   vec<Lit> lits;
   lits.clear();
 
-  Var track_var = solver->newVar();
-  
-  // Create negative literal to be assumed
+  // Atom for tracking literal
+  Var track_var;
+
+  // Create a new variable if input ID is Null
+  if (id_in == Val_none)
+    track_var = solver->newVar();
+  else
+    track_var = Int_val(Some_val(id_in));
+
+  // Create tracking literal of variable 
   Lit assume_lit = mkLit(track_var, false);
 
   // Add assumption literal 
@@ -561,10 +571,10 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
   fprintf(stderr, "Global assumptions ");
 
   for (int j = 0; j < lits.size(); j++)
-	 fprintf(stderr, "%s%d ",
-		 sign(lits[j]) ? "" : "~",
-		 var(lits[j]));
-       
+    fprintf(stderr, "%s%d ",
+	    sign(lits[j]) ? "" : "~",
+	    var(lits[j]));
+  
   fprintf(stderr, "\n");
 #endif
 
@@ -912,6 +922,181 @@ extern "C" value minisat_get_conflicts (value solver_in)
 }
 
 
+/* Minimise an unsatisfiable core
+
+   external minisat_minimise_core : minisat_solver -> int list -> int list = "minisat_minimise_core"
+   
+*/
+extern "C" value minisat_minimise_core (value solver_in, value core_in)
+{
+
+  // Declare parameters 
+  CAMLparam2 (solver_in, core_in);
+  CAMLlocal1(head);
+
+  // Solver instance 
+  Solver* solver = (Solver*) Field(solver_in, 0);
+
+  // Resulting minimal unsatisfiable core
+  vec<Lit> min_core;
+
+  // Input unsatisfiable core
+  vec<Lit> core;
+  core.clear();
+
+  // Assumptions for solving 
+  vec<Lit> assume_lits;
+  assume_lits.clear();
+
+  // Initialise head of list
+  head = core_in;
+
+#ifdef DEBUG
+      fprintf(stderr, "Input unsat core ");
+#endif
+
+  // A literal and int to be used in the following loop
+  Lit lit;
+  int l;
+
+  // Iterate list of literals in core
+  while (head != Val_emptylist) 
+    {
+      
+      // Get head element of list 
+      l = Int_val(Field(head, 0));
+      lit = mkLit(abs(l), l > 0 ? false : true);
+      
+#ifdef DEBUG
+      fprintf(stderr, "%s%d ", 
+	      sign(lit) ? "" : "~",
+	      var(lit));
+#endif
+      
+      // Add literal to assumptions
+      core.push(lit);
+      
+      // Continue with tail of list
+      head = Field(head, 1);
+      
+    }
+
+#ifdef DEBUG
+  fprintf(stderr, "\n");
+#endif
+  
+  // Iterate until input unsat core is empty 
+  while (core.size() != 0)  
+    {
+
+      // Only if satisfiable after simplifications 
+      // (Must always call simplify when solving with assumptions)
+      if (solver->simplify())
+	{
+
+	  // Get last literal from input core
+	  Lit last_lit = core.last();
+
+	  // Remove last literal from input core
+	  core.pop();
+
+	  // Initialise assumptions with minimal core 
+	  min_core.copyTo(assume_lits);
+
+	  // Push all literals in remaining core to assumptions
+	  for (int i = 0; i < core.size(); i++) 
+	    assume_lits.push(core[i]);
+	  
+	  // Solve with assumptions
+	  if (solver->solve(assume_lits))
+	    {
+	      
+#ifdef DEBUG
+	      fprintf(stderr, "Satisfiable without %s%d\n",
+		      sign(last_lit) ? "" : "~",
+		      var(last_lit));
+#endif
+
+	      // Literal tracks a transition clause, must be in minimal core
+	      min_core.push(last_lit);
+
+	    }
+
+	  else
+
+	    {
+
+#ifdef DEBUG
+	      fprintf(stderr, "Unsatisfiable without %s%d\n",
+		      sign(last_lit) ? "" : "~",
+		      var(last_lit));
+#endif
+
+	      // Literal tracks a non-transition clause, not in minimal core
+	      
+	    }
+	  
+	}
+      else
+	{
+	  
+#ifdef DEBUG
+	  fprintf(stderr, "Unsatisfiable without assumptions (minimise core)\n");
+#endif
+	  
+	  // Unsatisfiable without assumptions
+	  CAMLreturn(Val_emptylist);
+	  
+	}
+      
+    }
+  
+  // Initialise return value to empty list
+  CAMLlocal2(res, cons);
+  res = Val_emptylist;
+  
+#ifdef DEBUG
+  fprintf(stderr, "Minimal unsat core is ");
+#endif
+  
+  // Iterate literals in minimal unsat core backwards to preserve order
+  // of list created
+  for (int j = min_core.size() - 1; j >= 0; --j)
+    {
+      
+#ifdef DEBUG
+      fprintf(stderr, "%d ", 
+	      sign(min_core[j]) ? var(min_core[j]) : -var(min_core[j]));
+#endif
+      
+      // Allocate for new list elements
+      cons = caml_alloc(2, 0);
+
+      // Head of list is literal in conflict clause
+      Store_field(cons, 
+		  0, 
+		  Val_int(sign(min_core[j]) ? 
+			  var(min_core[j]) : 
+			  -var(min_core[j])));
+
+      // Tail of list is previous list 
+      Store_field(cons, 1, res);
+
+      // Continue with constructed list 
+      res = cons;
+      
+    }
+
+#ifdef DEBUG
+  fprintf(stderr, "\n");
+#endif
+
+  // Return list
+  CAMLreturn(res);
+
+}
+
+
 /* Return the model after a satisfiable solve
 
   external minisat_get_model : minisat_solver -> bool option array = "minisat_get_model"
@@ -978,7 +1163,7 @@ extern "C" value minisat_get_model (value solver_in)
    external minisat_lit_var : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
 
 */
-  extern "C" value minisat_lit_var(value solver_in, value lit_in)
+extern "C" value minisat_lit_var(value solver_in, value lit_in)
 {
 
   // Declare parameters 

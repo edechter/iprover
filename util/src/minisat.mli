@@ -71,7 +71,7 @@ val add_clause: solver -> literal list -> unit
     May raise {!Unsatisfiable} if the clause set becomes immediately
     unsatisfiable, otherwise return a unique identifier for the
     clause. *)
-val add_clause_with_id : solver -> literal list -> int option
+val add_clause_with_id : solver -> int option -> literal list -> int option
 
 (** Test the given clause set for satisfiability 
 
@@ -120,6 +120,8 @@ val get_model : solver -> bool option array
     variable.
 *)
 val get_conflicts : solver -> int list 
+
+val minimise_core : solver -> int list -> int list  
 
 (** Return an unsatisfiable core *)
 val unsat_core : solver -> int list 

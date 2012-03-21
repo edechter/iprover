@@ -79,7 +79,7 @@ val lit_var_uc : solver_uc -> lit_uc -> int
 (* can raise Unsatisfiable if the solver state becomes trivialy unsat *)
 val add_clause : solver -> lit list -> unit
 
-val add_clause_with_id : solver_uc -> lit_uc list -> int option
+val add_clause_with_id : solver_uc -> int option -> lit_uc list -> int option
 
 val clauses_with_id : solver_uc -> int
 

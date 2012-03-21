@@ -1288,7 +1288,7 @@ let add_clause_to_solver clause =
       
       (* Map clause literals to grounded propositional literals *)
       let prop_gr_lit_list = 
-	List.map (get_prop_gr_lit_assign) lits 
+	List.map get_prop_gr_lit_assign lits 
       in
 
       (* Dump propositional clause *)
@@ -1301,7 +1301,7 @@ let add_clause_to_solver clause =
       (* Map clause literals to grounded propositional literals in
 	 unsat core solver *)
       let prop_gr_lit_uc_list = 
-	List.map (get_prop_gr_lit_uc_assign) lits 
+	List.map get_prop_gr_lit_uc_assign lits 
       in
 
       (* Make association list of literals in satsisfiability solver to
@@ -1321,7 +1321,7 @@ let add_clause_to_solver clause =
       (* Map clause literals to propositional literals grounded by
 	 variable in unsat core solver *)
       let prop_lit_uc_list = 
-	List.map (get_prop_lit_uc_assign) lits 
+	List.map get_prop_lit_uc_assign lits 
       in
 
       (* Make association list of literals in satsisfiability solver to
@@ -1381,7 +1381,7 @@ let add_clause_to_solver clause =
 	      
 	      (* Add empty clause to unsat core solver and get id *)
 	      let clause_id = 
-		PropSolver.add_clause_with_id solver_uc []
+		PropSolver.add_clause_with_id solver_uc None []
 	      in
 	      
 	      (
@@ -1397,7 +1397,13 @@ let add_clause_to_solver clause =
 		    (
 		      
 		      (* Map ID in solver to first-order clause *)
-		      Hashtbl.add solver_uc_clauses i clause
+		      Hashtbl.add solver_uc_clauses i clause;
+
+		      (* Assign ID to clause 
+
+			 Clauses are only added to the solver once,
+			 therefore IDs are not reassigned *)
+		      Clause.assign_prop_solver_id clause i
 			
 		    )
 	      );
@@ -1427,7 +1433,7 @@ let add_clause_to_solver clause =
 	     satisfiability solver can be immediately unsatisfiable,
 	     but not in unsat core solver *)
 	  let clause_id = 
-	    PropSolver.add_clause_with_id solver_uc simpl_gr_lit_uc_list
+	    PropSolver.add_clause_with_id solver_uc None simpl_gr_lit_uc_list
 	  in
 	  
 	  (
@@ -1443,7 +1449,13 @@ let add_clause_to_solver clause =
 		(
 		  
 		  (* Map ID in solver to first-order clause *)
-		  Hashtbl.add solver_uc_clauses i clause
+		  Hashtbl.add solver_uc_clauses i clause;
+
+		  (* Assign ID to clause 
+		     
+		     Clauses are only added to the solver once,
+		     therefore IDs are not reassigned *)
+		  Clause.assign_prop_solver_id clause i
 		    
 		)
 	  );
@@ -1496,7 +1508,10 @@ let add_clause_to_solver clause =
 	      
 	      (* Add empty clause to unsat core solver and get id *)
 	      let clause_id = 
-		PropSolver.add_clause_with_id solver_uc []
+		PropSolver.add_clause_with_id 
+		  solver_uc 
+		  (Clause.get_prop_solver_id clause)
+		  []
 	      in
 	      
 	      (
@@ -1524,9 +1539,6 @@ let add_clause_to_solver clause =
 	    );
 
 
-	  (* Only add to simplification solver *)
-	  (* PropSolver.add_clause solver simpl_lit_list; *)
-(*	  
 	  (* Map literals in simplified clause in simplification solver to
 	     literals in unsat core solver
 	     
@@ -1546,7 +1558,10 @@ let add_clause_to_solver clause =
 	     solver can be immediately unsatisfiable, but not in unsat
 	     core solver *)
 	  let clause_id = 
-	    PropSolver.add_clause_with_id solver_uc simpl_lit_uc_list
+	    PropSolver.add_clause_with_id 
+	      solver_uc 
+	      (Clause.get_prop_solver_id clause)
+	      simpl_lit_uc_list 
 	  in
 	  
 	   (
@@ -1562,11 +1577,19 @@ let add_clause_to_solver clause =
 		(
 		  
 		  (* Map ID in solver to first-order clause *)
-		  Hashtbl.add solver_uc_clauses i clause
+		  Hashtbl.add solver_uc_clauses i clause;
+
+		  (* Assign ID to clause 
+		     
+		     Clauses are only added to the solver once,
+		     therefore IDs are not reassigned *)
+		  (match Clause.get_prop_solver_id clause with
+		    | None -> Clause.assign_prop_solver_id clause i
+		    | Some _ -> ())
 		    
 		)
 	  );
-*)
+
 	  (* Add simplified clause to simplification solver *)
 	  PropSolver.add_clause solver_sim simpl_lit_list;
 	  

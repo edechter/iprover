@@ -98,8 +98,10 @@ external minisat_add_clause : minisat_solver -> minisat_literal list -> bool = "
    Some id)].
 
    The clause is added with a tracking literal appended that is the
-   unique ID of the clause. *)
-external minisat_add_clause_with_id : minisat_solver -> minisat_literal list -> bool * int option = "minisat_add_clause_with_id" 
+   unique ID of the clause. A new tracking variable is created if the
+   parameter is None, otherwise the variable given is used to track
+   the clause. *)
+external minisat_add_clause_with_id : minisat_solver -> int option -> minisat_literal list -> bool * int option = "minisat_add_clause_with_id" 
 
 (* Test the given clause set for satisfiability *)
 external minisat_solve : minisat_solver ->  bool = "minisat_solve"
@@ -135,6 +137,9 @@ external minisat_get_model : minisat_solver -> bool option array = "minisat_get_
 
 (* Return the final conflict clause after an unsatisfiable solve call *)
 external minisat_get_conflicts : minisat_solver -> int list = "minisat_get_conflicts"
+
+(* Minimise an unsatisfiable core *)
+external minisat_minimise_core : minisat_solver -> int list -> int list = "minisat_minimise_core"
 
 (* Return the number of variables allocated in MiniSat *)
 external minisat_stat_vars : minisat_solver -> int = "minisat_stat_vars" 
@@ -190,7 +195,7 @@ let add_clause { solver = solver } = function
 (* Assert a clause given as a list of literals in the solver. Raise
    {!Unsatisfiable} if the clause set becomes immediately
    unsatisfiable. *)
-let add_clause_with_id { solver = solver } = function
+let add_clause_with_id { solver = solver } id = function
 
   (* The empty clause is immediately unsatisfiable, but do not catch
      this, since we might want to get an unsat core containing the empty
@@ -202,7 +207,7 @@ let add_clause_with_id { solver = solver } = function
     (
 
       (* Add clause and check if immediately unsatisfiable *)
-      match minisat_add_clause_with_id solver clause with
+      match minisat_add_clause_with_id solver id clause with
 	  
 	(* Raise exception if immediately unsatisfiable *)
 	| false, _ -> raise Unsatisfiable
@@ -315,6 +320,11 @@ let get_model { solver = solver } =
 (* Return the final conflicts clause after an unsatisfiable solve *)
 let get_conflicts { solver = solver } =
   minisat_get_conflicts solver
+
+
+(* Return the final conflicts clause after an unsatisfiable solve *)
+let minimise_core { solver = solver } core =
+  minisat_minimise_core solver core
 
 
 (* No support for unsatisfiable cores in MiniSat *)

@@ -1271,7 +1271,7 @@ let bmc1_max_bound_fun b =
 
 let bmc1_max_bound_inf  =
   int_str^
-  inf_pref^"maximal bound in BMC1\n"
+  inf_pref^"maximal bound in BMC1, -1 for unlimited\n"
 
 (*--------*)
 
@@ -1282,7 +1282,7 @@ let bmc1_max_bound_default_fun b =
     override_cmd b !current_options.bmc1_max_bound_default
 
 let bmc1_max_bound_default_inf  =
-  int_str^
+  int_str^ 
   inf_pref^"maximal bound in BMC1 unless higher bound from file\n"
 
 (*--------*)

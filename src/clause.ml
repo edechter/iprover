@@ -110,6 +110,7 @@ type clause =
     {
      literals : literal_list;   
      mutable fast_key      : int param;
+     mutable prop_solver_id : int option;
      mutable bool_param    : Bit_vec.bit_vec;
      mutable inst_sel_lit  : (term * sel_place) param;
      mutable res_sel_lits  : literal_list param;
@@ -161,6 +162,7 @@ let create term_list =
   {
    literals       = term_list; 
    fast_key       = Undef;
+   prop_solver_id = None;
    inst_sel_lit   = Undef;
    res_sel_lits   = Undef; 
    dismatching    = Undef;
@@ -182,6 +184,7 @@ let create_parent parent term_list =
   {
    literals       = term_list; 
    fast_key       = Undef;
+   prop_solver_id = None;
    inst_sel_lit   = Undef;
    res_sel_lits   = Undef; 
    dismatching    = Undef;
@@ -207,6 +210,18 @@ let assign_fast_key clause (fkey : int) =
   |Undef -> clause.fast_key <- Def(fkey)      
   |_     -> raise Clause_fast_key_is_def
 
+
+exception Clause_prop_solver_id_is_def
+exception Clause_prop_solver_id_is_undef
+
+let assign_prop_solver_id = function 
+  | { prop_solver_id = None } as clause -> 
+    (function id -> clause.prop_solver_id <- Some id)
+      
+  | { prop_solver_id = Some a } -> 
+    (function _ -> raise Clause_prop_solver_id_is_def)
+
+let get_prop_solver_id { prop_solver_id = id } = id
 
 let compare_literals c1 c2 = 
   list_compare_lex Term.compare c1.literals c2.literals 

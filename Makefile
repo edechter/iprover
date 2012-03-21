@@ -142,6 +142,7 @@ export OCAMLINCDIR=$(OCAMLLIB)
 
 util/lib/minisat.cmxa:
 	cd util && $(MAKE) -f Makefile minisat-ocaml
+#	cd util && $(MAKE) -f Makefile minisat-ocaml-debug
 
 # util/lib/hhlmuc.cmxa: export OCAMLLIBDIR=$(OCAMLLIB)
 # util/lib/hhlmuc.cmxa: export OCAMLINCDIR=$(OCAMLLIB)

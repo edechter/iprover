@@ -136,9 +136,9 @@ let add_clause solver lits_in =
       raise Unsatisfiable
     )
       
-let add_clause_with_id solver lits_in =
+let add_clause_with_id solver id_in lits_in =
   try 
-    SatSolverUC.add_clause_with_id solver lits_in
+    SatSolverUC.add_clause_with_id solver id_in lits_in
   with SatSolverUC.Unsatisfiable -> 
     (
       (* Format.eprintf "Unsatisfiable with added clause in unsat core solver@."; *)
@@ -252,4 +252,11 @@ let lit_var_uc solver lit = SatSolverUC.lit_var solver lit
     
 let lit_sign_uc solver lit = SatSolverUC.lit_sign solver lit
 
-let get_conflicts solver = SatSolverUC.get_conflicts solver
+let get_conflicts solver = 
+  let core = SatSolverUC.get_conflicts solver in
+  let min_core = SatSolverUC.minimise_core solver core in
+  Format.eprintf 
+    "Core size: %d, minimal core size: %d@." 
+    (List.length core) 
+    (List.length min_core);
+  min_core

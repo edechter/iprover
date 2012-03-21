@@ -208,6 +208,15 @@ exception Clause_fast_key_is_def
 (* only to be used in clauseDB where the fast_key is assigned*)
 val assign_fast_key : clause -> int -> unit
 
+exception Clause_prop_solver_id_is_def
+exception Clause_prop_solver_id_is_undef
+
+val assign_prop_solver_id : clause -> int -> unit
+
+val get_prop_solver_id : clause -> int option
+
+
+
 (* compare = compare_fast_key and should not be used before 
    fast_key is assigned i.e. clauseDB is build; 
    before that use compare_key the same for equal*)  
