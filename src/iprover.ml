@@ -1287,7 +1287,7 @@ let rec main clauses finite_model_clauses =
 
 	  (* Get parent clauses of unsat core clauses *)
 	  let unsat_core_parents = 
-	    Clause.clause_list_get_history_parents unsat_core_clauses
+	    TstpProof.get_parents unsat_core_clauses
 	  in
 
 	  (* Assign size of unsat core in statistics *)
@@ -1461,7 +1461,7 @@ let rec main clauses finite_model_clauses =
 	    
 	    (* Add axioms for next bound *)
 	    let next_bound_axioms = 
-	      Bmc1Axioms.increment_bound cur_bound next_bound
+	      Bmc1Axioms.increment_bound cur_bound next_bound false
 	    in
 
 	      (* Preprocess axioms *)
@@ -1885,7 +1885,7 @@ let run_iprover () =
 
 		    (* Add axioms for next bound *)
 		    let next_bound_axioms = 
-		      Bmc1Axioms.increment_bound i (succ i)
+		      Bmc1Axioms.increment_bound i (succ i) false
 		    in
 		    
 		    (* Output next bound *)

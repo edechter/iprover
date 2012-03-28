@@ -1108,7 +1108,7 @@ let bmc1_bounds = ref []
 	  
 	  (* Get axioms for next bound *)
 	  let next_bound_axioms = 
-	    Bmc1Axioms.increment_bound cur_bound next_bound
+	    Bmc1Axioms.increment_bound cur_bound next_bound false
 	  in
 	    
 	    (* Symbols in axioms are input symbols *)
@@ -1267,7 +1267,7 @@ let init_instantiation () =
       | b :: tl -> 
 	  
 	  (* Create clauses for initial bound *)
-	  let bmc1_axioms = Bmc1Axioms.increment_bound 0 b in
+	  let bmc1_axioms = Bmc1Axioms.increment_bound 0 b false in
 (*	  
 	  (* Create equality axioms also for symbols in BMC1 axioms *)
 	  let eq_axioms = Eq_axioms.axiom_list () in
