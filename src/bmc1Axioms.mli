@@ -35,7 +35,11 @@ val init_bound : Clause.clause list -> Clause.clause list * Clause.clause list
     given next bound. Difference between current and next bound must
     be 1.
 
+    If the boolean flag is true, the bound increment is only
+    simulated, that is, the function has no side effects. Otherwise,
+    the assumptions in the SAT solver are modified.
+
     TODO: Fix this to arbitrary bound increments 
 *)
-val increment_bound : int -> int -> Clause.clause list
+val increment_bound : int -> int -> bool -> Clause.clause list
 

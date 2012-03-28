@@ -315,7 +315,8 @@ let rec create_path_axioms accum lbound = function
     in
     
     (* Assign clause history as axiom *)
-    Clause.assign_axiom_history Clause.BMC1_Axiom path_axiom_b;
+    (* Clause.assign_axiom_history Clause.BMC1_Axiom path_axiom_b; *)
+    Clause.assign_tstp_source_axiom_bmc1 path_axiom_b;
 
     (* Add path axioms for lesser states *)
     create_path_axioms (path_axiom_b :: accum) lbound (pred b)
@@ -348,8 +349,9 @@ let rec create_reachable_state_axioms accum lbound = function
     in
     
     (* Assign clause history as axiom *)
-    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
-    
+    (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
+    Clause.assign_tstp_source_axiom_bmc1 reachable_state_axiom_b; 
+        
     (* Add reachable state axioms for lesser states *)
     create_reachable_state_axioms
       (reachable_state_axiom_b :: accum) lbound (pred b)
@@ -408,7 +410,8 @@ let create_reachable_state_conj_axiom bound =
   in
   
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_conj_axiom;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_conj_axiom; *)
+  Clause.assign_tstp_source_axiom_bmc1 reachable_state_conj_axiom;
   
   (* Return created clause *)
   reachable_state_conj_axiom
@@ -438,7 +441,8 @@ let rec create_reachable_state_axioms accum lbound = function
     in
     
     (* Assign clause history as axiom *)
-    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
+    Clause.assign_tstp_source_axiom_bmc1 reachable_state_axiom_b;
     
     (* Add reachable state axioms for lesser states *)
     create_reachable_state_axioms
@@ -475,7 +479,8 @@ let rec create_reachable_state_on_bound_axioms accum lbound = function
     in
     
     (* Assign clause history as axiom *)
-    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
+    Clause.assign_tstp_source_axiom_bmc1 reachable_state_axiom_b;
     
     (* Add reachable state axioms for lesser states *)
     create_reachable_state_on_bound_axioms
@@ -523,7 +528,8 @@ let rec create_only_bound_reachable_axioms accum lbound = function
     in
     
     (* Assign clause history as axiom *)
-    Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b;
+    (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
+    Clause.assign_tstp_source_axiom_bmc1 reachable_state_axiom_b;
     
     (* Add clauses for lesser states *)
     create_only_bound_reachable_axioms
@@ -575,7 +581,8 @@ let create_clock_axiom state clock pattern accum =
   in
 
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom clock_axiom;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom clock_axiom; *)
+  Clause.assign_tstp_source_axiom_bmc1 clock_axiom;
 
   (* Return clock axiom in accumulator *)
   clock_axiom :: accum
@@ -707,7 +714,8 @@ let create_address_domain_axiom address_max_width =
   in
 
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom address_domain_axiom;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom address_domain_axiom; *)
+  Clause.assign_tstp_source_axiom_bmc1 address_domain_axiom;
 
   (* Return axiom *)
   address_domain_axiom
@@ -764,7 +772,8 @@ let create_constant_address_definition accum bitvector_symbol =
   in
 
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_1;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_1; *)
+  Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_1;
 
   (* Create second axiom *)
   let constant_address_definition_2 =
@@ -775,7 +784,8 @@ let create_constant_address_definition accum bitvector_symbol =
   in
 
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_2;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_2; *)
+  Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_2;
 
   (* Create third axiom *)
   let constant_address_definition_3 = 
@@ -785,7 +795,8 @@ let create_constant_address_definition accum bitvector_symbol =
   in
 
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_3;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_3; *)
+  Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_3;
 
   (* Return clauses in accumulator *)
   constant_address_definition_1 ::
@@ -969,7 +980,8 @@ let bound_instantiate_clause bound clause =
   in
 
   (* Assign clause history as axiom *)
-  Clause.assign_axiom_history Clause.BMC1_Axiom instantiated_clause;
+  (* Clause.assign_axiom_history Clause.BMC1_Axiom instantiated_clause; *)
+  Clause.assign_tstp_source_axiom_bmc1 instantiated_clause;
 
   (* Return instantiated clause *)
   instantiated_clause
@@ -1155,7 +1167,7 @@ let init_bound all_clauses =
 
 
 (* Increment bound from given bound *)
-let increment_bound cur_bound next_bound =
+let increment_bound cur_bound next_bound simulate =
 
   (* Create literals for current bound up to next bound,
      i.e. $$iProver_bound{b_cur}, ..., $$iProver_bound{b_next - 1} *)
@@ -1229,8 +1241,9 @@ let increment_bound cur_bound next_bound =
     bound_literals_cur_to_next @ !invalid_bound_assumptions;
   
   (* Assume assumption literal for next_bound to be true in solver *)
-  Prop_solver_exchange.assign_only_norm_solver_assumptions 
-    (bound_literal_next :: !invalid_bound_assumptions);
+  if not simulate then 
+    Prop_solver_exchange.assign_only_norm_solver_assumptions 
+      (bound_literal_next :: !invalid_bound_assumptions);
   
   (* Return created path axioms and reachable state axiom *)
   let bound_axioms =
