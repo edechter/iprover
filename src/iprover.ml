@@ -1284,16 +1284,19 @@ let rec main clauses finite_model_clauses =
 	    bmc1_unsat_core_size;
 
 	  let start_time = Unix.gettimeofday () in
-
+(*
 	  (* Get parent clauses of unsat core clauses *)
 	  let unsat_core_parents = 
 	    TstpProof.get_parents unsat_core_clauses
 	  in
+*)
 
 	  (* Assign size of unsat core in statistics *)
+(*
 	  assign_int_stat 
 	    (List.length unsat_core_parents) 
 	    bmc1_unsat_core_parents_size;
+*)
 
 (*
 	    List.fold_left 
@@ -1323,14 +1326,15 @@ let rec main clauses finite_model_clauses =
 		"@\n%sTime to find parents of unsat core clauses: %.3f@."
 		pref_str
 		(end_time -. start_time);
-	      
+(*	      
 	      (* Print parents of unsat core *)
 	      Format.printf 
 		"@\n%sUnsat core parents has size %d@\n@\n%a@." 
 		pref_str
 		(List.length unsat_core_parents)
 		(pp_any_list Clause.pp_clause "\n") unsat_core_parents
-		
+
+*)		
 	    );
 	  
 	  if 
@@ -1354,7 +1358,7 @@ let rec main clauses finite_model_clauses =
 		!bmc1_cur_bound
 		Clause.pp_clause_list_tptp
 		unsat_core_clauses;
-	      
+(*	      
 	      (* Output clauses *)
 	      Format.fprintf 
 		dump_formatter
@@ -1362,7 +1366,7 @@ let rec main clauses finite_model_clauses =
 		!bmc1_cur_bound
 		Clause.pp_clause_list_tptp
 		unsat_core_parents;
-
+*)
 	      (* Output bound assumptions *)
 	      Format.fprintf 
 		dump_formatter
@@ -1491,10 +1495,12 @@ let rec main clauses finite_model_clauses =
 		  (
 
 		    (* Flag clauses as in unsat core *)
+(*
 		    List.iter 
 		      (Clause.set_bool_param true Clause.in_unsat_core)
 		      unsat_core_parents;
 
+*)
 (*
 		    List.iter 
 		      (Clause.set_bool_param true Clause.in_unsat_core)
@@ -1543,11 +1549,12 @@ let rec main clauses finite_model_clauses =
 		then
 		  
 		  (
-		    
+(*		    
 		    (* Formatter to write to, i.e. stdout or file *)
 		    let dump_formatter =
 		      Bmc1Axioms.get_bmc1_dump_formatter ()
 		    in
+
 
 		    (* Output clauses *)
 		    Format.fprintf 
@@ -1556,9 +1563,10 @@ let rec main clauses finite_model_clauses =
 		      next_bound
 		      (pp_any_list Clause.pp_clause_tptp "\n") 
 		      all_clauses;
-
+*)
 		  );
 	      
+
 	      (* Run again for next bound *)
 	      main 
 		all_clauses
