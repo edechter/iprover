@@ -79,7 +79,7 @@ type filter_state =
 let clause_to_fclause order_lit_fun clause = 
   {
    orig_clause = clause;
-(* order in decreasing order therefore we compose_sign with false *)
+(* order in decreasing order: we compose_sign with false *)
    lits_to_try = List.sort (compose_sign false order_lit_fun) (Clause.get_literals clause);
  }
 
@@ -307,7 +307,7 @@ let neg_order_fun_1 () =
 
 let neg_order_fun_2 () =  
   Term.lit_cmp_type_list_to_lex_fun 
-    [Lit_Sign false;  Lit_Num_of_Symb(true); Lit_Num_of_Var (false)]
+    [Lit_Sign false;  Lit_Num_of_Symb true; Lit_Num_of_Var false]
 
 
 let pos_order_fun_1 () = 
@@ -316,7 +316,7 @@ let pos_order_fun_1 () =
 
 let pos_order_fun_2 () = 
   Term.lit_cmp_type_list_to_lex_fun 
-    [Lit_Sign true; Lit_Num_of_Symb(true); Lit_Num_of_Var (false)]
+    [Lit_Sign true; Lit_Num_of_Symb true; Lit_Num_of_Var false]
 
 
 
