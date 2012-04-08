@@ -1170,6 +1170,9 @@ let init_bound all_clauses =
 (* Increment bound from given bound *)
 let increment_bound cur_bound next_bound simulate =
 
+(*currently only next_bound should be cur_bound + 1 *)
+  assert (next_bound - cur_bound = 1);
+
   (* Create literals for current bound up to next bound,
      i.e. $$iProver_bound{b_cur}, ..., $$iProver_bound{b_next - 1} *)
   let bound_literals_cur_to_next = 

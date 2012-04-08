@@ -512,6 +512,7 @@ let finite_models clauses =
   let dom_const_list = ref [] in
   let domain_preds   = ref [] in
 
+
   let model_size = ref
     (if no_input_eq () 
     then 
@@ -525,9 +526,12 @@ let finite_models clauses =
     else 1
     )
   in
-(*  let model_size = ref 20 in
+
+
+(*  let model_size = ref 5 in
   out_str (pref_str^"Overwritting the model size to:"
-	   ^(string_of_int !model_size)^"\n");*)
+	   ^(string_of_int !model_size)^"\n");
+*)
   for i = 1 to !model_size 
   do
     let new_dom_const = 
@@ -1837,6 +1841,11 @@ let run_iprover () =
 
       let less_range_axioms = Eq_axioms.less_range_axioms () in
 
+      current_clauses := less_range_axioms@(!current_clauses);
+
+      assign_is_essential_input_symb less_range_axioms;
+
+
 (*debug *)
 (*
         out_str "\n-----------Less Range Axioms:---------\n";
@@ -1846,7 +1855,9 @@ let run_iprover () =
 (*debug *)
 
 	(* Clauses are input clauses *)
-	assign_is_essential_input_symb less_range_axioms;
+
+
+(*------------------BMC1----------------------------------------*)
 	      
 	(
 
@@ -1955,11 +1966,6 @@ let run_iprover () =
 	       max_bound);
 	
  
-(* for finite models we ommit equality axioms! *)
-
-      let finite_models_clauses = !current_clauses in 
-
-      current_clauses := less_range_axioms@(!current_clauses);
 	
       (
 
@@ -1982,7 +1988,15 @@ let run_iprover () =
 	    !current_clauses
 
       );
-	  
+
+(*--------------------------------------------------*)
+(* for finite models we ommit equality axioms! *)
+
+    (*  let finite_models_clauses = !current_clauses in *)
+      let current_clauses_no_eq = ref (!current_clauses) in 
+
+      let gen_equality_axioms = ref [] in
+
       (if (not (omit_eq_axioms ())) 
       then
 	(
@@ -2004,7 +2018,7 @@ let run_iprover () =
 	   )
 	 else
 	   (
-	   let equality_axioms = Eq_axioms.axiom_list () in
+	    gen_equality_axioms := Eq_axioms.axiom_list (); 
 (*debug *)
 (*
 	out_str "\n-----------Eq Axioms:---------\n";
@@ -2013,7 +2027,7 @@ let run_iprover () =
 
 *)
 (*debug *)
-	   current_clauses := equality_axioms@(!current_clauses)
+	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
 	   )
 	)
       else 
@@ -2033,6 +2047,17 @@ let run_iprover () =
 *)
 
 (*--------------semantic filter---------------------------*)
+
+(*side_clauses used in sem filter*)
+      let get_side_clauses () =  
+	if !current_options.bmc1_incremental then
+(* we initialised Bmc1Axioms.init_bound !current_clauses above *)
+(* simulate is true in increment_bound *)
+	     ((Bmc1Axioms.get_bound_assumptions 1)
+	      @(Bmc1Axioms.increment_bound 0 1 true)) 
+	else [] 
+      in
+
       if !current_options.prep_sem_filter_out 
       then  
 	(
@@ -2042,21 +2067,23 @@ let run_iprover () =
 (*-------------------------------------------------*)
 
 (*	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");*)
-	 let prep_clauses = 
-	   Prep_sem_filter_unif.sem_filter_unif !current_clauses in 
+
+
 (*
 	  let prep_clauses = 
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
 *)
-
+	 
+     let prep_clauses = 
+       Prep_sem_filter_unif.sem_filter_unif !current_clauses (get_side_clauses ()) in       
 
 (*
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
-
+*)
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
-*)
+
 
 	 out_str "\n\n";
 	 out_str (unknown_str  ());
@@ -2078,13 +2105,26 @@ let run_iprover () =
 
        if (!current_options.prep_sem_filter != Sem_Filter_None) 
        then 
-	 (out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
-
+	 (
+	  out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
 (*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
 (*	  current_clauses := List.sort cmp_clause_length !current_clauses;*)
-	  current_clauses := Prep_sem_filter_unif.sem_filter_unif !current_clauses;
-	  
-	 ) 
+
+	  let side_clauses = get_side_clauses () in
+	  current_clauses := 
+	    Prep_sem_filter_unif.sem_filter_unif !current_clauses side_clauses;
+	  (
+	   if  (!current_options.sat_mode || !current_options.sat_finite_models || 
+	   !current_options.schedule = Schedule_sat)
+	   then 
+	     (
+	      current_clauses_no_eq :=
+		Prep_sem_filter_unif.sem_filter_unif 
+		  !current_clauses_no_eq ((!gen_equality_axioms)@side_clauses);
+	     )
+	   else ()
+	  )
+	 )
        else ()
       );
   
@@ -2114,6 +2154,7 @@ let run_iprover () =
       then 
 	(raise PropSolver.Unsatisfiable));
       (* Clause.out_clause_list_tptp !current_clauses; *)
+      let finite_models_clauses = !current_clauses_no_eq in
       main !current_clauses finite_models_clauses
     end
   with

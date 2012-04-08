@@ -32,12 +32,14 @@ let term_db_ref    = Parser_types.term_db_ref
 (*-------------------------------*)
 type filter_clause = 
     {orig_clause : clause;
+     is_side : bool;
 (* order literals first in the order of preferred selection *)
 (* e.g. negative/positive/ground first     *)
 
 (* if filter_clause is in the watch index then first literal in lits_to_try*)
 (* is the watched literal  *)                 
-     mutable lits_to_try : lit list; 
+     mutable lits_to_try : lit list;
+ 
    }
 
 module DTParam = 
@@ -76,18 +78,20 @@ type filter_state =
      mutable watch_unif_index : (watch_unif_index_elem DiscrTreeM.index);
    }
 
-let clause_to_fclause order_lit_fun clause = 
+let clause_to_fclause is_side order_lit_fun clause = 
   {
    orig_clause = clause;
+   is_side = is_side;
 (* order in decreasing order: we compose_sign with false *)
    lits_to_try = List.sort (compose_sign false order_lit_fun) (Clause.get_literals clause);
  }
 
 
-let init_filter_state clause_list order_lit_fun = 
+let init_filter_state clause_list side_clause_list order_lit_fun = 
   {
    unprocessed_fclauses = 
-   List.map (clause_to_fclause order_lit_fun) clause_list;
+   ((List.map (clause_to_fclause true order_lit_fun) side_clause_list))
+   @(List.map (clause_to_fclause false order_lit_fun) clause_list);
 
    filtered_in_clauses    = [];
 
@@ -216,8 +220,12 @@ let no_watch_found filter_state fclause =
     filter_state.atom_unif_index <- !ind_ref;
   in
   List.iter add_to_atom_unif_index atoms;
-  filter_state.filtered_in_clauses <- 
-    (fclause.orig_clause)::(filter_state.filtered_in_clauses)
+  (if (not (fclause.is_side))
+  then
+    filter_state.filtered_in_clauses <- 
+      (fclause.orig_clause)::(filter_state.filtered_in_clauses)
+  else ()
+  )
 
 (*---------------------------*)
 
@@ -322,9 +330,9 @@ let pos_order_fun_2 () =
 
 
 
-let sem_filter_unif_order order_fun clause_list = 
+let sem_filter_unif_order order_fun clause_list side_clause_list = 
   let time_before = Unix.gettimeofday () in       	
-  let filter_state = init_filter_state clause_list order_fun in
+  let filter_state = init_filter_state clause_list side_clause_list order_fun in
 
   ignore(filter_clauses filter_state);
 
@@ -345,15 +353,17 @@ let cmp_clause_length c1 c2 =
 let cmp_clause_length_compl c1 c2 = -cmp_clause_length c1 c2
     
 
+(* side clauses are theory clauses: they are used to block removing needed     *)
+(* clauses from the clause set but are not added to the resulting filtered set *)
 
-let sem_filter_unif clause_list = 
+let sem_filter_unif clause_list side_clause_list = 
   match !current_options.prep_sem_filter with
   | Sem_Filter_None -> clause_list
   | Sem_Filter_Pos -> 
       sem_filter_unif_order 
 	(pos_order_fun_1 ()) 
-	clause_list
-  | Sem_Filter_Neg -> sem_filter_unif_order (neg_order_fun_1 ()) clause_list
+	clause_list side_clause_list
+  | Sem_Filter_Neg -> sem_filter_unif_order (neg_order_fun_1 ()) clause_list side_clause_list
   | Sem_Filter_Exhaustive 
     -> 
       begin
@@ -366,7 +376,7 @@ let sem_filter_unif clause_list =
 	  let num_of_sem_filtered_clauses_before = num_of_sem_filtered_clauses in
 	  let f order_fun  = 
 	 (*   current_clauses := (List.sort cmp_clause_length  !current_clauses);*)
-	    current_clauses := sem_filter_unif_order order_fun !current_clauses;
+	    current_clauses := sem_filter_unif_order order_fun !current_clauses side_clause_list;
 	  in	  
 	  List.iter f order_fun_list;
 	  let num_of_sem_filtered_clauses_after = num_of_sem_filtered_clauses in
