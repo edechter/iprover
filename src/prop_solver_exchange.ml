@@ -1259,19 +1259,21 @@ let add_clause_to_solver clause =
   if Clause.get_bool_param Clause.in_prop_solver clause then 
 
     (
-      (* Format.eprintf
+(*
+       Format.printf
 	"Clause %a is already in solver, skipping@."
-	Clause.pp_clause clause *)
-
+	Clause.pp_clause clause 
+*)
     )
 
   else 
     
     (
-      
-      (* Format.eprintf
+      (*
+       Format.printf
 	"Adding clause %a to solver@."
-	Clause.pp_clause clause; *)
+	Clause.pp_clause clause; 
+*)
 
       (* Dump propositional clause *)
       if !current_options.dbg_dump_prop_clauses then

@@ -3672,7 +3672,7 @@ let option_verification_epr ver_epr_opt =
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = true;
+  bmc1_incremental        = !current_options.bmc1_incremental;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3801,7 +3801,7 @@ let option_verification_epr ver_epr_opt =
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = true;
+  bmc1_incremental        = !current_options.bmc1_incremental;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3928,7 +3928,7 @@ let option_verification_epr ver_epr_opt =
        sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = true;
+  bmc1_incremental        = !current_options.bmc1_incremental;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);

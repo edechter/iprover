@@ -2048,6 +2048,7 @@ let run_iprover () =
 
 (*--------------semantic filter---------------------------*)
 
+(*     out_str "\n\n\n Before get_side_clauses \n\n\n ";*)
 (*side_clauses used in sem filter*)
       let get_side_clauses () =  
 	if !current_options.bmc1_incremental then
@@ -2057,6 +2058,8 @@ let run_iprover () =
 	      @(Bmc1Axioms.increment_bound 0 1 true)) 
 	else [] 
       in
+
+(*     out_str "\n\n\n Before Filtering \n\n\n ";*)
 
       if !current_options.prep_sem_filter_out 
       then  
@@ -2167,6 +2170,11 @@ let run_iprover () =
       if !current_options.dbg_backtrace then
 	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
       
+      (* In incremental BMC1? *)
+      if !current_options.bmc1_incremental then
+	
+	(
+     
     (* Output unsatisfiable core *)
       (
 
@@ -2180,11 +2188,7 @@ let run_iprover () =
 	  (pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
 	
       );
-      
-      (* In incremental BMC1? *)
-      if !current_options.bmc1_incremental then
-	
-	(
+ 
 
 	  Format.printf 
 	    "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
