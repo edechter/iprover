@@ -1939,7 +1939,6 @@ let run_iprover () =
 		  (val_of_override !current_options.bmc1_min_bound)
 		  0
 	      in
-
 	      (* Clauses are input clauses *)
 	      assign_is_essential_input_symb bmc1_axioms';
 	      

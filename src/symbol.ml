@@ -826,6 +826,8 @@ let compare_property s1 s2 = (compare s1.sproperty s2.sproperty)
 let  compare_key = 
   lex_combination [compare_name;(*compare_type;compare_property*)]
 
+(* cannot use compare_type;compare_property since they can change after we put symbol into symbolDB *)
+
 (*! here we neeed to have exactly the same properties as in !*)
 
 (* can be used for checking whether a key is in db or to find a symb with this key *)
