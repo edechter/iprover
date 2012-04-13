@@ -56,7 +56,7 @@ val comment_E_prover_fun : 'a -> unit
 val annotation_fun : 'a -> unit
 val contains_distinct : bool ref
 val analyse_distinct : Term.term list -> unit
-val cnf_formula_fun : 'a -> string -> Clause.literal_list -> 'b -> unit
+val cnf_formula_fun : string -> string -> Clause.literal_list -> 'b -> unit
 val is_false_lit : Term.literal -> bool
 val disjunction_fun : Term.literal list -> Term.literal -> Term.literal list
 val equality_fun : TermDB.term list -> TermDB.term

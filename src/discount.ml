@@ -43,7 +43,7 @@ exception Empty_Clause of clause
 (*----------------*)
 let out_proof_fun clause = 
   out_str ("\n----------Resolution Proof---------------\n");
-  (Clause.out_history clause);
+  (Format.printf "%a@." TstpProof.pp_tstp_proof clause);
   out_str ("\n----------End of Resolution Proof---------------\n")
 
 module type InputM = 
@@ -844,7 +844,9 @@ let forward_subs_res clause =
        Clause.normalise term_db_ref (Clause.create new_lits) in
      Clause.inherit_param_modif clause new_clause;
      Clause.set_bool_param true Clause.res_simplifying new_clause;
-     Clause.assign_forward_subsumption_resolution_history 
+     (* Clause.assign_forward_subsumption_resolution_history 
+       new_clause clause (!subs_by_list_ref); *)
+     Clause.assign_tstp_source_forward_subsumption_resolution 
        new_clause clause (!subs_by_list_ref);
 (*     out_str ("Elim: "^(Clause.to_string clause)^"\n");
      out_str ("New: "^(Clause.to_string new_clause)^"\n");
@@ -979,7 +981,9 @@ let backward_subs_res clause =
   let lits = Clause.get_literals clause in
   let subsumed_and_new_clause_list =  backward_subs_res_list [] lits in
   let f (subsumed,new_clause) = 
-    Clause.assign_backward_subsumption_resolution_history 
+    (* Clause.assign_backward_subsumption_resolution_history 
+      new_clause [clause;subsumed]; *)
+    Clause.assign_tstp_source_backward_subsumption_resolution
       new_clause [clause;subsumed];
     Clause.set_bool_param true Clause.res_simplifying new_clause;
     eliminate_clause subsumed;

@@ -228,6 +228,23 @@ let solve_assumptions_uc solver assumptions =
       raise Unsatisfiable
     )
 
+let solve_assumptions_upto_id_uc solver assumptions max_id =
+  try 
+    let start_time = Unix.gettimeofday () in
+    let result = 
+      SatSolverUC.solve_assumptions_upto_id solver assumptions max_id 
+    in
+    let end_time = Unix.gettimeofday () in
+    add_float_stat (end_time -. start_time) prop_solver_time;
+    (match result with 
+      | true -> Sat    (* under assumption *) 
+      | false -> Unsat)  (* under assumption *) 
+  with SatSolverUC.Unsatisfiable -> 
+    (
+      (* Format.eprintf "Unsatisfiable without assumptions@."; *)
+      raise Unsatisfiable
+    )
+
 let fast_solve solver assumptions =
   try 
     let start_time = Unix.gettimeofday () in
@@ -255,8 +272,12 @@ let lit_sign_uc solver lit = SatSolverUC.lit_sign solver lit
 let get_conflicts solver = 
   let core = SatSolverUC.get_conflicts solver in
   let min_core = SatSolverUC.minimise_core solver core in
-  Format.eprintf 
+  (* Format.eprintf 
     "Core size: %d, minimal core size: %d@." 
     (List.length core) 
-    (List.length min_core);
-  min_core
+    (List.length min_core); *)
+  (* Format.eprintf
+    "Core: %a@.@\nMinimal core: %a@.@\n" 
+    (pp_int_list " ") core
+    (pp_int_list " ") min_core; *)
+  min_core 

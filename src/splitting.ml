@@ -199,7 +199,8 @@ let ground_split_clause clause =
 *)
 	   let split_clause = (Clause.create (split_neg_atom::norm_list)) in
 	   Clause.inherit_param_modif clause split_clause;
-	   Clause.assign_split_history split_clause clause;
+	   (* Clause.assign_split_history split_clause clause; *)
+	   Clause.assign_tstp_source_split split_clause clause;
 	   split_clauses:= split_clause::(!split_clauses);
 	   split_ground_lits:=split_atom::(!split_ground_lits)
 	  )
@@ -208,7 +209,8 @@ let ground_split_clause clause =
     List.iter create_split_clause_split_atom processed;
     let ground_clause =  Clause.create !split_ground_lits in
     Clause.inherit_param_modif clause ground_clause;
-    Clause.assign_split_history ground_clause clause;
+    (* Clause.assign_split_history ground_clause clause; *)
+    Clause.assign_tstp_source_split ground_clause clause; 
     let split_final_list = ground_clause::(!split_clauses) in
     let result ={
       split_list          = split_final_list;

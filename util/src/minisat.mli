@@ -76,7 +76,8 @@ val add_clause_with_id : solver -> int option -> literal list -> int option
 (** Test the given clause set for satisfiability 
 
     Return [true] if satisfiable and [false] if unsatisfiable *)
-val solve: solver -> bool
+val solve : solver -> bool
+val solve_upto_id : solver -> int -> bool
 
 (** Test the given clause set for satisfiability when the given
     literals are to be made true. 
@@ -85,7 +86,8 @@ val solve: solver -> bool
     unsatisfiable with assumptions and raise exception
     {!Unsatisfiable} if immediately unsatisfiable without
     assumptions. *)
-val solve_assumptions: solver -> literal list -> bool
+val solve_assumptions : solver -> literal list -> bool
+val solve_assumptions_upto_id : solver -> literal list -> int -> bool
 
 (** Test the given clause set for satisfiability when the given
     literals are to be made true. 
@@ -94,7 +96,8 @@ val solve_assumptions: solver -> literal list -> bool
     unsatisfiable with assumptions and raise exception
     {!Unsatisfiable} if immediately unsatisfiable without
     assumptions. *)
-val fast_solve: solver -> literal list -> bool option
+val fast_solve : solver -> literal list -> bool option
+val fast_solve_upto_id : solver -> literal list -> int -> bool option
 
 (** {1 Inspection} *)
 

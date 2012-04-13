@@ -104,18 +104,18 @@ external minisat_add_clause : minisat_solver -> minisat_literal list -> bool = "
 external minisat_add_clause_with_id : minisat_solver -> int option -> minisat_literal list -> bool * int option = "minisat_add_clause_with_id" 
 
 (* Test the given clause set for satisfiability *)
-external minisat_solve : minisat_solver ->  bool = "minisat_solve"
+external minisat_solve : minisat_solver -> int option ->  bool = "minisat_solve"
 
 (* Test the given clause set for satisfiability when the given
    literals are to be made true *)
-external minisat_solve_assumptions : minisat_solver -> minisat_literal list -> int = "minisat_solve_assumptions"
+external minisat_solve_assumptions : minisat_solver -> minisat_literal list -> int option -> int = "minisat_solve_assumptions"
 
 
 (* Test the given clause set for satisfiability when the given
    literals are to be made true. Limit the search to a number of
    conflicts, which is a multiple of the number of literal
    assumptions *)
-external minisat_fast_solve : minisat_solver -> minisat_literal list -> int -> int option = "minisat_fast_solve"
+external minisat_fast_solve : minisat_solver -> minisat_literal list -> int -> int option -> int option = "minisat_fast_solve"
 
 
 (* Return the variable of the literal *)
@@ -224,7 +224,16 @@ let solve ({ solver = solver } as s) =
   (* Increment counter *)
   s.num_of_solver_calls <- succ s.num_of_solver_calls;
   
-  minisat_solve solver 
+  minisat_solve solver None
+
+
+(* Test the given clause set for satisfiability *)
+let solve_upto_id ({ solver = solver } as s) max_id = 
+
+  (* Increment counter *)
+  s.num_of_solver_calls <- succ s.num_of_solver_calls;
+  
+  minisat_solve solver (Some max_id)
   
 
 (** Test the given clause set for satisfiability when the given
@@ -235,7 +244,28 @@ let solve_assumptions ({ solver = solver } as s) assumptions =
   s.num_of_solver_calls <- succ s.num_of_solver_calls;
 
   (* Solve with literal assumptions *)
-  match int_to_lbool (minisat_solve_assumptions solver assumptions) with 
+  match 
+    int_to_lbool (minisat_solve_assumptions solver assumptions None) 
+  with 
+
+    (* Satisfiable with assumptions *)
+    | L_true -> true
+
+    (* Unsatisfiable with assumptions *)
+    | L_false -> false 
+
+    (* Unsatisfiable without assumptions *)
+    | L_undef -> raise Unsatisfiable 
+
+let solve_assumptions_upto_id ({ solver = solver } as s) assumptions max_id =
+
+  (* Increment counter *)
+  s.num_of_solver_calls <- succ s.num_of_solver_calls;
+
+  (* Solve with literal assumptions *)
+  match 
+    int_to_lbool (minisat_solve_assumptions solver assumptions (Some max_id )) 
+  with 
 
     (* Satisfiable with assumptions *)
     | L_true -> true
@@ -257,7 +287,32 @@ let fast_solve ({ solver = solver } as s) assumptions =
   s.num_of_fast_solver_calls <- succ s.num_of_fast_solver_calls;
 
   (* Solve with literal assumptions *)
-  match minisat_fast_solve solver assumptions 1 with 
+  match minisat_fast_solve solver assumptions 1 None with 
+
+    (* Satisfiable with assumptions *)
+    | Some l when int_to_lbool (l) = L_true -> Some true
+
+    (* Unsatisfiable with assumptions *)
+    | Some l when int_to_lbool (l) = L_false -> Some false 
+
+    (* Unsatisfiable without assumptions *)
+    | Some l when int_to_lbool (l) = L_undef -> raise Unsatisfiable 
+
+    (* Unknown *)
+    | None -> None
+
+    (* Catch integers that are not mapped to a lifter Boolean, but the
+       exception would already be raised in when guards above *)
+    | Some _ -> invalid_arg "int_to_lbool"
+
+
+let fast_solve_upto_id ({ solver = solver } as s) assumptions max_id = 
+
+  (* Increment counter *)
+  s.num_of_fast_solver_calls <- succ s.num_of_fast_solver_calls;
+
+  (* Solve with literal assumptions *)
+  match minisat_fast_solve solver assumptions 1 (Some max_id) with 
 
     (* Satisfiable with assumptions *)
     | Some l when int_to_lbool (l) = L_true -> Some true

@@ -83,7 +83,8 @@ let dis_typed_equality stype t s =
 let assign_eq_ax_param ax = 
   Clause.set_bool_param true Clause.eq_axiom ax ; 
   Clause.set_bool_param true Clause.input_under_eq ax;
-  Clause.assign_axiom_history Clause.Eq_Axiom ax
+(* Clause.assign_axiom_history Clause.Eq_Axiom ax *)
+  Clause.assign_tstp_source_axiom_equality ax 
   
 
 let reflexivity_axiom () = 
@@ -359,7 +360,8 @@ let distinct_ax_list () =
        let f rest cterm  = 
 	 let dis_eq_term =  (dis_typed_equality default_type_term term cterm) in 
 	 let dis_ax = Clause.create [dis_eq_term] in
-	  Clause.assign_axiom_history Clause.Distinct_Axiom dis_ax;
+          (* Clause.assign_axiom_history Clause.Distinct_Axiom dis_ax; *)
+	  Clause.assign_tstp_source_axiom_distinct dis_ax;
 	 dis_ax::rest 
        in
        List.fold_left f [] term_list 
@@ -518,7 +520,8 @@ let less_axioms' max_ind =
 let less_axioms () = 
   let max_ind = get_max_bit_index () in 
   let less_axioms =  less_axioms' max_ind in 
-  Clause.assign_axiom_history_cl_list Clause.Less_Axiom less_axioms;
+  (* Clause.assign_axiom_history_cl_list Clause.Less_Axiom less_axioms; *)
+  List.iter Clause.assign_tstp_source_axiom_less less_axioms;
   less_axioms
 
 let range_axioms' max_ind = 
@@ -546,7 +549,8 @@ let range_axioms' max_ind =
 let range_axioms () = 
   let max_ind = get_max_bit_index () in 
   let range_axioms = range_axioms' max_ind in 
-  Clause.assign_axiom_history_cl_list Clause.Less_Axiom range_axioms;
+  (* Clause.assign_axiom_history_cl_list Clause.Less_Axiom range_axioms; *)
+  List.iter Clause.assign_tstp_source_axiom_range range_axioms;
   range_axioms
 
 
@@ -560,7 +564,13 @@ let less_range_axioms () =
 (*    out_str 
       (Clause.clause_list_to_tptp (less_axioms' max_ind)); *)
 
-    (less_axioms' max_ind)@(range_axioms' max_ind)
+  let less_range_axioms = 
+    (less_axioms' max_ind) @ (range_axioms' max_ind) 
+  in
+
+  List.iter Clause.assign_tstp_source_axiom_range less_range_axioms;
+
+  less_range_axioms
 
   
 (*--------------- Brand's transformation -------------------*)   

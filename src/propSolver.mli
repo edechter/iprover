@@ -97,6 +97,8 @@ val solve_assumptions: solver -> lit list -> solver_out
 
 val solve_assumptions_uc : solver_uc -> lit_uc list -> solver_out 
 
+val solve_assumptions_upto_id_uc : solver_uc -> lit_uc list -> int -> solver_out 
+
 (* can raise Unsatisfiable if unsat wihtout assumptions *)
 val fast_solve: solver -> lit list -> fast_solve
 

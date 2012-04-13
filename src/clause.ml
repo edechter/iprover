@@ -120,7 +120,7 @@ type clause =
      mutable num_of_symb   : int param;
      mutable num_of_var    : int param;
      mutable when_born     : int param;
-     mutable history       : history param;
+     mutable tstp_source : tstp_source param;
      mutable parent        : clause param;
      mutable children      : clause list;
      mutable activity      : int;
@@ -129,7 +129,8 @@ type clause =
     (* minial defined symbols *)
      mutable min_defined_symb  : int param;
    }
-      
+
+(*      
 and history = 
   |Input
   |Instantiation of clause * (clause list)
@@ -142,6 +143,48 @@ and history =
   |Non_eq_to_eq of clause 
   |Axiom of axiom
   |Split of clause
+
+*)
+
+(* ********************************************************************** *)
+
+and tstp_internal_source = 
+  | TSTP_definition 
+  | TSTP_assumption
+  | TSTP_non_eq_to_eq
+
+and tstp_theory =
+  | TSTP_equality
+  | TSTP_distinct 
+  | TSTP_bmc1
+  | TSTP_less
+  | TSTP_range
+
+and tstp_external_source =
+  | TSTP_file_source of string * string
+  | TSTP_theory of tstp_theory
+
+and tstp_inference_rule =
+  | Instantiation of clause list
+  | Resolution of literal list
+  | Factoring of literal list
+  | Global_subsumption 
+  | Forward_subsumption_resolution of clause
+  | Backward_subsumption_resolution
+  | Splitting
+
+and tstp_inference_record = 
+    tstp_inference_rule * clause list 
+
+and tstp_source = 
+  | TSTP_external_source of tstp_external_source
+  | TSTP_internal_source of tstp_internal_source
+  | TSTP_inference_record of tstp_inference_record
+
+(* ********************************************************************** *)
+
+
+
 
 (*  |Simplified of clause *)
       
@@ -171,7 +214,7 @@ let create term_list =
    num_of_symb    = Undef;  
    num_of_var     = Undef;  
    when_born      = Undef;
-   history        = Undef;   
+   tstp_source    = Undef;   
    parent         = Undef;
    children       = [];
    activity       = 0;
@@ -193,7 +236,7 @@ let create_parent parent term_list =
    num_of_symb    = Undef;  
    num_of_var     = Undef;  
    when_born      = Undef;
-   history        = Undef;   
+   tstp_source    = Undef;   
    parent         = Def(parent);
    children       = [];
    activity       = 0;
@@ -308,6 +351,17 @@ let to_stream s clause =
   (list_to_stream s Term.to_stream clause.literals ";");
   s.stream_add_char '}'
 
+(* Print the name of a clause
+
+   Clauses are named [c_n], where [n] is the identifier (fast_key) of
+   the clause. If the identifier is undefined, the clause is named
+   [c_tmp].
+*)
+let pp_clause_name ppf = function 
+  | { fast_key = Def n } -> Format.fprintf ppf "c_%d" n
+  | { fast_key = Undef } -> Format.fprintf ppf "c_tmp"
+
+
 let pp_clause_with_id ppf clause = 
   Format.fprintf 
     ppf 
@@ -342,7 +396,8 @@ let rec pp_clause_list_tptp ppf = function
   | [] -> ()
 
   (* Skip equality axioms *)
-  | { history = Def (Axiom Eq_Axiom) } :: tl ->     
+(*  | { history = Def (Axiom Eq_Axiom) } :: tl ->      *)
+  | { tstp_source = Def (TSTP_external_source (TSTP_theory TSTP_equality)) } :: tl ->      
     pp_clause_list_tptp ppf tl
 
 
@@ -503,9 +558,14 @@ let has_eq_lit c =
     if (exists Term.is_eq_lit c) then true
     else false
 
-
+(*
 let inherit_history from_c to_c = 
   to_c.history <- from_c.history
+*)
+
+let inherit_tstp_source from_c to_c = 
+  to_c.tstp_source <- from_c.tstp_source
+
 
 
 let num_of_symb clause = 
@@ -788,8 +848,134 @@ let assign_when_born prem1 prem2 clause=
   |_     -> failwith "clause: clause when_born is already assigned" 
 *)
 
-(* history assignments *)
 
+(* ********************************************************************** *)
+
+let get_tstp_source = function 
+  | { tstp_source = Def s } -> s
+  | { tstp_source = Undef } -> raise (Failure "Clause source not defined")
+
+(* Assign source of clause, fail if source not undefined *)
+let assign_tstp_source clause source = 
+
+  match clause.tstp_source with 
+      
+    (* Fail if source already defined *)
+    | Def _ -> raise (Failure "Clause source already assigned")
+
+    (* Only if source undefined *)
+    | Undef -> clause.tstp_source <- Def source
+	
+
+(* Clause is generated in an instantiation inference *)
+let assign_tstp_source_instantiation clause parent parents_side = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record ((Instantiation parents_side), [parent]))
+
+(* Clause is generated in a resolution inference *)
+let assign_tstp_source_resolution clause parents upon_literals = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record ((Resolution upon_literals), parents))
+
+(* Clause is generated in a factoring inference *)
+let assign_tstp_source_factoring clause parent upon_literals =
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record ((Factoring upon_literals), [parent]))
+
+
+(* Clause is in input *)
+let assign_tstp_source_input clause file name = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_external_source (TSTP_file_source (file, name)))
+
+
+(* Clause is generated in a global propositional subsumption *)
+let assign_tstp_source_global_subsumption clause parent = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record (Global_subsumption, [parent]))
+
+
+(* Clause is generated in a translation to purely equational problem *)
+let assign_tstp_source_non_eq_to_eq clause parent = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_internal_source TSTP_non_eq_to_eq)
+
+
+(* Clause is generated in a forward subsumption resolution *)
+let assign_tstp_source_forward_subsumption_resolution clause main_parent parents = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record 
+       (Forward_subsumption_resolution main_parent,
+	parents))
+
+
+(* Clause is generated in a backward subsumption resolution *)
+let assign_tstp_source_backward_subsumption_resolution clause parents = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record (Backward_subsumption_resolution, parents))
+
+
+(* Clause is generated in splitting *)
+let assign_tstp_source_split clause parent = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record (Splitting, [parent]))
+
+
+(* Clause is a theory axiom *)
+let assign_tstp_source_theory_axiom clause theory = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_external_source (TSTP_theory theory))
+
+
+(* Clause is an equality axiom *)
+let assign_tstp_source_axiom_equality clause = 
+  assign_tstp_source_theory_axiom clause TSTP_equality 
+
+(* Clause is a distinct axiom *)
+let assign_tstp_source_axiom_distinct clause = 
+  assign_tstp_source_theory_axiom clause TSTP_distinct
+
+(* Clause is an less axiom *)
+let assign_tstp_source_axiom_less clause = 
+  assign_tstp_source_theory_axiom clause TSTP_less
+
+(* Clause is an range axiom *)
+let assign_tstp_source_axiom_range clause = 
+  assign_tstp_source_theory_axiom clause TSTP_range
+
+(* Clause is an bmc1 axiom *)
+let assign_tstp_source_axiom_bmc1 clause = 
+  assign_tstp_source_theory_axiom clause TSTP_bmc1
+
+
+
+
+
+
+
+
+(* history assignments *)
+(*
 let assign_instantiation_history clause parent parents_side =
   match clause.history with
     | Undef -> clause.history <- Def (Instantiation (parent, parents_side))
@@ -842,6 +1028,7 @@ let assign_axiom_history_cl_list axiom cl_list =
 let assign_split_history concl parent = 
   concl.history <- Def(Split(parent))
 
+*)
 
 module ClauseHashed =
 struct
@@ -856,6 +1043,8 @@ struct
 end
 
 module ClauseHashtbl = Hashtbl.Make(ClauseHashed)
+
+(*
 
 let rec get_history_parents' visited accum = function
     
@@ -938,7 +1127,8 @@ let rec get_history_parents' visited accum = function
     get_history_parents' 
       visited 
       accum 
-      (parent :: tl) 
+      (parent :: 
+	 ((Prop_solver_exchange.justify_prop_subsumption parent clause) @ tl))
     
   (* Clause after tranformation to pure equational clause *)
   | { history = Def (Non_eq_to_eq parent) } as clause :: tl ->
@@ -1007,7 +1197,7 @@ let clause_get_history_parents clause =
 let clause_list_get_history_parents clause_list = 
   get_history_parents' (ClauseHashtbl.create 101) [] clause_list
 
-
+*)
 
 (*****)
 (*let add_to_prop_solver solver prop_var_db ground_term clause = *)
@@ -1487,6 +1677,37 @@ let normalise_bclause_list term_db_ref bsubst bclause_list =
 
 (*----Orphan Search Not Finished--------------*)
 
+
+let get_non_simplifying_parents clause = 
+  match clause.tstp_source with
+    | Def (TSTP_inference_record ((Resolution upon_literals), parents)) -> 
+      parents 
+
+    | Def (TSTP_inference_record ((Factoring upon_literals), parents)) -> 
+      parents 
+
+    | _ -> []
+
+(* we collect all oprphans in a branch to a dead parent *)
+(* if we meet a simplifying clause then we stop and do not include this branch*)
+let rec get_orphans clause =
+  if (get_bool_param is_dead clause) 
+  then [clause]
+  else 
+    if (get_bool_param res_simplifying clause) 
+    then []
+    else
+      let parents = get_non_simplifying_parents clause in
+      let parent_result = 
+	List.fold_left (fun rest curr -> ((get_orphans curr)@rest)) [] parents in
+      if not (parent_result = []) 
+      then 
+	(clause::parent_result)
+      else []
+
+
+(*
+
 let get_non_simplifying_parents clause = 
   match clause.history with
   |Def(history) -> 
@@ -1515,11 +1736,12 @@ let rec get_orphans clause =
 	(clause::parent_result)
       else []
 
-
+*)
 
 (* root on the top! *)
 let dash_str = "--------------------------------------------------\n"
 
+(*
 let rec to_stream_history s clause =
   match clause.history with
   |Def(history) -> 
@@ -1785,7 +2007,7 @@ and pp_clause_list_history ppf clauses =
 
 let out_history = to_stream_history stdout_stream
 
-
+*)
 
 (*
 let rec to_string_history clause =

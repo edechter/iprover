@@ -26,6 +26,41 @@ type bound_subst   = SubstBound.bound_subst
 type clause
 type bound_clause = clause Lib.bind
 
+module ClauseHashtbl : Hashtbl.S with type key = clause
+
+type tstp_internal_source = 
+  | TSTP_definition 
+  | TSTP_assumption
+  | TSTP_non_eq_to_eq
+
+type tstp_theory =
+  | TSTP_equality
+  | TSTP_distinct
+  | TSTP_bmc1
+  | TSTP_less
+  | TSTP_range
+
+type tstp_external_source =
+  | TSTP_file_source of string * string
+  | TSTP_theory of tstp_theory
+
+type tstp_inference_rule =
+  | Instantiation of clause list
+  | Resolution of literal list
+  | Factoring of literal list
+  | Global_subsumption 
+  | Forward_subsumption_resolution of clause
+  | Backward_subsumption_resolution
+  | Splitting
+
+type tstp_inference_record = 
+    tstp_inference_rule * clause list 
+
+type tstp_source = 
+  | TSTP_external_source of tstp_external_source
+  | TSTP_internal_source of tstp_internal_source
+  | TSTP_inference_record of tstp_inference_record
+
 
 type axiom = 
   |Eq_Axiom 
@@ -86,7 +121,7 @@ val inherit_bool_param_all :  clause -> clause -> unit
 val inherit_param_modif : clause -> clause -> unit 
 
 (* fist form, second to*)
-val inherit_history : clause -> clause -> unit
+(* val inherit_history : clause -> clause -> unit *)
 
 val num_of_symb                 : clause -> int 
 val num_of_var                  : clause -> int 
@@ -139,9 +174,11 @@ val get_inst_sel_lit            : clause -> literal
 
 val get_parent                  : clause -> clause Lib.param
 
+(*
 val clause_get_history_parents : clause -> clause list 
 
 val clause_list_get_history_parents : clause list -> clause list 
+*)
 
 (* comapares places of two clauses, is used to compare that   *)
 (* sel literal in parent corresponds to sel lit in child      *)
@@ -158,6 +195,60 @@ val assign_dismatching : dismatching -> clause -> unit
 exception Dismatching_undef
 val get_dismatching : clause -> dismatching
 
+val get_tstp_source : clause -> tstp_source 
+
+(** Clause is generated in an instantiation inference *)
+val assign_tstp_source_instantiation : clause -> clause -> clause list -> unit
+
+
+(** Clause is generated in a resolution inference *)
+val assign_tstp_source_resolution : clause -> clause list -> literal list -> unit 
+
+(** Clause is generated in a factoring inference *)
+val assign_tstp_source_factoring : clause -> clause -> literal list -> unit
+
+
+(** Clause is in input *)
+val assign_tstp_source_input : clause -> string -> string -> unit
+
+
+(** Clause is generated in a global propositional subsumption *)
+val assign_tstp_source_global_subsumption : clause -> clause -> unit
+
+
+(** Clause is generated in a translation to purely equational problem *)
+val assign_tstp_source_non_eq_to_eq : clause -> clause -> unit
+
+
+(** Clause is generated in a forward subsumption resolution *)
+val assign_tstp_source_forward_subsumption_resolution : clause -> clause -> clause list -> unit
+
+
+(** Clause is generated in a backward subsumption resolution *)
+val assign_tstp_source_backward_subsumption_resolution : clause -> clause list -> unit
+
+
+(** Clause is generated in splitting *)
+val assign_tstp_source_split : clause -> clause -> unit 
+
+
+(** Clause is an equality axiom *)
+val assign_tstp_source_axiom_equality : clause -> unit
+
+(** Clause is a distinct axiom *)
+val assign_tstp_source_axiom_distinct : clause -> unit
+
+(** Clause is an less axiom *)
+val assign_tstp_source_axiom_less : clause -> unit
+
+(** Clause is an range axiom *)
+val assign_tstp_source_axiom_range : clause -> unit
+
+(** Clause is an bmc1 axiom *)
+val assign_tstp_source_axiom_bmc1 : clause -> unit
+
+
+(*
 val assign_instantiation_history : clause -> clause -> clause list -> unit
 
 (* history when this clause is obtined by resolution from parents upon_literals*)
@@ -188,6 +279,7 @@ val assign_axiom_history_cl_list : axiom -> clause list -> unit
 
 (* first arg is the resulting clause second arg is the parent *)
 val assign_split_history : clause -> clause -> unit
+*)
 
 (* first is parent second is child*)
 val add_child : clause -> clause -> unit
@@ -315,6 +407,14 @@ val normalise_bclause_list :
 val to_stream                  : 'a string_stream -> clause -> unit
 val out                        : clause -> unit
 
+(** Print the name of a clause
+
+   Clauses are named [c_n], where [n] is the identifier (fast_key) of
+   the clause. If the identifier is undefined, the clause is named
+   [c_tmp].
+*)
+val pp_clause_name : Format.formatter -> clause -> unit
+
 val pp_clause : Format.formatter -> clause -> unit
 val pp_clause_tptp : Format.formatter -> clause -> unit
 val pp_clause_list_tptp : Format.formatter -> clause list -> unit
@@ -333,8 +433,8 @@ val to_tptp   : clause -> string
 val clause_list_to_string : clause list -> string
 val clause_list_to_tptp   : clause list -> string
 
-val to_stream_history : 'a string_stream -> clause -> unit
+(* val to_stream_history : 'a string_stream -> clause -> unit *)
 
-val pp_clause_history : Format.formatter -> clause -> unit
+(* val pp_clause_history : Format.formatter -> clause -> unit *)
 
-val out_history       : clause -> unit
+(* val out_history       : clause -> unit *)

@@ -159,13 +159,19 @@ let solver_uc_assumptions_ref = ref []
 (* assumptions only for non-simplifying  *)
 let only_norm_solver_assumptions_ref = ref []
 
+(* Assumptions for unsat core solver *)
+let solver_uc_norm_assumptions_ref = ref []  
+
 (* assumptions only for non-simplifying  *)
-let only_norm_solver_assumptions_ref = ref []
+let only_sim_solver_assumptions_ref = ref []
+
+(* Assumptions for unsat core solver *)
+let solver_uc_sim_assumptions_ref = ref []  
 
 (* only for non-simplifying*)
 let answer_assumptions_ref = ref [] 
 
-let only_sim_solver_assumptions_ref = ref []
+
 
 let get_solver_assumptions solver = 
   if (PropSolver.is_simplification solver) 
@@ -175,7 +181,10 @@ let get_solver_assumptions solver =
     ((!only_norm_solver_assumptions_ref)@(!answer_assumptions_ref)@(!solver_assumptions_ref))
 
 (* Return literal assumptions for unsat core solver *)
-let get_solver_uc_assumptions () = !solver_uc_assumptions_ref
+let get_solver_uc_assumptions () = 
+  !solver_uc_assumptions_ref @ 
+    !solver_uc_norm_assumptions_ref @ 
+    !solver_uc_sim_assumptions_ref
 
 (* adjoint_preds are added for all simplified claues *)
 (* used in finite models *)
@@ -609,21 +618,37 @@ let get_prop_lit lit =
   
 
 (*returns complementary prop literal;  assume that prop key is def. *)
-    let get_prop_compl_lit lit = 
-      let atom = Term.get_atom lit in 
-      let atom_prop_key = Term.get_prop_key atom in
-      let prop_var_entry = TableArray.get var_table atom_prop_key in
-      let def_lit = 
-	if (Term.is_neg_lit lit) 
-	then      
-	  prop_var_entry.prop_var 
-	else
-	  prop_var_entry.prop_neg_var 
-      in
-      match def_lit with 
-      |Def(lit) -> lit 
-      | _ -> raise (Failure "Instantiation get_prop_compl_lit: lit is undefind")
-	    
+let get_prop_compl_lit lit = 
+  let atom = Term.get_atom lit in 
+  let atom_prop_key = Term.get_prop_key atom in
+  let prop_var_entry = TableArray.get var_table atom_prop_key in
+  let def_lit = 
+    if (Term.is_neg_lit lit) 
+    then      
+      prop_var_entry.prop_var 
+    else
+      prop_var_entry.prop_neg_var 
+  in
+  match def_lit with 
+    |Def(lit) -> lit 
+    | _ -> raise (Failure "Instantiation get_prop_compl_lit: lit is undefind")
+      
+
+let get_prop_compl_lit_uc lit = 
+  let atom = Term.get_atom lit in 
+  let atom_prop_key = Term.get_prop_key atom in
+  let prop_var_entry = TableArray.get var_table atom_prop_key in
+  let def_lit = 
+    if (Term.is_neg_lit lit) 
+    then      
+      prop_var_entry.prop_var_uc 
+    else
+      prop_var_entry.prop_neg_var_uc 
+  in
+  match def_lit with 
+    |Def(lit) -> lit 
+    | _ -> raise (Failure "Instantiation get_prop_compl_lit: lit is undefind")
+      
 
 let get_prop_gr_lit lit =
   let atom = Term.get_atom lit in 
@@ -787,7 +812,15 @@ let assign_solver_assumptions lit_list =
 
 
 let assign_only_sim_solver_assumptions lit_list = 
- let new_assum =  normalise_assumptions (List.map get_prop_lit_assign lit_list) in
+
+  let new_assumptions = 
+    normalise_assumptions (List.map get_prop_lit_assign lit_list) 
+  in
+
+  let new_assumptions_uc = 
+    normalise_assumptions_uc (List.map get_prop_lit_uc_assign lit_list) 
+  in
+
    (*
    Format.printf "New assumptions for simplification solver: @.";
 
@@ -796,7 +829,8 @@ let assign_only_sim_solver_assumptions lit_list =
      lit_list;
    *)
 
- only_sim_solver_assumptions_ref:= new_assum
+  only_sim_solver_assumptions_ref := new_assumptions;
+  solver_uc_sim_assumptions_ref := new_assumptions_uc
 
 let assign_only_norm_solver_assumptions lit_list = 
   let new_assumptions =  
@@ -816,8 +850,8 @@ let assign_only_norm_solver_assumptions lit_list =
    Format.printf "@.";
    *)
 
-   only_norm_solver_assumptions_ref:= new_assumptions;
-   solver_uc_assumptions_ref:= new_assumptions_uc
+   only_norm_solver_assumptions_ref := new_assumptions;
+   solver_uc_norm_assumptions_ref := new_assumptions_uc
 
 let assign_adjoint_preds preds =
   adjoint_preds:=preds
@@ -2356,7 +2390,8 @@ let prop_subsumption clause =
 	in
 	  (* out_str ("Old Clause: "^(Clause.to_string clause)^"\n");  *)
 	    Clause.inherit_param_modif clause new_clause;
-	    Clause.assign_global_subsumption_history new_clause clause;
+	    (* Clause.assign_global_subsumption_history new_clause clause; *)
+	    Clause.assign_tstp_source_global_subsumption new_clause clause; 
             Clause.set_bool_param true Clause.res_simplifying new_clause;
 	    add_clause_to_solver new_clause;
 	   
@@ -2365,9 +2400,140 @@ let prop_subsumption clause =
   else clause (*raise Non_simplifiable*)
 
 
+(*
+let rec justify_prop_lit_subsumption clause_id accum = function 
+
+  (* Terminate on empty list *)
+  | [] -> accum
+
+  (* Take head element of list *)
+  | literal :: tl -> 
+
+    (* Get complementary propositional literal in unsat core solver *)
+    let prop_compl_lit = get_prop_compl_lit_uc literal in
+    
+    match 
+
+      (
+
+	try 
+	  
+	(* Run unsat core solver with assumptions *)
+	  PropSolver.solve_assumptions_upto_id_uc
+	    solver_uc
+	    (prop_compl_lit :: (get_solver_uc_assumptions ()))
+	    clause_id
+	    
+	with PropSolver.Unsatisfiable -> 
+	  
+	  failwith 
+	    "Could not get justification for propositional subsumption."
+	    
+      )
+
+    with  
+
+      (* Should return unsat, but check *)
+      | PropSolver.Unsat -> 
+	
+	(* Get the unsat core as a list of clause ids *)
+	let unsat_core_ids = PropSolver.get_conflicts solver_uc in
+
+	(* Get first-order clauses from clause ids *)
+	let unsat_core_clauses =
+	  List.fold_left 
+	    (fun a c -> 
+	      try 
+		(Hashtbl.find solver_uc_clauses c) :: a
+	      with Not_found -> 
+		a)
+	    []
+	    unsat_core_ids
+	in
+	
+	(* Append clauses in unsat core and continue with tail of list *)
+	justify_prop_lit_subsumption 
+	  clause_id 
+	  (accum @ unsat_core_clauses) 
+	  tl
+	  
+      (* Must not return sat when other solver returns unsat *)
+      | PropSolver.Sat -> 
+	raise (Failure "Unsat core solver returned satisfiable when trying to justify propositional subsumption.")
+
+*)
 
 
+let justify_prop_subsumption clause clause' =
 
+  (* Format.eprintf 
+    "Simplifed %a to %a@."
+    Clause.pp_clause clause 
+    Clause.pp_clause clause'; *)
+
+  (* ID of simplified clause *)
+  let clause_id =
+    match Clause.get_prop_solver_id clause' with
+      | Some i -> i
+      | None -> raise (Failure ("Clause without ID in propositional solver."))
+  in
+
+  (* Assume complement of each literal in simplified clause *)
+  let assumptions =
+    List.map get_prop_compl_lit_uc (Clause.get_literals clause')
+  in
+    
+    match 
+
+      (
+
+	try 
+	  
+	(* Run unsat core solver with assumptions *)
+	  PropSolver.solve_assumptions_upto_id_uc
+	    solver_uc
+	    (assumptions @ (get_solver_uc_assumptions ()))
+	    clause_id
+	    
+	with PropSolver.Unsatisfiable -> 
+	  
+	  failwith 
+	    "Could not get justification for propositional subsumption."
+	    
+      )
+
+    with  
+
+      (* Should return unsat, but check *)
+      | PropSolver.Unsat -> 
+	
+	(* Get the unsat core as a list of clause ids *)
+	let unsat_core_ids = PropSolver.get_conflicts solver_uc in
+
+	(* Get first-order clauses from clause ids *)
+	let unsat_core_clauses =
+	  List.fold_left 
+	    (fun a c -> 
+	      try 
+		(Hashtbl.find solver_uc_clauses c) :: a
+	      with Not_found -> 
+		a)
+	    []
+	    unsat_core_ids
+	in
+	
+	(* Format.eprintf
+	  "Justified by@\n%a@." 
+	  (pp_any_list Clause.pp_clause "\n") unsat_core_clauses; *)
+	
+	(* Return clauses in unsat core *)
+	unsat_core_clauses
+	  
+      (* Must not return sat when other solver returns unsat *)
+      | PropSolver.Sat -> 
+	raise (Failure "Unsat core solver returned satisfiable when trying to justify propositional subsumption.")
+
+  
 
 (*----------------Commented-----------------------*)
 (*
