@@ -1541,7 +1541,7 @@ let rec main clauses finite_model_clauses =
 		    (* Preprocess clauses *)
 		    let unsat_core_clauses' =
 		      Preprocess.preprocess 
-			(unsat_core_clauses @ bmc1_axioms_extrapolated)
+			(unsat_core_parents @ bmc1_axioms_extrapolated)
 		    in
 
 		    (* Add preprocessed clauses to solver
@@ -1573,35 +1573,35 @@ let rec main clauses finite_model_clauses =
 	      in
 
 
-		if 
+	      if 
+		
+		(* Dump clauses to TPTP format? *)
+		val_of_override !current_options.bmc1_dump_clauses_tptp 
 		  
-		  (* Dump clauses to TPTP format? *)
-		  val_of_override !current_options.bmc1_dump_clauses_tptp 
-		    
-		then
+	      then
+		
+		(
 		  
-		  (
-		    
-		    (* Formatter to write to, i.e. stdout or file *)
-		    let dump_formatter =
-		      Bmc1Axioms.get_bmc1_dump_formatter ()
-		    in
-
-		    (* Output clauses *)
-		    Format.fprintf 
-		      dump_formatter
-		      "%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@." 
-		      next_bound
-		      (pp_any_list Clause.pp_clause_tptp "\n") 
-		      all_clauses;
-
-		  );
+		  (* Formatter to write to, i.e. stdout or file *)
+		  let dump_formatter =
+		    Bmc1Axioms.get_bmc1_dump_formatter ()
+		  in
+		  
+		  (* Output clauses *)
+		  Format.fprintf 
+		    dump_formatter
+		    "%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@." 
+		    next_bound
+		    (pp_any_list Clause.pp_clause_tptp "\n") 
+		    all_clauses;
+		  
+		);
 	      
 	      (* Run again for next bound *)
 	      main 
 		all_clauses
 		finite_model_clauses
-	      
+		
 	)
 
 (*-------- Reachability depth for father_of relation (Intel) -----------*)
@@ -1932,6 +1932,9 @@ let run_iprover () =
 		      (pref_str)
 		      (succ i);
 		    
+		    (* Save next bound as current *)
+		    bmc1_cur_bound := succ i;
+
 		    (* Recurse until all axioms for all bounds added *)
 		    skip_to_bound 
 		      (next_bound_axioms @ accum)

@@ -1677,9 +1677,9 @@ let pp_truth_val ppf = function
 (* (if the solver returns Any) *)
 (* after grounding*)
 let consistent_with_solver lit = 
-  (* Format.eprintf
+  Format.eprintf
     "consistent_with_solver %a@."
-    Term.pp_term lit; *)
+    Term.pp_term lit; 
   let var_entry      = get_prop_gr_var_entry lit in
   let prop_var       = get_prop_var_var_entry var_entry in
   let var_truth_val  = PropSolver.lit_val solver prop_var in
@@ -1695,14 +1695,14 @@ let consistent_with_solver lit =
       ((var_truth_val = PropSolver.True)  & (not is_neg)) ||  
       ((var_truth_val = PropSolver.False) & is_neg)
     then
-      ( (* Format.eprintf
+      ( Format.eprintf
 	 "Literal %s is consistent with solver, since model value is True@."
-	 (Term.to_string lit); *)
+	 (Term.to_string lit);
        true)
     else 
-      ( (* Format.eprintf
+      ( Format.eprintf
 	 "Literal %s is not consistent with solver, since model value is False@."
-	 (Term.to_string lit); *)
+	 (Term.to_string lit);
        false)
 
 (* without grounding*)
@@ -2144,7 +2144,7 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 	     ((*num_of_solver_calls := !num_of_solver_calls +1;*)
 	 (*     solver_calls_renew:= !solver_calls_renew +1;
 	      out_str ("solver_calls renew "^(string_of_int !solver_calls_renew));*)
-	      match (solve ()) with 
+	       match (solve ()) with 
 	     |PropSolver.Unsat -> 
 	       ( (* Format.eprintf "Unsatisfiable after solve call in selection_renew_solver@."; *)
 		raise PropSolver.Unsatisfiable)
@@ -2153,7 +2153,8 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 		   try
 		     selection_fun consistent_with_solver clause 
 		   with Not_found ->
-		     raise (Failure (Format.sprintf "No selection possible for %s@." (Clause.to_string clause)))
+		     (
+		       raise (Failure (Format.sprintf "No selection possible for %s@." (Clause.to_string clause))))
 		 in	  
 		 let new_solver_sel_var_entry  = 
 		   get_prop_gr_var_entry new_solver_sel_lit in
