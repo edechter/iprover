@@ -33,10 +33,19 @@ type tstp_internal_source =
   | TSTP_assumption
   | TSTP_non_eq_to_eq
 
+type tstp_theory_bmc1 = 
+  | TSTP_bmc1_path_axiom of int 
+  | TSTP_bmc1_reachable_state_axiom of int 
+  | TSTP_bmc1_reachable_state_conj_axiom of int 
+  | TSTP_bmc1_reachable_state_on_bound_axiom of int
+  | TSTP_bmc1_only_bound_reachable_state_axiom of int 
+  | TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
+  | TSTP_bmc1_instantiated_clause of int * clause
+
 type tstp_theory =
   | TSTP_equality
   | TSTP_distinct
-  | TSTP_bmc1
+  | TSTP_bmc1 of tstp_theory_bmc1
   | TSTP_less
   | TSTP_range
 
@@ -245,7 +254,7 @@ val assign_tstp_source_axiom_less : clause -> unit
 val assign_tstp_source_axiom_range : clause -> unit
 
 (** Clause is an bmc1 axiom *)
-val assign_tstp_source_axiom_bmc1 : clause -> unit
+val assign_tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> clause -> unit
 
 
 (*

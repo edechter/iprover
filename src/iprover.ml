@@ -1490,20 +1490,58 @@ let rec main clauses finite_model_clauses =
 
 		  (
 
+		    (* Flag all input clauses as not in unsat core *)
+		    List.iter 
+		      (Clause.set_bool_param false Clause.in_unsat_core)
+		      clauses;
+
 		    (* Flag clauses as in unsat core *)
 		    List.iter 
 		      (Clause.set_bool_param true Clause.in_unsat_core)
 		      unsat_core_parents;
 
-(*
+		    (* Create axioms for next bound of all axioms of
+		       previous bound in unsat core *)
+		    let bmc1_axioms_extrapolated =
+		      Bmc1Axioms.extrapolate_to_bound 
+			next_bound 
+			unsat_core_parents
+		    in
+
+		    if 
+		      
+		      (* Verbose output for BMC1? *)
+		      val_of_override !current_options.bmc1_verbose 
+			
+		    then 
+		      
+		      (
+			
+			(* Print parents of unsat core *)
+			Format.printf 
+			  "@\n%sExtrapolated BMC1 axioms@\n@\n%a@." 
+			  pref_str
+			  (pp_any_list Clause.pp_clause "\n") 
+			  bmc1_axioms_extrapolated
+			  
+		      );
+	  
+		    (* Flag clauses extrapolated to the next bound as
+		       in unsat core *)
 		    List.iter 
 		      (Clause.set_bool_param true Clause.in_unsat_core)
+		      bmc1_axioms_extrapolated;
+		    
+		    (*
+		      List.iter 
+		      (Clause.set_bool_param true Clause.in_unsat_core)
 		      unsat_core_clauses;
-*)
+		    *)
 
 		    (* Preprocess clauses *)
 		    let unsat_core_clauses' =
-		      Preprocess.preprocess unsat_core_clauses
+		      Preprocess.preprocess 
+			(unsat_core_clauses @ bmc1_axioms_extrapolated)
 		    in
 
 		    (* Add preprocessed clauses to solver

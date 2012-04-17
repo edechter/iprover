@@ -120,7 +120,7 @@ type clause =
      mutable num_of_symb   : int param;
      mutable num_of_var    : int param;
      mutable when_born     : int param;
-     mutable tstp_source : tstp_source param;
+     mutable tstp_source   : tstp_source param;
      mutable parent        : clause param;
      mutable children      : clause list;
      mutable activity      : int;
@@ -153,10 +153,19 @@ and tstp_internal_source =
   | TSTP_assumption
   | TSTP_non_eq_to_eq
 
+and tstp_theory_bmc1 = 
+  | TSTP_bmc1_path_axiom of int 
+  | TSTP_bmc1_reachable_state_axiom of int 
+  | TSTP_bmc1_reachable_state_conj_axiom of int 
+  | TSTP_bmc1_reachable_state_on_bound_axiom of int
+  | TSTP_bmc1_only_bound_reachable_state_axiom of int 
+  | TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
+  | TSTP_bmc1_instantiated_clause of int * clause
+
 and tstp_theory =
   | TSTP_equality
   | TSTP_distinct 
-  | TSTP_bmc1
+  | TSTP_bmc1 of tstp_theory_bmc1
   | TSTP_less
   | TSTP_range
 
@@ -964,8 +973,8 @@ let assign_tstp_source_axiom_range clause =
   assign_tstp_source_theory_axiom clause TSTP_range
 
 (* Clause is an bmc1 axiom *)
-let assign_tstp_source_axiom_bmc1 clause = 
-  assign_tstp_source_theory_axiom clause TSTP_bmc1
+let assign_tstp_source_axiom_bmc1 bmc1_axiom clause = 
+  assign_tstp_source_theory_axiom clause (TSTP_bmc1 bmc1_axiom)
 
 
 
