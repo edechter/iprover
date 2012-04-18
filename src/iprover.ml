@@ -508,7 +508,12 @@ let finite_models clauses =
   List.iter 
     Prop_solver_exchange.add_clause_to_solver init_clauses;
   (if (Prop_solver_exchange.solve ()) = PropSolver.Unsat
-  then raise PropSolver.Unsatisfiable);
+   then 
+      (* Raise separate exception, solver is not in an invalid state
+	 and can be satisfiable without assumptions *)
+      (* raise PropSolver.Unsatisfiable *)
+      raise Prop_solver_exchange.Unsatisfiable
+  );
   let dom_const_list = ref [] in
   let domain_preds   = ref [] in
 
@@ -575,7 +580,9 @@ let finite_models clauses =
       full_loop prover_functions_ref clauses	
     with 
     |Discount.Unsatisfiable 
-    |Instantiation.Unsatisfiable  |PropSolver.Unsatisfiable  
+    |Instantiation.Unsatisfiable  
+    |Prop_solver_exchange.Unsatisfiable  
+    |PropSolver.Unsatisfiable  
       -> (Instantiation.clear_after_inst_is_dead (); 
 	  model_size:=!model_size+1;
 	  let new_dom_const = 
@@ -1103,6 +1110,16 @@ let unknown_str  ()   = szs_pref^"Unknown\n"
 
 
 let rec main clauses finite_model_clauses = 
+
+  (* For incremental BMC1 we must catch this and move to the next
+     bound. Otherwise the solver has been called before *)
+  if !current_options.bmc1_incremental then
+    (if 
+	(Prop_solver_exchange.solve ()) = PropSolver.Unsat
+     then 
+	(* Raise separate exception, must continue with next bound *)
+	raise Prop_solver_exchange.Unsatisfiable);
+  
 (* when Sat and eq ax are omitted we need to add them and start again *)
   let when_eq_ax_ommitted () =
     assert !eq_axioms_are_omitted;      
@@ -1222,31 +1239,22 @@ let rec main clauses finite_model_clauses =
 
     (* Incremental BMC1 solving: unsatisfiable when there are higher
        bounds left to check *)
-    | (Discount.Unsatisfiable as e)
-    | (Instantiation.Unsatisfiable as e)
-    | (PropSolver.Unsatisfiable as e)
-    | ((Discount.Empty_Clause _) as e)
+    | Prop_solver_exchange.Unsatisfiable 
+    | Discount.Unsatisfiable 
+    | Instantiation.Unsatisfiable 
+    | Discount.Empty_Clause _
 	when !current_options.bmc1_incremental -> 
 	
+    (* If SAT solver reports unsatisfiable without assumptions, then
+       problem is unsat for all bounds. Must not continue, since
+       solver is in invalid state *)
+    (* | (PropSolver.Unsatisfiable as e) *)
+
 	(
 
 	  if !current_options.dbg_backtrace then
 	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
 
-(*
-	  (match e with 
-	    | Discount.Unsatisfiable -> 
-	      Format.eprintf "Unsatisfiable in resolution@."
-	    | Instantiation.Unsatisfiable ->
-	      Format.eprintf "Unsatisfiable in instantiation@."
-	    | PropSolver.Unsatisfiable ->
-	      Format.eprintf "Unsatisfiable in propositional solver@."
-	    | Discount.Empty_Clause _ ->
-	      Format.eprintf "Unsatisfiable with empty clause in resolution@."
-	    | _ -> ()
-	  );
-*)
-	  
 	  (* Get clauses in unsatisfiable core *)
 	  let unsat_core_clauses = 
 	    Prop_solver_exchange.unsat_core () 
@@ -2075,8 +2083,10 @@ let run_iprover () =
 (*-------------------------------------------------*)
 
 (*	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");*)
+(*
 	 let prep_clauses = 
 	   Prep_sem_filter_unif.sem_filter_unif !current_clauses in 
+*)
 (*
 	  let prep_clauses = 
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
@@ -2143,16 +2153,24 @@ let run_iprover () =
 (*	(if !current_options.instantiation_flag then *)
       List.iter 
 	Prop_solver_exchange.add_clause_to_solver !current_clauses;
-      (if (Prop_solver_exchange.solve ()) = PropSolver.Unsat
-      then 
-	(raise PropSolver.Unsatisfiable));
+
+      (* For incremental BMC1 we must catch this and move to the next
+	 bound. The solver call is moved to the main function. *)
+      if not !current_options.bmc1_incremental then
+	(if 
+	    (Prop_solver_exchange.solve ()) = PropSolver.Unsat
+	 then 
+	    raise Prop_solver_exchange.Unsatisfiable);
+      
       (* Clause.out_clause_list_tptp !current_clauses; *)
       main !current_clauses finite_models_clauses
     end
   with
 
+  |Prop_solver_exchange.Unsatisfiable  
   |Discount.Unsatisfiable 
-  |Instantiation.Unsatisfiable  |PropSolver.Unsatisfiable  
+  |Instantiation.Unsatisfiable  
+  |PropSolver.Unsatisfiable  
     ->
     (
 

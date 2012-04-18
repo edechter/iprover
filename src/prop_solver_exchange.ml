@@ -20,6 +20,12 @@ open Lib
 open Statistics
 open Options
 
+(* Separate exception, different from PropSolver.Unsatisfiable. In
+   BMC1 we must not continue after PropSolver.Unsatisfiable, since
+   solver is in invalid state (unsat without assumptions), but we must
+   continue after this exception (unsat with assumptions). *)
+exception Unsatisfiable
+
 
 (* Formatter for output, None if uninitialised. Use
    get_prop_dump_formatter as access function *)
@@ -1444,7 +1450,7 @@ let add_clause_to_solver clause =
 	      
 	      (* Raise exception only after empty clause is in unsat
 		 core solver *)
-	      raise PropSolver.Unsatisfiable
+	      raise Unsatisfiable
 		
 	    );
 
@@ -1568,7 +1574,7 @@ let add_clause_to_solver clause =
 	      
 	      (* Raise exception only after empty clause is in unsat
 		 core solver *)
-	      raise PropSolver.Unsatisfiable
+	      raise Unsatisfiable
 		
 	    );
 
@@ -2069,7 +2075,7 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 	      match (solve ()) with 
 	     |PropSolver.Unsat -> 
 	       ( (* Format.eprintf "Unsatisfiable after solve call in selection_renew_model@."; *)
-		raise PropSolver.Unsatisfiable)
+		raise Unsatisfiable)
 	     |PropSolver.Sat   ->
 
 		   let new_solver_sel_lit = 
@@ -2124,6 +2130,11 @@ let apply_new_model solver =
 (*let solver_calls_renew = ref 0*)
 
 let rec selection_renew_solver move_lit_from_active_to_passive selection_fun clause =  
+
+  Format.eprintf 
+    "selection_renew_solver for clause %s@."
+    (Clause.to_string clause); 
+
   try
     (
 	     let solver_sel_lit = 
@@ -2147,7 +2158,7 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 	       match (solve ()) with 
 	     |PropSolver.Unsat -> 
 	       ( (* Format.eprintf "Unsatisfiable after solve call in selection_renew_solver@."; *)
-		raise PropSolver.Unsatisfiable)
+		raise Unsatisfiable)
 	     |PropSolver.Sat   ->
 		 let new_solver_sel_lit = 
 		   try
@@ -2381,7 +2392,7 @@ let prop_subsumption clause =
       if (new_add_lits = []) 
       then 
 	( (* Format.eprintf "Clause simplified to empty clause in prop_subsumption@."; *)
-	 raise PropSolver.Unsatisfiable)
+	 raise Unsatisfiable)
       else
 	(let new_clause   = 
 	  Clause.normalise term_db_ref 

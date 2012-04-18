@@ -16,6 +16,13 @@
 
 open Lib
 
+(** Separate exception, different from PropSolver.Unsatisfiable. In
+    BMC1 we must not continue after PropSolver.Unsatisfiable, since
+    solver is in invalid state (unsat without assumptions), but we
+    must continue after this exception (unsat with assumptions). *)
+exception Unsatisfiable
+
+
 type prop_lit = PropSolver.lit
 
 type term     = Term.term

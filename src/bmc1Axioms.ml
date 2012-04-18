@@ -1278,7 +1278,7 @@ let increment_bound cur_bound next_bound simulate =
   if not simulate then 
     Prop_solver_exchange.assign_only_norm_solver_assumptions 
       (bound_literal_next :: !invalid_bound_assumptions);
-  
+      
   (* Return created path axioms and reachable state axiom *)
   let bound_axioms =
     reachable_state_axioms @ 

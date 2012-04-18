@@ -1056,6 +1056,9 @@ let bmc1_bounds = ref []
   |Simplified_exists  -> ()(*(out_str ("\n Simplified_exists\n "))*)
   |Given_Splitted     -> () (*out_str "Given_Splitted\n"*)
 
+(* Removed: BMC1 only from top-level, not inside the instantiation loop *)
+(*
+
   (* Unsatisfiable and next bound for BMC1 *)
   | PropSolver.Unsatisfiable
   | Unsatisfiable
@@ -1140,6 +1143,7 @@ let bmc1_bounds = ref []
   | PropSolver.Unsatisfiable -> 
       raise Unsatisfiable
 
+*)
 
 
 (*------------------------ Lazy Loop ---------------------*)
