@@ -177,7 +177,7 @@ and tstp_inference_rule =
   | Instantiation of clause list
   | Resolution of literal list
   | Factoring of literal list
-  | Global_subsumption 
+  | Global_subsumption of int
   | Forward_subsumption_resolution of clause
   | Backward_subsumption_resolution
   | Splitting
@@ -212,55 +212,55 @@ let is_negated_conjecture clause =
 
 let create term_list = 
   {
-   literals       = term_list; 
-   fast_key       = Undef;
-   prop_solver_id = None;
-   inst_sel_lit   = Undef;
-   res_sel_lits   = Undef; 
-   dismatching    = Undef;
-   bool_param     = Bit_vec.false_vec;  
-   length         = Undef;
-   num_of_symb    = Undef;  
-   num_of_var     = Undef;  
-   when_born      = Undef;
-   tstp_source    = Undef;   
-   parent         = Undef;
-   children       = [];
-   activity       = 0;
-   conjecture_distance = max_conjecture_dist;
-   max_atom_input_occur =0;
-   min_defined_symb = Undef;
- }
+    literals       = term_list; 
+    fast_key       = Undef;
+    prop_solver_id = None;
+    inst_sel_lit   = Undef;
+    res_sel_lits   = Undef; 
+    dismatching    = Undef;
+    bool_param     = Bit_vec.false_vec;  
+    length         = Undef;
+    num_of_symb    = Undef;  
+    num_of_var     = Undef;  
+    when_born      = Undef;
+    tstp_source    = Undef;   
+    parent         = Undef;
+    children       = [];
+    activity       = 0;
+    conjecture_distance = max_conjecture_dist;
+    max_atom_input_occur =0;
+    min_defined_symb = Undef;
+  }
 
 let create_parent parent term_list = 
   {
-   literals       = term_list; 
-   fast_key       = Undef;
-   prop_solver_id = None;
-   inst_sel_lit   = Undef;
-   res_sel_lits   = Undef; 
-   dismatching    = Undef;
-   bool_param     = Bit_vec.false_vec;  
-   length         = Undef;
-   num_of_symb    = Undef;  
-   num_of_var     = Undef;  
-   when_born      = Undef;
-   tstp_source    = Undef;   
-   parent         = Def(parent);
-   children       = [];
-   activity       = 0;
-   conjecture_distance = max_conjecture_dist;
-   max_atom_input_occur =0;
-   min_defined_symb = Undef;
- }
+    literals       = term_list; 
+    fast_key       = Undef;
+    prop_solver_id = None;
+    inst_sel_lit   = Undef;
+    res_sel_lits   = Undef; 
+    dismatching    = Undef;
+    bool_param     = Bit_vec.false_vec;  
+    length         = Undef;
+    num_of_symb    = Undef;  
+    num_of_var     = Undef;  
+    when_born      = Undef;
+    tstp_source    = Undef;   
+    parent         = Def(parent);
+    children       = [];
+    activity       = 0;
+    conjecture_distance = max_conjecture_dist;
+    max_atom_input_occur =0;
+    min_defined_symb = Undef;
+  }
 
 
 exception Clause_fast_key_is_def
 
 let assign_fast_key clause (fkey : int) = 
   match clause.fast_key with 
-  |Undef -> clause.fast_key <- Def(fkey)      
-  |_     -> raise Clause_fast_key_is_def
+    |Undef -> clause.fast_key <- Def(fkey)      
+    |_     -> raise Clause_fast_key_is_def
 
 
 exception Clause_prop_solver_id_is_def
@@ -277,7 +277,7 @@ let get_prop_solver_id { prop_solver_id = id } = id
 
 let compare_literals c1 c2 = 
   list_compare_lex Term.compare c1.literals c2.literals 
-  
+    
 
 let compare_key cl1 cl2 = 
   list_compare_lex Term.compare cl1.literals cl2.literals 
@@ -286,11 +286,11 @@ exception Clause_fast_key_undef
 
 let get_fast_key cl = 
   match cl.fast_key with 
-  | Def(key) -> key
-  | _ -> raise Clause_fast_key_undef
+    | Def(key) -> key
+    | _ -> raise Clause_fast_key_undef
 
 let compare_fast_key cl1 cl2 =
- (compare (get_fast_key cl1) (get_fast_key cl2))
+  (compare (get_fast_key cl1) (get_fast_key cl2))
 
 let compare = compare_fast_key
 
@@ -313,6 +313,9 @@ let get_literals clause = clause.literals
 
 let copy_clause c = 
   {c with literals = c.literals}
+
+let copy_clause_undef_fast_key c = 
+  { c with fast_key = Undef }
 
 (* switching  parameters of clauses*)
 
@@ -907,11 +910,11 @@ let assign_tstp_source_input clause file name =
 
 
 (* Clause is generated in a global propositional subsumption *)
-let assign_tstp_source_global_subsumption clause parent = 
+let assign_tstp_source_global_subsumption max_clause_id clause parent = 
 
   assign_tstp_source 
     clause
-    (TSTP_inference_record (Global_subsumption, [parent]))
+    (TSTP_inference_record (Global_subsumption max_clause_id, [parent]))
 
 
 (* Clause is generated in a translation to purely equational problem *)

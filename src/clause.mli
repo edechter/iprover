@@ -57,7 +57,7 @@ type tstp_inference_rule =
   | Instantiation of clause list
   | Resolution of literal list
   | Factoring of literal list
-  | Global_subsumption 
+  | Global_subsumption of int
   | Forward_subsumption_resolution of clause
   | Backward_subsumption_resolution
   | Splitting
@@ -115,6 +115,7 @@ val res_simplifying                  : clause_bool_param
 (* creates a new copy of the clause with the same parameters,*) 
 (* terms are not re-created *)
 val copy_clause  : clause -> clause
+val copy_clause_undef_fast_key  : clause -> clause
 
 val set_bool_param : bool ->  clause_bool_param -> clause -> unit
 val get_bool_param : clause_bool_param -> clause -> bool 
@@ -131,6 +132,7 @@ val inherit_param_modif : clause -> clause -> unit
 
 (* fist form, second to*)
 (* val inherit_history : clause -> clause -> unit *)
+val inherit_tstp_source : clause -> clause -> unit
 
 val num_of_symb                 : clause -> int 
 val num_of_var                  : clause -> int 
@@ -222,7 +224,7 @@ val assign_tstp_source_input : clause -> string -> string -> unit
 
 
 (** Clause is generated in a global propositional subsumption *)
-val assign_tstp_source_global_subsumption : clause -> clause -> unit
+val assign_tstp_source_global_subsumption : int -> clause -> clause -> unit
 
 
 (** Clause is generated in a translation to purely equational problem *)

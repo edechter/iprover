@@ -29,6 +29,8 @@ val assign : 'a table -> key -> 'a -> unit
 
 val get    : 'a table -> key -> 'a
 
+val num_of_elem : 'a table -> int
+
 (* gets next admisible key;*)
 (* extends the table if nessecary (by doubling the size) *)
 val get_next_key : 'a table -> key 

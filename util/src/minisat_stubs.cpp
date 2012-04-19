@@ -513,7 +513,7 @@ extern "C" CAMLprim value minisat_add_clause_with_id(value solver_in, value id_i
 }
 
 /* Return the position in the vector where the variables of all
-   literals are smaller than the given max_lit */
+   literals are smaller than or equal to the given max_lit */
 int find_max_lit(const vec<Lit>& lits, int start, int end, int max_var)
 {
     // Termination condition: start index greater than end index
@@ -528,7 +528,7 @@ int find_max_lit(const vec<Lit>& lits, int start, int end, int max_var)
  
     if(var(lits[middle]) == max_var)
       {
-        return middle - 1;
+        return middle;
       }
     else if(var(lits[middle]) > max_var)
       {

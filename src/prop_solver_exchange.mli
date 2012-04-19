@@ -90,7 +90,7 @@ val increase_lit_activity : int -> lit -> unit
 (*exception Non_simplifiable*)
 val prop_subsumption :  clause -> clause 
 
-val justify_prop_subsumption : clause -> clause -> clause list 
+val justify_prop_subsumption : int -> clause -> clause -> clause list 
 (*val fast_solve_main : unit -> PropSolver.fast_solve*)
 
 (* assume solver is unsat*)

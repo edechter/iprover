@@ -84,6 +84,7 @@ type lit        = Term.literal
 type symbol     = Symbol.symbol  
 type clause     = Clause.clause
 
+
 let bot_symb       = Symbol.symb_bot
 let bot_term       = Parser_types.bot_term      
 
@@ -1299,9 +1300,9 @@ let add_clause_to_solver clause =
   if Clause.get_bool_param Clause.in_prop_solver clause then 
 
     (
-      (* Format.eprintf
-	"Clause %a is already in solver, skipping@."
-	Clause.pp_clause clause *)
+    (* Format.eprintf
+       "Clause %a is already in solver, skipping@."
+       Clause.pp_clause clause *)
 
     )
 
@@ -1309,9 +1310,9 @@ let add_clause_to_solver clause =
     
     (
       
-      (* Format.eprintf
+      Format.eprintf
 	"Adding clause %a to solver@."
-	Clause.pp_clause clause; *)
+	Clause.pp_clause clause;
 
       (* Dump propositional clause *)
       if !current_options.dbg_dump_prop_clauses then
@@ -1319,107 +1320,110 @@ let add_clause_to_solver clause =
 	  (get_prop_clauses_dump_formatter ())
 	  "c First-order clause %a@."
 	  Clause.pp_clause clause;
-	  
+      
       (* Mark clause as added to the solver *)
       Clause.set_bool_param true Clause.in_prop_solver clause;
 
-      (* Get literals from clause *)
+	  (* Copy clause history *)
+      Clause.inherit_tstp_source clause clause;
+      
+	  (* Get literals from clause *)
       let lits = Clause.get_literals clause in
       
-      (* Map clause literals to grounded propositional literals *)
+	  (* Map clause literals to grounded propositional literals *)
       let prop_gr_lit_list = 
 	List.map get_prop_gr_lit_assign lits 
       in
-
-      (* Dump propositional clause *)
+      
+	  (* Dump propositional clause *)
       if !current_options.dbg_dump_prop_clauses then
 	Format.fprintf 
 	  (get_prop_clauses_dump_formatter ())
 	  "c Grounded to clause %a@."
 	  (PropSolver.pp_lit_list_dimacs solver) prop_gr_lit_list;
-	  
-      (* Map clause literals to grounded propositional literals in
-	 unsat core solver *)
+      
+	  (* Map clause literals to grounded propositional literals in
+	     unsat core solver *)
       let prop_gr_lit_uc_list = 
 	List.map get_prop_gr_lit_uc_assign lits 
       in
 
-      (* Make association list of literals in satsisfiability solver to
-	 literals in unsat core solver
-	 
-	 This association list is only needed locally in this function
-	 to convert the possibly simplifed propositional clause in the
-	 satisfiability solver to a clause in the unsat core solver. *)
+	  (* Make association list of literals in satsisfiability solver
+	     to literals in unsat core solver
+	     
+	     This association list is only needed locally in this function
+	     to convert the possibly simplifed propositional clause in the
+	     satisfiability solver to a clause in the unsat core solver. *)
       let prop_gr_lit_to_uc = 
 	List.combine prop_gr_lit_list prop_gr_lit_uc_list 
       in
 
-      (* Map clause literals to propositional literals grounded by
-	 variable *)
+	  (* Map clause literals to propositional literals grounded by
+	     variable *)
       let prop_lit_list = List.map get_prop_lit_assign lits in 
 
-      (* Map clause literals to propositional literals grounded by
-	 variable in unsat core solver *)
+	  (* Map clause literals to propositional literals grounded by
+	     variable in unsat core solver *)
       let prop_lit_uc_list = 
 	List.map get_prop_lit_uc_assign lits 
       in
 
-      (* Make association list of literals in satsisfiability solver to
-	 literals in unsat core solver
+	  (* Make association list of literals in satsisfiability solver
+	     to literals in unsat core solver
 
-	 This association list is only needed locally to convert the
-	 possibly simplifed propositional clause in the satisfiability
-	 solver to a clause in the unsat core solver *)
+	     This association list is only needed locally to convert the
+	     possibly simplifed propositional clause in the satisfiability
+	     solver to a clause in the unsat core solver *)
       let prop_lit_to_uc = 
 	List.combine prop_lit_list prop_lit_uc_list 
       in
       
-      (* Mark propositional variables as in solver *)
+	  (* Mark propositional variables as in solver *)
       let f lit = 
 	let var_entry = get_prop_var_entry lit in
 	var_entry.in_solver_sim <- true in
       List.iter f lits;
       
-      (*  Commented *)
-      (* Propositional implication  is not compatible with prop_subsumtion:*)
-      (* an instance of a subsumed clause can imply an instance of the new clause*)
-      (*  let lits_in_solver_sim =
-	  let f lit = 
-	  let var_entry = get_prop_var_entry lit in
-	  var_entry.in_solver_sim in
-	  List.find_all f lits in
-	  let compl_lit_list = List.map get_prop_compl_lit lits_in_solver_sim in 
-	  num_of_fast_solver_calls:=!num_of_fast_solver_calls+1;
-	  match (fast_solve solver_sim compl_lit_list)
-	  with 
-	  | PropSolver.FUnsat -> 
-	  ((*num_prop_implied:=!num_prop_implied+1; *)
-      (*       out_str ("Prop Implied: "^(Clause.to_string clause)^"\n");*)
-	  raise PropImplied)
-	  |PropSolver.FSat | PropSolver.FUnknown -> *)
-      (* debug*) 
-      (*let str = list_to_string PropSolver.lit_to_string prop_gr_lit_list ";" in
-	out_str_debug ("Clause: "^(Clause.to_string clause)^"\n"
-	^"Prop Clause:"^str^"\n");*)
-      (*  debug *)
-      (*  out_str ("Old Clause: "^(PropSolver.lit_list_to_string prop_gr_lit_list)^"\n");*)
-      (* end Commented*) 
+	  (*  Commented *)
+	  (* Propositional implication  is not compatible with prop_subsumtion:*)
+	  (* an instance of a subsumed clause can imply an instance of the new clause*)
+	  (*  let lits_in_solver_sim =
+	      let f lit = 
+	      let var_entry = get_prop_var_entry lit in
+	      var_entry.in_solver_sim in
+	      List.find_all f lits in
+	      let compl_lit_list = List.map get_prop_compl_lit lits_in_solver_sim in 
+	      num_of_fast_solver_calls:=!num_of_fast_solver_calls+1;
+	      match (fast_solve solver_sim compl_lit_list)
+	      with 
+	      | PropSolver.FUnsat -> 
+	      ((*num_prop_implied:=!num_prop_implied+1; *)
+	  (*       out_str ("Prop Implied: "^(Clause.to_string clause)^"\n");*)
+	      raise PropImplied)
+	      |PropSolver.FSat | PropSolver.FUnknown -> *)
+	  (* debug*) 
+	  (*let str = list_to_string PropSolver.lit_to_string prop_gr_lit_list ";" in
+	    out_str_debug ("Clause: "^(Clause.to_string clause)^"\n"
+	    ^"Prop Clause:"^str^"\n");*)
+	  (*  debug *)
+	  (*  out_str ("Old Clause: "^(PropSolver.lit_list_to_string prop_gr_lit_list)^"\n");*)
+	  (* end Commented*) 
 
       (
 
 	try 
 	  
-	  (* Propositionally simplify list of grounded literals *)
+	      (* Propositionally simplify list of grounded literals *)
 	  let simpl_gr_lit_list = 
 	    simplify_prop_lit_list prop_gr_lit_list
 	  in 
 	  
-	  (* Catch simplification to empty clause *)
+	      (* Catch simplification to empty clause *)
 	  if simpl_gr_lit_list = [] then
 
 	    (
 	      
-	      (* Add empty clause to unsat core solver and get id *)
+		  (* Add empty clause to unsat core solver and get id *)
 	      let clause_id = 
 		PropSolver.add_clause_with_id solver_uc None []
 	      in
@@ -1428,50 +1432,59 @@ let add_clause_to_solver clause =
 		
 		match clause_id with 
 		    
-		  (* Clause was discarded in solver *)
-		  | None -> ()
-		    
-		  (* Clause has an ID in solver *)
+		      (* Clause was discarded in solver *)
+		  | None -> 
+
+		    (
+		      
+		      Format.eprintf 
+			"Clause %a discarded in solver@\n@,"
+			Clause.pp_clause
+			clause
+			
+		    )
+		      
+		      (* Clause has an ID in solver *)
 		  | Some i -> 
 		    
 		    (
 		      
-		      (* Map ID in solver to first-order clause *)
+			  (* Map ID in solver to first-order clause *)
 		      Hashtbl.add solver_uc_clauses i clause;
 
-		      (* Assign ID to clause 
+			  (* Assign ID to clause 
 
-			 Clauses are only added to the solver once,
-			 therefore IDs are not reassigned *)
+			     Clauses are only added to the solver once,
+			     therefore IDs are not reassigned *)
 		      Clause.assign_prop_solver_id clause i
 			
 		    )
 	      );
 	      
-	      (* Raise exception only after empty clause is in unsat
-		 core solver *)
+		  (* Raise exception only after empty clause is in unsat
+		     core solver *)
 	      raise Unsatisfiable
 		
 	    );
 
-	  (* Map literals in simplified clause in satisfiability solver
-	     to literals in unsat core solver
-	     
-	     Use short association list of grounded literals to
-	     grounded literals in unsat core solver to remove the
-	     literals eliminated by propositional subsumption from the
-	     clause to be added to the unsat core solver *)
+	      (* Map literals in simplified clause in satisfiability solver
+		 to literals in unsat core solver
+		 
+		 Use short association list of grounded literals to
+		 grounded literals in unsat core solver to remove the
+		 literals eliminated by propositional subsumption from the
+		 clause to be added to the unsat core solver *)
 	  let simpl_gr_lit_uc_list = 
 	    List.map 
 	      (function e -> List.assoc e prop_gr_lit_to_uc) 
 	      simpl_gr_lit_list 
 	  in
 
-	  (* Add simplified clause to unsat core solver and get id
-	     
-	     Must do this first, since adding a clause to
-	     satisfiability solver can be immediately unsatisfiable,
-	     but not in unsat core solver *)
+	      (* Add simplified clause to unsat core solver and get id
+		 
+		 Must do this first, since adding a clause to
+		 satisfiability solver can be immediately unsatisfiable,
+		 but not in unsat core solver *)
 	  let clause_id = 
 	    PropSolver.add_clause_with_id solver_uc None simpl_gr_lit_uc_list
 	  in
@@ -1480,27 +1493,36 @@ let add_clause_to_solver clause =
 
 	    match clause_id with 
 		
-	      (* Clause was discarded in solver *)
-	      | None -> ()
+		  (* Clause was discarded in solver *)
+	      | None -> 
 		
-	      (* Clause has an ID in solver *)
+		(
+
+	      	  Format.eprintf 
+		    "Clause %a discarded in solver@\n@,"
+		    Clause.pp_clause
+		    clause
+		    
+		)
+		  
+		  (* Clause has an ID in solver *)
 	      | Some i -> 
 		
 		(
 		  
-		  (* Map ID in solver to first-order clause *)
+		      (* Assign ID to clause
+			 
+			 Clauses are only added to the solver once,
+			 therefore IDs are not reassigned *)
+		  Clause.assign_prop_solver_id clause i;
+		  
+		      (* Map ID in solver to first-order clause *)
 		  Hashtbl.add solver_uc_clauses i clause;
 
-		  (* Assign ID to clause 
-		     
-		     Clauses are only added to the solver once,
-		     therefore IDs are not reassigned *)
-		  Clause.assign_prop_solver_id clause i
-		    
 		)
 	  );
 
-	  (* Dump propositional clause *)
+	      (* Dump propositional clause *)
 	  if !current_options.dbg_dump_prop_clauses then
 	    Format.fprintf 
 	      (get_prop_clauses_dump_formatter ())
@@ -1508,28 +1530,28 @@ let add_clause_to_solver clause =
 	      (match clause_id with None -> -1 | Some i -> i)
 	      (PropSolver.pp_lit_list_dimacs solver) simpl_gr_lit_list;
 	  
-	  (* Add simplified clause to satisfiability solver
-	     
-	     Clause must already be in unsat core solver, since this may
-	     raise the PropSolver.Unsatisfiable exception *)
+	      (* Add simplified clause to satisfiability solver
+		 
+		 Clause must already be in unsat core solver, since this may
+		 raise the PropSolver.Unsatisfiable exception *)
 	  PropSolver.add_clause solver simpl_gr_lit_list;
 	  
-	  (* Add simplified clause to simplification solver *)
+	      (* Add simplified clause to simplification solver *)
 	  PropSolver.add_clause solver_sim simpl_gr_lit_list;
 
-	  (* Add simplified clause to propositional trie *)
+	      (* Add simplified clause to propositional trie *)
 	  add_to_prop_trie simpl_gr_lit_list;
 	  
-	  (* Increment counter for number of propositional clauses *)
+	      (* Increment counter for number of propositional clauses *)
 	  incr_int_stat 1 prop_num_of_clauses
 	    
 	with 
 	    
-	  (* Clause is a tautology or was propositionally simplified *)
+	      (* Clause is a tautology or was propositionally simplified *)
 	  | PropTaut
 	  | PropSubsumed -> 
 	    
-	    (* Increment counter for simplified clauses *)
+		(* Increment counter for simplified clauses *)
 	    incr_int_stat 1 prop_preprocess_simplified
 	      
       );
@@ -1538,15 +1560,16 @@ let add_clause_to_solver clause =
 
 	try 
 	  
-	  (* Propositionally simplify list of literals grounded by variable *)
+	      (* Propositionally simplify list of literals grounded by
+		 variable *)
 	  let simpl_lit_list = simplify_prop_lit_list prop_lit_list in 
 	  
-	  (* Catch simplification to empty clause *)
+	      (* Catch simplification to empty clause *)
 	  if simpl_lit_list = [] then
 
 	    (
 	      
-	      (* Add empty clause to unsat core solver and get id *)
+		  (* Add empty clause to unsat core solver and get id *)
 	      let clause_id = 
 		PropSolver.add_clause_with_id 
 		  solver_uc 
@@ -1558,45 +1581,45 @@ let add_clause_to_solver clause =
 		
 		match clause_id with 
 		    
-		  (* Clause was discarded in solver *)
+		      (* Clause was discarded in solver *)
 		  | None -> ()
 		    
-		  (* Clause has an ID in solver *)
+		      (* Clause has an ID in solver *)
 		  | Some i -> 
 		    
 		    (
 		      
-		      (* Map ID in solver to first-order clause *)
+			  (* Map ID in solver to first-order clause *)
 		      Hashtbl.add solver_uc_clauses i clause
 			
 		    )
 	      );
 	      
-	      (* Raise exception only after empty clause is in unsat
-		 core solver *)
+		  (* Raise exception only after empty clause is in unsat
+		     core solver *)
 	      raise Unsatisfiable
 		
 	    );
 
 
-	  (* Map literals in simplified clause in simplification solver to
-	     literals in unsat core solver
-	     
-	     Use short association list of literals grounded by variable to
-	     literals grounded by variable in unsat core solver to remove
-	     the literals eliminated by propositional subsumption from the
-	     clause to be added to the unsat core solver *)
+	      (* Map literals in simplified clause in simplification
+		 solver to literals in unsat core solver
+		 
+		 Use short association list of literals grounded by variable to
+		 literals grounded by variable in unsat core solver to remove
+		 the literals eliminated by propositional subsumption from the
+		 clause to be added to the unsat core solver *)
 	  let simpl_lit_uc_list = 
 	    List.map 
 	      (function e -> List.assoc e prop_lit_to_uc) 
 	      simpl_lit_list 
 	  in
 	  
-	  (* Add simplified clause to unsat core solver and get id  
-	     
-	     Must do this first, since adding a clause to satisfiability
-	     solver can be immediately unsatisfiable, but not in unsat
-	     core solver *)
+	      (* Add simplified clause to unsat core solver and get id
+		 
+		 Must do this first, since adding a clause to satisfiability
+		 solver can be immediately unsatisfiable, but not in unsat
+		 core solver *)
 	  let clause_id = 
 	    PropSolver.add_clause_with_id 
 	      solver_uc 
@@ -1604,56 +1627,57 @@ let add_clause_to_solver clause =
 	      simpl_lit_uc_list 
 	  in
 	  
-	   (
+	  (
 
 	    match clause_id with 
 		
-	      (* Clause was discarded in solver *)
+		  (* Clause was discarded in solver *)
 	      | None -> ()
 		
-	      (* Clause has an ID in solver *)
+		  (* Clause has an ID in solver *)
 	      | Some i -> 
 		
 		(
 		  
-		  (* Map ID in solver to first-order clause *)
+		      (* Map ID in solver to first-order clause *)
 		  Hashtbl.add solver_uc_clauses i clause;
 
-		  (* Assign ID to clause 
-		     
-		     Clauses are only added to the solver once,
-		     therefore IDs are not reassigned *)
+		      (* Assign ID to clause 
+			 
+			 Clauses are only added to the solver once,
+			 therefore IDs are not reassigned *)
 		  (match Clause.get_prop_solver_id clause with
-		    | None -> Clause.assign_prop_solver_id clause i
+		    | None -> 
+		      Clause.assign_prop_solver_id clause i
 		    | Some _ -> ())
 		    
 		)
 	  );
 
-	  (* Add simplified clause to simplification solver *)
+	      (* Add simplified clause to simplification solver *)
 	  PropSolver.add_clause solver_sim simpl_lit_list;
 	  
-	  (* Add simplified clause to propositional trie *)
+	      (* Add simplified clause to propositional trie *)
 	  add_to_prop_trie simpl_lit_list; 
 	  
-	  (* Increment counter for number of propositional clauses *)
+	      (* Increment counter for number of propositional clauses *)
 	  incr_int_stat 1 prop_num_of_clauses
 	    
 	with 
 	    
-	  (* Clause is a tautology or was propositionally simplified *)
+	      (* Clause is a tautology or was propositionally simplified *)
 	  | PropTaut 
 	  | PropSubsumed -> 
 	    
-	    (* Increment counter for simplified clauses *)
+		(* Increment counter for simplified clauses *)
 	    incr_int_stat 1 prop_preprocess_simplified
 
       );
-	    
-      (*----- add answer assumtions *)
+      
+	  (*----- add answer assumtions *)
       
       let add_answer_lit lit = 
-	   (* answer lits are assumed to occur only positively*)
+	    (* answer lits are assumed to occur only positively*)
 	if ((Term.get_top_symb lit) == Symbol.symb_answer)
 	then
 	  add_answer_assumption lit 
@@ -1664,7 +1688,7 @@ let add_clause_to_solver clause =
 	List.iter add_answer_lit lits
       else ()
 	
-	   
+	
     )
 
 
@@ -2403,11 +2427,19 @@ let prop_subsumption clause =
 	  (* out_str ("Old Clause: "^(Clause.to_string clause)^"\n");  *)
 	    Clause.inherit_param_modif clause new_clause;
 	    (* Clause.assign_global_subsumption_history new_clause clause; *)
-	    Clause.assign_tstp_source_global_subsumption new_clause clause; 
-            Clause.set_bool_param true Clause.res_simplifying new_clause;
-	    add_clause_to_solver new_clause;
-	   
-(*	    out_str ("New Clause: "^(Clause.to_string new_clause)^"\n");*)
+
+	 (* Clause was propositionally subsumed by some clauses up to
+	    the currently highest clause ID *)
+	 Clause.assign_tstp_source_global_subsumption 
+	   (pred (TableArray.num_of_elem var_table) + 
+	       (PropSolver.clauses_with_id solver_uc))
+	   new_clause 
+	   clause; 
+
+         Clause.set_bool_param true Clause.res_simplifying new_clause;
+	 add_clause_to_solver new_clause;
+	 
+	    (*	    out_str ("New Clause: "^(Clause.to_string new_clause)^"\n");*)
 	    new_clause )
   else clause (*raise Non_simplifiable*)
 
@@ -2476,19 +2508,21 @@ let rec justify_prop_lit_subsumption clause_id accum = function
 *)
 
 
-let justify_prop_subsumption clause clause' =
+let justify_prop_subsumption max_clause_id clause clause' =
 
-  (* Format.eprintf 
-    "Simplifed %a to %a@."
+  Format.eprintf 
+    "Simplifed %a to %a@\n@."
     Clause.pp_clause clause 
-    Clause.pp_clause clause'; *)
+    Clause.pp_clause clause';
 
+(*
   (* ID of simplified clause *)
   let clause_id =
-    match Clause.get_prop_solver_id clause' with
+    match Clause.get_prop_solver_id clause'_prop_db with
       | Some i -> i
       | None -> raise (Failure ("Clause without ID in propositional solver."))
   in
+*)
 
   (* Assume complement of each literal in simplified clause *)
   let assumptions =
@@ -2505,7 +2539,7 @@ let justify_prop_subsumption clause clause' =
 	  PropSolver.solve_assumptions_upto_id_uc
 	    solver_uc
 	    (assumptions @ (get_solver_uc_assumptions ()))
-	    clause_id
+	    max_clause_id
 	    
 	with PropSolver.Unsatisfiable -> 
 	  
