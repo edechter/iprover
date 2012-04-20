@@ -80,12 +80,12 @@ type context =
 (* collapsed types implicitly override sub_types *)
      mutable collapsed_types : SymSet.t; 
 
-(* var -> sub_type table linking variables to a choosen sub_type of this var; local to each clause *)
-(*needs to be rest with each clause, not very good *)
-     mutable  vtable : (sub_type) VarTable.t;
-
   }
 
+(* var -> sub_type table linking variables to a choosen sub_type of this var; local to each clause *)
+(*needs to be rest with each clause, not very good *)
+
+type vtable =  (sub_type) VarTable.t
 
 let get_sym_types sym =
   match (Symbol.get_stype_args_val sym) with 
@@ -97,9 +97,9 @@ let get_sym_types sym =
 (*    top_type : sub_type option; *)
 (* f(t_1,t_2) at t_2 we have top_type_top is f_arg_2 *)
 
-(* top_type_opt_term_list = [(Some(top_sub_type),term));...]*)
+(* top_type_opt_term_list = [(Some(top_sub_type),fun_term);(None, pred_term)...]  *)
 
-let rec extend_uf_types context top_sub_type_opt_term_ass_list = 
+let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list = 
 (* first define a function for processing arguments that we will use several times *)
 
   let process_args_fun sym args ass_list= 
@@ -116,7 +116,7 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 	args
     in
     let new_ass_list = add_ass_list@ass_list in
-    extend_uf_types context new_ass_list
+    extend_uf_types context vtable new_ass_list
   in
 (* aux fun *)
   let get_val_sub_type sym =
@@ -134,6 +134,18 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
       UF_PNT.union context.uf top_sub_type val_sub_type;
       process_args_fun sym args tl_ass
 	
+  |(Some(top_sub_type), Term.Var(var,args))::tl_ass ->
+     ( try 
+       let var_sub_type = VarTable.find vtable var in
+       UF_PNT.union context.uf top_sub_type var_sub_type;
+       extend_uf_types context vtable tl_ass
+      with 
+       Not_found ->
+	 (
+	  VarTable.add vtable var top_sub_type; 
+	  extend_uf_types context vtable tl_ass
+	 )
+      )
   |(None, lit)::tl_ass ->
 (* here we assume that sym is pred/or ~pred since None *)
       let atom = Term.get_atom lit in
@@ -158,7 +170,7 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 			 UF_PNT.union context.uf val_sub_type1 val_sub_type2;
 			 process_args_fun sym1 args1 [];
 			 process_args_fun sym2 args2 [];
-			 extend_uf_types context tl_ass
+			 extend_uf_types context vtable tl_ass
 			)
 			    
 (* type collaps cases *)
@@ -187,7 +199,20 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 	|_-> failwith "extend_uf_types: var"
 	)
 
+  |[] -> ()
 
+
+let extend_uf_types_clause context clause = 
+  let lits = Clause.get_literals clause in 
+  let top_sub_type_opt_term_ass_list = 
+    List.map (fun l -> (None,l)) lits 
+  in 
+  let vtable =  VarTable.create 10 in
+  extend_uf_types context vtable top_sub_type_opt_term_ass_list
+
+
+let extend_uf_types_clause_list context clause_list = 
+  List.iter (extend_uf_types_clause context) clause_list
 
 (*-------------------Commented below-----------------*)
 
