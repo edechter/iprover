@@ -110,6 +110,7 @@ type clause =
     {
      literals : literal_list;   
      mutable fast_key      : int param;
+     mutable db_id         : int param;
      mutable prop_solver_id : int option;
      mutable bool_param    : Bit_vec.bit_vec;
      mutable inst_sel_lit  : (term * sel_place) param;
@@ -178,9 +179,9 @@ and tstp_inference_rule =
   | Resolution of literal list
   | Factoring of literal list
   | Global_subsumption of int
-  | Forward_subsumption_resolution of clause
+  | Forward_subsumption_resolution 
   | Backward_subsumption_resolution
-  | Splitting
+  | Splitting of symbol list
 
 and tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -214,6 +215,7 @@ let create term_list =
   {
     literals       = term_list; 
     fast_key       = Undef;
+    db_id          = Undef;
     prop_solver_id = None;
     inst_sel_lit   = Undef;
     res_sel_lits   = Undef; 
@@ -236,6 +238,7 @@ let create_parent parent term_list =
   {
     literals       = term_list; 
     fast_key       = Undef;
+    db_id          = Undef;
     prop_solver_id = None;
     inst_sel_lit   = Undef;
     res_sel_lits   = Undef; 
@@ -261,6 +264,18 @@ let assign_fast_key clause (fkey : int) =
   match clause.fast_key with 
     |Undef -> clause.fast_key <- Def(fkey)      
     |_     -> raise Clause_fast_key_is_def
+
+exception Clause_db_id_is_def
+
+let assign_db_id = function 
+
+  (* Raise exception when db_id is already defined *)
+  | { db_id = Def _ } -> 
+    (function _ -> raise Clause_db_id_is_def)
+
+  (* Set db_id to defined value *)
+  | clause -> 
+    (function db_id -> clause.db_id <- Def(db_id))
 
 
 exception Clause_prop_solver_id_is_def
@@ -370,7 +385,8 @@ let to_stream s clause =
    [c_tmp].
 *)
 let pp_clause_name ppf = function 
-  | { fast_key = Def n } -> Format.fprintf ppf "c_%d" n
+  | { fast_key = Def n; db_id = Def d } -> Format.fprintf ppf "c_%d_%d" d n
+  | { fast_key = Def n; db_id = Undef } -> Format.fprintf ppf "c_%d_tmp" n
   | { fast_key = Undef } -> Format.fprintf ppf "c_tmp"
 
 
@@ -384,9 +400,36 @@ let pp_clause_with_id ppf clause =
 let pp_clause ppf clause = 
   Format.fprintf 
     ppf 
-    "{%a}" 
+    "@[<h>{%a}@]" 
     (pp_any_list Term.pp_term ";") clause.literals
 
+
+let rec pp_literals_tptp ppf = function 
+
+  | [] -> ()
+
+  | [l] -> Format.fprintf ppf "@[<h>%a@]" Term.pp_term_tptp l
+
+  | l :: tl -> 
+    pp_literals_tptp ppf [l]; 
+    Format.fprintf ppf "@ | ";
+    pp_literals_tptp ppf tl 
+    
+
+(* Output clause in TPTP format *)
+let pp_clause_literals_tptp ppf = function 
+
+  (* Print empty clause *)
+  | clause when clause.literals = [] -> 
+    Format.fprintf ppf "@[<h>( %a )@]" Symbol.pp_symbol Symbol.symb_false 
+
+  (* Print non-empty clause as disjunction of literals *)
+  | clause -> 
+    Format.fprintf 
+      ppf
+      "@[<hv>( %a )@]" 
+      pp_literals_tptp 
+      clause.literals
 
 (* Output clause in TPTP format *)
 let pp_clause_tptp ppf clause = 
@@ -930,9 +973,8 @@ let assign_tstp_source_forward_subsumption_resolution clause main_parent parents
 
   assign_tstp_source 
     clause
-    (TSTP_inference_record 
-       (Forward_subsumption_resolution main_parent,
-	parents))
+    (TSTP_inference_record
+       (Forward_subsumption_resolution, (main_parent :: parents)))
 
 
 (* Clause is generated in a backward subsumption resolution *)
@@ -944,11 +986,11 @@ let assign_tstp_source_backward_subsumption_resolution clause parents =
 
 
 (* Clause is generated in splitting *)
-let assign_tstp_source_split clause parent = 
+let assign_tstp_source_split symbols clause parent = 
 
   assign_tstp_source 
     clause
-    (TSTP_inference_record (Splitting, [parent]))
+    (TSTP_inference_record (Splitting symbols, [parent]))
 
 
 (* Clause is a theory axiom *)

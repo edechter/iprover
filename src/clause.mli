@@ -58,9 +58,9 @@ type tstp_inference_rule =
   | Resolution of literal list
   | Factoring of literal list
   | Global_subsumption of int
-  | Forward_subsumption_resolution of clause
+  | Forward_subsumption_resolution 
   | Backward_subsumption_resolution
-  | Splitting
+  | Splitting of symbol list
 
 type tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -239,8 +239,8 @@ val assign_tstp_source_forward_subsumption_resolution : clause -> clause -> clau
 val assign_tstp_source_backward_subsumption_resolution : clause -> clause list -> unit
 
 
-(** Clause is generated in splitting *)
-val assign_tstp_source_split : clause -> clause -> unit 
+(** Clause is generated in splitting with split symbols introduced *)
+val assign_tstp_source_split : symbol list -> clause -> clause -> unit 
 
 
 (** Clause is an equality axiom *)
@@ -310,6 +310,13 @@ exception Clause_fast_key_is_def
 
 (* only to be used in clauseDB where the fast_key is assigned*)
 val assign_fast_key : clause -> int -> unit
+
+(* If a clause has a fast_key, then the db_id is set to a unique
+   identifier of the clause database it was added to. This is
+   necessary to get unique clause names. *)
+exception Clause_db_id_is_def
+val assign_db_id : clause -> int -> unit
+
 
 exception Clause_prop_solver_id_is_def
 exception Clause_prop_solver_id_is_undef
@@ -427,6 +434,7 @@ val out                        : clause -> unit
 val pp_clause_name : Format.formatter -> clause -> unit
 
 val pp_clause : Format.formatter -> clause -> unit
+val pp_clause_literals_tptp : Format.formatter -> clause -> unit
 val pp_clause_tptp : Format.formatter -> clause -> unit
 val pp_clause_list_tptp : Format.formatter -> clause list -> unit
 

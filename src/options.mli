@@ -217,6 +217,7 @@ type options = {
     mutable inst_start_prop_sim_after_learn   : int;
     mutable inst_sel_renew                    : inst_sel_renew_type;
     mutable inst_lit_activity_flag            : bool;
+    mutable inst_out_proof                    : bool;
 
 (*----Resolution---------*)
     mutable resolution_flag               : bool;

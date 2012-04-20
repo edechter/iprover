@@ -167,6 +167,7 @@ let max_num_of_sym_groups = 100
 type symbol = 
     {
      mutable fast_key: fast_key;
+     mutable db_id: fast_key;
      mutable bool_param : Bit_vec.bit_vec;
      name    : string; 
      arity   : arity; 
@@ -243,6 +244,7 @@ let get_stype_args_val symb =
 let empty_symb_fun () = 
   {
    fast_key   = Undef;
+   db_id      = Undef;
    name       = ""; 
    stype      = Undef; 
    arity      = Undef;
@@ -673,6 +675,20 @@ let assign_fast_key (s:symbol) (key:int) =
   |Undef -> (s.fast_key <- Def(key);
 	    assign_group s (key mod max_num_of_sym_groups))
   |_     -> raise Symbol_fast_key_is_def
+
+exception Symbol_db_id_is_def
+
+let assign_db_id = function 
+
+  (* Raise exception when db_id is already defined *)
+  | { db_id = Def _ } -> 
+    (function _ -> raise Symbol_db_id_is_def)
+
+  (* Set db_id to defined value *)
+  | clause -> 
+    (function db_id -> clause.db_id <- Def(db_id))
+
+
 
 (*
 exception Symbol_hash_is_def

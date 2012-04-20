@@ -612,6 +612,7 @@ type options = {
     mutable inst_start_prop_sim_after_learn   : int;
     mutable inst_sel_renew                    : inst_sel_renew_type;
     mutable inst_lit_activity_flag            : bool;     
+    mutable inst_out_proof                    : bool;
 
 (*----Resolution---------*)
     mutable resolution_flag               : bool;
@@ -723,6 +724,7 @@ let default_options () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -1614,7 +1616,20 @@ let inst_lit_activity_flag_fun b =
 
 let inst_lit_activity_flag_inf  =
   bool_str^
-  inf_pref^"if true then overactive literals are tried to be deselected in propositional models\n"^
+  inf_pref^"if true then overactive literals are tried to be deselected in propositional models\n"
+
+
+
+(*--------*)
+
+let inst_out_proof_str  = "--inst_out_proof"
+
+let inst_out_proof_fun b =
+  !current_options.inst_out_proof <- b
+
+let inst_out_proof_inf  =
+  bool_str^
+  inf_pref^"output proofs from instantiation\n"^
 (* ugly hack *)
   (dash_str "Resolution Options")^"\n"
 
@@ -2028,6 +2043,7 @@ let spec_list =
     Arg.Int(inst_start_prop_sim_after_learn_fun),inst_start_prop_sim_after_learn_inf); 
    (inst_sel_renew_str,Arg.String(inst_sel_renew_fun),inst_sel_renew_inf); 
    (inst_lit_activity_flag_str,Arg.Bool(inst_lit_activity_flag_fun),inst_lit_activity_flag_inf); 
+   (inst_out_proof_str,Arg.Bool(inst_out_proof_fun),inst_out_proof_inf); 
 
 
 (*------Resolution--*)
@@ -2170,6 +2186,7 @@ let inst_options_str_list opt =
    (inst_start_prop_sim_after_learn_str, (string_of_int opt.inst_start_prop_sim_after_learn));
    (inst_sel_renew_str, (inst_sel_renew_type_to_str opt.inst_sel_renew));
    (inst_lit_activity_flag_str, (string_of_bool opt.inst_lit_activity_flag));
+   (inst_out_proof_str, (string_of_bool opt.inst_out_proof));
  ]
 
 let res_options_str_list opt = 
@@ -2190,6 +2207,7 @@ let res_options_str_list opt =
    (res_backward_subs_resolution_str, (string_of_bool opt.res_backward_subs_resolution));
    (res_orphan_elimination_str, (string_of_bool opt.res_orphan_elimination));
    (res_time_limit_str, (string_of_float opt.res_time_limit));
+   (res_out_proof_str, (string_of_bool opt.res_out_proof))
  ]
 
 
@@ -2557,6 +2575,7 @@ let option_1 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -2709,6 +2728,7 @@ let option_2 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -2833,6 +2853,7 @@ let option_3 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -2954,6 +2975,7 @@ let option_4 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -3099,6 +3121,7 @@ let option_finite_models () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution---------*)
 (*---always resolution_flag false-------------------*)
@@ -3231,6 +3254,7 @@ let option_epr_non_horn () = {
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag            = false;
 (*  inst_lit_activity_flag            = true;*)
+  inst_out_proof                  = true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = true;
@@ -3467,6 +3491,7 @@ let option_epr_horn () = {
   inst_start_prop_sim_after_learn   = 3;
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag          = true;
+  inst_out_proof                  = true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = true;
@@ -3725,6 +3750,7 @@ let option_verification_epr ver_epr_opt =
   inst_start_prop_sim_after_learn   = 3000;
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag            = false;
+  inst_out_proof                  = true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = false;
@@ -3853,6 +3879,7 @@ let option_verification_epr ver_epr_opt =
   inst_start_prop_sim_after_learn   = 300000000;
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag            = false;
+  inst_out_proof                  = true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = false;
@@ -4021,6 +4048,7 @@ let option_verification_epr ver_epr_opt =
        inst_sel_renew                    = Inst_SR_Solver;
        inst_lit_activity_flag            = false;
   (*    inst_lit_activity_flag            = true;*)
+       inst_out_proof                    = true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = false;

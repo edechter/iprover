@@ -884,12 +884,19 @@ let pp_any_array pp_a sep ppf array =
 
 (* Print a list of any type with separator *)
 let rec pp_any_list pp_a sep ppf = function
-  | [] -> 
-      ()
+  | [] -> ()
+
   | [a] -> 
-      Format.fprintf ppf "%a" pp_a a
+    Format.fprintf ppf "@[<h>%a@]" pp_a a
+
   | a::tl -> 
-      Format.fprintf ppf "%a%s" pp_a a sep; pp_any_list pp_a sep ppf tl
+
+    Format.fprintf 
+      ppf 
+      "@[<h>%a@]%s@," 
+      pp_a a sep; 
+    
+    pp_any_list pp_a sep ppf tl
 
 
 (* Print a list of strings with separator *)

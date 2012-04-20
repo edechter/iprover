@@ -1310,9 +1310,9 @@ let add_clause_to_solver clause =
     
     (
       
-      Format.eprintf
+      (* Format.eprintf
 	"Adding clause %a to solver@."
-	Clause.pp_clause clause;
+	Clause.pp_clause clause; *)
 
       (* Dump propositional clause *)
       if !current_options.dbg_dump_prop_clauses then
@@ -1437,10 +1437,10 @@ let add_clause_to_solver clause =
 
 		    (
 		      
-		      Format.eprintf 
+		      (* Format.eprintf 
 			"Clause %a discarded in solver@\n@,"
 			Clause.pp_clause
-			clause
+			clause *)
 			
 		    )
 		      
@@ -1498,10 +1498,10 @@ let add_clause_to_solver clause =
 		
 		(
 
-	      	  Format.eprintf 
+	      	  (* Format.eprintf 
 		    "Clause %a discarded in solver@\n@,"
 		    Clause.pp_clause
-		    clause
+		    clause *)
 		    
 		)
 		  
@@ -2510,10 +2510,10 @@ let rec justify_prop_lit_subsumption clause_id accum = function
 
 let justify_prop_subsumption max_clause_id clause clause' =
 
-  Format.eprintf 
+  (* Format.eprintf 
     "Simplifed %a to %a@\n@."
     Clause.pp_clause clause 
-    Clause.pp_clause clause';
+    Clause.pp_clause clause'; *)
 
 (*
   (* ID of simplified clause *)

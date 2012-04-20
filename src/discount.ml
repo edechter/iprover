@@ -26,7 +26,7 @@ type clause = Clause.clause
 type term = Term.term
 type lit  = Term.literal
 
-exception Unsatisfiable
+(* exception Unsatisfiable *)
 
 type all_clauses = ClauseAssignDB.clauseDB
 
@@ -43,7 +43,7 @@ exception Empty_Clause of clause
 (*----------------*)
 let out_proof_fun clause = 
   out_str ("\n----------Resolution Proof---------------\n");
-  (Format.printf "%a@." TstpProof.pp_tstp_proof clause);
+  (Format.printf "%a@." TstpProof.pp_tstp_proof_resolution clause);
   out_str ("\n----------End of Resolution Proof---------------\n")
 
 module type InputM = 

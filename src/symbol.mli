@@ -105,6 +105,7 @@ val get_stype_args_val : symbol -> ((symbol list) * symbol) param
 
 (* fast key assigned when symbolDB is creating*)
 val  assign_fast_key       : symbol -> int -> unit
+val  assign_db_id       : symbol -> int -> unit
 (*val  assign_hash           : symbol -> int -> unit*)
 
 val assign_group           : symbol -> int -> unit

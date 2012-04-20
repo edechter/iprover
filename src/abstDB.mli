@@ -45,6 +45,10 @@ module type AbstDB =
     val fold        : (elem -> 'a -> 'a) -> abstDB -> 'a -> 'a
     val iter        : (elem -> unit) -> abstDB -> unit
     val get_name    : abstDB -> string
+
+    (** Return the unique identifier of the database *)
+    val get_db_id   : abstDB -> int
+
     val to_stream   : 
 	'a string_stream -> ('a string_stream -> elem -> unit) ->
 	  string -> abstDB -> unit
