@@ -847,15 +847,18 @@ let apply_to_atom f lit =
   |lit -> f lit
 
 
-
-let is_eq_lit lit = 
-  let atom = get_atom lit in
+let is_eq_atom atom = 
   match atom with
   | Fun(sym,_,_) -> 
       if ((*(sym == Symbol.symb_equality) ||*) (sym == Symbol.symb_typed_equality))  
       then true else false
-  |_-> false
+   |_-> false
 
+	
+let is_eq_lit lit = 
+  let atom = get_atom lit in
+  is_eq_atom atom
+      
 
 let is_clock_lit lit = 
   match get_atom lit with 

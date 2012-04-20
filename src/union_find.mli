@@ -29,8 +29,10 @@ module type UF =
 (* expected size *)
       val create : int -> t
       val add : t -> e -> unit
-      val find : t -> e -> e 
-      val union : t -> e -> e -> unit
+      val find :  t -> e -> e 
+      val union :  t -> e -> e -> unit
+(* iter f t, first arg of f is element second is its normal form *)
+      val iter : (e -> e -> unit) -> t -> unit
     end 
 
 module Make: functor (E : Elem) -> UF with type e = E.t

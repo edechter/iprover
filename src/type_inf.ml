@@ -14,40 +14,239 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
+open Lib
+
 type symbol = Symbol.symbol
 type stype  = Symbol.stype
 
 let symbol_db_ref  = Parser_types.symbol_db_ref
 
 
+(* we assume all symbols we are dealing with are put to symbol_db_ref *)
 
-type pre_new_type = 
+(* we assume that the problem is typed initially, *)
+(* (in fof, cnf all types initially are $i type);*)
+(* then we 1) sub-type each type with (symbol, arg_ind) arg_ind includes value *)
+(* 2) merge sub_types according occurences in args and var linking *)
+(* we assume that sub_types of different types are never merged i.e. initially, the problem was correctly typed *)
+(* 3) collaps sub_types due to unshielded positive eq: x=t, t=x, x=y *)
+(*    we collaps all sub_types of eq_type   (we reinstate original type for any symbol with is type)  overriding sub_typing       *)
+
+
+type sub_type = 
     {
-     symb : symbol;
+     sym      : symbol;
 (* the number in the list of arguments, 0 is the value type *)
-     arg  : int;
-     arg_type : stype
+     arg_ind  : int;
+     arg_type : symbol
    }
 
-(*pre_new_type element of union find*)
+let create_sub_type sym arg_ind arg_type = 
+  {
+   sym = sym; 
+   arg_ind = arg_ind;
+   arg_type = arg_type;
+ }
 
-module PNTE = 
+(* sub_type element of union find*)
+
+module SubTypeE = 
   struct 
-    type t = pre_new_type
+    type t = sub_type
+
     let equal t1 t2 = 
-      (t1.symb == t2.symb) 
+      (t1.sym == t2.sym) 
 	&& 
-      (t1.arg = t2.arg) 
+      (t1.arg_ind = t2.arg_ind) 
 	&&
       (t1.arg_type == t2.arg_type) 
 
-    let hash t = ((Symbol.get_fast_key t.symb) lsl 5) + t.arg
+    let hash t = ((Symbol.get_fast_key t.sym) lsl 5) + t.arg_ind
 	
   end
     
-module UF_PNT = Union_find.Make(PNTE)
+module UF_PNT = Union_find.Make(SubTypeE)
+
+module VarTable = Hashtbl.Make (Var)
+
+module SymSet = Set.Make (Symbol)
+
+type context = 
+    {
+     uf : UF_PNT.t;
+     
+(*types with X=Y, X=t, t=X are collapsed since all arg_subtypes should be merged *)
+(* can be relaxed later *)
+(* collapsed types implicitly override sub_types *)
+     mutable collapsed_types : SymSet.t; 
+
+(* var -> sub_type table linking variables to a choosen sub_type of this var; local to each clause *)
+(*needs to be rest with each clause, not very good *)
+     mutable  vtable : (sub_type) VarTable.t;
+
+  }
 
 
+let get_sym_types sym =
+  match (Symbol.get_stype_args_val sym) with 
+  |Def (arg_t, v_t) -> (arg_t, v_t)
+  |_-> failwith "get_sym_types: arg_types should be defined"
+
+  
+   
+(*    top_type : sub_type option; *)
+(* f(t_1,t_2) at t_2 we have top_type_top is f_arg_2 *)
+
+(* top_type_opt_term_list = [(Some(top_sub_type),term));...]*)
+
+let rec extend_uf_types context top_sub_type_opt_term_ass_list = 
+(* first define a function for processing arguments that we will use several times *)
+
+  let process_args_fun sym args ass_list= 
+    let arg_types, _val_type = get_sym_types sym in 
+    let arg_list = Term.arg_to_list args in
+    let (_,_,add_ass_list) = 	  
+      Term.arg_fold_left 
+	(fun (arg_ind,arg_types_rest,ass_list_rest) arg -> 
+	  let h::tl = arg_types_rest in 
+	  let arg_sub_type = create_sub_type sym arg_ind h in	
+	  ((arg_ind+1),tl, ((Some (arg_sub_type),arg)::ass_list_rest))
+	)
+	(1,arg_types,[]) 
+	args
+    in
+    let new_ass_list = add_ass_list@ass_list in
+    extend_uf_types context new_ass_list
+  in
+(* aux fun *)
+  let get_val_sub_type sym =
+    let _arg_types, val_type = get_sym_types sym in 
+    let val_sub_type = (create_sub_type sym 0 val_type) in
+    val_sub_type
+  in
+
+(*----------- main part ---------------*)
+
+  match top_sub_type_opt_term_ass_list with 
+  |(Some(top_sub_type), Term.Fun (sym,args,_))::tl_ass ->
+(* here we assume that sym is not fun (not pred) since Some *)
+      let val_sub_type =  get_val_sub_type sym in
+      UF_PNT.union context.uf top_sub_type val_sub_type;
+      process_args_fun sym args tl_ass
+	
+  |(None, lit)::tl_ass ->
+(* here we assume that sym is pred/or ~pred since None *)
+      let atom = Term.get_atom lit in
+(* dealing with equality *)
+      if (Term.is_eq_atom atom)  
+      then
+	match atom with 
+	|Term.Fun (_sym, args,_) ->
+
+	    let [type_term_eq; t;s] = Term.arg_to_list args in
+
+	    let eq_v_type = Term.get_top_symb type_term_eq in
+
+	    if (not (Term.is_neg_lit t)) (* positive eq *)
+	    then
+		  begin		      
+		    match (t,s) with 
+		    |(Term.Fun(sym1,args1,_),Term.Fun(sym2,args2,_)) ->
+			(
+			 let val_sub_type1 = get_val_sub_type sym1 in
+			 let val_sub_type2 = get_val_sub_type sym2 in		     
+			 UF_PNT.union context.uf val_sub_type1 val_sub_type2;
+			 process_args_fun sym1 args1 [];
+			 process_args_fun sym2 args2 [];
+			 extend_uf_types context tl_ass
+			)
+			    
+(* type collaps cases *)
+		    |(Term.Var (_v, _),Term.Fun(sym,args,_))
+		    |(Term.Fun(sym,args,_),Term.Var (_v, _)) -> 
+			(
+			 context.collapsed_types <-
+			   SymSet.add eq_v_type context.collapsed_types;
+			   (* arguments can be still of a different type  *)
+			 process_args_fun sym args tl_ass
+			)
+		    |(Term.Var(_v1,_),Term.Var (_v2, _)) ->  
+			(context.collapsed_types <-
+			  SymSet.add eq_v_type context.collapsed_types
+			)
+		  end		  
+	    else (* neg equality, as usual pred only in place of top sym is eq_v_type *)	    
+      	      (process_args_fun eq_v_type args tl_ass)
+
+		
+	|_-> failwith "extend_uf_types: non-eq 2"
+      else (* non eq predicate *)
+	(match atom with 
+	|Term.Fun (sym,args,_) ->
+	    (process_args_fun sym args tl_ass)
+	|_-> failwith "extend_uf_types: var"
+	)
+
+
+
+(*-------------------Commented below-----------------*)
+
+(*
+let rec extend_uf_types context top_type_opt term = 
+  match term with 
+  |Term.Fun (sym,args,_) ->
+      let arg_types, v_type = 
+	match (Symbol.get_stype_args_val sym) with 
+	|Def (arg_t, v_t) -> (arg_t, v_t)
+	|_-> failwith "extend_uf_types: arg_types should be defined"
+      in 
+      (* extend args *)
+      ignore(
+      Term.arg_fold_left 
+	(fun (arg_ind,arg_types_rest) arg -> 
+	  let h::tl = arg_types_rest in 
+	  let new_pnt = create_pnt sym arg_ind h in
+	  extend_uf_types context (Some new_pnt) arg;
+	  ((arg_ind+1),tl) 
+	)
+	(1,arg_types) 
+	args
+     );
+  
+      if (Symbol.is_pred sym) 
+      then 
+	(
+	 if (sym == Symbol.symb_typed_equality) 
+	 then 
+	   match args with 
+	   | [type_eq_; t;s] -> 
+	       if !(Term.is_var t) && !(Term.is_var s) 
+	       then 
+..............
+		 extend_uf_types context top_type_opt
+..............
+	)
+      else
+	( (* fun symb *)
+	 match top_type_opt with 
+	 |Some top_type -> 
+	     UF_PNT.union context.uf top_type (create_pnt sym 0 v_type);	     
+	 | None -> failwith "functions should not be at top"
+	)
+
+  |Term.Var (v,_) -> 
+   let top_type = 
+     match top_type_opt with 
+     |Some top_type -> top_type 	    
+     |None -> failwith "vars should not be at top" 
+   in
+   try 
+     let v_type = VarTable.find context.vtable v in
+     UF_PNT.union context.uf top_type v_type
+   with 
+     Not_found -> 
+       VarTable.add context.vtable v top_type
+*)
 
 (*let typify_clause clause type_context =  
  

@@ -172,6 +172,7 @@ val compare_fast_key      : term -> term -> int
 val is_neg_lit            : literal -> bool
 val get_atom              : literal -> term
 val is_eq_lit             : literal -> bool
+val is_eq_atom            : term    -> bool
 
 val is_clock_lit : literal -> bool
 val is_less_lit : literal -> bool

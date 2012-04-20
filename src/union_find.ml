@@ -32,6 +32,7 @@ module type UF =
       val add : t -> e -> unit
       val find : t -> e -> e 
       val union : t -> e -> e -> unit
+      val iter : (e -> e -> unit) -> t -> unit
     end 
 
 (*module Make: 
@@ -73,6 +74,7 @@ module Make(E : Elem) =
 	)
 
     let find t e = (find_v t e).parent
+
     let rec union t e1 e2 =
       let v1 = find_v t e1 in
       let v2 = find_v t e2 in
@@ -94,4 +96,11 @@ module Make(E : Elem) =
 	       )
 	     else ()
 	)
+
+    let iter f t = 
+      let f' e _ =  
+	let v = find t e in
+	(f e v)
+      in
+      EHash.iter f' t
   end
