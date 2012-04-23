@@ -90,7 +90,26 @@ val increase_lit_activity : int -> lit -> unit
 (*exception Non_simplifiable*)
 val prop_subsumption :  clause -> clause 
 
+
+(** Return a justification for propositional subsumption of the
+    clause.
+
+    The justification is a set of clauses, lifted from a minimal
+    unsatisfiable core, that propositionally subsume the given
+    clause. Only clauses whose propositional id is less or equal to
+    the id given are considered as justifications, hence the
+    justification can be done in retrospect. 
+*)
 val justify_prop_subsumption : int -> clause -> clause -> clause list 
+
+
+(** Return the grounding of the clause and a TSTP source statement
+    that documents the grounding, in particular the binding of the
+    clause's variables.
+*)
+val ground_clause : clause -> clause
+
+
 (*val fast_solve_main : unit -> PropSolver.fast_solve*)
 
 (* assume solver is unsat*)

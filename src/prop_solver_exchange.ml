@@ -624,6 +624,23 @@ let get_prop_lit lit =
   | _ -> raise (Failure "Instantiation get_prop_lit: lit is undefind")
   
 
+
+(*returns prop literal;  assume that prop key is def. *)
+let get_prop_lit_uc lit = 
+  let atom = Term.get_atom lit in 
+  let atom_prop_key = Term.get_prop_key atom in
+  let prop_var_entry = TableArray.get var_table atom_prop_key in
+  let def_lit = 
+    if (Term.is_neg_lit lit) 
+    then      
+      prop_var_entry.prop_neg_var_uc 
+    else
+     prop_var_entry.prop_var_uc 
+  in
+  match def_lit with 
+  |Def(lit) -> lit 
+  | _ -> raise (Failure "Instantiation get_prop_lit_uc: lit is undefind")
+
 (*returns complementary prop literal;  assume that prop key is def. *)
 let get_prop_compl_lit lit = 
   let atom = Term.get_atom lit in 
@@ -654,7 +671,7 @@ let get_prop_compl_lit_uc lit =
   in
   match def_lit with 
     |Def(lit) -> lit 
-    | _ -> raise (Failure "Instantiation get_prop_compl_lit: lit is undefind")
+    | _ -> raise (Failure "Instantiation get_prop_compl_lit_uc: lit is undefind")
       
 
 let get_prop_gr_lit lit =
@@ -2431,7 +2448,7 @@ let prop_subsumption clause =
 	 (* Clause was propositionally subsumed by some clauses up to
 	    the currently highest clause ID *)
 	 Clause.assign_tstp_source_global_subsumption 
-	   (pred (TableArray.num_of_elem var_table) + 
+	   ((TableArray.num_of_elem var_table) + 
 	       (PropSolver.clauses_with_id solver_uc))
 	   new_clause 
 	   clause; 
@@ -2510,10 +2527,10 @@ let rec justify_prop_lit_subsumption clause_id accum = function
 
 let justify_prop_subsumption max_clause_id clause clause' =
 
-  (* Format.eprintf 
+  Format.eprintf 
     "Simplifed %a to %a@\n@."
     Clause.pp_clause clause 
-    Clause.pp_clause clause'; *)
+    Clause.pp_clause clause'; 
 
 (*
   (* ID of simplified clause *)
@@ -2524,9 +2541,22 @@ let justify_prop_subsumption max_clause_id clause clause' =
   in
 *)
 
-  (* Assume complement of each literal in simplified clause *)
+  (* Literals that were eliminated from parent clause *)
+  let simplified_literals = 
+    List.filter 
+      (function l -> not (List.mem l (Clause.get_literals clause')))
+      (Clause.get_literals clause)
+  in
+
+  Format.eprintf 
+    "Simplifed literals are %a@\n@."
+    (pp_any_list Term.pp_term ",") simplified_literals;  
+  
+
+  (* Assume complement of each simplified literal *)
   let assumptions =
-    List.map get_prop_compl_lit_uc (Clause.get_literals clause')
+  (* List.map get_prop_compl_lit_uc simplified_literals *)
+    List.map get_prop_lit_uc simplified_literals 
   in
     
     match 
@@ -2579,7 +2609,55 @@ let justify_prop_subsumption max_clause_id clause clause' =
       | PropSolver.Sat -> 
 	raise (Failure "Unsat core solver returned satisfiable when trying to justify propositional subsumption.")
 
-  
+
+(* Add groundings for the list of variables to the association list *)
+let rec add_var_grounding accum = function 
+  | [] -> accum
+  | v :: tl when List.mem_assoc v accum -> 
+    add_var_grounding accum tl 
+  | v :: tl -> 
+    add_var_grounding ((v, !gr_by) :: accum) tl 
+      
+
+(* Return list of grounded literals and an association list
+   documenting the groundings of the variables *)
+let rec ground_literals (gnd_literals, grounding) = function 
+  | [] -> (gnd_literals, grounding)
+  | lit :: tl -> 
+
+    let grounding' = add_var_grounding grounding (Term.get_vars lit) in
+    
+    ground_literals 
+      (Subst.grounding term_db_ref !gr_by lit :: gnd_literals, 
+       grounding') 
+      tl
+
+
+let ground_clause clause =
+
+  if Clause.is_ground clause then 
+
+    clause 
+
+  else
+
+    (
+      
+      (* Ground literals in clause *)
+      let gnd_literals, grounding = 
+	ground_literals ([], []) (Clause.get_literals clause) 
+      in
+      
+      (* Create new ground clause *)
+      let gnd_clause = Clause.create (List.rev gnd_literals) in
+      
+      (* Assign source for clause *)
+      Clause.assign_tstp_source_grounding grounding gnd_clause clause;
+
+      (* Return clause *)
+      gnd_clause 
+	
+    )
 
 (*----------------Commented-----------------------*)
 (*

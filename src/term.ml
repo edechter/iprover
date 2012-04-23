@@ -387,6 +387,27 @@ let get_var var_term =
   | Var(v,_) -> v
   | _-> failwith "term: get_var not a Var term"
 
+
+(* Get variables in term recursively *)
+let rec get_vars' accum = function 
+
+  (* No more subterms to recurse into *)
+  | [] -> accum 
+
+  (* Term is a functional term *)
+  | Fun(_, args, _) :: tl -> get_vars' accum (args @ tl)
+    
+  (* Term is a variable that has already been seen *)
+  | Var (v, _) :: tl when List.mem v accum -> get_vars' accum tl 
+
+  (* Term is a variable that has not been seen *)
+  | Var (v, _) :: tl -> get_vars' (v :: accum) tl
+
+
+(* Get all variables occurring in term *)
+let get_vars term = get_vars' [] [term]
+
+
 (* not efficient*)
 let rec get_var_list term = 
   match term with 

@@ -182,6 +182,7 @@ and tstp_inference_rule =
   | Forward_subsumption_resolution 
   | Backward_subsumption_resolution
   | Splitting of symbol list
+  | Grounding of (var * term) list
 
 and tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -261,10 +262,15 @@ let create_parent parent term_list =
 exception Clause_fast_key_is_def
 
 let assign_fast_key clause (fkey : int) = 
-  match clause.fast_key with 
-    |Undef -> clause.fast_key <- Def(fkey)      
-    |_     -> raise Clause_fast_key_is_def
+  match clause.db_id, clause.fast_key with 
 
+    (* Assign fast key if undefined or if clause database is undefined *)
+    | Undef, _ 
+    | _, Undef -> clause.fast_key <- Def(fkey)      
+
+    (* Raise exception if both fast key and clause database are defined *)
+    | _     -> raise Clause_fast_key_is_def
+      
 exception Clause_db_id_is_def
 
 let assign_db_id = function 
@@ -378,16 +384,42 @@ let to_stream s clause =
   (list_to_stream s Term.to_stream clause.literals ";");
   s.stream_add_char '}'
 
+
+(* Identifier for next clause that is not in a clause database *)
+let clause_next_tmp_fast_key = ref 1 
+
 (* Print the name of a clause
 
    Clauses are named [c_n], where [n] is the identifier (fast_key) of
    the clause. If the identifier is undefined, the clause is named
    [c_tmp].
 *)
-let pp_clause_name ppf = function 
-  | { fast_key = Def n; db_id = Def d } -> Format.fprintf ppf "c_%d_%d" d n
-  | { fast_key = Def n; db_id = Undef } -> Format.fprintf ppf "c_%d_tmp" n
-  | { fast_key = Undef } -> Format.fprintf ppf "c_tmp"
+let rec pp_clause_name ppf = function 
+
+  (* Clause has a fast key, but is not in a clause database *)
+  | { fast_key = Def n; db_id = Undef } ->
+    
+    (* Print clause name outside of a clause database *)
+    Format.fprintf ppf "c_x_%d" n
+
+  (* Clause has a fast key and is in a numbered clause database *)
+  | { fast_key = Def n; db_id = Def d } -> 
+    
+    (* Print clause name with identifier of clause database *)
+    Format.fprintf ppf "c_%d_%d" d n
+      
+  (* Clause does not have a fast key *)
+  | { fast_key = Undef } as clause -> 
+
+    (* Assign a fast key in an undefined clause database *)
+    clause.fast_key <- Def !clause_next_tmp_fast_key;
+    clause.db_id <- Undef;
+
+    (* Increment identifier for next clause without a fast key *)
+    clause_next_tmp_fast_key := succ !clause_next_tmp_fast_key;
+
+    (* Print name of clause *)
+    pp_clause_name ppf clause 
 
 
 let pp_clause_with_id ppf clause = 
@@ -992,6 +1024,13 @@ let assign_tstp_source_split symbols clause parent =
     clause
     (TSTP_inference_record (Splitting symbols, [parent]))
 
+(* Clause is generated in grounding *)
+let assign_tstp_source_grounding grounding clause parent = 
+
+  assign_tstp_source 
+    clause
+    (TSTP_inference_record (Grounding grounding, [parent]))
+
 
 (* Clause is a theory axiom *)
 let assign_tstp_source_theory_axiom clause theory = 
@@ -1020,11 +1059,6 @@ let assign_tstp_source_axiom_range clause =
 (* Clause is an bmc1 axiom *)
 let assign_tstp_source_axiom_bmc1 bmc1_axiom clause = 
   assign_tstp_source_theory_axiom clause (TSTP_bmc1 bmc1_axiom)
-
-
-
-
-
 
 
 

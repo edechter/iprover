@@ -16,6 +16,7 @@
 
 open Lib
 
+
 type literal       = Term.literal
 type symbol        = Symbol.symbol
 type literal_list  = literal list
@@ -61,6 +62,7 @@ type tstp_inference_rule =
   | Forward_subsumption_resolution 
   | Backward_subsumption_resolution
   | Splitting of symbol list
+  | Grounding of (Var.var * Term.term) list
 
 type tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -241,6 +243,10 @@ val assign_tstp_source_backward_subsumption_resolution : clause -> clause list -
 
 (** Clause is generated in splitting with split symbols introduced *)
 val assign_tstp_source_split : symbol list -> clause -> clause -> unit 
+
+
+(** Clause is generated in grounding with variable substitutions *)
+val assign_tstp_source_grounding : (Var.var * Term.term) list -> clause -> clause -> unit 
 
 
 (** Clause is an equality axiom *)

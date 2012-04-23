@@ -53,6 +53,9 @@ val get_num_of_var        : term -> int
 (* assume that term is a Var term*)
 val get_var               : term -> var
 
+(** Return the list of variables occurring in the term *)
+val get_vars : term -> var list 
+
 val get_var_list          : term -> var_list  
 
 (* bool params *)
