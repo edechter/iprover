@@ -32,7 +32,7 @@ extern "C" {
 
 }
 
-#define DEBUG
+// #define DEBUG
 
 /* -D flags in MiniSat mtl/template.mk */
 #define __STDC_LIMIT_MACROS
@@ -528,7 +528,7 @@ int find_max_lit(const vec<Lit>& lits, int start, int end, int max_var)
  
     if(var(lits[middle]) == max_var)
       {
-        return middle - 1;
+        return middle;
       }
     else if(var(lits[middle]) > max_var)
       {

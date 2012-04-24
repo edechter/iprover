@@ -2527,87 +2527,65 @@ let rec justify_prop_lit_subsumption clause_id accum = function
 
 let justify_prop_subsumption max_clause_id clause clause' =
 
-  Format.eprintf 
-    "Simplifed %a to %a@\n@."
-    Clause.pp_clause clause 
-    Clause.pp_clause clause'; 
+  (* Format.eprintf 
+     "Simplifed %a to %a@\n@."
+     Clause.pp_clause clause 
+     Clause.pp_clause clause'; *)
 
-(*
-  (* ID of simplified clause *)
-  let clause_id =
-    match Clause.get_prop_solver_id clause'_prop_db with
-      | Some i -> i
-      | None -> raise (Failure ("Clause without ID in propositional solver."))
-  in
-*)
-
-  (* Literals that were eliminated from parent clause *)
-  let simplified_literals = 
-    List.filter 
-      (function l -> not (List.mem l (Clause.get_literals clause')))
-      (Clause.get_literals clause)
-  in
-
-  Format.eprintf 
-    "Simplifed literals are %a@\n@."
-    (pp_any_list Term.pp_term ",") simplified_literals;  
-  
-
-  (* Assume complement of each simplified literal *)
+  (* Assume complement of each not simplified literal *)
   let assumptions =
-  (* List.map get_prop_compl_lit_uc simplified_literals *)
-    List.map get_prop_lit_uc simplified_literals 
+    List.map get_prop_compl_lit_uc (Clause.get_literals clause)
   in
-    
-    match 
+  
+  match 
 
-      (
+    (
 
-	try 
+      try 
+	
+	  (* Run unsat core solver with assumptions *)
+	PropSolver.solve_assumptions_upto_id_uc
+	  solver_uc
+	  (assumptions @ (get_solver_uc_assumptions ()))
+	  max_clause_id
 	  
-	(* Run unsat core solver with assumptions *)
-	  PropSolver.solve_assumptions_upto_id_uc
-	    solver_uc
-	    (assumptions @ (get_solver_uc_assumptions ()))
-	    max_clause_id
-	    
-	with PropSolver.Unsatisfiable -> 
+      with PropSolver.Unsatisfiable -> 
+	
+	failwith 
+	  "Could not get justification for propositional subsumption."
 	  
-	  failwith 
-	    "Could not get justification for propositional subsumption."
-	    
-      )
+    )
 
-    with  
+  with  
 
       (* Should return unsat, but check *)
-      | PropSolver.Unsat -> 
-	
+    | PropSolver.Unsat -> 
+      
 	(* Get the unsat core as a list of clause ids *)
-	let unsat_core_ids = PropSolver.get_conflicts solver_uc in
+      let unsat_core_ids = PropSolver.get_conflicts solver_uc in
 
 	(* Get first-order clauses from clause ids *)
-	let unsat_core_clauses =
-	  List.fold_left 
-	    (fun a c -> 
-	      try 
-		(Hashtbl.find solver_uc_clauses c) :: a
-	      with Not_found -> 
-		a)
-	    []
-	    unsat_core_ids
-	in
-	
+      let unsat_core_clauses =
+	List.fold_left 
+	  (fun a c -> 
+	    try 
+	      (Hashtbl.find solver_uc_clauses c) :: a
+	    with Not_found -> 
+	      a)
+	  []
+	  unsat_core_ids
+      in
+      
 	(* Format.eprintf
-	  "Justified by@\n%a@." 
-	  (pp_any_list Clause.pp_clause "\n") unsat_core_clauses; *)
-	
+	   "Justified by@\n%a@." 
+	   (pp_any_list Clause.pp_clause "\n") unsat_core_clauses; *)
+      
 	(* Return clauses in unsat core *)
-	unsat_core_clauses
-	  
+      unsat_core_clauses
+	
       (* Must not return sat when other solver returns unsat *)
-      | PropSolver.Sat -> 
-	raise (Failure "Unsat core solver returned satisfiable when trying to justify propositional subsumption.")
+    | PropSolver.Sat -> 
+      raise (Failure "Unsat core solver returned satisfiable when trying to justify propositional subsumption.")
 
 
 (* Add groundings for the list of variables to the association list *)

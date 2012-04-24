@@ -1262,7 +1262,7 @@ let rec main clauses finite_model_clauses =
 
 	  if 
 	    
-	    (* Verbose output for BMC1?*)
+	    (* Verbose output for BMC1? *)
 	    val_of_override !current_options.bmc1_verbose 
 	      
 	  then 
@@ -1277,14 +1277,24 @@ let rec main clauses finite_model_clauses =
 		(pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
 	      
 	    );
+
+	  (* Output proof from instantiation? *)
+	  if !current_options.inst_out_proof then 
+	    (
+	      
+	      (* Start proof output *)
+	      Format.printf "%% SZS output start CNFRefutation@\n@.";
 	  
-	  (* Don't do this: very long output 
-	  (* Print histories of clauses in unsat core *)
-	     Format.printf "@\nClause histories:@\n@.";
-	     List.iter
-	     (Format.printf "@\n%a@\n@." Clause.pp_clause_history)
-	     unsat_core_clauses;
-	  *)
+	      (* Proof output *)
+	      Format.printf 
+		"%a@." 
+		TstpProof.pp_tstp_proof_unsat_core 
+		unsat_core_clauses;
+	  
+	      (* End proof output *)
+	      Format.printf "%% SZS output end CNFRefutation@\n@.";
+	      
+	    );
 
 	  (* Assign size of unsat core in statistics *)
 	  assign_int_stat 
@@ -1295,7 +1305,7 @@ let rec main clauses finite_model_clauses =
 
 	  (* Get parent clauses of unsat core clauses *)
 	  let unsat_core_parents = 
-	    TstpProof.get_parents true unsat_core_clauses
+	    TstpProof.get_leaves unsat_core_clauses
 	  in
 
 	  (* Assign size of unsat core in statistics *)

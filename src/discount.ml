@@ -42,9 +42,15 @@ exception Empty_Clause of clause
 
 (*----------------*)
 let out_proof_fun clause = 
-  out_str ("\n----------Resolution Proof---------------\n");
+
+  (* Start proof output *)
+  Format.printf "%% SZS output start CNFRefutation@\n@.";
+  
+  (* Proof output *)
   (Format.printf "%a@." TstpProof.pp_tstp_proof_resolution clause);
-  out_str ("\n----------End of Resolution Proof---------------\n")
+
+  (* End proof output *)
+  Format.printf "%% SZS output end CNFRefutation@\n@."
 
 module type InputM = 
   sig
