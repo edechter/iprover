@@ -33,6 +33,7 @@ module type UF =
       val find : t -> e -> e 
       val union : t -> e -> e -> unit
       val iter : (e -> e -> unit) -> t -> unit
+      val length : t -> int
     end 
 
 (*module Make: 
@@ -76,6 +77,8 @@ module Make(E : Elem) =
     let find t e = (find_v t e).parent
 
     let rec union t e1 e2 =
+      add t e1;
+      add t e2;
       let v1 = find_v t e1 in
       let v2 = find_v t e2 in
       if v1 == v2 
@@ -103,4 +106,6 @@ module Make(E : Elem) =
 	(f e v)
       in
       EHash.iter f' t
+
+    let length = EHash.length
   end

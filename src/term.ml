@@ -893,8 +893,7 @@ exception Var_term
 let get_top_symb t = 
     match t with 
     |Fun(sym,_,_) -> sym
-    |_-> 
-	raise Var_term
+    |_-> raise Var_term
 
 let lit_get_top_symb l = 
   get_top_symb (get_atom l)

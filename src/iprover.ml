@@ -501,6 +501,11 @@ let finite_models clauses =
   let model_bound = 500 in
   out_str (pref_str^"Finite Models:\n");
   let prep_clauses = Preprocess.preprocess clauses in
+  out_str ("\n\n DEBUG \n\n");
+  out_str ("\n\n"^pref_str^"Finite Model on Clauses:\n");
+  Clause.out_clause_list_tptp prep_clauses; 
+
+
   Finite_models.flat_signature ();
   let init_clauses = (Finite_models.flat_clause_list prep_clauses) in
   out_str (pref_str^"lit_activity_flag true\n");
@@ -1840,7 +1845,8 @@ let run_iprover () =
       current_clauses := distinct_ax_list@(!current_clauses);
 
       let less_range_axioms = Eq_axioms.less_range_axioms () in
-
+      
+      
       current_clauses := less_range_axioms@(!current_clauses);
 
       assign_is_essential_input_symb less_range_axioms;
@@ -1994,6 +2000,10 @@ let run_iprover () =
     (*  let finite_models_clauses = !current_clauses in *)
       let current_clauses_no_eq = ref (!current_clauses) in 
 
+   (* debug! *)
+      Type_inf.sub_type_inf !current_clauses;
+
+
       let gen_equality_axioms = ref [] in
 
       (if (not (omit_eq_axioms ())) 
@@ -2083,6 +2093,7 @@ let run_iprover () =
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
 *)
+
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
 
@@ -2108,7 +2119,7 @@ let run_iprover () =
        if (!current_options.prep_sem_filter != Sem_Filter_None) 
        then 
 	 (
-	  out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";
+(*	  out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";*)
 (*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
 (*	  current_clauses := List.sort cmp_clause_length !current_clauses;*)
 
@@ -2141,9 +2152,7 @@ let run_iprover () =
 *)
 
 
-
-
-
+   
 
 (*-------------------------------------------------*)
 	  out_str (pref_str^"Proving...\n");

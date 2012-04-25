@@ -2576,8 +2576,10 @@ let option_1 () = {
   
   res_forward_subs               = Subs_Full;
   res_backward_subs              = Subs_Subset;
-  res_forward_subs_resolution    = true;
-  res_backward_subs_resolution   = false;
+ res_forward_subs_resolution    = true;
+(*  res_forward_subs_resolution    = true; exp later for sat *)
+(* res_backward_subs_resolution   = false; *)
+   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
   res_out_proof                  = false;

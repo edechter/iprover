@@ -3,7 +3,8 @@
 # make CPP=true for c++ version of minisat
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
-# for debugging "make debug=true"
+# for debugging "make debug=true", 
+#     records backtraces run iproveropt with --dbg_backtrace true
 
 OCAML=ocaml
 OCAMLC=ocamlc

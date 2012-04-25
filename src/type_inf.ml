@@ -18,6 +18,7 @@ open Lib
 
 type symbol = Symbol.symbol
 type stype  = Symbol.stype
+type clause = Clause.clause 
 
 let symbol_db_ref  = Parser_types.symbol_db_ref
 
@@ -40,6 +41,11 @@ type sub_type =
      arg_ind  : int;
      arg_type : symbol
    }
+
+let sub_type_to_str st = 
+   (Symbol.to_string st.arg_type)^"_"
+  ^(Symbol.to_string st.sym)^"_"
+  ^(string_of_int st.arg_ind)
 
 let create_sub_type sym arg_ind arg_type = 
   {
@@ -65,7 +71,7 @@ module SubTypeE =
 	
   end
     
-module UF_PNT = Union_find.Make(SubTypeE)
+module UF_ST = Union_find.Make(SubTypeE)
 
 module VarTable = Hashtbl.Make (Var)
 
@@ -73,7 +79,7 @@ module SymSet = Set.Make (Symbol)
 
 type context = 
     {
-     uf : UF_PNT.t;
+     uf : UF_ST.t;
      
 (*types with X=Y, X=t, t=X are collapsed since all arg_subtypes should be merged *)
 (* can be relaxed later *)
@@ -108,9 +114,11 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
     let (_,_,add_ass_list) = 	  
       Term.arg_fold_left 
 	(fun (arg_ind,arg_types_rest,ass_list_rest) arg -> 
-	  let h::tl = arg_types_rest in 
-	  let arg_sub_type = create_sub_type sym arg_ind h in	
-	  ((arg_ind+1),tl, ((Some (arg_sub_type),arg)::ass_list_rest))
+	  match arg_types_rest with 
+	  |h::tl -> 	   
+	      let arg_sub_type = create_sub_type sym arg_ind h in	
+	      ((arg_ind+1),tl, ((Some (arg_sub_type),arg)::ass_list_rest))
+	  |[] -> failwith "process_args_fun: should not happen"
 	)
 	(1,arg_types,[]) 
 	args
@@ -131,18 +139,19 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
   |(Some(top_sub_type), Term.Fun (sym,args,_))::tl_ass ->
 (* here we assume that sym is not fun (not pred) since Some *)
       let val_sub_type =  get_val_sub_type sym in
-      UF_PNT.union context.uf top_sub_type val_sub_type;
+      UF_ST.union context.uf top_sub_type val_sub_type;
       process_args_fun sym args tl_ass
 	
   |(Some(top_sub_type), Term.Var(var,args))::tl_ass ->
      ( try 
        let var_sub_type = VarTable.find vtable var in
-       UF_PNT.union context.uf top_sub_type var_sub_type;
+       UF_ST.union context.uf top_sub_type var_sub_type;
        extend_uf_types context vtable tl_ass
       with 
        Not_found ->
 	 (
 	  VarTable.add vtable var top_sub_type; 
+	  UF_ST.add context.uf top_sub_type;
 	  extend_uf_types context vtable tl_ass
 	 )
       )
@@ -157,17 +166,22 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
 
 	    let [type_term_eq; t;s] = Term.arg_to_list args in
 
-	    let eq_v_type = Term.get_top_symb type_term_eq in
-
-	    if (not (Term.is_neg_lit t)) (* positive eq *)
+	    let eq_v_type = 
+	      try
+		Term.get_top_symb type_term_eq 
+	      with Term.Var_term -> 
+		failwith 
+		  "equality should not have var as the type argument; proabably equality axioms are added which are not needed here"
+	    in
+	    if (not (Term.is_neg_lit atom)) (* positive eq *)
 	    then
 		  begin		      
 		    match (t,s) with 
 		    |(Term.Fun(sym1,args1,_),Term.Fun(sym2,args2,_)) ->
 			(
 			 let val_sub_type1 = get_val_sub_type sym1 in
-			 let val_sub_type2 = get_val_sub_type sym2 in		     
-			 UF_PNT.union context.uf val_sub_type1 val_sub_type2;
+			 let val_sub_type2 = get_val_sub_type sym2 in	
+	    		 UF_ST.union context.uf val_sub_type1 val_sub_type2;	
 			 process_args_fun sym1 args1 [];
 			 process_args_fun sym2 args2 [];
 			 extend_uf_types context vtable tl_ass
@@ -214,6 +228,57 @@ let extend_uf_types_clause context clause =
 let extend_uf_types_clause_list context clause_list = 
   List.iter (extend_uf_types_clause context) clause_list
 
+
+
+module STypeTable = Hashtbl.Make(SubTypeE)
+
+
+(* get_subt_nf_to_all_subt returns *) 
+(* STypeTable maping sub_type normal form into list of all sub_types it represents *)
+(* does not take into account collapsed types *)
+
+let st_nf_to_all_st_table context = 
+  let st_table = STypeTable.create (UF_ST.length context.uf) in
+  let iter_fun st st_nf = 
+    try
+      let old_list = STypeTable.find st_table st_nf in
+      STypeTable.replace st_table st_nf (st::old_list)
+    with 
+      Not_found ->
+	STypeTable.add st_table st_nf ([st])
+  in 
+  UF_ST.iter iter_fun context.uf;
+  st_table
+
+
+let sub_type_inf clause_list = 
+
+    let context = 
+    {
+     uf = UF_ST.create 301;
+     collapsed_types =  SymSet.empty; 
+   }
+
+  in
+    (
+     extend_uf_types_clause_list context clause_list;       
+     );
+  let st_nf_table = st_nf_to_all_st_table context in
+(* debug *)
+  out_str "Inferred Subtypes:\n\n";
+  STypeTable.iter 
+    (fun nf st_list -> 
+      out_str ("NF: "^(sub_type_to_str nf)^" "
+	       ^"["^(list_to_string sub_type_to_str st_list ";")^"]\n\n"
+	      )
+    ) st_nf_table;
+
+  out_str "\n Collapsed Types:\n\n";
+  SymSet.iter 
+    (fun sym -> 
+      out_str ((Symbol.to_string sym)^", "))  context.collapsed_types
+
+ 
 (*-------------------Commented below-----------------*)
 
 (*

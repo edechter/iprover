@@ -15,4 +15,6 @@
 (*----------------------------------------------------------------------[C]-*)
  
 
+type clause = Clause.clause 
 
+val sub_type_inf : clause list -> unit
