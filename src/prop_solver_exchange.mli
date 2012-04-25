@@ -51,6 +51,12 @@ val assign_only_sim_solver_assumptions : term list -> unit
 val assign_only_norm_solver_assumptions : term list -> unit
 val assign_adjoint_preds     : term list -> unit
 
+(** Return literal assumptions for satisfiability solver *)
+(* val get_assumptions_sat : unit -> term list *)
+
+(** Return literal assumptions for simplification solver *)
+(* val get_assumptions_sim : unit -> term list *)
+
 val solve                : unit -> PropSolver.solver_out
 
 (** Output and return an unsatisfiable core *)

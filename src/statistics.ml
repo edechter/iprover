@@ -168,6 +168,12 @@ let sem_filter_time =
    float_value = 0.;
  }
  
+let out_proof_time = 
+  {
+   float_entry_name  = "out_proof_time";
+   float_value = 0.;
+ }
+ 
 
 
 
@@ -551,6 +557,7 @@ let gen_float_stat_list =
   [
    parsing_time;
    sem_filter_time;
+   out_proof_time;
    total_time
  ]    
 

@@ -26,8 +26,6 @@ exception Satisfiable of all_clauses
 (* exception Unsatisfiable *)
 exception Empty_Clause of clause
 
-val out_proof_fun : clause -> unit
-
 module type InputM = 
   sig
     val inst_module_name : string

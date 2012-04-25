@@ -184,7 +184,7 @@ type options = {
     mutable sat_out_model         : sat_out_model_type;
 
 (*----BMC1---------------*)
-    mutable bmc1_incremental      : bool; 
+    mutable bmc1_incremental      : bool override; 
     mutable bmc1_axioms           : bmc1_axioms_type override;
     mutable bmc1_min_bound        : int override; 
     mutable bmc1_max_bound        : int override; 

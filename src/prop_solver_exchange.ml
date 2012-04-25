@@ -187,6 +187,16 @@ let get_solver_assumptions solver =
   else 
     ((!only_norm_solver_assumptions_ref)@(!answer_assumptions_ref)@(!solver_assumptions_ref))
 
+let get_assumptions_sat () = 
+  ((!only_norm_solver_assumptions_ref)
+   @ (!answer_assumptions_ref)
+   @ (!solver_assumptions_ref))
+
+let get_assumptions_sim () = 
+  ((!only_sim_solver_assumptions_ref)
+   @(!solver_assumptions_ref))
+ 
+
 (* Return literal assumptions for unsat core solver *)
 let get_solver_uc_assumptions () = 
   !solver_uc_assumptions_ref @ 
@@ -311,69 +321,6 @@ let fast_solve solver assumptions =
    first-order clauses *)
 let solver_uc_clauses : (int, Clause.clause) Hashtbl.t = Hashtbl.create 1001
 
-
-let rec pp_clause_list ppf = function 
-  | [] -> ()
-  | [c] -> Format.fprintf ppf "%s" (Clause.to_string c)
-  | c::tl -> 
-    Format.fprintf ppf "%s@\n" (Clause.to_string c); 
-    pp_clause_list ppf tl
-
-let rec pp_unsat_core ppf = function 
-  | [] -> ()
-  | [e] -> Format.fprintf ppf "%d" e
-  | e::tl -> Format.fprintf ppf "%d, " e; pp_unsat_core ppf tl
-
-
-let unsat_core () = 
-
-  let start_time = Unix.gettimeofday () in
-  
-  match 
-    (
-      
-      try 
-	
-	(* Run unsat core solver with assumptions *)
-	PropSolver.solve_assumptions_uc
-	  solver_uc
-	  (get_solver_uc_assumptions ())
-	  
-      (* Catch exception and return normally *)
-      with PropSolver.Unsatisfiable -> PropSolver.Unsat
-	
-    )
-      
-  with 
-      
-    (* Should return unsat, but check *)
-    | PropSolver.Unsat -> 
-      
-      (* Get the unsat core as a list of clause ids *)
-      let unsat_core_ids = PropSolver.get_conflicts solver_uc in
-
-      let end_time = Unix.gettimeofday () in
-      add_float_stat (end_time -. start_time) prop_unsat_core_time;
-      
-      (* Get first-order clauses from clause ids *)
-      let unsat_core_clauses =
-	List.fold_left 
-	  (fun a c -> 
-	    try 
-	      (Hashtbl.find solver_uc_clauses c) :: a
-	  with Not_found -> 
-	    a)
-	  []
-	  unsat_core_ids
-      in
-      
-      (* Return clauses in unsat core *)
-      unsat_core_clauses
-
-    (* Must not return sat when other solver returns unsat *)
-    | PropSolver.Sat -> 
-       raise (Failure "Unsat core solver returned satisfiable")
-      (*failwith "Unsat core solver returned satisfiable"*)
 
 (*------------ propositional interpretation-------------------*)
 
@@ -949,6 +896,76 @@ let rec pp_prop_lit_list_list ppf = function
   | e::tl -> 
     Format.fprintf ppf "%a@\n" pp_prop_lit_list e; 
     pp_prop_lit_list_list ppf tl
+
+
+
+let rec pp_clause_list ppf = function 
+  | [] -> ()
+  | [c] -> Format.fprintf ppf "%s" (Clause.to_string c)
+  | c::tl -> 
+    Format.fprintf ppf "%s@\n" (Clause.to_string c); 
+    pp_clause_list ppf tl
+
+let rec pp_unsat_core ppf = function 
+  | [] -> ()
+  | [e] -> Format.fprintf ppf "%d" e
+  | e::tl -> Format.fprintf ppf "%d, " e; pp_unsat_core ppf tl
+
+
+let unsat_core () = 
+
+  let start_time = Unix.gettimeofday () in
+  
+  match 
+    (
+      
+      try 
+	
+	(* Run unsat core solver with assumptions *)
+	PropSolver.solve_assumptions_uc
+	  solver_uc
+	  (get_solver_uc_assumptions ())
+	  
+      (* Catch exception and return normally *)
+      with PropSolver.Unsatisfiable -> PropSolver.Unsat
+	
+    )
+      
+  with 
+      
+    (* Should return unsat, but check *)
+    | PropSolver.Unsat -> 
+      
+      (* Get the unsat core as a list of clause ids *)
+      let unsat_core_ids = PropSolver.get_conflicts solver_uc in
+
+      let end_time = Unix.gettimeofday () in
+      add_float_stat (end_time -. start_time) prop_unsat_core_time;
+      
+      (* Get first-order clauses from clause ids *)
+      let unsat_core_clauses, assumptions =
+	List.fold_left 
+	  (fun (ca, aa) c -> 
+	    try 
+	      (Hashtbl.find solver_uc_clauses c) :: ca, aa
+	  with Not_found -> 
+	    ca, c :: aa)
+	  ([], [])
+	  unsat_core_ids
+      in
+      
+      Format.eprintf
+	"Assumptions in unsat core: %a @." 	
+	(pp_any_list Format.pp_print_int " ") assumptions;
+
+      (* Return clauses in unsat core *)
+      unsat_core_clauses
+
+    (* Must not return sat when other solver returns unsat *)
+    | PropSolver.Sat -> 
+       raise (Failure "Unsat core solver returned satisfiable")
+      (*failwith "Unsat core solver returned satisfiable"*)
+
 
 (* to do: in the trie we can not add short list, but this would be useful...*)
 let add_to_prop_trie prop_lit_list =

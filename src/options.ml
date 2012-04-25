@@ -579,7 +579,7 @@ type options = {
     mutable sat_out_model         : sat_out_model_type;
 
 (*----BMC1---------------*)
-    mutable bmc1_incremental      : bool; 
+    mutable bmc1_incremental      : bool override; 
     mutable bmc1_axioms           : bmc1_axioms_type override;
     mutable bmc1_min_bound        : int override; 
     mutable bmc1_max_bound        : int override; 
@@ -685,7 +685,7 @@ let default_options () = {
   sat_out_model           = Model_Small;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -766,6 +766,10 @@ let set_new_current_options o =
       (* Only override defaults *)
       out_options =
 	override o.out_options !current_options.out_options;
+      
+      (* Only override defaults *)
+      bmc1_incremental = 
+	override o.bmc1_incremental !current_options.bmc1_incremental;
       
       (* Only override defaults *)
       bmc1_axioms = 
@@ -1227,7 +1231,8 @@ let sat_out_model_inf =
 let bmc1_incremental_str = "--bmc1_incremental" 
 
 let bmc1_incremental_fun b =
-  !current_options.bmc1_incremental <- b
+  !current_options.bmc1_incremental <- 
+    override_cmd b !current_options.bmc1_incremental
 
 let bmc1_incremental_inf  =
   bool_str^
@@ -2144,7 +2149,8 @@ let sat_options_str_list opt =
 
 let bmc1_options_str_list opt =
   [
-   (bmc1_incremental_str,(string_of_bool opt.bmc1_incremental));
+   (bmc1_incremental_str,
+    (string_of_bool (val_of_override opt.bmc1_incremental)));
    (bmc1_axioms_str,
     (bmc1_axioms_type_to_str (val_of_override opt.bmc1_axioms)));
    (bmc1_min_bound_str,(string_of_int (val_of_override opt.bmc1_min_bound)));
@@ -2538,7 +2544,7 @@ let option_1 () = {
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -2692,7 +2698,7 @@ let option_2 () = {
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -2818,7 +2824,7 @@ let option_3 () = {
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -2940,7 +2946,7 @@ let option_4 () = {
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3072,7 +3078,7 @@ let option_finite_models () = {
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3200,7 +3206,7 @@ let option_epr_non_horn () = {
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3449,7 +3455,7 @@ let option_epr_horn () = {
   sat_out_model           = !current_options.sat_out_model; 
 
 (*----BMC1---------------*)
-  bmc1_incremental        = false;
+  bmc1_incremental        = ValueDefault false;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3697,7 +3703,7 @@ let option_verification_epr ver_epr_opt =
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = true;
+  bmc1_incremental        = ValueDefault true;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3827,7 +3833,7 @@ let option_verification_epr ver_epr_opt =
   sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = true;
+  bmc1_incremental        = ValueDefault true;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
@@ -3955,7 +3961,7 @@ let option_verification_epr ver_epr_opt =
        sat_out_model           = !current_options.sat_out_model;
 
 (*----BMC1---------------*)
-  bmc1_incremental        = true;
+  bmc1_incremental        = ValueDefault true;
   bmc1_axioms             = ValueDefault BMC1_Axioms_Reachable_All;
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);

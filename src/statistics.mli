@@ -47,6 +47,7 @@ val num_of_sem_filtered_clauses : stat_int_entry
 
 val parsing_time         : stat_float_entry 
 val sem_filter_time      : stat_float_entry 
+val out_proof_time       : stat_float_entry 
 val total_time           : stat_float_entry 
 val num_of_terms         : stat_fun_entry 
 val num_of_symbols       : stat_fun_entry 

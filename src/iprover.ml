@@ -1113,7 +1113,7 @@ let rec main clauses finite_model_clauses =
 
   (* For incremental BMC1 we must catch this and move to the next
      bound. Otherwise the solver has been called before *)
-  if !current_options.bmc1_incremental then
+  if val_of_override !current_options.bmc1_incremental then
     (if 
 	(Prop_solver_exchange.solve ()) = PropSolver.Unsat
      then 
@@ -1205,7 +1205,7 @@ let rec main clauses finite_model_clauses =
 
 	    (* Do not output statistics in BMC1 mode with
 	       --bmc1_out_stat none *)
-	    if (not !current_options.bmc1_incremental) || 
+	    if (not (val_of_override !current_options.bmc1_incremental)) || 
 	      (not (val_of_override !current_options.bmc1_out_stat = 
 		  BMC1_Out_Stat_None)) then
 	      out_stat ();	   
@@ -1224,9 +1224,9 @@ let rec main clauses finite_model_clauses =
 	else	
 	  (out_str (satisfiable_str ());  
 
-	 (* Do not output statistics in BMC1 mode with
-	    --bmc1_out_stat none *)
-	   if (not !current_options.bmc1_incremental) || 
+	   (* Do not output statistics in BMC1 mode with
+	      --bmc1_out_stat none *)
+	   if (not (val_of_override !current_options.bmc1_incremental)) || 
 	     (not (val_of_override !current_options.bmc1_out_stat = 
 		 BMC1_Out_Stat_None)) then
 	     out_stat ();	   
@@ -1237,13 +1237,13 @@ let rec main clauses finite_model_clauses =
 	   else ()
 	  )
 
-    (* Incremental BMC1 solving: unsatisfiable when there are higher
-       bounds left to check *)
+      (* Incremental BMC1 solving: unsatisfiable when there are higher
+	 bounds left to check *)
       | Prop_solver_exchange.Unsatisfiable 
-    (* | Discount.Unsatisfiable *)
+      (* | Discount.Unsatisfiable *)
       | Instantiation.Unsatisfiable 
       | Discount.Empty_Clause _
-	  when !current_options.bmc1_incremental -> 
+	  when val_of_override !current_options.bmc1_incremental -> 
 	
 	(* If SAT solver reports unsatisfiable without assumptions, then
 	   problem is unsat for all bounds. Must not continue, since
@@ -1253,8 +1253,24 @@ let rec main clauses finite_model_clauses =
 	(
 
 	  if !current_options.dbg_backtrace then
-	    Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
+	    Format.eprintf 
+	      "@\nUnsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." 
+	      (Printexc.get_backtrace ());
 
+	  (* Output SZS status *)
+	  out_str (proved_str ());
+	  
+	  (* Output status for current bound *)
+	  Format.printf 
+	    "@\n%s BMC1 bound %d %s after %.3fs@\n@."
+	    pref_str
+	    !bmc1_cur_bound
+	    ("UNSAT")
+	    (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time));
+	  
+	  (* Assign last solved bound in statistics *)
+	  assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
+	  
 	  (* Get clauses in unsatisfiable core *)
 	  let unsat_core_clauses = 
 	    Prop_solver_exchange.unsat_core () 
@@ -1282,18 +1298,27 @@ let rec main clauses finite_model_clauses =
 	  if !current_options.inst_out_proof then 
 	    (
 	      
+	      (* Record time when proof extraction started *)
+	      let start_time = Unix.gettimeofday () in
+
 	      (* Start proof output *)
-	      Format.printf "%% SZS output start CNFRefutation@\n@.";
-	  
+	      Format.printf "@\n%% SZS output start CNFRefutation@\n@.";
+	      
 	      (* Proof output *)
 	      Format.printf 
 		"%a@." 
 		TstpProof.pp_tstp_proof_unsat_core 
 		unsat_core_clauses;
-	  
+	      
 	      (* End proof output *)
 	      Format.printf "%% SZS output end CNFRefutation@\n@.";
 	      
+	      (* Record time when proof extraction finished *)
+	      let end_time = Unix.gettimeofday () in
+	    
+	      (* Save time for proof extraction *)
+	      add_float_stat (end_time -. start_time) out_proof_time;
+
 	    );
 
 	  (* Assign size of unsat core in statistics *)
@@ -1402,124 +1427,113 @@ let rec main clauses finite_model_clauses =
 	      (val_of_override !current_options.bmc1_max_bound)
 	      (val_of_override !current_options.bmc1_max_bound_default)
 	  in
-
-	    (* Output current bound *)
-	  Format.printf 
-	    "@.@\n%s BMC1 bound %d %s after %.3fs@\n@."
-	    pref_str
-	    cur_bound
-	    ("UNSAT")
-	    (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time));
-	  
-	    (* Assign last solved bound in statistics *)
-	  assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
 	  
 	  if 
 	    
-	      (* Next bound is beyond maximal bound? *)
+	    (* Next bound is beyond maximal bound? *)
 	    next_bound > max_bound && 
 	      
-		(* No maximal bound for -1 *)
+	      (* No maximal bound for -1 *)
 	      max_bound >= 0 
 	      
 	  then
 	    
 	    (
 	      
-		(* Output unsatisfiable result for last bound *)
+	      (* Output unsatisfiable result for last bound *)
 	      out_str (proved_str ());
 	      
 	    );
 	  
 	  (
 	    
-	      (* When to output statistics? *)
+	    (* When to output statistics? *)
 	    match val_of_override !current_options.bmc1_out_stat with
 		
-		(* Output statistics after each bound *)
+	      (* Output statistics after each bound *)
 	      | BMC1_Out_Stat_Full -> out_stat ()
 
-		(* Output statistics after last bound *)
+	      (* Output statistics after last bound *)
 	      | BMC1_Out_Stat_Last 
 		  when next_bound > max_bound -> out_stat ()
 
-		(* Do not output statistics for bounds before last *)
+	      (* Do not output statistics for bounds before last *)
 	      | BMC1_Out_Stat_Last -> ()
 
-		(* Never output statistics *)
+	      (* Never output statistics *)
 	      | BMC1_Out_Stat_None -> ()
 
 	  );
 	  
 	  if 
 	    
-	      (* Next bound is beyond maximal bound? *)
+	    (* Next bound is beyond maximal bound? *)
 	    next_bound > max_bound && 
 	      
-		(* No maximal bound for -1 *)
+	      (* No maximal bound for -1 *)
 	      max_bound >= 0 
 	      
 	  then
 
 	    (
 
-		(* Silently terminate *)
+	      (* Silently terminate *)
 	      raise Exit
 		
 	    );
 	  
-	    (* Output next bound *)
+	  (* Output next bound *)
 	  Format.printf 
 	    "%s Incrementing BMC1 bound to %d@\n@."
 	    pref_str
 	    next_bound;
 	  
-	    (* Clear properties of terms before running again *)
+	  (* Clear properties of terms before running again *)
 	  Instantiation.clear_after_inst_is_dead (); 
 	  
-	    (* Add axioms for next bound *)
+	  (* Add axioms for next bound *)
 	  let next_bound_axioms = 
 	    Bmc1Axioms.increment_bound cur_bound next_bound false
 	  in
-
-	      (* Preprocess axioms *)
+	  
+	  (* Preprocess axioms *)
 	  let next_bound_axioms' = 
 	    Preprocess.preprocess next_bound_axioms
 	  in
-
-	      (* Symbols in axioms are input symbols *)
+	  
+	  (* Symbols in axioms are input symbols *)
 	  assign_is_essential_input_symb next_bound_axioms';
-
-	      (* Add axioms to solver *)
+	  
+	  (* Add axioms to solver *)
 	  List.iter 
 	    Prop_solver_exchange.add_clause_to_solver 
 	    next_bound_axioms';
-
-	      (* Clauses in unsatisfiable core to be added to next
-		 bound *)
+	  
+	  (* Clauses in unsatisfiable core to be added to next
+	     bound *)
 	  let unsat_core_clauses' = 
 
 	    if 
 
-		  (* Add clauses from unsatisfiable core to next bound *)
+	      (* Add clauses from unsatisfiable core to next bound *)
 	      val_of_override !current_options.bmc1_add_unsat_core 
 
 	    then
 
 	      (
 
-		    (* Flag all input clauses as not in unsat core *)
+		(* Flag all input clauses as not in unsat core *)
 		List.iter 
 		  (Clause.set_bool_param false Clause.in_unsat_core)
 		  clauses;
 
-		    (* Flag clauses as in unsat core *)
+		(* Flag clauses as in unsat core *)
 		List.iter 
 		  (Clause.set_bool_param true Clause.in_unsat_core)
 		  unsat_core_parents;
 
-		    (* Create axioms for next bound of all axioms of
-		       previous bound in unsat core *)
+		(* Create axioms for next bound of all axioms of
+		   previous bound in unsat core *)
 		let bmc1_axioms_extrapolated =
 		  Bmc1Axioms.extrapolate_to_bound 
 		    next_bound 
@@ -1528,14 +1542,14 @@ let rec main clauses finite_model_clauses =
 
 		if 
 		  
-		      (* Verbose output for BMC1? *)
+		  (* Verbose output for BMC1? *)
 		  val_of_override !current_options.bmc1_verbose 
 		    
 		then 
 		  
 		  (
 		    
-			(* Print parents of unsat core *)
+		    (* Print parents of unsat core *)
 		    Format.printf 
 		      "@\n%sExtrapolated BMC1 axioms@\n@\n%a@." 
 		      pref_str
@@ -1544,48 +1558,48 @@ let rec main clauses finite_model_clauses =
 		      
 		  );
 		
-		    (* Flag clauses extrapolated to the next bound as
-		       in unsat core *)
+		(* Flag clauses extrapolated to the next bound as
+		   in unsat core *)
 		List.iter 
 		  (Clause.set_bool_param true Clause.in_unsat_core)
 		  bmc1_axioms_extrapolated;
 		
-		    (*
-		      List.iter 
-		      (Clause.set_bool_param true Clause.in_unsat_core)
-		      unsat_core_clauses;
-		    *)
+		(*
+		  List.iter 
+		  (Clause.set_bool_param true Clause.in_unsat_core)
+		  unsat_core_clauses;
+		*)
 
-		    (* Preprocess clauses *)
+		(* Preprocess clauses *)
 		let unsat_core_clauses' =
 		  Preprocess.preprocess 
 		    (unsat_core_parents @ bmc1_axioms_extrapolated)
 		in
 
-		    (* Add preprocessed clauses to solver
+		(* Add preprocessed clauses to solver
 
-		       Clauses may be split or simplified and must be
-		       added to the solver then *)
+		   Clauses may be split or simplified and must be
+		   added to the solver then *)
 		List.iter 
 		  Prop_solver_exchange.add_clause_to_solver 
 		  unsat_core_clauses';
 		
-		    (* Return preprocessed unsat core clauses *)
+		(* Return preprocessed unsat core clauses *)
 		unsat_core_clauses'
 
 	      )
 		
 	    else
 
-		  (* Do not add clauses from unsatisfiable core *)
+	      (* Do not add clauses from unsatisfiable core *)
 	      []
 
 	  in
 
-	      (* Save next bound as current *)
+	  (* Save next bound as current *)
 	  bmc1_cur_bound := next_bound;
 	  
-	      (* Input clauses for next bound *)
+	  (* Input clauses for next bound *)
 	  let all_clauses = 
 	    next_bound_axioms' @ unsat_core_clauses' @ clauses
 	  in
@@ -1593,19 +1607,19 @@ let rec main clauses finite_model_clauses =
 
 	  if 
 	    
-		(* Dump clauses to TPTP format? *)
+	    (* Dump clauses to TPTP format? *)
 	    val_of_override !current_options.bmc1_dump_clauses_tptp 
 	      
 	  then
 	    
 	    (
 	      
-		  (* Formatter to write to, i.e. stdout or file *)
+	      (* Formatter to write to, i.e. stdout or file *)
 	      let dump_formatter =
 		Bmc1Axioms.get_bmc1_dump_formatter ()
 	      in
 	      
-		  (* Output clauses *)
+	      (* Output clauses *)
 	      Format.fprintf 
 		dump_formatter
 		"%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@." 
@@ -1615,7 +1629,7 @@ let rec main clauses finite_model_clauses =
 	      
 	    );
 	  
-	      (* Run again for next bound *)
+	  (* Run again for next bound *)
 	  main 
 	    all_clauses
 	    finite_model_clauses
@@ -1922,7 +1936,7 @@ let run_iprover () =
 	);
 	
 	  (* BMC1 with incremental bounds? *)
-	if !current_options.bmc1_incremental then
+	if val_of_override !current_options.bmc1_incremental then
 
 	  (
 
@@ -2166,7 +2180,7 @@ let run_iprover () =
 
       (* For incremental BMC1 we must catch this and move to the next
 	 bound. The solver call is moved to the main function. *)
-  if not !current_options.bmc1_incremental then
+  if not (val_of_override !current_options.bmc1_incremental) then
     (if 
 	(Prop_solver_exchange.solve ()) = PropSolver.Unsat
      then 
@@ -2176,39 +2190,56 @@ let run_iprover () =
   main !current_clauses finite_models_clauses
  end
   with
+      
+    (* Unsatisfiable in propositional solver, not by empty clause in
+       resolution *)
+    | Prop_solver_exchange.Unsatisfiable  
+    | PropSolver.Unsatisfiable  
+    (* |Discount.Unsatisfiable *)
+    | Instantiation.Unsatisfiable ->
 
-  |Prop_solver_exchange.Unsatisfiable  
-  (* |Discount.Unsatisfiable *)
-  |Instantiation.Unsatisfiable  
-  |PropSolver.Unsatisfiable  
-    ->
-    (
+      (
 
-      if !current_options.dbg_backtrace then
-	Format.eprintf "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." (Printexc.get_backtrace ());
+	(* Output backtrace of unsatisfiable exception *)
+	if !current_options.dbg_backtrace then
+	  Format.eprintf 
+	    "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." 
+	    (Printexc.get_backtrace ());
 
-      (* Output proof from instantiation? *)
-      if !current_options.inst_out_proof then 
-	(
+	(* Output SZS status *)
+	out_str (proved_str ());
 	  
-	  (* Get unsatisfiable core *)
-	  let unsat_core_clauses = Prop_solver_exchange.unsat_core () in
+	(* Output proof from instantiation? *)
+	if !current_options.inst_out_proof then 
+	  (
+
+	    (* Record time when proof extraction started *)
+	    let start_time = Unix.gettimeofday () in
+
+	    (* Get unsatisfiable core *)
+	    let unsat_core_clauses = Prop_solver_exchange.unsat_core () in
 	  
-	  (* Start proof output *)
-	  Format.printf
-	    "%% SZS output start CNFRefutation@\n@.";
+	    (* Start proof output *)
+	    Format.printf
+	      "@\n%% SZS output start CNFRefutation@\n@.";
 	  
-	  (* Proof output *)
-	  Format.printf 
-	    "%a@." 
-	    TstpProof.pp_tstp_proof_unsat_core 
-	    unsat_core_clauses;
+	    (* Proof output *)
+	    Format.printf 
+	      "%a@." 
+	      TstpProof.pp_tstp_proof_unsat_core 
+	      unsat_core_clauses;
 	  
-	  (* End proof output *)
-	  Format.printf
-	    "%% SZS output end CNFRefutation@\n@.";
+	    (* End proof output *)
+	    Format.printf
+	      "%% SZS output end CNFRefutation@\n@.";
 	  
-	);
+	    (* Record time when proof extraction finished *)
+	    let end_time = Unix.gettimeofday () in
+
+	    (* Save time for proof extraction *)
+	    add_float_stat (end_time -. start_time) out_proof_time;
+
+	  );
       
       
       (* For ISA use 
@@ -2218,145 +2249,161 @@ let run_iprover () =
       *)
 
 
-      (* In incremental BMC1? *)
-      if !current_options.bmc1_incremental then
+	(* Output answer *)
+	if !answer_mode_ref then
+	  Prop_solver_exchange.out_answer ();
+      
 	
-	(
+	(* In incremental BMC1? 
 
-	  Format.printf 
-	    "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
-	    pref_str
-	    !bmc1_cur_bound;
+	   Then output status once for each bound to prove *)
+	if val_of_override !current_options.bmc1_incremental then
 	  
-	  (* Get maximal bound *)
-	  let max_bound = 
-	    max
-	      (val_of_override !current_options.bmc1_max_bound)
-	      (val_of_override !current_options.bmc1_max_bound_default)
-	  in
-	  
-	  let rec skip_all_bounds () = 
+	  (
 
-	    (* Next bound *)
-	    let next_bound = succ !bmc1_cur_bound in
-
-	    (* Output current bound *)
 	    Format.printf 
-	      "@.@\n%s BMC1 bound %d UNSAT@\n@."
+	      "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
 	      pref_str
 	      !bmc1_cur_bound;
 	    
-	    (* Output unsatisfiable result *)
-	    out_str (proved_str ());
+	    (* Get maximal bound *)
+	    let max_bound = 
+	      max
+		(val_of_override !current_options.bmc1_max_bound)
+		(val_of_override !current_options.bmc1_max_bound_default)
+	    in
 	    
-	    (* Assign last solved bound in statistics *)
-	    assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
-	    
-	    (
+	    let rec skip_all_bounds () = 
+
+	      (* Next bound *)
+	      let next_bound = succ !bmc1_cur_bound in
+
+	      (* Output current bound *)
+	      Format.printf 
+		"@.@\n%s BMC1 bound %d UNSAT@\n@."
+		pref_str
+		!bmc1_cur_bound;
 	      
-	      (* When to output statistics? *)
-	      match val_of_override !current_options.bmc1_out_stat with
-		  
-		(* Output statistics after each bound *)
-		| BMC1_Out_Stat_Full -> out_stat ()
-
-		(* Output statistics after last bound *)
-		| BMC1_Out_Stat_Last 
-		    when next_bound > max_bound -> out_stat ()
-
-		(* Do not output statistics for bounds before last *)
-		| BMC1_Out_Stat_Last -> ()
-
-		(* Never output statistics *)
-		| BMC1_Out_Stat_None -> ()
-
-	    );
+	      (* Output unsatisfiable result *)
+	      out_str (proved_str ());
 	    
-	    if 
-	      
-	      (* Next bound less than or equal maximal bound? *)
-	      next_bound <= max_bound &&
-		
-		(* No maximal bound for -1 *)
-		max_bound >= 0 
-		
-	    then
-	 
+	      (* Assign last solved bound in statistics *)
+	      assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
+	    
 	      (
+	      
+		(* When to output statistics? *)
+		match val_of_override !current_options.bmc1_out_stat with
+		  
+		  (* Output statistics after each bound *)
+		  | BMC1_Out_Stat_Full -> out_stat ()
 
-		(* Increment bound *)
-		bmc1_cur_bound := next_bound;
-		
-		(* Recurse to output all bounds up to maximum *)
-		skip_all_bounds ()
+		  (* Output statistics after last bound *)
+		  | BMC1_Out_Stat_Last 
+		      when next_bound > max_bound -> out_stat ()
 
-	      )
-		
-	  in
+		  (* Do not output statistics for bounds before last *)
+		  | BMC1_Out_Stat_Last -> ()
 
-	  (* Output results for all bounds up to maximum *)
-	  skip_all_bounds ()
+		  (* Never output statistics *)
+		  | BMC1_Out_Stat_None -> ()
+
+	      );
 	    
-	)
+	      if 
+	      
+		(* Next bound less than or equal maximal bound? *)
+		next_bound <= max_bound &&
+		
+		  (* No maximal bound for -1 *)
+		  max_bound >= 0 
+		
+	      then
+	 
+		(
 
-      else
+		  (* Increment bound *)
+		  bmc1_cur_bound := next_bound;
+		
+		  (* Recurse to output all bounds up to maximum *)
+		  skip_all_bounds ()
+
+		)
+		
+	    in
+
+	    (* Increment bound *)
+	    bmc1_cur_bound := succ !bmc1_cur_bound;
+		
+	    (* Output results for all bounds up to maximum *)
+	    skip_all_bounds ()
+	    
+	  );
+
+	(* Do not output statistics in BMC1 mode with
+	   --bmc1_out_stat none *)
+	if (not (val_of_override !current_options.bmc1_incremental)) || 
+	  (not (val_of_override !current_options.bmc1_out_stat = 
+	      BMC1_Out_Stat_None)) then
+	  out_stat ()
+
+      )
+
+    (* Unsatisfiable due to empty clause in resolution *)
+    | Discount.Empty_Clause (clause) -> 
       
+      (
+	
+	(* Output status *)
+	out_str (proved_str ());
+	
+	(* Output proof from resolution? *)
+	if !current_options.res_out_proof then 
+
 	(
 
-	  (* Output SZS status once if not in incremental BMC1 *)
-	  out_str (proved_str ())
+	  (* Record time when proof extraction started *)
+	  let start_time = Unix.gettimeofday () in
+
+	  (* Start proof output *)
+	  Format.printf "%% SZS output start CNFRefutation@\n@.";
+  
+	  (* Proof output *)
+	  (Format.printf "%a@." TstpProof.pp_tstp_proof_resolution clause);
+
+	  (* End proof output *)
+	  Format.printf "%% SZS output end CNFRefutation@\n@.";
+
+	  (* Record time when proof extraction finished *)
+	  let end_time = Unix.gettimeofday () in
+
+	  (* Save time for proof extraction *)
+	  assign_float_stat (end_time -. start_time) out_proof_time;
 
 	);
 
-      (if 
-	  (!answer_mode_ref)
-       then
-	  Prop_solver_exchange.out_answer ()
-       else
-	  ()
-      );
-      
-       (* Do not output statistics in BMC1 mode with
-	  --bmc1_out_stat none *)
-      if (not !current_options.bmc1_incremental) || 
-	(not (val_of_override !current_options.bmc1_out_stat = 
-	    BMC1_Out_Stat_None)) then
-	out_stat ()
-    )
-
-  | Discount.Empty_Clause (clause) -> 
-    (
-      out_str (proved_str ());
-
-      (* Do not output statistics in BMC1 mode with
-	 --bmc1_out_stat none *)
-      if (not !current_options.bmc1_incremental) || 
-	(not (val_of_override !current_options.bmc1_out_stat = 
-	    BMC1_Out_Stat_None)) then
-	out_stat ();	   
-      
-      out_str(" Resolution empty clause:\n");
-(* in this case the unsat is already without answer clauses *)
-       (if (!answer_mode_ref)
-       then
-	 out_str "% SZS answers Tuple [[]]"
-       else ()
-       );	  
-  
-       (if !current_options.res_out_proof
-       then 
-	 (Discount.out_proof_fun clause)
-       else ())
-      )
+	(* Do not output statistics in BMC1 mode with
+	   --bmc1_out_stat none *)
+	if (not (val_of_override !current_options.bmc1_incremental)) || 
+	  (not (val_of_override !current_options.bmc1_out_stat = 
+	      BMC1_Out_Stat_None)) then
+	  out_stat ();	   
 	
-  |Discount.Satisfiable all_clauses
+	out_str(" Resolution empty clause:\n");
+
+	(* in this case the unsat is already without answer clauses *)
+	if !answer_mode_ref then
+	  out_str "% SZS answers Tuple [[]]";
+      )
+
+    |Discount.Satisfiable all_clauses
     -> 
       (assert (not !eq_axioms_are_omitted);
        out_str (satisfiable_str ());  
        
        (* Do not output statistics in BMC1 mode with
 	  --bmc1_out_stat none *)
-       if (not !current_options.bmc1_incremental) || 
+       if (not (val_of_override !current_options.bmc1_incremental)) || 
 	 (not (val_of_override !current_options.bmc1_out_stat = 
 	     BMC1_Out_Stat_None)) then
 	 out_stat ();	   
@@ -2374,7 +2421,7 @@ let run_iprover () =
 
 	 (* Do not output statistics in BMC1 mode with
 	    --bmc1_out_stat none *)
-	 if (not !current_options.bmc1_incremental) || 
+	 if (not (val_of_override !current_options.bmc1_incremental)) || 
 	   (not (val_of_override !current_options.bmc1_out_stat = 
 	       BMC1_Out_Stat_None)) then
 	   out_stat ();	   
@@ -2392,7 +2439,7 @@ let run_iprover () =
 
        (* Do not output statistics in BMC1 mode with
 	  --bmc1_out_stat none *)
-       if (not !current_options.bmc1_incremental) || 
+       if (not (val_of_override !current_options.bmc1_incremental)) || 
 	 (not (val_of_override !current_options.bmc1_out_stat = 
 	     BMC1_Out_Stat_None)) then
 	 out_stat ())
@@ -2404,7 +2451,7 @@ let run_iprover () =
        
        (* Do not output statistics in BMC1 mode with
 	  --bmc1_out_stat none *)
-       if (not !current_options.bmc1_incremental) || 
+       if (not (val_of_override !current_options.bmc1_incremental)) || 
 	 (not (val_of_override !current_options.bmc1_out_stat = 
 	     BMC1_Out_Stat_None)) then
 	 out_stat()
@@ -2418,7 +2465,7 @@ let run_iprover () =
        
        (* Do not output statistics in BMC1 mode with
 	  --bmc1_out_stat none *)
-       if (not !current_options.bmc1_incremental) || 
+       if (not (val_of_override !current_options.bmc1_incremental)) || 
 	 (not (val_of_override !current_options.bmc1_out_stat = 
 	     BMC1_Out_Stat_None)) then
 	 out_stat())
@@ -2430,7 +2477,7 @@ let run_iprover () =
      
      (* Do not output statistics in BMC1 mode with
 	--bmc1_out_stat none *)
-     if (not !current_options.bmc1_incremental) || 
+     if (not (val_of_override !current_options.bmc1_incremental)) || 
      (not (val_of_override !current_options.bmc1_out_stat = 
 	   BMC1_Out_Stat_None)) then
        out_stat ())

@@ -1060,6 +1060,9 @@ let assign_tstp_source_axiom_range clause =
 let assign_tstp_source_axiom_bmc1 bmc1_axiom clause = 
   assign_tstp_source_theory_axiom clause (TSTP_bmc1 bmc1_axiom)
 
+(* Clause is generated in grounding *)
+let assign_tstp_source_assumption clause = 
+  assign_tstp_source clause (TSTP_internal_source TSTP_assumption)
 
 
 (* history assignments *)

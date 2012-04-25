@@ -264,6 +264,9 @@ val assign_tstp_source_axiom_range : clause -> unit
 (** Clause is an bmc1 axiom *)
 val assign_tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> clause -> unit
 
+(** Clause is an assumption *)
+val assign_tstp_source_assumption : clause -> unit
+
 
 (*
 val assign_instantiation_history : clause -> clause -> clause list -> unit
