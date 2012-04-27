@@ -901,12 +901,15 @@ let pp_symbol ppf { name = n } = Format.fprintf ppf "%s" n
 
 let pp_symbol_tptp ppf { name = n } = 
   let n' = 
-    if 
-      String.sub n 0 2 = "$$" 
-    then 
-      String.sub n 2 ((String.length n) - 2)
-    else
+    if (String.length n) < 2 then
       n
+    else
+      if 
+	String.sub n 0 2 = "$$" 
+      then 
+	String.sub n 2 ((String.length n) - 2)
+      else
+	n
   in
 
     Format.fprintf ppf "%s" n'
