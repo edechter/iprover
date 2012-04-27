@@ -191,6 +191,7 @@ type options = {
     mutable bmc1_max_bound_default : int override; 
     mutable bmc1_symbol_reachability : bool; 
     mutable bmc1_add_unsat_core   : bool override; 
+    mutable bmc1_unsat_core_children : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool override;
@@ -203,10 +204,12 @@ type options = {
     mutable inst_lit_sel                      : inst_lit_sel_type;  
     mutable inst_solver_per_active            : int;
     mutable inst_solver_per_clauses           : int;
-    mutable inst_pass_queue1                  : pass_queue_type; 
-    mutable inst_pass_queue2                  : pass_queue_type;
-    mutable inst_pass_queue1_mult             : int;
-    mutable inst_pass_queue2_mult             : int;
+    mutable inst_pass_queue1                  : pass_queue_type override; 
+    mutable inst_pass_queue2                  : pass_queue_type override;
+    mutable inst_pass_queue3                  : pass_queue_type override;
+    mutable inst_pass_queue1_mult             : int override;
+    mutable inst_pass_queue2_mult             : int override;
+    mutable inst_pass_queue3_mult             : int override;
     mutable inst_dismatching                  : bool;
     mutable inst_eager_unprocessed_to_passive : bool;
     mutable inst_prop_sim_given               : bool;

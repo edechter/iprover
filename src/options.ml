@@ -20,6 +20,27 @@ open Lib
 
 (* Option values with defaults and overrides from files or command-line *)
 
+(* How to use these overrides: (assume an option named [opt])
+   
+   * Use type [ opt override ] for the type of the option
+
+   * In the function set_new_current_options:
+   [ opt = override o.opt !current_options.opt; ]
+   
+   * In op_fun:
+   [ !current_options.opt <- override_cmd b !current_options.opt ] 
+   
+   * In x_options_str_list:
+   [ (opt_type_to_str (val_of_override opt.opt) ] ;
+   
+   * In the options: 
+   [ opt = ValueDefault 0; ]
+   
+   * When reading the options value:
+   [ val_of_override !current_options.opt ]
+
+*)
+
 (* An option set from different sources *)
 type 'a override = 
 
@@ -75,6 +96,13 @@ let override = function
   | ValueDefault v -> override_default v 
   | ValueFile v -> override_file v 
   | ValueCmd v -> override_cmd v
+
+
+(* Change the value keeping its status *)
+let override_value = function 
+  | ValueDefault _ -> (function v -> ValueDefault v)
+  | ValueFile _ -> (function v -> ValueFile v)
+  | ValueCmd _ -> (function v -> ValueCmd v)
 
 
 (*--prase list options----*)
@@ -586,6 +614,7 @@ type options = {
     mutable bmc1_max_bound_default : int override; 
     mutable bmc1_symbol_reachability : bool; 
     mutable bmc1_add_unsat_core   : bool override; 
+    mutable bmc1_unsat_core_children : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_verbose          : bool override;
@@ -598,10 +627,12 @@ type options = {
     mutable inst_lit_sel                      : inst_lit_sel_type;  
     mutable inst_solver_per_active            : int;
     mutable inst_solver_per_clauses           : int;
-    mutable inst_pass_queue1                  : pass_queue_type; 
-    mutable inst_pass_queue2                  : pass_queue_type;
-    mutable inst_pass_queue1_mult             : int;
-    mutable inst_pass_queue2_mult             : int;
+    mutable inst_pass_queue1                  : pass_queue_type override; 
+    mutable inst_pass_queue2                  : pass_queue_type override;
+    mutable inst_pass_queue3                  : pass_queue_type override;
+    mutable inst_pass_queue1_mult             : int override;
+    mutable inst_pass_queue2_mult             : int override;
+    mutable inst_pass_queue3_mult             : int override;
     mutable inst_dismatching                  : bool;
     mutable inst_eager_unprocessed_to_passive : bool;
     mutable inst_prop_sim_given               : bool;
@@ -692,6 +723,7 @@ let default_options () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -706,14 +738,26 @@ let default_options () = {
 
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
-  inst_pass_queue1               = [Cl_Conj_Dist false; Cl_Has_Conj_Symb true;
-				    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+  
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Conj_Dist false; 
+       Cl_Has_Conj_Symb true;
+       Cl_Num_of_Var false]; 
+  
+  inst_pass_queue2 = 
+    ValueDefault
+      [Cl_Age true; 
+       Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
+  inst_pass_queue1_mult          = ValueDefault 25;
 (* inst_pass_queue2_mult = 2; before 29 Aug 2011 changed for Zurab's dcu default *)
-  inst_pass_queue2_mult          = 2;
+  inst_pass_queue2_mult          = ValueDefault 2;
+
+  inst_pass_queue3               = ValueDefault [];
+  inst_pass_queue3_mult          = ValueDefault 0;
+
   inst_dismatching               = true;
   inst_eager_unprocessed_to_passive = true;
   inst_prop_sim_given               = false;
@@ -794,6 +838,12 @@ let set_new_current_options o =
 	override o.bmc1_add_unsat_core !current_options.bmc1_add_unsat_core;
       
       (* Only override defaults *)
+      bmc1_unsat_core_children = 
+	override 
+	  o.bmc1_unsat_core_children
+	  !current_options.bmc1_unsat_core_children;
+      
+      (* Only override defaults *)
       bmc1_out_stat = 
 	override o.bmc1_out_stat !current_options.bmc1_out_stat;
       
@@ -816,6 +866,36 @@ let set_new_current_options o =
       (* Only override defaults *)
       bmc1_dump_file = 
 	override o.bmc1_dump_file !current_options.bmc1_dump_file;
+
+      (* Only override defaults *)
+      inst_pass_queue1 = 
+	override o.inst_pass_queue1 !current_options.inst_pass_queue1;
+
+      (* Only override defaults *)
+      inst_pass_queue2 = 
+	override o.inst_pass_queue2 !current_options.inst_pass_queue2;
+
+      (* Only override defaults *)
+      inst_pass_queue3 = 
+	override o.inst_pass_queue3 !current_options.inst_pass_queue3;
+
+      (* Only override defaults *)
+      inst_pass_queue1_mult = 
+	override 
+	  o.inst_pass_queue1_mult 
+	  !current_options.inst_pass_queue1_mult;
+
+      (* Only override defaults *)
+      inst_pass_queue2_mult = 
+	override 
+	  o.inst_pass_queue2_mult 
+	  !current_options.inst_pass_queue2_mult;
+
+      (* Only override defaults *)
+      inst_pass_queue3_mult = 
+	override 
+	  o.inst_pass_queue3_mult 
+	  !current_options.inst_pass_queue3_mult;
       
     }
 
@@ -1317,6 +1397,18 @@ let bmc1_add_unsat_core_inf  =
 
 (*--------*)
 
+let bmc1_unsat_core_children_str = "--bmc1_unsat_core_children" 
+
+let bmc1_unsat_core_children_fun b =
+  !current_options.bmc1_unsat_core_children <- 
+    override_cmd b !current_options.bmc1_unsat_core_children
+
+let bmc1_unsat_core_children_inf  =
+  bool_str^
+  inf_pref^"children of unsat core clauses are considered in unsat core\n"
+
+(*--------*)
+
 let bmc1_out_stat_str = "--bmc1_out_stat" 
 
 let bmc1_out_stat_fun str =
@@ -1445,7 +1537,10 @@ let inst_pass_queue1_fun str =
   try 
     let str_list = parse_list_opt str in
     let queue = List.map str_to_cl_cmp_type str_list in
-    !current_options.inst_pass_queue1  <- queue
+
+    !current_options.inst_pass_queue1  <- 
+      override_cmd queue !current_options.inst_pass_queue1
+
   with 
   | Parse_list_fail | Unknown_cl_cmp_type->
       failwith (args_error_msg inst_pass_queue1_str str)
@@ -1466,7 +1561,10 @@ let inst_pass_queue2_fun str =
   try 
     let str_list = parse_list_opt str in
     let queue = List.map str_to_cl_cmp_type str_list in
-    !current_options.inst_pass_queue2  <- queue
+
+    !current_options.inst_pass_queue2  <- 
+      override_cmd queue !current_options.inst_pass_queue2
+
   with 
   | Parse_list_fail | Unknown_cl_cmp_type->
       failwith (args_error_msg inst_pass_queue2_str str)
@@ -1481,11 +1579,38 @@ let inst_pass_queue2_inf  =
 
 
 (*--------*)
+
+let inst_pass_queue3_str  = "--inst_pass_queue3"
+
+let inst_pass_queue3_fun str =
+  try 
+    let str_list = parse_list_opt str in
+    let queue = List.map str_to_cl_cmp_type str_list in
+
+    !current_options.inst_pass_queue3  <- 
+      override_cmd queue !current_options.inst_pass_queue3
+
+  with 
+  | Parse_list_fail | Unknown_cl_cmp_type->
+      failwith (args_error_msg inst_pass_queue3_str str)
+
+let inst_pass_queue3_inf  =
+  cl_cmp_type_list_str^
+  inf_pref^"third passive priority queue for instantiation "^
+  inf_pref^"priority is based on lex combination of parameters in the list"^
+  example_str^inst_pass_queue3_str^" [+age;-num_symb]"^
+  inf_pref^"in this ex. priority is given to clauses which were generated at an earlier stage"^ 
+  inf_pref^"then with fewer number of symbols\n"
+
+
+(*--------*)
  
 let inst_pass_queue1_mult_str  = "--inst_pass_queue1_mult"
 
 let inst_pass_queue1_mult_fun i =
-  !current_options.inst_pass_queue1_mult <- i
+
+  !current_options.inst_pass_queue1_mult  <- 
+    override_cmd i !current_options.inst_pass_queue1_mult
 
 let inst_pass_queue1_mult_inf  =
   int_str^
@@ -1497,11 +1622,28 @@ let inst_pass_queue1_mult_inf  =
 let inst_pass_queue2_mult_str  = "--inst_pass_queue2_mult"
 
 let inst_pass_queue2_mult_fun i =
-  !current_options.inst_pass_queue2_mult <- i
+
+  !current_options.inst_pass_queue2_mult  <- 
+    override_cmd i !current_options.inst_pass_queue2_mult
+
 
 let inst_pass_queue2_mult_inf  =
   int_str^
   inf_pref^"second priority queue multiple:"^
+  inf_pref^"the number of clauses taken before switching to the next queue\n"
+
+(*--------*)
+ 
+let inst_pass_queue3_mult_str  = "--inst_pass_queue3_mult"
+
+let inst_pass_queue3_mult_fun i =
+
+  !current_options.inst_pass_queue3_mult  <- 
+    override_cmd i !current_options.inst_pass_queue3_mult
+
+let inst_pass_queue3_mult_inf  =
+  int_str^
+  inf_pref^"third priority queue multiple:"^
   inf_pref^"the number of clauses taken before switching to the next queue\n"
 
 (*--------*)
@@ -1998,6 +2140,10 @@ let spec_list =
     Arg.Bool(bmc1_add_unsat_core_fun),
     bmc1_add_unsat_core_inf);
 
+   (bmc1_unsat_core_children_str, 
+    Arg.Bool(bmc1_unsat_core_children_fun),
+    bmc1_unsat_core_children_inf);
+
    (bmc1_out_stat_str, 
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
@@ -2025,12 +2171,18 @@ let spec_list =
     Arg.Int(inst_solver_per_active_fun), inst_solver_per_active_inf);
    (inst_solver_per_clauses_str, 
     Arg.Int(inst_solver_per_clauses_fun), inst_solver_per_clauses_inf);
-   (inst_pass_queue1_str, Arg.String(inst_pass_queue1_fun), inst_pass_queue1_inf);
-   (inst_pass_queue2_str, Arg.String(inst_pass_queue2_fun), inst_pass_queue2_inf);
+   (inst_pass_queue1_str, 
+    Arg.String(inst_pass_queue1_fun), inst_pass_queue1_inf);
+   (inst_pass_queue2_str, 
+    Arg.String(inst_pass_queue2_fun), inst_pass_queue2_inf);
+   (inst_pass_queue3_str, 
+    Arg.String(inst_pass_queue3_fun), inst_pass_queue3_inf);
    (inst_pass_queue1_mult_str, 
     Arg.Int(inst_pass_queue1_mult_fun), inst_pass_queue1_mult_inf);
    (inst_pass_queue2_mult_str, 
     Arg.Int(inst_pass_queue2_mult_fun), inst_pass_queue2_mult_inf);
+   (inst_pass_queue3_mult_str, 
+    Arg.Int(inst_pass_queue3_mult_fun), inst_pass_queue3_mult_inf);
    (inst_dismatching_str, Arg.Bool(inst_dismatching_fun), inst_dismatching_inf);
    (inst_eager_unprocessed_to_passive_str,
     Arg.Bool(inst_eager_unprocessed_to_passive_fun),
@@ -2161,6 +2313,8 @@ let bmc1_options_str_list opt =
     (string_of_bool opt.bmc1_symbol_reachability));
    (bmc1_add_unsat_core_str,
     (string_of_bool (val_of_override opt.bmc1_add_unsat_core)));
+   (bmc1_unsat_core_children_str,
+    (string_of_bool (val_of_override opt.bmc1_unsat_core_children)));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
@@ -2178,10 +2332,18 @@ let inst_options_str_list opt =
    (inst_lit_sel_str, (inst_lit_sel_type_to_str opt.inst_lit_sel));
    (inst_solver_per_active_str, (string_of_int opt.inst_solver_per_active));
    (inst_solver_per_clauses_str, (string_of_int opt.inst_solver_per_clauses));
-   (inst_pass_queue1_str, (pass_queue_type_to_str opt.inst_pass_queue1));
-   (inst_pass_queue2_str, (pass_queue_type_to_str opt.inst_pass_queue2));
-   (inst_pass_queue1_mult_str, (string_of_int opt.inst_pass_queue1_mult));
-   (inst_pass_queue2_mult_str, (string_of_int opt.inst_pass_queue2_mult));
+   (inst_pass_queue1_str, 
+    (pass_queue_type_to_str (val_of_override opt.inst_pass_queue1)));
+   (inst_pass_queue2_str, 
+    (pass_queue_type_to_str (val_of_override opt.inst_pass_queue2)));
+   (inst_pass_queue3_str, 
+    (pass_queue_type_to_str (val_of_override opt.inst_pass_queue3)));
+   (inst_pass_queue1_mult_str, 
+    (string_of_int (val_of_override opt.inst_pass_queue1_mult)));
+   (inst_pass_queue2_mult_str, 
+    (string_of_int (val_of_override opt.inst_pass_queue2_mult)));
+   (inst_pass_queue3_mult_str, 
+    (string_of_int (val_of_override opt.inst_pass_queue3_mult)));
    (inst_dismatching_str, (string_of_bool opt.inst_dismatching));
    (inst_eager_unprocessed_to_passive_str, (string_of_bool opt.inst_eager_unprocessed_to_passive));
    (inst_prop_sim_given_str, (string_of_bool opt.inst_prop_sim_given));
@@ -2362,13 +2524,26 @@ let strip_conj_named_opt named_opt =
   let new_opt = 
     {named_opt.options with      
 
-     inst_lit_sel = strip_conj_lit_type_list named_opt.options.inst_lit_sel;
+     inst_lit_sel = 
+	strip_conj_lit_type_list named_opt.options.inst_lit_sel;
      
      inst_pass_queue1 = 
-     strip_conj_clause_type_list named_opt.options.inst_pass_queue1;
+	override_value 
+	  named_opt.options.inst_pass_queue1
+	  (strip_conj_clause_type_list 
+	     (val_of_override named_opt.options.inst_pass_queue1));
 
      inst_pass_queue2 = 
-     strip_conj_clause_type_list named_opt.options.inst_pass_queue2;
+	override_value 
+	  named_opt.options.inst_pass_queue2
+	  (strip_conj_clause_type_list 
+	     (val_of_override named_opt.options.inst_pass_queue2));
+     
+     inst_pass_queue3 = 
+	override_value 
+	  named_opt.options.inst_pass_queue3
+	  (strip_conj_clause_type_list 
+	     (val_of_override named_opt.options.inst_pass_queue3));
      
      res_pass_queue1 = 
      strip_conj_clause_type_list named_opt.options.res_pass_queue1;
@@ -2395,11 +2570,17 @@ let named_opt_to_many_axioms_named_opt1 opt =
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
 
-	inst_pass_queue1     = [Cl_Conj_Dist false; 
-				Cl_Has_Non_Prolific_Conj_Symb true; 
-				Cl_Num_of_Var false];
-	inst_pass_queue1_mult          = 1000;
-	inst_pass_queue2_mult          = 2;
+	inst_pass_queue1 = 
+	   ValueDefault
+	     [Cl_Conj_Dist false; 
+	      Cl_Has_Non_Prolific_Conj_Symb true; 
+	      Cl_Num_of_Var false];
+
+	inst_pass_queue1_mult          = ValueDefault 1000;
+	inst_pass_queue2_mult          = ValueDefault 2;
+
+	inst_pass_queue3 = ValueDefault [];
+	inst_pass_queue3_mult = ValueDefault 0;
 
 	res_pass_queue1     =  [Cl_Conj_Dist false; 
 				Cl_Has_Non_Prolific_Conj_Symb true;
@@ -2427,17 +2608,22 @@ let named_opt_to_many_axioms_named_opt2 opt =
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
 
-	inst_pass_queue1     = [Cl_Conj_Dist false; 
-				Cl_Has_Non_Prolific_Conj_Symb true; 
-				(*Cl_Max_Atom_Input_Occur false;*)
-				Cl_Num_of_Var false];
-
+	inst_pass_queue1 = 
+	   ValueDefault 
+	     [Cl_Conj_Dist false; 
+	      Cl_Has_Non_Prolific_Conj_Symb true; 
+	      (*Cl_Max_Atom_Input_Occur false;*)
+	      Cl_Num_of_Var false];
+	
 (*	inst_solver_per_active         = 200;
 	inst_solver_per_clauses        = 1000;
  *)
 
-	inst_pass_queue1_mult          = 1000;
-	inst_pass_queue2_mult          = 2;
+	inst_pass_queue1_mult          = ValueDefault 1000;
+	inst_pass_queue2_mult          = ValueDefault 2;
+
+	inst_pass_queue3 = ValueDefault [];
+	inst_pass_queue3_mult = ValueDefault 0;
 
 	inst_prop_sim_given               = false;
 	inst_prop_sim_new                 = false;
@@ -2479,11 +2665,18 @@ let named_opt_to_many_axioms_named_opt3 opt =
 	prolific_symb_bound     = 500; 
 	lt_threshold            = 2000;
 
-	inst_pass_queue1     = [Cl_Conj_Dist false; 
-				Cl_Has_Non_Prolific_Conj_Symb true; 
-				Cl_Num_of_Var false;Cl_Max_Atom_Input_Occur false];
-	inst_pass_queue1_mult          = 1000;
-	inst_pass_queue2_mult          = 2;
+	inst_pass_queue1 = 
+	   ValueDefault 
+	     [Cl_Conj_Dist false; 
+	      Cl_Has_Non_Prolific_Conj_Symb true; 
+	      Cl_Num_of_Var false;
+	      Cl_Max_Atom_Input_Occur false];
+
+	inst_pass_queue1_mult          = ValueDefault 1000;
+	inst_pass_queue2_mult          = ValueDefault 2;
+
+	inst_pass_queue3 = ValueDefault [];
+	inst_pass_queue3_mult = ValueDefault 0;
 
 	res_pass_queue1     =  [Cl_Conj_Dist false; 
 				Cl_Has_Non_Prolific_Conj_Symb true;
@@ -2551,6 +2744,7 @@ let option_1 () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -2564,13 +2758,25 @@ let option_1 () = {
 
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
-  inst_pass_queue1               = [Cl_Conj_Dist false; Cl_Has_Conj_Symb true;
-				    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Conj_Dist false; 
+       Cl_Has_Conj_Symb true;
+       Cl_Num_of_Var false]; 
+
+  inst_pass_queue2 = 
+    ValueDefault
+      [Cl_Age true; 
+       Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 2;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 2;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
+
   inst_dismatching               = true;
   inst_eager_unprocessed_to_passive = true;
   inst_prop_sim_given               = false;
@@ -2635,10 +2841,18 @@ let named_option_1_1 () =
 let option_1_2 () = {(input_options) with 
 		
 
-  inst_pass_queue1               = [Cl_Conj_Dist false; Cl_Has_Conj_Symb true;
-				    Cl_EPR true;
-				    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Conj_Dist false; 
+       Cl_Has_Conj_Symb true;
+       Cl_EPR true;
+       Cl_Num_of_Var false]; 
+
+  inst_pass_queue2 = 
+    ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
 
   res_pass_queue1                =  [Cl_Conj_Dist false; Cl_Has_Conj_Symb true;
 				     Cl_Horn true;
@@ -2705,6 +2919,7 @@ let option_2 () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -2718,12 +2933,23 @@ let option_2 () = {
 
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
-  inst_pass_queue1               = [Cl_Num_of_Symb false; Cl_Num_of_Var false;Cl_Conj_Dist false; Cl_Has_Conj_Symb true]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Num_of_Symb false; 
+       Cl_Num_of_Var false;
+       Cl_Conj_Dist false; 
+       Cl_Has_Conj_Symb true]; 
+
+  inst_pass_queue2 = ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 2;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 2;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
+
   inst_dismatching               = true;
   inst_eager_unprocessed_to_passive = true;
   inst_prop_sim_given               = false;
@@ -2831,6 +3057,7 @@ let option_3 () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -2843,12 +3070,22 @@ let option_3 () = {
 
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
-  inst_pass_queue1               = [Cl_Num_of_Symb false; Cl_Conj_Dist false; Cl_Has_Conj_Symb true]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Num_of_Symb false; 
+       Cl_Conj_Dist false; 
+       Cl_Has_Conj_Symb true]; 
+
+  inst_pass_queue2 = ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 2;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 2;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
+
   inst_dismatching               = true;
   inst_eager_unprocessed_to_passive = true;
   inst_prop_sim_given               = false;
@@ -2953,6 +3190,7 @@ let option_4 () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -2965,12 +3203,19 @@ let option_4 () = {
 
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
-  inst_pass_queue1               = [Cl_Has_Conj_Symb true; Cl_Num_of_Symb false ]; 
-  inst_pass_queue2               = [Cl_Age true;];
+
+  inst_pass_queue1 = 
+    ValueDefault [Cl_Has_Conj_Symb true; Cl_Num_of_Symb false ]; 
+
+  inst_pass_queue2 = ValueDefault [Cl_Age true;];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 10;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 10;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
+
   inst_dismatching               = true;
   inst_eager_unprocessed_to_passive = true;
   inst_prop_sim_given               = false;
@@ -3085,6 +3330,7 @@ let option_finite_models () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3109,12 +3355,19 @@ let option_finite_models () = {
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
 
-  inst_pass_queue1               = [Cl_Num_of_Var false;Cl_Num_of_Symb false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+  inst_pass_queue1 = 
+    ValueDefault [Cl_Num_of_Var false;Cl_Num_of_Symb false]; 
+
+  inst_pass_queue2 = 
+    ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 20;
-  inst_pass_queue2_mult          = 10;
+  inst_pass_queue1_mult          = ValueDefault 20;
+  inst_pass_queue2_mult          = ValueDefault 10;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
+
   inst_dismatching               = true;
   inst_eager_unprocessed_to_passive = true;
 
@@ -3213,6 +3466,7 @@ let option_epr_non_horn () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3235,15 +3489,21 @@ let option_epr_non_horn () = {
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1               = [Cl_Conj_Dist false;
-                                    Cl_Has_Conj_Symb true;
-	(*			    Cl_Ground true;*)
-                                    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Conj_Dist false;
+       Cl_Has_Conj_Symb true;
+       (* Cl_Ground true;*)
+       Cl_Num_of_Var false]; 
+  
+  inst_pass_queue2 = ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 20;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 20;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
 
 (* befor ok inst_dismatching               = false;*)
   inst_dismatching               = false;
@@ -3462,6 +3722,7 @@ let option_epr_horn () = {
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3476,14 +3737,22 @@ let option_epr_horn () = {
 
   inst_solver_per_active         = 750;
   inst_solver_per_clauses        = 5000;
-  inst_pass_queue1               = [Cl_Conj_Dist false;
-                                    Cl_Has_Conj_Symb true;
-                                    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+
+  inst_pass_queue1 = 
+    ValueDefault
+      [Cl_Conj_Dist false;
+       Cl_Has_Conj_Symb true;
+       Cl_Num_of_Var false]; 
+
+  inst_pass_queue2 = 
+    ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 5;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 5;
+
+  inst_pass_queue3 = ValueDefault [];
+  inst_pass_queue3_mult = ValueDefault 0;
 
   inst_dismatching               = true;
 (*  inst_dismatching               =  !current_options.inst_dismatching;*)
@@ -3710,6 +3979,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3731,16 +4001,26 @@ let option_verification_epr ver_epr_opt =
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1               = [Cl_in_unsat_core true;
-				    Cl_Conj_Dist false;
-                                    Cl_Has_Conj_Symb true;
-	(*			    Cl_Ground true;*)
-                                    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+  inst_pass_queue1 =
+	  ValueDefault
+	    [Cl_Conj_Dist false;
+             Cl_Has_Conj_Symb true;
+	     (* Cl_Ground true;*)
+             Cl_Num_of_Var false]; 
+  
+  inst_pass_queue2 =
+	  ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = 25;
-  inst_pass_queue2_mult          = 20;
+  inst_pass_queue1_mult          = ValueDefault 25;
+  inst_pass_queue2_mult          = ValueDefault 20;
+
+  inst_pass_queue3 = 
+	  ValueDefault [Cl_in_unsat_core true; 
+			Cl_Age true; 
+			Cl_Num_of_Symb false];
+
+  inst_pass_queue3_mult = ValueDefault 20;
 
 (* befor ok inst_dismatching               = false;*)
   inst_dismatching               = false;
@@ -3840,6 +4120,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3861,15 +4142,28 @@ let option_verification_epr ver_epr_opt =
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1               = [Cl_in_unsat_core true;
-				    Cl_Conj_Dist false;
-                                    Cl_Has_Conj_Symb true;
-	(*			    Cl_Ground true;*)
-                                    Cl_Num_of_Var false]; 
-  inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];
+  inst_pass_queue1 =
+       ValueDefault 
+	 [Cl_Conj_Dist false;
+          Cl_Has_Conj_Symb true;
+	  (* Cl_Ground true;*)
+          Cl_Num_of_Var false]; 
 
-(*"[+age;-num_symb]";*) inst_pass_queue1_mult = 25;
-  inst_pass_queue2_mult = 20;
+  inst_pass_queue2 =
+       ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
+
+(*"[+age;-num_symb]";*) 
+  
+  inst_pass_queue1_mult = ValueDefault 25;
+  inst_pass_queue2_mult = ValueDefault 20;
+
+  inst_pass_queue3 = 
+       ValueDefault 
+	 [Cl_in_unsat_core true; 
+	  Cl_Age true; 
+	  Cl_Num_of_Symb false];
+
+  inst_pass_queue3_mult = ValueDefault 20;
 
 (* befor ok inst_dismatching               = false;*)
 (*  inst_dismatching               = false;*)
@@ -3968,6 +4262,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
   bmc1_add_unsat_core     = ValueDefault true;
+  bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -4000,7 +4295,7 @@ let option_verification_epr ver_epr_opt =
 
 
 
-       inst_pass_queue1               = 
+       inst_pass_queue1 = 
 (*
   [Cl_Conj_Dist false;
 					 Cl_Has_Conj_Symb true;
@@ -4011,31 +4306,44 @@ let option_verification_epr ver_epr_opt =
    (*[Cl_min_defined_symb false; Cl_Age true;Cl_Num_of_Symb false];
 *)  
 
-	  [ Cl_in_unsat_core true;
-	    Cl_min_defined_symb false;
-	    Cl_Conj_Dist false;
-	    Cl_Has_Conj_Symb true;
-	    Cl_has_bound_constant true; 
-	    (* Cl_Has_Eq_Lit false;*)
-	    (* Cl_Ground true;*)
-	    Cl_Num_of_Var false; 
-(* Cl_min_defined_symb false;*)]; 
+	  ValueDefault
+	    [ Cl_min_defined_symb false;
+	      Cl_Conj_Dist false;
+	      Cl_Has_Conj_Symb true;
+	      Cl_has_bound_constant true; 
+	      (* Cl_Has_Eq_Lit false;*)
+	      (* Cl_Ground true;*)
+	      Cl_Num_of_Var false; 
+	    (* Cl_min_defined_symb false;*)
+	    ]; 
        
-  (*     inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];*)
-       inst_pass_queue2 = 
-	  [ Cl_Age true; 
-	    Cl_min_defined_symb false; 
-	    (*Cl_min_defined_symb false;*) 
-	    Cl_Num_of_Symb false ];
+       (*     inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];*)
 
+       inst_pass_queue2 = 
+	  ValueDefault
+	    [ Cl_Age true; 
+	      Cl_min_defined_symb false; 
+	      (*Cl_min_defined_symb false;*) 
+	      Cl_Num_of_Symb false ];
+       
 (*"[+age;-num_symb]";*)
 (*       inst_pass_queue1_mult          = 100;*)
-       inst_pass_queue1_mult          = 25;
-       inst_pass_queue2_mult          = 20;
+
+       inst_pass_queue1_mult          = ValueDefault 25;
+       inst_pass_queue2_mult          = ValueDefault 20;
 (*
          inst_pass_queue1_mult           = !current_options.inst_pass_queue1_mult;
          inst_pass_queue2_mult           = !current_options.inst_pass_queue2_mult;
 *)
+
+       inst_pass_queue3 = 
+	  ValueDefault 
+	    [Cl_in_unsat_core true; 
+	     Cl_Age true; 
+	     Cl_Num_of_Symb false];
+
+       inst_pass_queue3_mult = ValueDefault 20;
+
 (* befor ok inst_dismatching               = false;*)
 (*       inst_dismatching               = false;*)
        inst_dismatching               = true;

@@ -46,39 +46,42 @@ let in_subset_subsumption_index  = 4
 let in_subsumption_index         = 5
 let in_prop_solver               = 6 
 let inst_in_sim_passive          = 7
+
 let inst_pass_queue1             = 8
 let inst_pass_queue2             = 9
-let res_sel_max                  = 10
-let res_pass_queue1              = 11
-let res_pass_queue2              = 12
-let res_in_sim_passive           = 13
-let eq_axiom                     = 14
+let inst_pass_queue3             = 10
+
+let res_sel_max                  = 11
+let res_pass_queue1              = 12
+let res_pass_queue2              = 13
+let res_in_sim_passive           = 14
+let eq_axiom                     = 15
 (* input_under_eq  is true if a clause is (i) is a eq axiom or (ii) input   *)
 (* or (iii) obtained from input by some number of inferences with eq axioms *)
 (* so it is false for a cluase  obtained by an inference with two clauses   *)
 (* which are both non equality                                              *)
-let input_under_eq               = 15
+let input_under_eq               = 16
 
-let has_eq_lit_param             = 16
+let has_eq_lit_param             = 17
 (* history how the clause is obtained*)
-let has_conj_symb                = 17
+let has_conj_symb                = 18
 
-let has_bound_constant           = 18
-let has_non_prolific_conj_symb   = 19
+let has_bound_constant           = 19
+let has_non_prolific_conj_symb   = 20
 
 (* if used in simplifications then simplifying is true                            *)
 (* used in orphan elimination since we can eliminate only non-simplifying cluases *)
-let res_simplifying                  = 20
+let res_simplifying                  = 21
 
-let large_ax_considered              = 21
+let large_ax_considered              = 22
 
-let ground                           = 22 
+let ground                           = 23 
 
-let horn                             = 23
+let horn                             = 24
 
-let epr                              = 24
+let epr                              = 25
 
-let in_unsat_core                    = 25
+let in_unsat_core                    = 26
 
 (*---------End bool params-------------*)
 

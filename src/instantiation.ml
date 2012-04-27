@@ -206,24 +206,121 @@ let add_new_clause_to_sp clause =
 (* total comparison  for clauses!----*)
 (* Heap.ImperativeEq does not work yet..... *)
 
+(* Creating an n-ary priority queue *)
 
+(* A module for the type of elements in the queue *)
+module Elem0 = 
+struct 
+  type t = clause 
+end 
+
+(* Create a module for n-ary priority queues of clauses *)
+module PassiveQueue = Priority_queues.QueueN(Elem0)
+
+(* TODO: make this generic, that is, modify options to pass an
+   aritrary number of priority queues and then create these modules at
+   runtime *)
+
+(* Create a Priority_queues.ElemN module *)
+let create_elem compare in_queue assign_in_queue mult = 
+
+  (* Create a module from given parameters *)
+  let module ElemN = 
+      struct
+	type t = clause 
+	let compare = compare 
+	let in_queue = in_queue 
+	let assign_in_queue = assign_in_queue 
+	let mult = mult 
+      end
+  in
+  
+  (* Return module *)
+  (module ElemN : Priority_queues.ElemN with type t = clause) 
+    
+
+(* Initial capacity of a passive queue *)
+let init_capacity_priority = 10001
+
+
+
+(* Create a passive queue 
+
+   TODO: make this generic, that is, modify options and clause
+   parameters to define an aritrary number of priority queues *)
+let create_passive_queue init_capacity =
+  (PassiveQueue.create 
+     
+     (* Initial capacity of each queue *)
+     init_capacity
+     
+     (* A list of ElemN modules *)
+     [
+
+       (* First passive queue *)
+       create_elem 
+	 (fun c1 c2 -> 
+	   Clause.cl_cmp_type_list_to_lex_fun
+	     (val_of_override !current_options.inst_pass_queue1)
+	     c1
+	     c2)
+	 (fun c -> 
+	   Clause.get_bool_param Clause.inst_pass_queue1 c)
+	 (fun b c -> 
+	   Clause.set_bool_param b Clause.inst_pass_queue1 c)
+	 (val_of_override !current_options.inst_pass_queue1_mult);
+       
+       (* Second passive queue *)
+       create_elem 
+	 (fun c1 c2 -> 
+	   Clause.cl_cmp_type_list_to_lex_fun
+	     (val_of_override !current_options.inst_pass_queue2)
+	     c1
+	     c2)
+	 (fun c -> 
+	   Clause.get_bool_param Clause.inst_pass_queue2 c)
+	 (fun b c -> 
+	   Clause.set_bool_param b Clause.inst_pass_queue2 c)
+	 (val_of_override !current_options.inst_pass_queue2_mult);
+	 
+       (* Third passive queue, use mult = 0 to deactivate a queue *)
+       create_elem 
+	 (fun c1 c2 -> 
+	   Clause.cl_cmp_type_list_to_lex_fun
+	     (val_of_override !current_options.inst_pass_queue3)
+	     c1
+	     c2)
+	 (fun c -> 
+	   Clause.get_bool_param Clause.inst_pass_queue3 c)
+	 (fun b c -> 
+	   Clause.set_bool_param b Clause.inst_pass_queue3 c)
+	 (val_of_override !current_options.inst_pass_queue3_mult)
+	 
+     ])
+    
+    
+
+let passive_queue_ref = ref (create_passive_queue init_capacity_priority)
+	     
+
+(*
 module Elem = 
-  struct
-    type t = clause 
+struct
+  type t = clause 
 
-    let compare1  = (Clause.cl_cmp_type_list_to_lex_fun 
-		      !current_options.inst_pass_queue1)
-    let in_queue1 = Clause.get_bool_param Clause.inst_pass_queue1 
-    let assign_in_queue1 b c = 
-      Clause.set_bool_param b Clause.inst_pass_queue1 c
-    let mult1    = !current_options.inst_pass_queue1_mult
+  let compare1  = (Clause.cl_cmp_type_list_to_lex_fun 
+		     !current_options.inst_pass_queue1)
+  let in_queue1 = Clause.get_bool_param Clause.inst_pass_queue1 
+  let assign_in_queue1 b c = 
+    Clause.set_bool_param b Clause.inst_pass_queue1 c
+  let mult1    = !current_options.inst_pass_queue1_mult
 
-    let compare2  = (Clause.cl_cmp_type_list_to_lex_fun 
-		      !current_options.inst_pass_queue2)
-    let in_queue2 = Clause.get_bool_param Clause.inst_pass_queue2 
-    let assign_in_queue2 b c = 
-      Clause.set_bool_param b Clause.inst_pass_queue2 c
-    let mult2    = !current_options.inst_pass_queue2_mult
+  let compare2  = (Clause.cl_cmp_type_list_to_lex_fun 
+		     !current_options.inst_pass_queue2)
+  let in_queue2 = Clause.get_bool_param Clause.inst_pass_queue2 
+  let assign_in_queue2 b c = 
+    Clause.set_bool_param b Clause.inst_pass_queue2 c
+  let mult2    = !current_options.inst_pass_queue2_mult
 
 end
 
@@ -233,9 +330,12 @@ module  PassiveQueue = Priority_queues.Queue2(Elem)
 
 let passive_queue_ref = ref (PassiveQueue.create init_capacity_priority)
 
+*)
+
+
 let () = assign_fun_stat 
-    (fun () -> PassiveQueue.num_elem !passive_queue_ref) 
-    inst_num_in_passive
+  (fun () -> PassiveQueue.num_elem !passive_queue_ref) 
+  inst_num_in_passive
 
 (* if we find that passive queue is empty then we need to clean it: *)
 (* (done by PassiveQueue.clean) *)
@@ -251,7 +351,7 @@ let add_to_passive clause =
   if(Clause.get_bool_param Clause.is_dead clause)
   then ()
   else
-    PassiveQueue.add !passive_queue_ref clause
+    PassiveQueue.add_all !passive_queue_ref clause
 
 exception Passive_Empty 
 let rec remove_from_passive () = 
@@ -1348,7 +1448,7 @@ let clear_all () =
        ("Instantiation_Clauses_DB"));   
 
 (* clear passive_queue *)
-  passive_queue_ref:= PassiveQueue.create 1;
+  passive_queue_ref:= create_passive_queue 1;
   
  (* empty unif index *)
   unif_index_ref  :=  (DiscrTreeM.create ());

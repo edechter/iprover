@@ -98,6 +98,7 @@ val in_prop_solver               : clause_bool_param
 val inst_in_sim_passive          : clause_bool_param 
 val inst_pass_queue1             : clause_bool_param 
 val inst_pass_queue2             : clause_bool_param 
+val inst_pass_queue3             : clause_bool_param 
 val res_pass_queue1              : clause_bool_param 
 val res_pass_queue2              : clause_bool_param 
 val res_in_sim_passive           : clause_bool_param 
