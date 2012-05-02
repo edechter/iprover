@@ -287,6 +287,25 @@ let assign_db_id = function
     (function db_id -> clause.db_id <- Def(db_id))
 
 
+(* Identifier for next clause that is not in a clause database *)
+let clause_next_tmp_fast_key = ref 1 
+
+let assign_temp_key = function
+
+  (* Only if fast key and database are not defined *)
+  | { db_id = Undef; fast_key = Undef } as clause -> 
+    
+    (* Assign a fast key in an undefined clause database *)
+    clause.fast_key <- Def !clause_next_tmp_fast_key;
+    clause.db_id <- Undef;
+
+    (* Increment identifier for next clause without a fast key *)
+    clause_next_tmp_fast_key := succ !clause_next_tmp_fast_key;
+
+  (* Fail if fast key is defined *)
+  | _ -> raise Clause_fast_key_is_def
+
+
 exception Clause_prop_solver_id_is_def
 exception Clause_prop_solver_id_is_undef
 
@@ -388,9 +407,6 @@ let to_stream s clause =
   s.stream_add_char '}'
 
 
-(* Identifier for next clause that is not in a clause database *)
-let clause_next_tmp_fast_key = ref 1 
-
 (* Print the name of a clause
 
    Clauses are named [c_n], where [n] is the identifier (fast_key) of
@@ -414,12 +430,8 @@ let rec pp_clause_name ppf = function
   (* Clause does not have a fast key *)
   | { fast_key = Undef } as clause -> 
 
-    (* Assign a fast key in an undefined clause database *)
-    clause.fast_key <- Def !clause_next_tmp_fast_key;
-    clause.db_id <- Undef;
-
-    (* Increment identifier for next clause without a fast key *)
-    clause_next_tmp_fast_key := succ !clause_next_tmp_fast_key;
+    (* Assign a temporary key for clause *)
+    assign_temp_key clause;
 
     (* Print name of clause *)
     pp_clause_name ppf clause 
@@ -1127,22 +1139,110 @@ let assign_split_history concl parent =
 module ClauseHashed =
 struct
   type t = clause
-  let hash c = 
-    List.fold_left 
-      (fun a t -> hash_sum a (Term.get_fast_key t))
-      0
-      c.literals
-  let compare c1 c2 = compare_literals c1 c2
+
+  let rec hash = function 
+
+    (* Use key if defined *)
+    | { fast_key = Def k } -> k
+
+    (* Assign key and hash otherwise *)
+    | _ as clause ->
+
+      (* Assign temporary key to clause and use this key *)
+      assign_temp_key clause; hash clause
+
+  let rec compare = function 
+
+    (* First clause is in a database with fast key assigned *)
+    | { db_id = Def d1; fast_key = Def k1 } -> 
+
+      (
+
+	function 
+	
+	  (* Second clause is in a database with fast key assigned *)
+	  | { db_id = Def d2; fast_key = Def k2 } -> 
+	  
+	    (* Compare databases and keys lexicographically *)
+	    pair_compare_lex 
+	      Pervasives.compare 
+	      Pervasives.compare 
+	      (d1, k1) 
+	      (d2, k2)
+
+	  (* Second clause is in a database without a fast key *)
+	  | { db_id = Def d2; fast_key = Undef } -> 
+	  
+	    (* Clauses in a database must have a fast key *)
+	    raise Clause_fast_key_undef
+	    
+	  (* Second clause is not in a database *)
+	  | { db_id = Undef } -> 
+
+	    (* Clauses in a database are greater *)
+	    1
+	      
+      )
+
+    (* First clause is in a database without a fast key *)
+    | { db_id = Def d1; fast_key = Undef } -> 
+
+      (* Clauses in a database must have a fast key *)
+      raise Clause_fast_key_undef
+
+    (* First clause is not in a database, but has temporary key *)
+    | { db_id = Undef; fast_key = Def k1 } as c1 -> 
+      
+      (
+
+	function 
+
+	  (* Second clause is in a database with fast key assigned *)
+	  | { db_id = Def _; fast_key = Def _ } -> 
+	    
+	    (* Clauses in a database are greater *)
+	    -1
+	      
+	  (* Second clause is in a database without a fast key *)
+	  | { db_id = Def _; fast_key = Undef } -> 
+	  
+	    (* Clauses in a database must have a fast key *)
+	    raise Clause_fast_key_undef
+
+	  (* Second clause is not in a database but has a temporary key *)
+	  | { db_id = Undef; fast_key = Def k2 } -> 
+
+	    (* Compare temporary fast keys *)
+	    Pervasives.compare k1 k2
+
+	  (* Second clause is not in a database and has no temporary key *)
+	  | { db_id = Undef; fast_key = Undef } as c2 -> 
+	    
+	    (* Assign temporary key to clause and compare again *)
+	    assign_temp_key c2; compare c1 c2
+
+      )
+
+    (* First clause is not in a database and has no temporary key *)
+    | { db_id = Undef; fast_key = Undef } as c1 -> 
+      
+      function c2 -> 
+      
+	(* Assign temporary key to clause and compare again *)
+	assign_temp_key c1; compare c1 c2
+
+
   let equal c1 c2 = (compare c1 c2) = 0
+
 end
 
 module ClauseHashtbl = Hashtbl.Make(ClauseHashed)
 
 (*
 
-let rec get_history_parents' visited accum = function
-    
-  (* No more clause histories to recurse *)
+  let rec get_history_parents' visited accum = function
+  
+(* No more clause histories to recurse *)
   | [] -> accum
       
   (* Clause already seen *)

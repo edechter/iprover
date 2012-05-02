@@ -617,6 +617,7 @@ type options = {
     mutable bmc1_unsat_core_children : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
+    mutable bmc1_out_unsat_core   : bool override;
     mutable bmc1_verbose          : bool override;
     mutable bmc1_dump_clauses_tptp : bool override;
     mutable bmc1_dump_unsat_core_tptp : bool override;
@@ -725,6 +726,7 @@ let default_options () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp  = ValueDefault false;
@@ -846,6 +848,10 @@ let set_new_current_options o =
       (* Only override defaults *)
       bmc1_out_stat = 
 	override o.bmc1_out_stat !current_options.bmc1_out_stat;
+      
+      (* Only override defaults *)
+      bmc1_out_unsat_core = 
+	override o.bmc1_out_unsat_core !current_options.bmc1_out_unsat_core;
       
       (* Only override defaults *)
       bmc1_verbose = 
@@ -1424,6 +1430,18 @@ let bmc1_out_stat_fun str =
 let bmc1_out_stat_inf  =
   bmc1_out_stat_type_list_str^
     inf_pref^"output no statistics, after the last bound only or after each bound (full)\n"
+
+(*--------*)
+
+let bmc1_out_unsat_core_str = "--bmc1_out_unsat_core" 
+
+let bmc1_out_unsat_core_fun b =
+  !current_options.bmc1_out_unsat_core <- 
+    override_cmd b !current_options.bmc1_out_unsat_core
+
+let bmc1_out_unsat_core_inf  =
+  bool_str^
+  inf_pref^"output unsat core for each bound in BMC1\n" 
 
 (*--------*)
 
@@ -2148,6 +2166,10 @@ let spec_list =
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
 
+   (bmc1_out_unsat_core_str, 
+    Arg.Bool(bmc1_out_unsat_core_fun),
+    bmc1_out_unsat_core_inf);
+
    (bmc1_dump_clauses_tptp_str, 
     Arg.Bool(bmc1_dump_clauses_tptp_fun),
     bmc1_dump_clauses_tptp_inf);
@@ -2317,6 +2339,8 @@ let bmc1_options_str_list opt =
     (string_of_bool (val_of_override opt.bmc1_unsat_core_children)));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
+   (bmc1_out_unsat_core_str,
+    (string_of_bool (val_of_override opt.bmc1_out_unsat_core)));
    (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
    (bmc1_dump_clauses_tptp_str,
     (string_of_bool (val_of_override opt.bmc1_dump_clauses_tptp)));
@@ -2746,6 +2770,7 @@ let option_1 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -2921,6 +2946,7 @@ let option_2 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -3059,6 +3085,7 @@ let option_3 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -3192,6 +3219,7 @@ let option_4 () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -3332,6 +3360,7 @@ let option_finite_models () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -3468,6 +3497,7 @@ let option_epr_non_horn () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -3724,6 +3754,7 @@ let option_epr_horn () = {
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -3981,6 +4012,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -4122,6 +4154,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault false;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;
@@ -4264,6 +4297,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_add_unsat_core     = ValueDefault true;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
   bmc1_dump_unsat_core_tptp = ValueDefault false;

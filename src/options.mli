@@ -194,6 +194,7 @@ type options = {
     mutable bmc1_unsat_core_children : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
+    mutable bmc1_out_unsat_core   : bool override;
     mutable bmc1_verbose          : bool override;
     mutable bmc1_dump_clauses_tptp : bool override;
     mutable bmc1_dump_unsat_core_tptp : bool override;

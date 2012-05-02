@@ -1338,18 +1338,6 @@ let rec main clauses finite_model_clauses =
 	    (List.length unsat_core_parents) 
 	    bmc1_unsat_core_parents_size;
 
-	  (*
-	    List.fold_left 
-	    (fun a c -> 
-	    List.fold_left 
-	    (fun a' c' -> if List.memq c' a' then a' else (c' :: a'))
-	    a
-	    (Clause.get_history_parents c))
-	    []
-	    unsat_core_clauses
-	    in
-	  *)
-
 	  let end_time = Unix.gettimeofday () in
 	  
 	  if 
@@ -1369,11 +1357,34 @@ let rec main clauses finite_model_clauses =
 	      
 	      (* Print parents of unsat core *)
 	      Format.printf 
-		"@\n%sUnsat core parents has size %d@\n@\n%a@." 
+		"@\n%sUnsat core parents has size %d@\n@." 
 		pref_str
 		(List.length unsat_core_parents)
-		(pp_any_list Clause.pp_clause "\n") unsat_core_parents
-		
+
+	    );
+
+	  if 
+	    
+	    (* Verbose output for BMC1?*)
+	    val_of_override !current_options.bmc1_out_unsat_core
+
+	  then 
+	    
+	    (
+	      
+	      (* Start proof output *)
+	      Format.printf "@\n%% SZS output start ListOfCNF@\n@.";
+	      
+	      (* Output clauses *)
+	      List.iter 
+		(Format.printf 
+		   "%a@." 
+		   TstpProof.pp_clause_with_source)
+	      unsat_core_parents;
+	      
+	      (* End proof output *)
+	      Format.printf "%% SZS output end ListOfCNF@\n@."
+
 	    );
 	  
 	  if 
