@@ -169,8 +169,9 @@ type options = {
     mutable clausify_out          : bool;
     mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
+    mutable sub_typing            : bool;
     mutable brand_transform       : bool;
-    
+
 (*---Large Theories---------------*)
     mutable large_theory_mode     : bool;
     mutable prolific_symb_bound   : int;

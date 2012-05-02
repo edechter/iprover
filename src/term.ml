@@ -723,6 +723,7 @@ let arg_return_g_if_f2 = list_return_g_if_f2
 let arg_find_not_equal = list_find_not_equal
 
 let arg_to_list x = x
+let list_to_arg x = x
 
 let is_empty_args x = (x=[])
 

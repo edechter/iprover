@@ -17,4 +17,4 @@
 
 type clause = Clause.clause 
 
-val sub_type_inf : clause list -> unit
+val sub_type_inf : clause list -> clause list

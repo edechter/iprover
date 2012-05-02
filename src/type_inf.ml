@@ -43,8 +43,9 @@ type sub_type =
    }
 
 let sub_type_to_str st = 
-   (Symbol.to_string st.arg_type)^"_"
+   "$$iProver"^"_"
   ^(Symbol.to_string st.sym)^"_"
+  ^(Symbol.to_string st.arg_type)^"_"
   ^(string_of_int st.arg_ind)
 
 let create_sub_type sym arg_ind arg_type = 
@@ -53,6 +54,15 @@ let create_sub_type sym arg_ind arg_type =
    arg_ind = arg_ind;
    arg_type = arg_type;
  }
+
+let sub_type_to_type st = 
+ let st_name = sub_type_to_str st in
+(* we use the same functions as in parsing *)
+ let st = Parser_types.ttf_atomic_type_fun st_name in
+ Symbol.assign_is_essential_input true st;
+ st
+
+
 
 (* sub_type element of union find*)
 
@@ -67,8 +77,7 @@ module SubTypeE =
 	&&
       (t1.arg_type == t2.arg_type) 
 
-    let hash t = ((Symbol.get_fast_key t.sym) lsl 5) + t.arg_ind
-	
+    let hash t = ((Symbol.get_fast_key t.sym) lsl 5) + t.arg_ind	
   end
     
 module UF_ST = Union_find.Make(SubTypeE)
@@ -81,7 +90,7 @@ type context =
     {
      uf : UF_ST.t;
      
-(*types with X=Y, X=t, t=X are collapsed since all arg_subtypes should be merged *)
+(* types with X=Y, X=t, t=X are collapsed since all arg_subtypes should be merged *)
 (* can be relaxed later *)
 (* collapsed types implicitly override sub_types *)
      mutable collapsed_types : SymSet.t; 
@@ -99,7 +108,16 @@ let get_sym_types sym =
   |_-> failwith "get_sym_types: arg_types should be defined"
 
   
-   
+   (* aux fun *)
+let get_val_type sym =
+  let _arg_types, val_type = get_sym_types sym in 
+  val_type
+
+let get_val_sub_type sym =
+  let val_type = get_val_type sym in
+  let val_sub_type = (create_sub_type sym 0 val_type) in
+  val_sub_type
+
 (*    top_type : sub_type option; *)
 (* f(t_1,t_2) at t_2 we have top_type_top is f_arg_2 *)
 
@@ -111,7 +129,7 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
   let process_args_fun sym args ass_list= 
     let arg_types, _val_type = get_sym_types sym in 
     let arg_list = Term.arg_to_list args in
-    let (_,_,add_ass_list) = 	  
+    let (_,_,add_ass_list) =
       Term.arg_fold_left 
 	(fun (arg_ind,arg_types_rest,ass_list_rest) arg -> 
 	  match arg_types_rest with 
@@ -123,14 +141,9 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
 	(1,arg_types,[]) 
 	args
     in
+(* add_ass_list is reversed but should not matter *)
     let new_ass_list = add_ass_list@ass_list in
     extend_uf_types context vtable new_ass_list
-  in
-(* aux fun *)
-  let get_val_sub_type sym =
-    let _arg_types, val_type = get_sym_types sym in 
-    let val_sub_type = (create_sub_type sym 0 val_type) in
-    val_sub_type
   in
 
 (*----------- main part ---------------*)
@@ -163,46 +176,70 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
       then
 	match atom with 
 	|Term.Fun (_sym, args,_) ->
-
-	    let [type_term_eq; t;s] = Term.arg_to_list args in
-
+	    let (type_term_eq,t,s) = get_triple_from_list (Term.arg_to_list args) in
 	    let eq_v_type = 
 	      try
 		Term.get_top_symb type_term_eq 
 	      with Term.Var_term -> 
-		failwith 
-		  "equality should not have var as the type argument; proabably equality axioms are added which are not needed here"
+		failwith "equality should not have var as the type argument; proabably equality axioms are added which are not needed here"
 	    in
-	    if (not (Term.is_neg_lit atom)) (* positive eq *)
+	    
+(*
+	    if (not (Term.is_neg_lit lit)) (* positive eq *)
 	    then
-		  begin		      
-		    match (t,s) with 
-		    |(Term.Fun(sym1,args1,_),Term.Fun(sym2,args2,_)) ->
-			(
-			 let val_sub_type1 = get_val_sub_type sym1 in
-			 let val_sub_type2 = get_val_sub_type sym2 in	
-	    		 UF_ST.union context.uf val_sub_type1 val_sub_type2;	
-			 process_args_fun sym1 args1 [];
-			 process_args_fun sym2 args2 [];
-			 extend_uf_types context vtable tl_ass
-			)
-			    
+(* for negative eq  more can be done than not putting it into collapsed? *)
+*)
+	    begin		      
+	      match (t,s) with 
+	      |(Term.Fun(sym1,args1,_),Term.Fun(sym2,args2,_)) ->
+		  (
+		   let val_sub_type1 = get_val_sub_type sym1 in
+		   let val_sub_type2 = get_val_sub_type sym2 in	
+		   UF_ST.add context.uf val_sub_type1;
+		   UF_ST.add context.uf val_sub_type2;
+		   (if (not (Term.is_neg_lit lit)) (* positive eq *)
+		   then
+		     (UF_ST.union context.uf val_sub_type1 val_sub_type2;)
+		   else ());
+		   process_args_fun sym1 args1 [];
+		   process_args_fun sym2 args2 [];
+		   extend_uf_types context vtable tl_ass
+		  )
+		    
 (* type collaps cases *)
-		    |(Term.Var (_v, _),Term.Fun(sym,args,_))
-		    |(Term.Fun(sym,args,_),Term.Var (_v, _)) -> 
+		    
+	      |((Term.Var (v, _) as v_term),(Term.Fun(sym,args,_) as f_term))
+	      |((Term.Fun(sym,args,_) as f_term),(Term.Var (v, _) as v_term))
+		->
 			(
-			 context.collapsed_types <-
-			   SymSet.add eq_v_type context.collapsed_types;
-			   (* arguments can be still of a different type  *)
-			 process_args_fun sym args tl_ass
+			 (if (not (Term.is_neg_lit lit)) (* positive eq *)
+			 then
+			   (context.collapsed_types <-
+			     SymSet.add eq_v_type context.collapsed_types;)
+			 else ()
+			 );
+			 (* arguments can be still of a different type  *)
+			 let val_sub_type = get_val_sub_type sym in
+			 
+			 extend_uf_types context vtable [(Some(val_sub_type),v_term)];
+			 extend_uf_types context vtable ((None,f_term)::tl_ass); 
 			)
-		    |(Term.Var(_v1,_),Term.Var (_v2, _)) ->  
-			(context.collapsed_types <-
-			  SymSet.add eq_v_type context.collapsed_types
-			)
-		  end		  
-	    else (* neg equality, as usual pred only in place of top sym is eq_v_type *)	    
-      	      (process_args_fun eq_v_type args tl_ass)
+	      |(Term.Var(v1,_),Term.Var (v2, _)) ->  
+		  (
+(* for negative x!=y we can do smth better (collapsing should be safe in any case) *)
+(* but we can assume that they are eliminated during preprocessing; so do not bother *)
+		   (context.collapsed_types <-
+		     SymSet.add eq_v_type context.collapsed_types;)
+		     
+ (*if (not (Term.is_neg_lit lit)) (* positive eq *)
+			 then
+			   (context.collapsed_types <-
+			     SymSet.add eq_v_type context.collapsed_types;)
+			 else ()
+			 );
+  *)		
+		  )
+	    end	  
 
 		
 	|_-> failwith "extend_uf_types: non-eq 2"
@@ -212,10 +249,10 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
 	    (process_args_fun sym args tl_ass)
 	|_-> failwith "extend_uf_types: var"
 	)
-
+	  
   |[] -> ()
 
-
+	
 let extend_uf_types_clause context clause = 
   let lits = Clause.get_literals clause in 
   let top_sub_type_opt_term_ass_list = 
@@ -251,32 +288,222 @@ let st_nf_to_all_st_table context =
   st_table
 
 
-let sub_type_inf clause_list = 
+(*------------------------------*)
+exception Neg_eq_different_types
+(* if Neg_eq_different_types then the clause is a tautology!*)
+(*we assume that signature already retyped ! *)
 
-    let context = 
+let type_equality_lit context lit =
+  let atom = Term.get_atom lit in
+(* dealing with equality *)
+  if (Term.is_eq_atom atom)  
+  then
+    match atom with 
+    |Term.Fun (_sym, args,info) ->
+	
+	let (type_term_eq, t,s) = get_triple_from_list (Term.arg_to_list args) in
+	
+	let eq_v_type = 
+	  try
+	    Term.get_top_symb type_term_eq 
+	  with Term.Var_term -> 
+	    failwith 
+	      "equality should not have var as the type argument; proabably equality axioms are added which are not needed here"
+	in
+	if (SymSet.mem eq_v_type context.collapsed_types)
+	then		
+	      lit (* do not do anything to collapsed types *)
+	else
+	  begin
+	    match (t,s) with 
+	    |(Term.Fun(sym_t,_args1,_),Term.Fun(sym_s,_args2,_)) ->
+		(
+		 try
+		 (* newtypes of t and s should be the same so we take t  *)
+(*		   out_str (Symbol.to_string sym_t);
+		   out_str (Symbol.to_string sym_s);
+*)
+		   let t_vt = get_val_type sym_t in		 
+		   let s_vt = get_val_type sym_s in
+		   
+(*		   out_str (Symbol.to_string t_vt);
+		   out_str (Symbol.to_string s_vt);
+*)		   
+		   (if ((Term.is_neg_lit lit) &&
+			(not (t_vt == s_vt))) 
+		   then 
+		     raise Neg_eq_different_types
+		   else ());
+		   
+		   assert (t_vt == s_vt);
+		   let t_new_type_term = 
+		     Parser_types.create_theory_term t_vt [] in
+		   let new_eq_atom = 
+		     Parser_types.create_theory_term 
+		       Symbol.symb_typed_equality 
+		       [t_new_type_term; t; s]
+		   in
+		   (
+		    if (not (Term.is_neg_lit lit)) (* positive eq *)
+		    then			 			   
+		      new_eq_atom
+		    else 
+		      Parser_types.neg_fun new_eq_atom			   
+		   )
+		 with Not_found -> failwith "type_equality_lit: should be subtyped"
+		)
+	    |_-> lit (* collapsed type; can be changed! *)
+	  end
+    |_ -> failwith "type_equality_lit: not eq should not happen"
+  else 
+    lit (* not an equality atom *)
+	  
+
+(*------finish--------*)
+
+(*------------------------------*)
+exception Type_Undef
+let sub_type_inf clause_list = 
+  let context = 
     {
      uf = UF_ST.create 301;
      collapsed_types =  SymSet.empty; 
    }
-
   in
-    (
-     extend_uf_types_clause_list context clause_list;       
-     );
+  (
+   extend_uf_types_clause_list context clause_list;       
+  );
   let st_nf_table = st_nf_to_all_st_table context in
-(* debug *)
-  out_str "Inferred Subtypes:\n\n";
+(* process collapsed types in future; eliminate some of them *)
+
+(* num_of_subtypes (non-collapsed) *)
+
+  STypeTable.iter  
+    (fun nf _st_list -> 
+       if (SymSet.mem nf.arg_type context.collapsed_types)
+       then ()
+       else
+	 Statistics.incr_int_stat 1  Statistics.num_of_subtypes
+    )
+    st_nf_table;
+      
+
+    (* debug *)
+  out_str "Inferred Subtypes:\n";
   STypeTable.iter 
     (fun nf st_list -> 
       out_str ("NF: "^(sub_type_to_str nf)^" "
-	       ^"["^(list_to_string sub_type_to_str st_list ";")^"]\n\n"
+	       ^"["^(list_to_string sub_type_to_str st_list ";")^"]\n"
 	      )
     ) st_nf_table;
 
-  out_str "\n Collapsed Types:\n\n";
+  out_str "\n Collapsed Types: ";
   SymSet.iter 
     (fun sym -> 
-      out_str ((Symbol.to_string sym)^", "))  context.collapsed_types
+      out_str ((Symbol.to_string sym)^", "))  context.collapsed_types;
+
+
+(* end debug *)
+
+  let typed_symbs_set_ref = ref SymSet.empty in
+
+(* retype the signature *)
+ (* add a check when we do not need to do anything: all types collapsed or merged *)
+  let process_sym sym = 
+    if (SymSet.mem sym !typed_symbs_set_ref) 
+    then () (* already processed *)
+    else
+      begin 
+       try
+       let all_types = 
+	 match (Symbol.get_stype_args_val sym) with 
+	 |Def (arg_t, v_t) -> v_t::arg_t
+	 |_ -> raise Type_Undef
+       in
+       let (_,new_types_rev) = 	  
+	 List.fold_left 
+	   (fun (arg_ind, new_types_rest) arg_type -> 
+		 let arg_sub_type = create_sub_type sym arg_ind arg_type  in
+(*		 out_str ("sub_type: "^(sub_type_to_str arg_sub_type)); *)
+		 let new_type = 
+		   if (SymSet.mem arg_type context.collapsed_types)
+		   then		
+		     arg_type
+		       (* do not do anything to collapsed types *)
+		   else
+		     (
+		      try
+			let sb_nf = UF_ST.find context.uf arg_sub_type in 
+(*			out_str ("sub_type_nf: "^(sub_type_to_str sb_nf)^"\n"); *)
+			sub_type_to_type sb_nf
+		      with 
+			Not_found -> arg_type
+		     )
+		 in
+		 ((arg_ind+1), (new_type::new_types_rest))	  
+	   )
+	   (0,[]) 
+	   all_types
+       in
+       let new_val_type, new_args_type = split_list (List.rev new_types_rev) in 
+       Symbol.assign_stype sym (Symbol.create_stype new_args_type new_val_type);
+       typed_symbs_set_ref:= SymSet.add sym !typed_symbs_set_ref;
+(*       Symbol.out_full sym; *)
+       with
+       Type_Undef -> ()
+      end 
+   in
+   let rec process_lit lit =  
+     let atom = Term.get_atom lit in 
+     match atom with 
+     |Term.Fun(sym, args, _info) -> 	 
+	 if (Term.is_eq_atom atom)  
+	 then
+	   (let (_type_term_eq, t,s) = get_triple_from_list (Term.arg_to_list args) in
+(* ignore eq sym and first eq arg *)
+	   process_lit t;
+	   process_lit s;)
+	 else
+	   (process_sym sym;
+	    List.iter process_lit (Term.arg_to_list args)
+	   )
+     |Term.Var _ -> ()
+   in
+	 
+
+   let process_clause cl = 
+     Clause.iter process_lit cl 
+   in
+   List.iter process_clause clause_list;
+     
+(*   SymbolDB.iter process_sym !symbol_db_ref;*)
+
+(*--------finish---------*)
+(* 1) type equalities, 2) merge history with christoph, 3) C\/t!=s and s has differen type from t then the clause is a tautology ! *)
+
+   let typed_clause_list = 
+     begin
+       if (Symbol.is_essential_input Symbol.symb_typed_equality) 
+       then
+	 let f rest clause = 
+	   try 
+	     let lits = Clause.get_literals clause  in
+	     let new_lits = List.map (type_equality_lit context) lits in
+	     let new_clause = Clause.create new_lits in
+	     Clause.inherit_param_modif clause  new_clause;
+	     new_clause::rest
+	   with 
+	     Neg_eq_different_types -> rest  
+	 in    
+	 List.fold_left f [] clause_list
+       else 
+	 clause_list
+     end
+   in  
+   typed_clause_list    
+
+
+
 
  
 (*-------------------Commented below-----------------*)

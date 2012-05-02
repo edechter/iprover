@@ -44,6 +44,7 @@ val num_of_splits        : stat_int_entry
 val num_of_split_atoms   : stat_int_entry 
 val forced_gc_time       : stat_int_entry 
 val num_of_sem_filtered_clauses : stat_int_entry
+val num_of_subtypes : stat_int_entry
 
 val parsing_time         : stat_float_entry 
 val sem_filter_time      : stat_float_entry 

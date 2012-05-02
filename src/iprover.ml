@@ -615,7 +615,7 @@ let rec change_prolific_symb_input input_clauses =
 (*--------------------*)
 
 let assign_is_essential_input_symb c_list = 
- List.iter  (Clause.iter_sym (Symbol.assign_is_essential_input true)) c_list
+ List.iter (Clause.iter_sym (Symbol.assign_is_essential_input true)) c_list
 
 
 (*--------------Schedule-----------------------------*)
@@ -1998,10 +1998,20 @@ let run_iprover () =
 (* for finite models we ommit equality axioms! *)
 
     (*  let finite_models_clauses = !current_clauses in *)
-      let current_clauses_no_eq = ref (!current_clauses) in 
-
    (* debug! *)
-      Type_inf.sub_type_inf !current_clauses;
+
+(* sub_type_inf should be before adding eq axioms*)
+	(if !current_options.sub_typing 
+	then
+	  (current_clauses := Type_inf.sub_type_inf !current_clauses;)
+	else ());
+
+	let current_clauses_no_eq = ref (!current_clauses) in 
+
+
+ 	    out_str "\n-----------After sub_type_inf ---------\n";
+	    out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
+	    out_str "\n--------------------\n";
 
 
       let gen_equality_axioms = ref [] in
@@ -2029,12 +2039,12 @@ let run_iprover () =
 	   (
 	    gen_equality_axioms := Eq_axioms.axiom_list (); 
 (*debug *)
-(*
+
 	out_str "\n-----------Eq Axioms:---------\n";
-	out_str ((Clause.clause_list_to_tptp equality_axioms)^"\n\n");
+	out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 	out_str "\n--------------------\n";
 
-*)
+
 (*debug *)
 	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
 	   )
@@ -2043,7 +2053,7 @@ let run_iprover () =
 	(eq_axioms_are_omitted:=true;
 	 out_str (pref_str^"Omitting Equality Axioms\n"))
       );    
- 
+      
 (* when clauses are not in db length is not defined, may change this later *)
 (*      let cmp_clause_length c1 c2 = 
 	- (compare 

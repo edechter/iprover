@@ -234,7 +234,8 @@ let get_stype_args_val symb =
   |Def(value::args) -> Def((args,value))
   |_-> Undef
 
-
+let assign_stype s stype = 
+  s.stype <- stype
 
 (*---------special symbols----------*)
 

@@ -352,8 +352,11 @@ let hash_sum rest num =
 type 'a elem = Elem of 'a | Empty_Elem
 type 'a ref_elem = ('a elem) ref
 
-
-
+exception Empty_list
+let split_list l =
+  match l with 
+  |h::tl -> (h,tl)
+  |[] -> raise Empty_list
 
 
 let add_param_str str = 
@@ -378,9 +381,14 @@ let get_pair_from_list  = function
   |_-> raise Not_a_pair
 
 exception Not_a_triple
+let get_triple_from_list = function 
+  |[a1;a2;a3] -> (a1,a2,a3)
+  |_-> raise Not_a_triple
+
 let get_last_pair_from_triple_list  = function
   |[_;a1;a2] -> (a1,a2)
   |_-> raise Not_a_triple
+
 
 
 

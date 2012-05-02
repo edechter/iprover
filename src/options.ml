@@ -563,6 +563,7 @@ type options = {
     mutable clausify_out          : bool;
     mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
+    mutable sub_typing            : bool;
     mutable brand_transform       : bool;
 
 (*---Large Theories---------------*)
@@ -667,6 +668,7 @@ let default_options () = {
   clausify_out            = false;
   prep_sem_filter         = Sem_Filter_None;
   prep_sem_filter_out     = false;
+  sub_typing              = false;
   brand_transform         = false;
 
 (*---Large Theories---------------*)
@@ -1109,6 +1111,16 @@ let prep_sem_filter_out_fun b =
 let prep_sem_filter_out_inf = 
   bool_str^
   inf_pref^"semantic preproscessing of the input set, output prepocessing result and exit\n"
+
+(*-------*)
+let sub_typing_str = "--sub_typing"
+
+let sub_typing_fun b = 
+  !current_options.sub_typing <-b
+
+let sub_typing_inf =    
+  bool_str^
+  inf_pref^"sub-type signature"
 	      
 (*-------*)
 let brand_transform_str = "--brand_transform"
@@ -1935,8 +1947,10 @@ let spec_list =
    (clausify_out_str,  Arg.Bool(clausify_out_fun), clausify_out_inf);
    (prep_sem_filter_str, Arg.String(prep_sem_filter_fun), prep_sem_filter_inf);
    (prep_sem_filter_out_str, Arg.Bool(prep_sem_filter_out_fun), prep_sem_filter_out_inf);
+   (sub_typing_str, Arg.Bool(sub_typing_fun), sub_typing_inf);
    (brand_transform_str, Arg.Bool(brand_transform_fun), brand_transform_inf);
-
+ 
+  
 (*---Large Theories----*)
    (large_theory_mode_str, Arg.Bool(large_theory_mode_fun),large_theory_mode_inf);
 
@@ -2113,6 +2127,7 @@ let general_options_str_list opt =
        (large_theory_mode_str, (string_of_bool opt.large_theory_mode));
        (prep_sem_filter_str, (prep_sem_filter_type_to_str opt.prep_sem_filter));
        (prep_sem_filter_out_str, (string_of_bool opt.prep_sem_filter_out));
+       (sub_typing_str, (string_of_bool opt.sub_typing));
        (brand_transform_str, (string_of_bool opt.brand_transform));
        (prolific_symb_bound_str, (string_of_int opt.prolific_symb_bound));
        (lt_threshold_str,(string_of_int opt.lt_threshold));
@@ -2508,6 +2523,7 @@ let option_1 () = {
   large_theory_mode       = true; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -2663,6 +2679,7 @@ let option_2 () = {
   large_theory_mode       = true; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -2788,6 +2805,7 @@ let option_3 () = {
   large_theory_mode       = true; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -2909,6 +2927,7 @@ let option_4 () = {
   large_theory_mode       = true; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -3041,6 +3060,7 @@ let option_finite_models () = {
   large_theory_mode       = false; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -3167,6 +3187,7 @@ let option_epr_non_horn () = {
   large_theory_mode       = true; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -3416,6 +3437,7 @@ let option_epr_horn () = {
   large_theory_mode       = true; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
@@ -3662,6 +3684,7 @@ let option_verification_epr ver_epr_opt =
   large_theory_mode       = false; 
   prep_sem_filter         = !current_options.prep_sem_filter;
   prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
   prolific_symb_bound     = 5000; 
   lt_threshold            = 2000;
@@ -3791,6 +3814,7 @@ let option_verification_epr ver_epr_opt =
     large_theory_mode       = false; 
     prep_sem_filter         = !current_options.prep_sem_filter;
     prep_sem_filter_out     = false;
+  sub_typing              = !current_options.sub_typing;
     brand_transform         = false;
     prolific_symb_bound     = 20000000; 
     lt_threshold            = 20000000;
@@ -3918,6 +3942,7 @@ let option_verification_epr ver_epr_opt =
        large_theory_mode       = false; 
        prep_sem_filter         = !current_options.prep_sem_filter;
        prep_sem_filter_out     = false;
+       sub_typing              = !current_options.sub_typing;
        brand_transform         = false;
        prolific_symb_bound     = 5000; 
        lt_threshold            = 2000;

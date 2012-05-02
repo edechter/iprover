@@ -137,6 +137,8 @@ val get_hash              : term -> int
 val arg_map          : (term -> term) -> args -> args	
 val arg_map_list     : (term -> 'a) -> args -> 'a list
 val arg_to_list      : args -> term list
+val list_to_arg      : term list -> args
+
 val is_empty_args       : args -> bool
 (* explicitly maps from left to right, 
    since order can matter when use imperative features *)

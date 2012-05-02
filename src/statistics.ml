@@ -143,6 +143,13 @@ let num_of_sem_filtered_clauses =
    value = 0;
  }
 
+(* non-collapsed subtypes *)
+let num_of_subtypes = 
+  {
+   int_entry_name  = "num_of_subtypes";
+   value = 0;
+ }
+
    
 let forced_gc_time = 
   {
@@ -543,6 +550,7 @@ let gen_int_stat_list =
    num_of_splits;
    num_of_split_atoms;
    num_of_sem_filtered_clauses;
+   num_of_subtypes;
    forced_gc_time;
 
  ]

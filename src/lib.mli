@@ -39,7 +39,12 @@ exception Not_a_pair
 val get_pair_from_list  : 'a list -> 'a * 'a
 
 exception Not_a_triple
+val get_triple_from_list  : 'a list -> 'a * 'a * 'a
+
 val get_last_pair_from_triple_list : 'a list -> 'a * 'a
+
+exception Empty_list
+val split_list : 'a list -> 'a * ('a list) 
 
 (* does nothing *)
 val clear_memory : unit -> unit 

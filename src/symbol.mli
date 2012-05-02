@@ -112,6 +112,8 @@ val assign_is_input        : bool -> symbol  -> unit
 val assign_is_essential_input        : bool -> symbol  -> unit
 val assign_is_skolem       : bool -> symbol  -> unit
 
+val assign_stype : symbol -> stype -> unit
+
 (* assigns which are part of the key should not be used! *)
 (* otherwise problems with SymbolDB                      *)
 (*

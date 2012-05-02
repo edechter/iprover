@@ -299,6 +299,7 @@ let typed_congr_axiom_list () =
 
 (* for $equality_sorted(type, t,s) add type to symb_table *)
   let add_eq_type t = 
+
     match (get_type_eq_term t) with 
     |Some symb -> 	
 	if (Symbol.is_essential_input symb)
