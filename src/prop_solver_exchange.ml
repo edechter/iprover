@@ -954,9 +954,9 @@ let unsat_core () =
 	  unsat_core_ids
       in
       
-      Format.eprintf
-	"Assumptions in unsat core: %a @." 	
-	(pp_any_list Format.pp_print_int " ") assumptions;
+      (* Format.eprintf
+	 "Assumptions in unsat core: %a @." 	
+	 (pp_any_list Format.pp_print_int " ") assumptions; *)
 
       (* Return clauses in unsat core *)
       unsat_core_clauses

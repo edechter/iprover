@@ -59,6 +59,13 @@ type bmc1_out_stat_type =
 type bmc1_axioms_type = 
     BMC1_Axioms_Reachable_All | BMC1_Axioms_Reachable_Last
 
+(** Adding unsat core for next bound *)
+type bmc1_add_unsat_core_type = 
+  | BMC1_Add_Unsat_Core_None (** Do not add clauses from unsat core *)
+  | BMC1_Add_Unsat_Core_Clauses (** Add clauses in unsat core *)
+  | BMC1_Add_Unsat_Core_Leaves (** Add leaf (input) clauses *)
+  | BMC1_Add_Unsat_Core_All (** Add all clauses and their parents *)
+
 (*--------*)
 type ground_splitting_type = Split_Input |Split_Full | Split_Off 
 
@@ -190,8 +197,9 @@ type options = {
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_max_bound_default : int override; 
     mutable bmc1_symbol_reachability : bool; 
-    mutable bmc1_add_unsat_core   : bool override; 
+    mutable bmc1_add_unsat_core   : bmc1_add_unsat_core_type override; 
     mutable bmc1_unsat_core_children : bool override; 
+    mutable bmc1_unsat_core_extrapolate_axioms : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_out_unsat_core   : bool override;
@@ -221,7 +229,7 @@ type options = {
     mutable inst_start_prop_sim_after_learn   : int;
     mutable inst_sel_renew                    : inst_sel_renew_type;
     mutable inst_lit_activity_flag            : bool;
-    mutable inst_out_proof                    : bool;
+    mutable inst_out_proof                    : bool override;
 
 (*----Resolution---------*)
     mutable resolution_flag               : bool;

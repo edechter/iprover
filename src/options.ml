@@ -232,6 +232,30 @@ let bmc1_axioms_type_list_str = "<reachable_all | reachable_last>"
 
 (*--------*)
 
+type bmc1_add_unsat_core_type = 
+  | BMC1_Add_Unsat_Core_None 
+  | BMC1_Add_Unsat_Core_Clauses
+  | BMC1_Add_Unsat_Core_Leaves 
+  | BMC1_Add_Unsat_Core_All
+
+let bmc1_add_unsat_core_type_to_str = function
+  | BMC1_Add_Unsat_Core_None -> "none"
+  | BMC1_Add_Unsat_Core_Clauses -> "clauses"
+  | BMC1_Add_Unsat_Core_Leaves -> "leaves"
+  | BMC1_Add_Unsat_Core_All -> "all"
+
+exception Unknown_bmc1_add_unsat_core_type
+let str_to_bmc1_add_unsat_core_type = function
+  | "none" -> BMC1_Add_Unsat_Core_None
+  | "clauses" -> BMC1_Add_Unsat_Core_Clauses
+  | "leaves" -> BMC1_Add_Unsat_Core_Leaves
+  | "all" -> BMC1_Add_Unsat_Core_All
+  | _ -> raise Unknown_bmc1_add_unsat_core_type
+
+let bmc1_add_unsat_core_type_list_str = "<none | leaves | all>"
+
+(*--------*)
+
 type schedule_type = 
   |Schedule_none 
   |Schedule_default 
@@ -613,8 +637,9 @@ type options = {
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_max_bound_default : int override; 
     mutable bmc1_symbol_reachability : bool; 
-    mutable bmc1_add_unsat_core   : bool override; 
+    mutable bmc1_add_unsat_core   : bmc1_add_unsat_core_type override; 
     mutable bmc1_unsat_core_children : bool override; 
+    mutable bmc1_unsat_core_extrapolate_axioms : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_out_unsat_core   : bool override;
@@ -644,7 +669,7 @@ type options = {
     mutable inst_start_prop_sim_after_learn   : int;
     mutable inst_sel_renew                    : inst_sel_renew_type;
     mutable inst_lit_activity_flag            : bool;     
-    mutable inst_out_proof                    : bool;
+    mutable inst_out_proof                    : bool override;
 
 (*----Resolution---------*)
     mutable resolution_flag               : bool;
@@ -723,8 +748,9 @@ let default_options () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -770,7 +796,7 @@ let default_options () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -846,6 +872,12 @@ let set_new_current_options o =
 	  !current_options.bmc1_unsat_core_children;
       
       (* Only override defaults *)
+      bmc1_unsat_core_extrapolate_axioms = 
+	override 
+	  o.bmc1_unsat_core_extrapolate_axioms
+	  !current_options.bmc1_unsat_core_extrapolate_axioms;
+      
+      (* Only override defaults *)
       bmc1_out_stat = 
 	override o.bmc1_out_stat !current_options.bmc1_out_stat;
       
@@ -902,6 +934,12 @@ let set_new_current_options o =
 	override 
 	  o.inst_pass_queue3_mult 
 	  !current_options.inst_pass_queue3_mult;
+      
+      (* Only override defaults *)
+      inst_out_proof = 
+	override 
+	  o.inst_out_proof
+	  !current_options.inst_out_proof;
       
     }
 
@@ -1393,12 +1431,14 @@ let bmc1_symbol_reachability_inf  =
 
 let bmc1_add_unsat_core_str = "--bmc1_add_unsat_core" 
 
-let bmc1_add_unsat_core_fun b =
+let bmc1_add_unsat_core_fun str =
   !current_options.bmc1_add_unsat_core <- 
-    override_cmd b !current_options.bmc1_add_unsat_core
+    override_cmd 
+    (str_to_bmc1_add_unsat_core_type str) 
+    !current_options.bmc1_add_unsat_core
 
 let bmc1_add_unsat_core_inf  =
-  bool_str^
+  bmc1_add_unsat_core_str^
   inf_pref^"add clauses in unsatisfiable core to next bound in BMC1\n"
 
 (*--------*)
@@ -1412,6 +1452,19 @@ let bmc1_unsat_core_children_fun b =
 let bmc1_unsat_core_children_inf  =
   bool_str^
   inf_pref^"children of unsat core clauses are considered in unsat core\n"
+
+(*--------*)
+
+let bmc1_unsat_core_extrapolate_axioms_str = 
+  "--bmc1_unsat_core_extrapolate_axioms" 
+
+let bmc1_unsat_core_extrapolate_axioms_fun b =
+  !current_options.bmc1_unsat_core_extrapolate_axioms <- 
+    override_cmd b !current_options.bmc1_unsat_core_extrapolate_axioms
+
+let bmc1_unsat_core_extrapolate_axioms_inf  =
+  bool_str^
+  inf_pref^"extrapolate axioms to next bound in unsat core\n"
 
 (*--------*)
 
@@ -1790,7 +1843,8 @@ let inst_lit_activity_flag_inf  =
 let inst_out_proof_str  = "--inst_out_proof"
 
 let inst_out_proof_fun b =
-  !current_options.inst_out_proof <- b
+  !current_options.inst_out_proof <-
+    override_cmd b !current_options.inst_out_proof
 
 let inst_out_proof_inf  =
   bool_str^
@@ -2155,12 +2209,16 @@ let spec_list =
     bmc1_symbol_reachability_inf);
 
    (bmc1_add_unsat_core_str, 
-    Arg.Bool(bmc1_add_unsat_core_fun),
+    Arg.String(bmc1_add_unsat_core_fun),
     bmc1_add_unsat_core_inf);
 
    (bmc1_unsat_core_children_str, 
     Arg.Bool(bmc1_unsat_core_children_fun),
     bmc1_unsat_core_children_inf);
+
+   (bmc1_unsat_core_extrapolate_axioms_str, 
+    Arg.Bool(bmc1_unsat_core_extrapolate_axioms_fun),
+    bmc1_unsat_core_extrapolate_axioms_inf);
 
    (bmc1_out_stat_str, 
     Arg.String(bmc1_out_stat_fun),
@@ -2222,7 +2280,7 @@ let spec_list =
     Arg.Int(inst_start_prop_sim_after_learn_fun),inst_start_prop_sim_after_learn_inf); 
    (inst_sel_renew_str,Arg.String(inst_sel_renew_fun),inst_sel_renew_inf); 
    (inst_lit_activity_flag_str,Arg.Bool(inst_lit_activity_flag_fun),inst_lit_activity_flag_inf); 
-   (inst_out_proof_str,Arg.Bool(inst_out_proof_fun),inst_out_proof_inf); 
+   (inst_out_proof_str, Arg.Bool(inst_out_proof_fun), inst_out_proof_inf); 
 
 
 (*------Resolution--*)
@@ -2334,9 +2392,12 @@ let bmc1_options_str_list opt =
    (bmc1_symbol_reachability_str,
     (string_of_bool opt.bmc1_symbol_reachability));
    (bmc1_add_unsat_core_str,
-    (string_of_bool (val_of_override opt.bmc1_add_unsat_core)));
+    (bmc1_add_unsat_core_type_to_str
+       (val_of_override opt.bmc1_add_unsat_core)));
    (bmc1_unsat_core_children_str,
     (string_of_bool (val_of_override opt.bmc1_unsat_core_children)));
+   (bmc1_unsat_core_extrapolate_axioms_str,
+    (string_of_bool (val_of_override opt.bmc1_unsat_core_extrapolate_axioms)));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_out_unsat_core_str,
@@ -2378,7 +2439,8 @@ let inst_options_str_list opt =
    (inst_start_prop_sim_after_learn_str, (string_of_int opt.inst_start_prop_sim_after_learn));
    (inst_sel_renew_str, (inst_sel_renew_type_to_str opt.inst_sel_renew));
    (inst_lit_activity_flag_str, (string_of_bool opt.inst_lit_activity_flag));
-   (inst_out_proof_str, (string_of_bool opt.inst_out_proof));
+   (inst_out_proof_str, 
+    (string_of_bool (val_of_override opt.inst_out_proof)));
  ]
 
 let res_options_str_list opt = 
@@ -2767,8 +2829,9 @@ let option_1 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -2812,7 +2875,7 @@ let option_1 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -2943,8 +3006,9 @@ let option_2 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -2986,7 +3050,7 @@ let option_2 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -3082,8 +3146,9 @@ let option_3 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3123,7 +3188,7 @@ let option_3 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -3216,8 +3281,9 @@ let option_4 () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3254,7 +3320,7 @@ let option_4 () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution---------*)
   resolution_flag                = true;
@@ -3357,8 +3423,9 @@ let option_finite_models () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3409,7 +3476,7 @@ let option_finite_models () = {
   inst_start_prop_sim_after_learn = 3;
   inst_sel_renew                  = Inst_SR_Model;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution---------*)
 (*---always resolution_flag false-------------------*)
@@ -3494,8 +3561,9 @@ let option_epr_non_horn () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3550,7 +3618,7 @@ let option_epr_non_horn () = {
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag            = false;
 (*  inst_lit_activity_flag            = true;*)
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = true;
@@ -3751,8 +3819,9 @@ let option_epr_horn () = {
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3797,7 +3866,7 @@ let option_epr_horn () = {
   inst_start_prop_sim_after_learn   = 3;
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag          = true;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = true;
@@ -4009,8 +4078,9 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_Leaves;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -4033,26 +4103,27 @@ let option_verification_epr ver_epr_opt =
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1 =
+
+  inst_pass_queue1 = 
+	  ValueDefault [Cl_in_unsat_core true; 
+			Cl_Age true; 
+			Cl_Num_of_Symb false];
+
+  inst_pass_queue1_mult = ValueDefault 20;
+
+  inst_pass_queue2 =
 	  ValueDefault
 	    [Cl_Conj_Dist false;
              Cl_Has_Conj_Symb true;
 	     (* Cl_Ground true;*)
              Cl_Num_of_Var false]; 
   
-  inst_pass_queue2 =
+  inst_pass_queue3 =
 	  ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*)
-  inst_pass_queue1_mult          = ValueDefault 25;
-  inst_pass_queue2_mult          = ValueDefault 20;
-
-  inst_pass_queue3 = 
-	  ValueDefault [Cl_in_unsat_core true; 
-			Cl_Age true; 
-			Cl_Num_of_Symb false];
-
-  inst_pass_queue3_mult = ValueDefault 20;
+  inst_pass_queue2_mult          = ValueDefault 25;
+  inst_pass_queue3_mult          = ValueDefault 20;
 
 (* befor ok inst_dismatching               = false;*)
   inst_dismatching               = false;
@@ -4068,7 +4139,7 @@ let option_verification_epr ver_epr_opt =
   inst_start_prop_sim_after_learn   = 3000;
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag            = false;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = false;
@@ -4151,8 +4222,9 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault false;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_Leaves;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -4175,27 +4247,27 @@ let option_verification_epr ver_epr_opt =
 (*  inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
 
-  inst_pass_queue1 =
+  inst_pass_queue1 = 
+       ValueDefault 
+	 [Cl_in_unsat_core true; 
+	  Cl_Age true; 
+	  Cl_Num_of_Symb false];
+
+  inst_pass_queue1_mult = ValueDefault 20;
+
+  inst_pass_queue2 =
        ValueDefault 
 	 [Cl_Conj_Dist false;
           Cl_Has_Conj_Symb true;
 	  (* Cl_Ground true;*)
           Cl_Num_of_Var false]; 
 
-  inst_pass_queue2 =
+  inst_pass_queue3 =
        ValueDefault [Cl_Age true; Cl_Num_of_Symb false];
 
 (*"[+age;-num_symb]";*) 
   
-  inst_pass_queue1_mult = ValueDefault 25;
-  inst_pass_queue2_mult = ValueDefault 20;
-
-  inst_pass_queue3 = 
-       ValueDefault 
-	 [Cl_in_unsat_core true; 
-	  Cl_Age true; 
-	  Cl_Num_of_Symb false];
-
+  inst_pass_queue2_mult = ValueDefault 25;
   inst_pass_queue3_mult = ValueDefault 20;
 
 (* befor ok inst_dismatching               = false;*)
@@ -4212,7 +4284,7 @@ let option_verification_epr ver_epr_opt =
   inst_start_prop_sim_after_learn   = 300000000;
   inst_sel_renew                    = Inst_SR_Solver;
   inst_lit_activity_flag            = false;
-  inst_out_proof                  = true;
+  inst_out_proof                  = ValueDefault true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = false;
@@ -4294,8 +4366,9 @@ let option_verification_epr ver_epr_opt =
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
   bmc1_symbol_reachability = false;
-  bmc1_add_unsat_core     = ValueDefault true;
+  bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_Leaves;
   bmc1_unsat_core_children = ValueDefault false;
+  bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -4329,7 +4402,16 @@ let option_verification_epr ver_epr_opt =
 
 
 
+
        inst_pass_queue1 = 
+	  ValueDefault 
+	    [Cl_in_unsat_core true; 
+	     Cl_Age true; 
+	     Cl_Num_of_Symb false];
+
+       inst_pass_queue1_mult = ValueDefault 20;
+
+       inst_pass_queue2 = 
 (*
   [Cl_Conj_Dist false;
 					 Cl_Has_Conj_Symb true;
@@ -4350,10 +4432,12 @@ let option_verification_epr ver_epr_opt =
 	      Cl_Num_of_Var false; 
 	    (* Cl_min_defined_symb false;*)
 	    ]; 
+       inst_pass_queue2_mult          = ValueDefault 25;
+
        
        (*     inst_pass_queue2               = [Cl_Age true; Cl_Num_of_Symb false];*)
 
-       inst_pass_queue2 = 
+       inst_pass_queue3 = 
 	  ValueDefault
 	    [ Cl_Age true; 
 	      Cl_min_defined_symb false; 
@@ -4363,20 +4447,11 @@ let option_verification_epr ver_epr_opt =
 (*"[+age;-num_symb]";*)
 (*       inst_pass_queue1_mult          = 100;*)
 
-       inst_pass_queue1_mult          = ValueDefault 25;
-       inst_pass_queue2_mult          = ValueDefault 20;
+       inst_pass_queue3_mult          = ValueDefault 20;
 (*
          inst_pass_queue1_mult           = !current_options.inst_pass_queue1_mult;
          inst_pass_queue2_mult           = !current_options.inst_pass_queue2_mult;
 *)
-
-       inst_pass_queue3 = 
-	  ValueDefault 
-	    [Cl_in_unsat_core true; 
-	     Cl_Age true; 
-	     Cl_Num_of_Symb false];
-
-       inst_pass_queue3_mult = ValueDefault 20;
 
 (* befor ok inst_dismatching               = false;*)
 (*       inst_dismatching               = false;*)
@@ -4396,7 +4471,7 @@ let option_verification_epr ver_epr_opt =
        inst_sel_renew                    = Inst_SR_Solver;
        inst_lit_activity_flag            = false;
   (*    inst_lit_activity_flag            = true;*)
-       inst_out_proof                    = true;
+       inst_out_proof                    = ValueDefault true;
 
 (*----Resolution----------------------------*)
   resolution_flag                = false;

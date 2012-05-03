@@ -260,6 +260,12 @@ let bmc1_unsat_core_parents_size =
    value = -1;
  }
 
+let bmc1_unsat_core_clauses_time = 
+  {
+   float_entry_name = "bmc1_unsat_core_clauses_time";
+   float_value = 0.;
+ }
+
 
 (*------Instantiation------------------*)
 
@@ -589,7 +595,7 @@ let bmc1_int_stat_list =
     bmc1_unsat_core_parents_size ]
 
 let bmc1_float_stat_list =
-  [  ]
+  [ bmc1_unsat_core_clauses_time ]
 
 
 let inst_fun_stat_list = 

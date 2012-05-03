@@ -1273,7 +1273,17 @@ let rec main clauses finite_model_clauses =
 	  
 	  (* Get clauses in unsatisfiable core *)
 	  let unsat_core_clauses = 
-	    Prop_solver_exchange.unsat_core () 
+
+	    match val_of_override !current_options.bmc1_add_unsat_core with 
+		
+	      (* No unsat core needed *)
+	      | BMC1_Add_Unsat_Core_None 
+		  when 
+		    not (val_of_override !current_options.inst_out_proof) -> []
+
+	      (* Need unsat core  *)
+	      | _ -> Prop_solver_exchange.unsat_core () 
+		
 	  in
 
 	  if 
@@ -1295,7 +1305,7 @@ let rec main clauses finite_model_clauses =
 	    );
 
 	  (* Output proof from instantiation? *)
-	  if !current_options.inst_out_proof then 
+	  if val_of_override !current_options.inst_out_proof then 
 	    (
 	      
 	      (* Record time when proof extraction started *)
@@ -1315,7 +1325,7 @@ let rec main clauses finite_model_clauses =
 	      
 	      (* Record time when proof extraction finished *)
 	      let end_time = Unix.gettimeofday () in
-	    
+	      
 	      (* Save time for proof extraction *)
 	      add_float_stat (end_time -. start_time) out_proof_time;
 
@@ -1330,16 +1340,38 @@ let rec main clauses finite_model_clauses =
 
 	  (* Get parent clauses of unsat core clauses *)
 	  let unsat_core_parents = 
-	    TstpProof.get_leaves unsat_core_clauses
+	    
+	    match val_of_override !current_options.bmc1_add_unsat_core with 
+		
+	      (* Use no clauses from unsat core *)
+	      | BMC1_Add_Unsat_Core_None -> []
+
+	      (* Use only clauses from unsat core *)
+	      | BMC1_Add_Unsat_Core_Clauses -> 
+		unsat_core_clauses
+
+	      (* Use leaf clauses from unsat core *)
+	      | BMC1_Add_Unsat_Core_Leaves -> 
+		TstpProof.get_leaves unsat_core_clauses
+
+	      (* Use all clauses from unsat core *)
+	      | BMC1_Add_Unsat_Core_All -> 
+		TstpProof.get_parents unsat_core_clauses
+
 	  in
 
+	  let end_time = Unix.gettimeofday () in
+	  
 	  (* Assign size of unsat core in statistics *)
 	  assign_int_stat 
 	    (List.length unsat_core_parents) 
 	    bmc1_unsat_core_parents_size;
 
-	  let end_time = Unix.gettimeofday () in
-	  
+	  (* Assign time to extract unsat core clauses in statistics *)
+	  add_float_stat 
+	    (end_time -. start_time)
+	    bmc1_unsat_core_clauses_time;
+
 	  if 
 	    
 	    (* Verbose output for BMC1?*)
@@ -1380,7 +1412,7 @@ let rec main clauses finite_model_clauses =
 		(Format.printf 
 		   "%a@." 
 		   TstpProof.pp_clause_with_source)
-	      unsat_core_parents;
+		unsat_core_parents;
 	      
 	      (* End proof output *)
 	      Format.printf "%% SZS output end ListOfCNF@\n@."
@@ -1520,37 +1552,59 @@ let rec main clauses finite_model_clauses =
 	    Prop_solver_exchange.add_clause_to_solver 
 	    next_bound_axioms';
 	  
-	  (* Clauses in unsatisfiable core to be added to next
-	     bound *)
-	  let unsat_core_clauses' = 
+	  (* Flag all input clauses as not in unsat core *)
+	  List.iter 
+	    (Clause.set_bool_param false Clause.in_unsat_core)
+	    clauses;
+	  
+	  (* Flag clauses as in unsat core *)
+	  List.iter 
+	    (Clause.set_bool_param true Clause.in_unsat_core)
+	    unsat_core_parents;
+
+	  (* Extrapolated axioms from unsat core *)
+	  let bmc1_axioms_extrapolated =
 
 	    if 
 
-	      (* Add clauses from unsatisfiable core to next bound *)
-	      val_of_override !current_options.bmc1_add_unsat_core 
-
-	    then
-
+	      (* Extrapolate axioms in unsat core? *)
+	      val_of_override 
+		!current_options.bmc1_unsat_core_extrapolate_axioms
+		
+	    then 
+	      
 	      (
+		
+		(* Leaves clauses in proof to avoid repeated
+		   computation *)
+		let unsat_core_leaves = 
+		  match 
+		    val_of_override !current_options.bmc1_add_unsat_core 
+		  with 
 
-		(* Flag all input clauses as not in unsat core *)
-		List.iter 
-		  (Clause.set_bool_param false Clause.in_unsat_core)
-		  clauses;
+		    (* Unsat core has not been calculated *)
+		    | BMC1_Add_Unsat_Core_None -> 
+		      TstpProof.get_leaves
+			(Prop_solver_exchange.unsat_core ())
 
-		(* Flag clauses as in unsat core *)
-		List.iter 
-		  (Clause.set_bool_param true Clause.in_unsat_core)
-		  unsat_core_parents;
-
+		    (* Leaves of unsat core have not been calculated *)
+		    | BMC1_Add_Unsat_Core_Clauses ->
+			TstpProof.get_leaves unsat_core_clauses
+		      
+		    (* Take leaves of proof or all clauses in proof *)
+		    | BMC1_Add_Unsat_Core_Leaves 
+		    | BMC1_Add_Unsat_Core_All -> 
+		      unsat_core_parents 
+		in
+		
 		(* Create axioms for next bound of all axioms of
 		   previous bound in unsat core *)
 		let bmc1_axioms_extrapolated =
 		  Bmc1Axioms.extrapolate_to_bound 
 		    next_bound 
-		    unsat_core_parents
+		    unsat_core_leaves
 		in
-
+		
 		if 
 		  
 		  (* Verbose output for BMC1? *)
@@ -1560,7 +1614,7 @@ let rec main clauses finite_model_clauses =
 		  
 		  (
 		    
-		    (* Print parents of unsat core *)
+		    (* Print extrapolated BMC1 axioms *)
 		    Format.printf 
 		      "@\n%sExtrapolated BMC1 axioms@\n@\n%a@." 
 		      pref_str
@@ -1569,44 +1623,38 @@ let rec main clauses finite_model_clauses =
 		      
 		  );
 		
-		(* Flag clauses extrapolated to the next bound as
-		   in unsat core *)
+		(* Flag clauses extrapolated to the next bound as in
+		   unsat core *)
 		List.iter 
 		  (Clause.set_bool_param true Clause.in_unsat_core)
 		  bmc1_axioms_extrapolated;
 		
-		(*
-		  List.iter 
-		  (Clause.set_bool_param true Clause.in_unsat_core)
-		  unsat_core_clauses;
-		*)
-
-		(* Preprocess clauses *)
-		let unsat_core_clauses' =
-		  Preprocess.preprocess 
-		    (unsat_core_parents @ bmc1_axioms_extrapolated)
-		in
-
-		(* Add preprocessed clauses to solver
-
-		   Clauses may be split or simplified and must be
-		   added to the solver then *)
-		List.iter 
-		  Prop_solver_exchange.add_clause_to_solver 
-		  unsat_core_clauses';
-		
-		(* Return preprocessed unsat core clauses *)
-		unsat_core_clauses'
-
+		(* Continue with extrapolated axioms *)
+		bmc1_axioms_extrapolated
+		  
 	      )
-		
+
 	    else
 
-	      (* Do not add clauses from unsatisfiable core *)
+	      (* Do not extrapolate axioms *)
 	      []
 
 	  in
+	  
+	  (* Preprocessed clauses with axioms extrapolated *)
+	  let unsat_core_clauses' =
+	    Preprocess.preprocess 
+	      (unsat_core_parents @ bmc1_axioms_extrapolated)
+	  in
 
+	  (* Add preprocessed clauses to solver
+	     
+	     Clauses may be split or simplified and must be added to
+	     the solver then *)
+	  List.iter 
+	    Prop_solver_exchange.add_clause_to_solver 
+	    unsat_core_clauses';
+	  
 	  (* Save next bound as current *)
 	  bmc1_cur_bound := next_bound;
 	  
@@ -2221,7 +2269,7 @@ let run_iprover () =
 	out_str (proved_str ());
 	  
 	(* Output proof from instantiation? *)
-	if !current_options.inst_out_proof then 
+	if val_of_override !current_options.inst_out_proof then 
 	  (
 
 	    (* Record time when proof extraction started *)
