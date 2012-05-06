@@ -67,6 +67,10 @@ let typed_equality_term stype_term t s =
   let args = [stype_term;t;s] in
   add_fun_term typed_equality_symb args 
   
+let typed_equality_term_sym eq_type_sym t s = 
+  let eq_type = (add_fun_term eq_type_sym []) in
+  typed_equality_term eq_type t s
+
 
 let neg_atom atom = 
   let args = [atom] in
@@ -123,6 +127,15 @@ let typed_trans_symmetry_axiom () =
   assign_eq_ax_param trans_sim_ax;
   trans_sim_ax
 
+
+(* used in finite_models *)
+let typed_symmetry_axiom_sym eq_type_sym = 
+  let eq_type = (add_fun_term eq_type_sym []) in
+  let neg_eq_x0_x1 = dis_typed_equality eq_type tv0 tv1 in
+  let eq_x1_x0 = typed_equality_term eq_type tv1 tv0 in
+  let sym_ax = Clause.create [neg_eq_x0_x1; eq_x1_x0] in 
+  assign_eq_ax_param sym_ax;
+  sym_ax
 
 
 (*--------------typed version--------------*)

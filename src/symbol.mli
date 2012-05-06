@@ -103,6 +103,10 @@ val create_template_key_symb : string -> (*stype -> sproperty ->*) symbol
 (* returns args value of the type if defined *)
 val get_stype_args_val : symbol -> ((symbol list) * symbol) param
 
+(* as above but can fail if  stype  is not  defined *)
+val get_stype_args_val_def : symbol -> (symbol list) * symbol
+val get_val_type_def       : symbol -> symbol
+
 (* fast key assigned when symbolDB is creating*)
 val  assign_fast_key       : symbol -> int -> unit
 (*val  assign_hash           : symbol -> int -> unit*)
@@ -201,8 +205,10 @@ val compare_fast_key      : symbol -> symbol -> int
 
 (* hash is random number, small hash is number below num of symbols in db *)
 (*val get_hash              : symbol -> int*)
-val hash_small            : symbol -> int
+
 val get_fast_key          : symbol -> int
+
+val hash                  : symbol -> int
 
 (*module type TMap = SMap*)
 

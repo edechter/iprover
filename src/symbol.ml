@@ -234,6 +234,16 @@ let get_stype_args_val symb =
   |Def(value::args) -> Def((args,value))
   |_-> Undef
 
+let get_stype_args_val_def symb =
+  match symb.stype with 
+  |Def(value::args) -> (args,value)  
+  |_-> failwith "get_stype_args_val_def: arg_types should be defined"
+  
+let get_val_type_def sym =
+  let _arg_types, val_type = get_stype_args_val_def sym in 
+  val_type
+
+
 let assign_stype s stype = 
   s.stype <- stype
 
@@ -855,7 +865,7 @@ let equal = (==)
 (*let equal s1 s2 = if (compare s1 s2)==cequal then true else false *)
 
 (*replaced by proper hash*)
-let hash_small  = get_fast_key 
+let hash  = get_fast_key 
 
 (* unsafe compare    
 let  compare (s1:t) (s2:t) = 

@@ -20,6 +20,8 @@ open Lib
 open Options
 
 type symb   = Symbol.symbol
+type symbol = Symbol.symbol
+type stype  = Symbol.stype
 type term   = Term.term 
 type clause = Clause.clause
 
@@ -32,7 +34,7 @@ let term_db_ref    = Parser_types.term_db_ref
 (* which are extensions of ideas from Paradox *)
 (* after flattening each clause is of the form *)
 (* ~P_f(y,x)\/~P(x)\/Q(x)\/ x=z *)
-(* 1. all P_f are neg., 2. no x\not = y *)
+(* 1. all P_f are neg., 2. no x \not = y *)
 
 
 (*-----------Add terms, clauses--------------*)
@@ -40,48 +42,107 @@ let add_var_term var = TermDB.add_ref (Term.create_var_term var) term_db_ref
     
 let add_fun_term symb args = 
   TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
-
-
+    
+    
 let add_neg_lit atom_symb args = 
   add_fun_term Symbol.symb_neg [(add_fun_term atom_symb args)]
 
 (* change later !!!*)
+
+(*
 let equality_term t s = 
   let default_type_term = (add_fun_term Symbol.symb_default_type []) in
   let args = [default_type_term;t;s] in
   add_fun_term Symbol.symb_typed_equality  args 
+*)
 
-let dis_equality t s = 
-  add_fun_term Symbol.symb_neg [(equality_term t s)]
+let equality_term eq_type t s = 
+  let args = [eq_type;t;s] in
+  add_fun_term Symbol.symb_typed_equality  args
+
+let equality_term_type_sym eq_type_sym t s = 
+  let eq_type = (add_fun_term eq_type_sym []) in
+  equality_term eq_type t s
+
+
+
+let dis_equality eq_type t s = 
+  add_fun_term Symbol.symb_neg [(equality_term eq_type t s)]
+
+let dis_equality_sym eq_type_sym t s = 
+  add_fun_term Symbol.symb_neg [(equality_term_type_sym eq_type_sym t s)]
+
 
 let add_clause_lits lit_list = 
   Clause.normalise term_db_ref (Clause.create lit_list)  
 
 
-(*---------------Flatting Signature-----------------------------*)
+  (* aux fun *)
+let get_val_type sym = Symbol.get_val_type_def sym
+
+
+(*----------------*)
+
+module SymSet = Set.Make (Symbol)
+
+let flat_sym_set = ref SymSet.empty
+let def_sym_set  = ref SymSet.empty
+let eq_type_set  = ref SymSet.empty
+
+module SymH = Hashtbl.Make(Symbol)
+
+(* map from flat to original *)
+let flat_to_orig = SymH.create 101
+
+let add_flat_to_orig flat orig = 
+  if (SymH.mem flat_to_orig flat) 
+  then ()
+  else 
+   SymH.add flat_to_orig flat orig
+
+(*--------------- Flattening Signature ----------------------------*)
 (* for each fun. symbol f in signature which also occrs in the input *)
 (* we add P_f of arity ar(f) + 1, the first argument of P_f corresponds *)
 (* to the value of f *)
 (* one should run flat_signature (once) before flattening *)
 
+(* val pred is first arg *)
+let get_val_pred_type sym = 
+  assert (((Symbol.is_flat sym) && (Symbol.get_arity sym) >0)
+	||(Symbol.is_defpred sym));
+
+  let arg_types,_bool_type = Symbol.get_stype_args_val_def  sym in
+  let (val_type,_rest) = split_list arg_types in
+  val_type
+
 let flat_signature () = 
   let f symb = 
-    if (Symbol.is_fun symb ) &&
-      (Symbol.get_num_input_occur symb) > 0
+    (
+    if (Symbol.is_fun symb) 
+	&&
+      (Symbol.get_num_input_occur symb) > 0 
+	&&
+      (not ((Symbol.get_property symb) = Symbol.Type))
     then 
-      let new_symb_name = ("iProver_Flat_"^(Symbol.get_name symb)) in
+      (
+      let new_symb_name = ("$$iProver_Flat_"^(Symbol.get_name symb)) in
       let flat_type = 
 	match (Symbol.get_stype_args_val symb) with
 	|Def (old_args, old_val) ->
-            Symbol.create_stype (old_args@[old_val]) Symbol.symb_bool_type
+(*            Symbol.create_stype (old_args@[old_val]) Symbol.symb_bool_type*)
+	    Symbol.create_stype (old_val::old_args) Symbol.symb_bool_type
 	|Undef -> Symbol.create_stype [] Symbol.symb_bool_type
       in
       let flat_symb = 
 	Symbol.create_from_str_type_property
 	  new_symb_name flat_type  Symbol.Flat in
       let add_flat_symb = SymbolDB.add_ref flat_symb symbol_db_ref in
-      Symbol.assign_flattening symb add_flat_symb
+      flat_sym_set:= SymSet.add add_flat_symb !flat_sym_set;
+      add_flat_to_orig add_flat_symb symb;
+      Symbol.assign_flattening symb add_flat_symb;
+      )
     else ()
+    )
   in 
   SymbolDB.iter f !symbol_db_ref
 
@@ -115,6 +176,7 @@ let add_term_to_def_test t =
 let term_def_table = TermHash.create 41 
 
 (* adds definition of a ground term to the table *)
+(* fix typed equality! *)
 let rec add_term_def_table t = 
   if (TermHash.mem term_def_table t)
   then ()
@@ -127,11 +189,14 @@ let rec add_term_def_table t =
 	else
 	  (Term.arg_iter add_term_def_table args;
 (* replace to a shorter name: based on a counter *)	 
-	   let symb_name = ("iProver_Def_"^(Term.to_string t)) in
-	   let symb = 
+	   let def_symb_name = ("$$iProver_Def_"^(Term.to_string t)) in
+	   let def_symb = 
 	     Symbol.create_from_str_type_property 
-	       symb_name (Symbol.create_stype [] Symbol.symb_bool_type) Symbol.DefPred in
-	   let add_def_symb = SymbolDB.add_ref symb symbol_db_ref in 
+	       def_symb_name 
+	       (Symbol.create_stype [(get_val_type symb)] Symbol.symb_bool_type) 
+	       Symbol.DefPred in
+	   let add_def_symb = SymbolDB.add_ref def_symb symbol_db_ref in 
+	   def_sym_set:= SymSet.add add_def_symb !def_sym_set;
 	   TermHash.add term_def_table t add_def_symb
 	  )
     | Term.Var _ -> failwith "add_term_def_table term should be ground"
@@ -167,7 +232,20 @@ let rec term_flattening_env var_env max_var_ref term =
 		     ^(Term.to_string term)^"\n");*)
 	    add_term_def_table term)
 	 else
-	   (Term.arg_iter (term_flattening_env var_env max_var_ref) args)
+	   (
+	    let relevant_args = 
+	      if (symb == Symbol.symb_typed_equality) 
+	      then 
+		let (eq_type, t1,t2) = 
+		  get_triple_from_list (Term.arg_to_list args) in
+(* on the way we also fill set of equality types *)
+		let eq_type_sym = Term.get_top_symb eq_type in
+		eq_type_set:= SymSet.add eq_type_sym !eq_type_set;
+		Term.list_to_arg [t1;t2]
+	      else
+		args
+	    in
+	    Term.arg_iter (term_flattening_env var_env max_var_ref) relevant_args)
 	 );
 	 if (Symbol.is_fun symb)  
 	 then
@@ -212,12 +290,11 @@ let flat_lit_env var_env max_var_ref neg_var_subst_ref lit =
       | Term.Fun (symb, args, _) -> 
 	  if (symb == Symbol.symb_typed_equality) 
 	  then 
-	  (*flat neg eq: t\=s 1. t->x s->y added to var_env,   *)
-          (*then x\not y is normalised and added to subst.     *)  
+	  (* flat neg eq: t\=s 1. t->x s->y added to var_env,   *)
+          (* then x\not y is normalised and added to subst.     *)  
 
 (*	    let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
-	    let (t1,t2) = get_last_pair_from_triple_list (Term.arg_to_list args) in
-
+	    let (_eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
 (*	    let rec fl t1 t2 = *)
 	    if t1==t2 then ()
 	    else	      
@@ -238,8 +315,10 @@ let flat_lit_env var_env max_var_ref neg_var_subst_ref lit =
 		  (* atom is not equality *)
 	  else
 	    term_flattening_env var_env max_var_ref atom
+
       | Term.Var _ -> failwith "flat_lit_env: atom cannot be a var"
-    end
+end
+
 (* positive lit*)
   else 
     term_flattening_env var_env max_var_ref lit
@@ -297,9 +376,9 @@ let flat_clause clause =
 	  else
 	    (*positive eq, terms replaced by definitions *)
 	   (* let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
-	    let (t1,t2) = get_last_pair_from_triple_list (Term.arg_to_list args) in
+	    let (eq_type,t1,t2) = get_triple_from_list (Term.arg_to_list args) in
 	    (* replace *)
-	    (equality_term  (term_to_var_term t1) (term_to_var_term t2))::rest
+	    (equality_term eq_type (term_to_var_term t1) (term_to_var_term t2))::rest
 	else 
 (* non equlaity literal *)
 	  let new_atom = 
@@ -319,7 +398,7 @@ let flat_clause clause =
   let flat_part =  Clause.fold flat_lit [] clause in
   let get_env_part term var_term rest = 
     let new_var_term = 	    
-      (Subst.find_normalised  !neg_var_subst_ref var_term) in	      
+      (Subst.find_normalised !neg_var_subst_ref var_term) in	      
     match term with 
     | Term.Fun (symb, args, _) -> 
 	let new_atom =   
@@ -354,6 +433,10 @@ let flat_clause clause =
 (* \neg P_t1(X1)\/..\/ \neg P_tn(Xn) \/ \neg P_f(t1,...,tn)(Z) \/ *)
 (* \/ \neg P_f(Val,X1,..,Xn)\/ Z=Val                              *)
 (* constants are not redefined *)
+
+(*----------------definitions are wrong and do not work!---------------------*)
+(*--------------------fix later --------------------*)
+let _ = out_str ("\n\n!Fix Definitions in finite_models!\n\n")
 
 let get_definitions () =
   let f t def_symb rest = 
@@ -394,7 +477,8 @@ let get_definitions () =
 	   let p_f_symb = Symbol.get_flattening symb in
 	   let p_f_lit = add_neg_lit p_f_symb (val_var::(!arg_vars)) in
 (*Z=Val*)  
-	   let z_val_lit = equality_term  p_f_t_lit_var val_var in
+	   let z_val_lit = equality_term_type_sym 
+	       (get_val_type symb) p_f_t_lit_var val_var in
 	   let new_clause = 
 	     add_clause_lits (z_val_lit::p_f_lit::p_f_t_lit::arg_lits) in
 	   new_clause::rest
@@ -403,6 +487,8 @@ let get_definitions () =
     |Term.Var _ -> failwith "get_definitions: term should be ground"	  
   in
   TermHash.fold f term_def_table [] 
+
+(* definitions should be fixed!!! *)
 
 let flat_clause_list clause_list = 
  let flat_clauses =  List.map flat_clause clause_list in
@@ -413,62 +499,182 @@ let flat_clause_list clause_list =
 
 (*---------------Axioms-------------------------*)
 
-let add_domain_constant i = 
-  let dom_symb_name = ("iProver_Domain_"^(string_of_int i)) in
-  let dom_symb = 
+(* bound_pred is added to clauses which are active at the current domain bound i *)
+let create_bound_pred i = 
+  let bound_symb_name = ("$$iProver_Bound_Pred_"^(string_of_int i)) in
+  let bound_symb = 
     Symbol.create_from_str_type_property 
-      dom_symb_name (Symbol.create_stype [] Symbol.symb_default_type) Symbol.DomainConstant in
-  let add_dom_symb = SymbolDB.add_ref dom_symb symbol_db_ref in
-  add_fun_term add_dom_symb []
+      bound_symb_name (Symbol.create_stype [] Symbol.symb_bool_type) 
+      Symbol.DomainPred in
+  let add_bound_symb = SymbolDB.add_ref bound_symb symbol_db_ref in
+  add_fun_term add_bound_symb []
  
 
-let add_domain_pred i = 
-  let dom_symb_name = ("iProver_Domain_Pred_"^(string_of_int i)) in
+(*-----------------------*)
+type domain = 
+    {
+     dom_type : symbol;
+     mutable dom_elements : term list;
+(* all flat and defpred symbols with value type of domain_type *)
+     mutable dom_flat_preds : symbol list; 
+(*     mutable dom_def_preds : symbol list; *)
+   }
+
+let create_domain dom_type = 
+  {
+   dom_type = dom_type;
+   dom_elements =[];
+   dom_flat_preds = [];
+ }
+
+
+(*
+module DKey = 
+  struct 
+    type t = domain
+    let equal d1 d2 = Symbol.equal d1.dom_type d2.dom_type
+    let hash d = Symbol.hash d.dom_type
+  end
+*)
+
+(* TDomainH hash table mapping domain_type -> domain *)
+module TDomainH = Hashtbl.Make(Symbol)
+
+let domain_table = TDomainH.create 101
+
+(*------domains should be initialised before use!-----*)
+let init_domains () = 
+  let f flat_pred = 
+     let val_type = get_val_pred_type flat_pred in
+     try 
+       out_str ("dom pred "^(Symbol.to_string flat_pred)
+		^" domain type: "^(Symbol.to_string val_type)^"\n");
+       let dom = TDomainH.find domain_table val_type in 
+      dom.dom_flat_preds <- flat_pred::(dom.dom_flat_preds)
+    with 
+      Not_found -> 
+	(
+	 let new_dom = create_domain val_type in 
+	 new_dom.dom_flat_preds <- [flat_pred];
+	 TDomainH.add domain_table val_type new_dom
+	)
+  in
+  SymSet.iter f !flat_sym_set
+
+
+let add_domain_constant dom i = 
+  let dom_symb_name = 
+    ("$$iProver_Domain_"^(Symbol.to_string dom.dom_type)^"_"^(string_of_int i)) in
+
   let dom_symb = 
     Symbol.create_from_str_type_property 
-      dom_symb_name (Symbol.create_stype [] Symbol.symb_default_type) Symbol.DomainPred in
+(*      dom_symb_name (Symbol.create_stype [] Symbol.symb_default_type) Symbol.DomainConstant in*)
+      dom_symb_name (Symbol.create_stype [] dom.dom_type) Symbol.DomainConstant in
   let add_dom_symb = SymbolDB.add_ref dom_symb symbol_db_ref in
-  add_fun_term add_dom_symb []
-    
+  let dom_i_el =  add_fun_term add_dom_symb [] in
+  dom.dom_elements <- dom_i_el::(dom.dom_elements)
+(*
+  try 
+    let dom = TDomainH.find domain_table dom_type in
+    dom.dom_elements <- dom_i_el::(dom.dom_elements)
+  with 
+    Not_found -> failwith "add_domain_constant: dom_type should be in domain_table"
+ *)
 
-let add_domain_constants first last = 
+
+let add_domain_constant_all_dom i = 
+  out_str ("adding const"^(string_of_int i)^"\n");
+  TDomainH.iter 
+    (fun _dom_type dom -> add_domain_constant dom i) domain_table
+
+  
+(*
+let add_domain_constants domain first last = 
+
   let dom_const_list_ref = ref [] in
   for i=first to last 
   do
-    let add_dom_const = add_domain_constant i in
+    let add_dom_const = add_domain_constant dom_type i in
     dom_const_list_ref:=add_dom_const::!dom_const_list_ref
   done;
   !dom_const_list_ref
-  
+*)  
 
-let dis_eq_axioms t term_list = 
+(*--------- disequality axioms -----------*)
+let dis_eq_axioms eq_type t term_list = 
   let f rest_f s = 
     if not (s==t) 
     then 	
-      (add_clause_lits [(dis_equality t s)])::rest_f
+      (add_clause_lits [(dis_equality_sym eq_type t s)])::rest_f
     else 
       rest_f
   in 
   List.fold_left f [] term_list 
 
-(* for al pairs t s in term_list adding t!=s *)
+(* for all pairs t s in term_list adding t!=s *)
 (* we need to add both t!=s and s!=t since we don not add symmetry axioms*)
-let dis_eq_axioms_list term_list = 
+let dis_eq_axioms_list eq_type term_list = 
   let f rest t =     
-    (dis_eq_axioms t term_list)@rest
+    (dis_eq_axioms eq_type t term_list)@rest
   in
   List.fold_left f [] term_list 
 
 
+let dis_eq_axioms_dom dom = 
+(* we do not need to add disequality axioms for non-equality types *)
+  if (SymSet.mem dom.dom_type !eq_type_set) 
+  then
+    dis_eq_axioms_list dom.dom_type dom.dom_elements
+  else
+    []
+
+let dis_eq_axioms_all_dom () =  
+  TDomainH.fold 
+    (fun _dom_type dom rest_ax -> ((dis_eq_axioms_dom dom)@rest_ax)) domain_table []
+
+(*----------------------------*)
+(* version with symmetry ax in place of explicit pairs t!=s  and s!=t *)
+
+let dis_eq_axioms_sym_list eq_type term_list = 
+ let rec dis_eq_axioms_sym_list' ax_list term_list_rest = 
+   match term_list_rest with 
+   |h::tl -> 
+       let new_ax = dis_eq_axioms eq_type h tl in
+       let current_ax= new_ax@ax_list in
+       dis_eq_axioms_sym_list' current_ax tl
+   |[] -> ax_list
+ in
+ dis_eq_axioms_sym_list' [] term_list
+
+let dis_eq_axioms_dom_sym dom = 
+  out_str ("domain type"^(Symbol.to_string dom.dom_type)^" domain terms: "^(Term.term_list_to_string dom.dom_elements)^"\n");
+
+(* we do not need to add disequality axioms for non-equality types *)
+  if (SymSet.mem dom.dom_type !eq_type_set) 
+  then
+    begin
+      let sym_axiom = Eq_axioms.typed_symmetry_axiom_sym dom.dom_type in
+      let dis_ax = (dis_eq_axioms_sym_list dom.dom_type dom.dom_elements) in
+(* for the dome size 1 we do not need to add sym_axiom *)
+      if dis_ax = [] 
+      then []
+      else sym_axiom::dis_ax
+    end
+  else
+    []
+
+let dis_eq_axioms_all_dom_sym () =  
+  TDomainH.fold 
+    (fun _dom_type dom rest_ax -> ((dis_eq_axioms_dom_sym dom)@rest_ax)) domain_table []
+
+(*-----------------*)
+
 (* symbol is a flat symbol, dom_pred is the predicate added to the clause *)
 (*to encode crurrent domain *)
 (* ex if symb is R and domain terms [1;..;n] then *)
-(* the result is R(1,x_1,x_2)\/R(2,x_1,x_2)\/...\/R(n,x_1,x_2)*)
+(* the result is dom_pred \/ R(1,x_1,x_2)\/R(2,x_1,x_2)\/...\/R(n,x_1,x_2)*)
 
-
-let domain_axiom symb dom_pred dom_terms = 
-  if (Symbol.is_flat symb) || (Symbol.is_defpred symb)
-  then
+ let axiom_dom_pred_symb bound_pred symb dom_elements =   
     let rec get_var_args rest current_var i = 
       if i = 0 then List.rev rest
       else 
@@ -478,32 +684,29 @@ let domain_axiom symb dom_pred dom_terms =
     let var_args = 
       get_var_args [] (Var.get_first_var ()) ((Symbol.get_arity symb)-1) 
     in 
-    let f rest dom_term = 
-      (add_fun_term symb (dom_term::var_args))::rest
+    let f rest dom_el = 
+      (add_fun_term symb (dom_el::var_args))::rest
     in
-    (add_clause_lits (dom_pred::(List.fold_left f [] dom_terms)))
-  else
-    failwith "domain_axiom: not a flat or def symbol"
+    let new_cl = 
+      (add_clause_lits (bound_pred::(List.fold_left f [] dom_elements))) in
+    new_cl
 
-(*------------All domain axioms without symmetry breaking--------------------*)
-
-let domain_axioms dom_pred dom_terms = 
-  let dom_clause symb rest_clauses =     
-    if (Symbol.is_flat symb)
-    then
-      (domain_axiom symb dom_pred dom_terms)::rest_clauses
-    else 
-      rest_clauses
-  in
-  SymbolDB.fold dom_clause !symbol_db_ref [] 
+let domain_pred_axioms bound_pred dom =
+   List.fold_left (fun rest symb  -> 
+    ((axiom_dom_pred_symb bound_pred symb dom.dom_elements)::rest)) 
+    []
+    dom.dom_flat_preds
 
 
-let domain_axioms_symb_list dom_pred dom_terms symb_list = 
-  let f rest_clauses symb  =     
-    (domain_axiom symb dom_pred dom_terms)::rest_clauses
-  in
-  List.fold_left f [] symb_list
- 
+
+
+(*------------ All domain axioms without symmetry breaking --------------------*)
+
+let domain_pred_axioms_all_dom bound_pred = 
+  TDomainH.fold 
+    (fun _dom_type dom rest_ax -> 
+      ((domain_pred_axioms bound_pred dom)@rest_ax)) domain_table []
+
 
 
 (*----optimized version with restricted domain for constants----*)
@@ -518,6 +721,79 @@ let domain_axioms_symb_list dom_pred dom_terms symb_list =
 (* P_cn(1)\/......\/P_cn(k)           *)
 (*where k is the domain size = numb dom terms *)
 
+let domain_axioms_triangular_const_list bound_pred dom_elements ordered_flat_consts =
+  let rec i_const_lits rest_dom_elements i symb = 
+    match rest_dom_elements with 
+    | [] -> []
+    | h::tl ->
+	if (i =0) then []
+	else 
+	  ((add_fun_term symb [h])::(i_const_lits tl (i-1) symb))
+  in  
+  let get_axioms_const (rest,i) symb = 
+    let new_clause = 
+      add_clause_lits (bound_pred::(i_const_lits dom_elements i symb)) in
+    ((new_clause::rest),i+1)
+  in
+  let (axioms_const,_) = 
+    List.fold_left get_axioms_const ([],1) ordered_flat_consts in
+  axioms_const
+
+(*-------------------------------*)
+let domain_axioms_triangular bound_pred = 
+  let num_of_occurences flat_sym = 
+    try 
+      let orig_symb = SymH.find flat_to_orig flat_sym in
+      Symbol.get_num_input_occur orig_symb
+    with Not_found -> failwith "domain_axioms_triangular_const: should not happen"
+  in
+  let cmp_occur s1 s2 = 
+    -(compare (num_of_occurences s1) (num_of_occurences s2)) in 
+
+  let order_flat_consts flat_consts = List.sort cmp_occur flat_consts in
+  
+(* returns (pred_const, other_pred) *)
+  let split pred_list = 
+    List.fold_left 
+      (fun (pred_cont_rest,other_pred_rest) pred -> 
+	(if  ((Symbol.get_arity pred) = 1)
+	then
+	  ((pred::pred_cont_rest),other_pred_rest)
+	else
+	  (pred_cont_rest,(pred::other_pred_rest))
+	)
+      )
+      ([],[])
+      pred_list
+  in
+  let dom_fun dom = 
+    let (flat_consts, other_preds) = split dom.dom_flat_preds in
+    let ordered_flat_consts = order_flat_consts flat_consts in
+    let flat_consts_ax =  
+      domain_axioms_triangular_const_list 
+	bound_pred dom.dom_elements ordered_flat_consts 
+    in 
+    let other_preds_ax = 
+      List.fold_left (fun rest symb  -> 
+	((axiom_dom_pred_symb bound_pred symb dom.dom_elements)::rest)) 
+	[]
+	other_preds
+    in
+    flat_consts_ax@other_preds_ax
+  in   
+  TDomainH.fold 
+    (fun _dom_type dom rest_ax -> 
+      ((dom_fun dom)@rest_ax)) domain_table []
+
+
+(*
+ (pred_const, other_pred) = 
+    (Symbol.get_arity s) >1) split flat_pred_list 
+  let dom_fun dom = 
+    flat_to_orig
+*)
+
+(*
 
 
 let domain_axioms_triangular_const dom_pred dom_terms const_list = 
@@ -568,8 +844,12 @@ let split_input_constants_other () =
   SymbolDB.fold split_constants_other' !symbol_db_ref ([],[]) 
   
 
+*)
 
 (*----Triangular axioms for constants and plus axioms for the rest-----------*)
+
+(* Commented for the moment
+
 
 let domain_axioms_triangular dom_pred dom_terms = 
   let (const_list,non_const_flat_pred) = split_input_constants_other () in
@@ -619,3 +899,8 @@ let domain_axioms_unit dom_pred dom_terms =
     domain_axioms_symb_list dom_pred dom_terms non_const_flat_pred in
   axioms_const@axioms_flat_rest
 		  
+*)
+
+let init_finite_models () = 
+  flat_signature ();  
+  init_domains ()

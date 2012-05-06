@@ -49,8 +49,6 @@ let ()= out_str(options_to_str !current_options)
 *)
 
 
-
-
 (*------------------Signals:-----------------*)
 
 exception Time_out_real
@@ -506,8 +504,16 @@ let finite_models clauses =
   Clause.out_clause_list_tptp prep_clauses; 
 
 
-  Finite_models.flat_signature ();
+(*  Finite_models.flat_signature ();*)
+
+  Finite_models.init_finite_models ();
+
   let init_clauses = (Finite_models.flat_clause_list prep_clauses) in
+
+    out_str ("\n---------Flat clauses------------------\n"
+	     ^(Clause.clause_list_to_tptp init_clauses)
+	       ^"\n------------------------\n");    
+  
   out_str (pref_str^"lit_activity_flag true\n");
 (*  Prop_solver_exchange.set_lit_activity_flag false;*)
   List.iter 
@@ -515,7 +521,7 @@ let finite_models clauses =
   (if (Prop_solver_exchange.solve ()) = PropSolver.Unsat
   then raise PropSolver.Unsatisfiable);
   let dom_const_list = ref [] in
-  let domain_preds   = ref [] in
+  let bound_preds   = ref [] in
 
 
   let model_size = ref
@@ -539,46 +545,64 @@ let finite_models clauses =
 *)
   for i = 1 to !model_size 
   do
-    let new_dom_const = 
-      Finite_models.add_domain_constant i in
-    dom_const_list := (!dom_const_list)@[new_dom_const]
+
+    Finite_models.add_domain_constant_all_dom i
+ (* in  dom_const_list := (!dom_const_list)@[new_dom_const]*)
   done;
   while !model_size < model_bound
   do
     try 
       out_str (pref_str^"Trying models of size: "
 	       ^(string_of_int !model_size)^"\n");
+
+      
+      let new_bound_pred =  Finite_models.create_bound_pred !model_size 
+      in  
+      let domain_axioms = 
+(*can use  Finite_models.domain_pred_axioms_all_dom new_bound_pred *)
+	Finite_models.domain_axioms_triangular new_bound_pred 
+      in
+      out_str ("\n---------Domain Axioms------------------\n"
+	       ^(Clause.clause_list_to_tptp domain_axioms)
+	       ^"\n------------------------\n");    
+  
       let dis_eq_axioms =
 	if no_input_eq () 
 	then []
 	else
-	  Finite_models.dis_eq_axioms_list !dom_const_list 
-      in
-      let new_dom_pred = Finite_models.add_domain_pred !model_size in      
+(* can have Finite_models.dis_eq_axioms_all_dom () for exp. *)
+	  Finite_models.dis_eq_axioms_all_dom_sym ()
+      in  
+      out_str ("\n---------Diseq Axioms------------------\n"
+	       ^(Clause.clause_list_to_tptp dis_eq_axioms)
+	       ^"\n------------------------\n");   
+      
+(*
       let domain_axioms = 
 	if no_input_eq () 
 	then 
 	  Finite_models.domain_axioms_unit new_dom_pred !dom_const_list 
 	else
 	  Finite_models.domain_axioms_triangular new_dom_pred !dom_const_list 
-      in
+*)
+   
       let axioms  = domain_axioms@dis_eq_axioms in
       let clauses = axioms@init_clauses in
     (*  out_str ("\n-----------------------------\n"
-     ^(Clause.clause_list_to_tptp clauses)^"\n");
-    *)
+     ^(Clause.clause_list_to_tptp clauses)^"\n");    
+*)
       List.iter 
 	Prop_solver_exchange.add_clause_to_solver axioms;
-      let neg_domain_pred =  
+      let neg_bound_pred =  
 	TermDB.add_ref 
-	  (Term.create_fun_term Symbol.symb_neg [new_dom_pred]) 
+	  (Term.create_fun_term Symbol.symb_neg [new_bound_pred]) 
 	  Parser_types.term_db_ref in     
-      Prop_solver_exchange.assign_solver_assumptions (neg_domain_pred::!domain_preds);
+      Prop_solver_exchange.assign_solver_assumptions (neg_bound_pred::!bound_preds);
 
 (* new_dom_pred is added for all simplified claues *)
-      Prop_solver_exchange.assign_adjoint_preds  [new_dom_pred];
+      Prop_solver_exchange.assign_adjoint_preds  [new_bound_pred];
 	(*(neg_domain_pred::(!domain_preds));*)
-      domain_preds := new_dom_pred::!domain_preds;
+      bound_preds := new_bound_pred::!bound_preds;
       let prover_functions_ref = 
 	ref (create_provers "Inst" "Res" clauses) in
       full_loop prover_functions_ref clauses	
@@ -587,9 +611,11 @@ let finite_models clauses =
     |Instantiation.Unsatisfiable  |PropSolver.Unsatisfiable  
       -> (Instantiation.clear_after_inst_is_dead (); 
 	  model_size:=!model_size+1;
-	  let new_dom_const = 
+	  Finite_models.add_domain_constant_all_dom !model_size;
+(*	  let new_dom_const = 
 	    Finite_models.add_domain_constant !model_size in
-	  dom_const_list := (!dom_const_list)@[new_dom_const])
+	  dom_const_list := (!dom_const_list)@[new_dom_const]*)
+	 )
   done;
   out_str ("Model Bound exceeded: "^(string_of_int model_bound)^"\n")
 

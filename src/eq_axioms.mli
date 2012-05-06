@@ -14,6 +14,7 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
+type symbol = Symbol.symbol
 type clause = Clause.clause
 
 val axiom_list : unit -> clause list
@@ -27,3 +28,6 @@ val less_axioms : unit -> clause list
 val range_axioms : unit -> clause list
 
 val less_range_axioms : unit -> clause list
+
+(* typed_symmetry_axiom_sym eq_type_sym *)
+val typed_symmetry_axiom_sym : symbol -> clause

@@ -37,14 +37,16 @@ type clause_sig =
               symb_list  : symb list; 
     }
 
+(*
 module SigKey = 
   struct
     type t    = symb
     let equal = (==)
-    let hash  = Symbol.hash_small
+    let hash  = Symbol.hash
   end
+*)
 
-module SigTable = Hashtbl.Make(SigKey)
+module SigTable = Hashtbl.Make(Symbol)
 
 (*----Create clause_sig-------------*)
 

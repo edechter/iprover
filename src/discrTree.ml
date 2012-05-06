@@ -72,7 +72,7 @@ module Make (P:Param) =
 	    
  	let hash t = 
 	  match t with 
-	  | Sym(s) -> Symbol.hash_small(s)
+	  | Sym(s) -> (Symbol.hash s)
 	  | Var -> P.num_of_symb + 1
 
         let init_num_of_keys = 

@@ -102,16 +102,11 @@ type context =
 
 type vtable =  (sub_type) VarTable.t
 
-let get_sym_types sym =
-  match (Symbol.get_stype_args_val sym) with 
-  |Def (arg_t, v_t) -> (arg_t, v_t)
-  |_-> failwith "get_sym_types: arg_types should be defined"
-
+let get_sym_types sym = Symbol.get_stype_args_val_def sym
   
    (* aux fun *)
-let get_val_type sym =
-  let _arg_types, val_type = get_sym_types sym in 
-  val_type
+let get_val_type sym = Symbol.get_val_type_def sym
+
 
 let get_val_sub_type sym =
   let val_type = get_val_type sym in
@@ -478,7 +473,7 @@ let sub_type_inf clause_list =
      
 (*   SymbolDB.iter process_sym !symbol_db_ref;*)
 
-(*--------finish---------*)
+
 (* 1) type equalities, 2) merge history with christoph, 3) C\/t!=s and s has differen type from t then the clause is a tautology ! *)
 
    let typed_clause_list = 
@@ -489,9 +484,16 @@ let sub_type_inf clause_list =
 	   try 
 	     let lits = Clause.get_literals clause  in
 	     let new_lits = List.map (type_equality_lit context) lits in
-	     let new_clause = Clause.create new_lits in
-	     Clause.inherit_param_modif clause  new_clause;
-	     new_clause::rest
+	     if (new_lits == lits)
+	     then
+	       clause::rest 
+	     else
+	       (
+		let new_clause = Clause.create new_lits in
+		Clause.inherit_param_modif clause  new_clause;	     
+		Prop_solver_exchange.add_clause_to_solver new_clause;
+		new_clause::rest
+	       )
 	   with 
 	     Neg_eq_different_types -> rest  
 	 in    

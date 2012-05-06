@@ -14,10 +14,32 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
+
 type symb   = Symbol.symbol
+type stype  = Symbol.stype
 type term   = Term.term 
 type clause = Clause.clause
 
+val add_domain_constant_all_dom : int -> unit 
+
+val dis_eq_axioms_all_dom : unit -> clause list
+
+(* version of disequalities with explitic symmetry axioms *)
+val dis_eq_axioms_all_dom_sym : unit -> clause list
+
+val domain_pred_axioms_all_dom : term -> clause list
+
+val domain_axioms_triangular : term ->  clause list
+
+val create_bound_pred : int -> term
+
+val init_finite_models : unit -> unit
+
+val flat_clause_list : clause list -> clause list
+
+
+
+(*
 (* one should run flat_signature before any other function*)
 val flat_signature : unit -> unit
 
@@ -30,9 +52,10 @@ val add_domain_constant  : int -> term
 val add_domain_constants : int -> int -> term list
 val add_domain_pred      : int -> term
 
-val dis_eq_axioms      : term -> term list -> clause list
-val dis_eq_axioms_list : term list -> clause list
+val dis_eq_axioms      : stype -> term -> term list -> clause list
+val dis_eq_axioms_list : stype -> term list -> clause list
 
 val domain_axioms            : term -> term list ->  clause list
 val domain_axioms_triangular : term -> term list ->  clause list
 val domain_axioms_unit       : term -> term list ->  clause list
+*)
