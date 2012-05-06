@@ -886,6 +886,10 @@ module Map = Map.Make(SymbKey)
 (*module type TMap = SMap*)
     
 
+module SymSet = Set.Make(SymbKey)
+
+type sym_set = SymSet.t
+
 (*-----------------------------------*)
 let to_stream stream s = 
   stream.stream_add_str s.name

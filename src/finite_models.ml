@@ -56,6 +56,16 @@ let equality_term t s =
   add_fun_term Symbol.symb_typed_equality  args 
 *)
 
+let create_symbol symb_name stype sproperty = 
+  let symb = 
+    Symbol.create_from_str_type_property
+      symb_name stype Symbol.Flat in
+  let added_symb = SymbolDB.add_ref symb symbol_db_ref in  
+  Symbol.assign_is_essential_input true added_symb;
+  Symbol.assign_is_input true added_symb;
+  Symbol.incr_num_input_occur added_symb;
+  added_symb
+
 let equality_term eq_type t s = 
   let args = [eq_type;t;s] in
   add_fun_term Symbol.symb_typed_equality  args
@@ -83,7 +93,7 @@ let get_val_type sym = Symbol.get_val_type_def sym
 
 (*----------------*)
 
-module SymSet = Set.Make (Symbol)
+module SymSet = Symbol.SymSet
 
 let flat_sym_set = ref SymSet.empty
 let def_sym_set  = ref SymSet.empty
@@ -133,10 +143,7 @@ let flat_signature () =
 	    Symbol.create_stype (old_val::old_args) Symbol.symb_bool_type
 	|Undef -> Symbol.create_stype [] Symbol.symb_bool_type
       in
-      let flat_symb = 
-	Symbol.create_from_str_type_property
-	  new_symb_name flat_type  Symbol.Flat in
-      let add_flat_symb = SymbolDB.add_ref flat_symb symbol_db_ref in
+      let add_flat_symb = create_symbol new_symb_name flat_type Symbol.Flat in 
       flat_sym_set:= SymSet.add add_flat_symb !flat_sym_set;
       add_flat_to_orig add_flat_symb symb;
       Symbol.assign_flattening symb add_flat_symb;
@@ -190,12 +197,10 @@ let rec add_term_def_table t =
 	  (Term.arg_iter add_term_def_table args;
 (* replace to a shorter name: based on a counter *)	 
 	   let def_symb_name = ("$$iProver_Def_"^(Term.to_string t)) in
-	   let def_symb = 
-	     Symbol.create_from_str_type_property 
-	       def_symb_name 
-	       (Symbol.create_stype [(get_val_type symb)] Symbol.symb_bool_type) 
-	       Symbol.DefPred in
-	   let add_def_symb = SymbolDB.add_ref def_symb symbol_db_ref in 
+	   let def_symb_type = 
+	     (Symbol.create_stype [(get_val_type symb)] Symbol.symb_bool_type) in
+	   let add_def_symb =
+	     create_symbol def_symb_name def_symb_type Symbol.DefPred in
 	   def_sym_set:= SymSet.add add_def_symb !def_sym_set;
 	   TermHash.add term_def_table t add_def_symb
 	  )
@@ -502,11 +507,11 @@ let flat_clause_list clause_list =
 (* bound_pred is added to clauses which are active at the current domain bound i *)
 let create_bound_pred i = 
   let bound_symb_name = ("$$iProver_Bound_Pred_"^(string_of_int i)) in
-  let bound_symb = 
-    Symbol.create_from_str_type_property 
-      bound_symb_name (Symbol.create_stype [] Symbol.symb_bool_type) 
+  let add_bound_symb = 
+    create_symbol  
+      bound_symb_name 
+      (Symbol.create_stype [] Symbol.symb_bool_type) 
       Symbol.DomainPred in
-  let add_bound_symb = SymbolDB.add_ref bound_symb symbol_db_ref in
   add_fun_term add_bound_symb []
  
 
@@ -568,11 +573,9 @@ let add_domain_constant dom i =
   let dom_symb_name = 
     ("$$iProver_Domain_"^(Symbol.to_string dom.dom_type)^"_"^(string_of_int i)) in
 
-  let dom_symb = 
-    Symbol.create_from_str_type_property 
-(*      dom_symb_name (Symbol.create_stype [] Symbol.symb_default_type) Symbol.DomainConstant in*)
+  let add_dom_symb = 
+    create_symbol  
       dom_symb_name (Symbol.create_stype [] dom.dom_type) Symbol.DomainConstant in
-  let add_dom_symb = SymbolDB.add_ref dom_symb symbol_db_ref in
   let dom_i_el =  add_fun_term add_dom_symb [] in
   dom.dom_elements <- dom_i_el::(dom.dom_elements)
 (*

@@ -499,9 +499,9 @@ let finite_models clauses =
   let model_bound = 500 in
   out_str (pref_str^"Finite Models:\n");
   let prep_clauses = Preprocess.preprocess clauses in
-(*  out_str ("\n\n DEBUG \n\n");
+  out_str ("\n\n DEBUG \n\n");
   out_str ("\n\n"^pref_str^"Finite Model on Clauses:\n");
-  Clause.out_clause_list_tptp prep_clauses; *)
+  Clause.out_clause_list_tptp prep_clauses; 
 
 
 (*  Finite_models.flat_signature ();*)
@@ -1147,7 +1147,7 @@ let rec main clauses finite_model_clauses =
     if !current_options.brand_transform then 
       main (Eq_axioms.eq_axioms_flatting clauses) finite_model_clauses
     else
-      let equality_axioms = Eq_axioms.axiom_list () in
+      let equality_axioms = Eq_axioms.eq_axiom_list clauses in
       List.iter 
 	Prop_solver_exchange.add_clause_to_solver equality_axioms;
       eq_axioms_are_omitted:=false;
@@ -2036,11 +2036,11 @@ let run_iprover () =
 
 	let current_clauses_no_eq = ref (!current_clauses) in 
 
-(*
+
  	    out_str "\n-----------After sub_type_inf ---------\n";
 	    out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
 	    out_str "\n--------------------\n";
-*)
+
 
       let gen_equality_axioms = ref [] in
 
@@ -2065,14 +2065,14 @@ let run_iprover () =
 	   )
 	 else
 	   (
-	    gen_equality_axioms := Eq_axioms.axiom_list (); 
+	    gen_equality_axioms := Eq_axioms.eq_axiom_list !current_clauses; 
 (*debug *)
-(*
+
 	out_str "\n-----------Eq Axioms:---------\n";
 	out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 	out_str "\n--------------------\n";
 
-*)
+
 (*debug *)
 	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
 	   )
@@ -2127,10 +2127,10 @@ let run_iprover () =
      let prep_clauses = 
        Prep_sem_filter_unif.sem_filter_unif !current_clauses (get_side_clauses ()) in       
 
-(*
+
 	  out_str (pref_str^"Before sem filter:\n");
 	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
-*)
+
 
 	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 	  Clause.out_clause_list_tptp prep_clauses; 
@@ -2169,6 +2169,7 @@ let run_iprover () =
 	   !current_options.schedule = Schedule_sat)
 	   then 
 	     (
+	     
 	      current_clauses_no_eq :=
 		Prep_sem_filter_unif.sem_filter_unif 
 		  !current_clauses_no_eq ((!gen_equality_axioms)@side_clauses);

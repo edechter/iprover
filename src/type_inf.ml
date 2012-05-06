@@ -84,7 +84,7 @@ module UF_ST = Union_find.Make(SubTypeE)
 
 module VarTable = Hashtbl.Make (Var)
 
-module SymSet = Set.Make (Symbol)
+module SymSet = Symbol.SymSet
 
 type context = 
     {
@@ -123,7 +123,7 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
 
   let process_args_fun sym args ass_list= 
     let arg_types, _val_type = get_sym_types sym in 
-    let arg_list = Term.arg_to_list args in
+(*    let arg_list = Term.arg_to_list args in*)
     let (_,_,add_ass_list) =
       Term.arg_fold_left 
 	(fun (arg_ind,arg_types_rest,ass_list_rest) arg -> 

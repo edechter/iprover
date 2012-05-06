@@ -22,12 +22,16 @@ type lit = Term.literal
 type term = Term.term
 type symbol = Symbol.symbol  
 
+module SymSet = Symbol.SymSet
+type sym_set = Symbol.sym_set
 
 (*type symbol_db_ref = SymbolDB.symbolDB ref*)
 (*type clause_db_ref = ClauseAssignDB.clauseDB ref*)
 
 let symbol_db_ref  = Parser_types.symbol_db_ref
 let term_db_ref    = Parser_types.term_db_ref
+
+let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
 module SymbMap = Symbol.Map
 let less_map_ref = Parser_types.less_map
@@ -143,30 +147,29 @@ let typed_symmetry_axiom_sym eq_type_sym =
 (*(types with which sorted_euqality occurs)       *)
 (* and a function f(x_1,..,x_n) we add congrunce axiom w.r.t. to the types table *)
 
-module SymbKey = 
-  struct
-    type t    = symbol
-    let equal = (==)
-    let hash  = Symbol.get_fast_key 
-  end 
 
-module SymbTbl = Hashtbl.Make (SymbKey)
+module SymbTbl = Hashtbl.Make (Symbol)
   
 
-let typed_congruence_axiom eq_type_table symb = 
+
+let typed_congruence_axiom eq_type_set symb = 
   match (Symbol.get_stype_args_val symb) with 
   |Def (type_args, type_value) -> 
       if type_args = [] 
-      then None
+      then 
+	(out_str "None 1\n";
+	 None)
       else
 	let rec get_args_dis_lits 
 	    current_var current_type_args args1 args2 dis_eq_lits = 
 	  (match current_type_args with 
-	  |h::tl -> 
-	      if (SymbTbl.mem eq_type_table h) 
+	  |h::tl ->
+	      out_str ("h: "^(Symbol.to_string h)^"\n");
+	      if (SymSet.mem h eq_type_set) 
 	      then 
+		begin
 (* different varaibles *)
-
+		out_str "diff vars\n";
 		let next_var              = (Var.get_next_var current_var) in
 		let current_var_term      = (term_var current_var) in
 		let next_var_term         = (term_var next_var) in
@@ -180,8 +183,11 @@ let typed_congruence_axiom eq_type_table symb =
 		      (add_fun_term h [])
 		      current_var_term  
 		      next_var_term)::dis_eq_lits)
+		end
 	      else
 (* same varaibles *)
+		begin
+		  out_str "same vars\n";
 		let current_var_term = term_var current_var in
 		let new_current_var  = Var.get_next_var current_var in
 		get_args_dis_lits 
@@ -190,6 +196,7 @@ let typed_congruence_axiom eq_type_table symb =
 		  (current_var_term::args1) 
 	      	  (current_var_term::args2)
 		  dis_eq_lits
+		end
 	  |[] -> 
 	      ((List.rev args1),(List.rev args2), (List.rev dis_eq_lits))
 	  )
@@ -198,8 +205,10 @@ let typed_congruence_axiom eq_type_table symb =
 	  get_args_dis_lits 
 	    v0 type_args [] [] [] in
 	if (dis_eq_lits = [])
-	then 
+	then
+	  ( out_str "None 2\n";
 	  None
+	   )
 	else
 	  if (Symbol.is_pred symb) 
 	  then
@@ -224,8 +233,97 @@ let typed_congruence_axiom eq_type_table symb =
 	    Some(fun_congr_ax)
 	    )
 
-  |Undef -> None
+  |Undef -> 
+      (out_str "None 3\n";
+       None
+      )
 
+
+
+(* typed_congr_axiom_list_sym_set *)
+(* generic function for getting congruence based on eq_type_set             *)
+(* internaly the function uses a closure of eq_type_set *)
+(* under function application    *)
+(*(e.g. a in eq_type_set then val_type of f(..,a,..) is also in eq_type_set *)
+
+let typed_congr_axiom_list eq_type_set sym_set = 
+(* we close eq_type_set first *)
+  let closed_eq_type_set = ref eq_type_set in
+  let rec f symb = 
+    if (SymSet.mem symb !closed_eq_type_set) 
+    then ()
+    else 
+      begin
+	let (arg_types, val_type) = get_sym_types symb in
+	List.iter f arg_types;
+	let arg_is_in_closed_eq_type_set =
+	  (List.exists 
+	     (fun arg_sym ->  (SymSet.mem arg_sym !closed_eq_type_set))
+	     arg_types
+	  )
+	in
+	if arg_is_in_closed_eq_type_set 
+	then
+	 (closed_eq_type_set:= SymSet.add val_type !closed_eq_type_set
+	 )
+       else ()
+      end
+  in
+  SymSet.iter f sym_set;
+  
+(*  let uf_eq_types = UF_ST.create 301 in *)
+ 
+  let f symb rest = 
+    match (typed_congruence_axiom !closed_eq_type_set symb) with 
+    |Some ax -> 
+	(* out_str ("ax: "^(Clause.to_string ax)^"\n --------------\n");*)
+	ax::rest
+    |None -> rest
+  in
+  SymSet.fold f sym_set []
+
+
+(*module UF_ST = Union_find.Make(Symbol)*)
+
+
+(* it should be closed under funct application later *)
+(* returns (sym_set, eq_types_set) *)
+
+
+let get_symb_and_type_eq_set_basic clause_list = 
+  let sym_set      = ref SymSet.empty in
+  let eq_type_set  = ref SymSet.empty in
+  let rec get_type_eq_set_form_term t = 
+    match t with
+    | Term.Fun(symb,args,_) -> 	
+	let relevant_args = 
+	  if (symb == Symbol.symb_typed_equality) 
+	  then 
+	    (
+	    let (eq_type, t1,t2) = 
+	      get_triple_from_list (Term.arg_to_list args) in
+	    let eq_type_sym = Term.get_top_symb eq_type in
+	    eq_type_set:= SymSet.add eq_type_sym !eq_type_set;
+	    Term.list_to_arg [t1;t2]
+	    )
+	  else
+	    (sym_set :=  SymSet.add symb !sym_set;	     
+	     args
+	    )
+	in
+	Term.arg_iter get_type_eq_set_form_term relevant_args
+    |Term.Var _ -> ()
+  in 
+  let get_type_eq_set_form_lit lit = 
+    get_type_eq_set_form_term (Term.get_atom lit)
+  in
+  let get_type_eq_set_form_cl cl = Clause.iter  get_type_eq_set_form_lit cl in 
+  List.iter get_type_eq_set_form_cl clause_list;
+  (!sym_set,!eq_type_set)
+
+
+
+(*
 
 let get_type_eq_term t = 
   match t with
@@ -246,11 +344,15 @@ let get_type_eq_term t =
       else 
 	None
   |_-> None
+*)
 
-let typed_congr_axiom_list () = 
-  let eq_type_table = SymbTbl.create 101 in
+(*
+  let typed_congr_axiom_list () = 
+    let eq_type_table = SymbTbl.create 101 in
+  
 
-(*    
+
+    
   let collect_essential_stypes = function
 
     (* Symbol is a theory symbol (not a type symbol) that occurs in an
@@ -309,7 +411,7 @@ let typed_congr_axiom_list () =
   
 (* It is not enough to consider the types in equations only, must 
    take the types of all symbols in the input as above *)
-
+(*
 (* for $equality_sorted(type, t,s) add type to symb_table *)
   let add_eq_type t = 
 
@@ -326,6 +428,12 @@ let typed_congr_axiom_list () =
 
 
   let f symb rest = 
+    out_str ("eq_ax: "
+	     ^(Symbol.to_string symb)
+	     ^" is_essential_input: "
+	     ^(string_of_bool (Symbol.is_essential_input symb))
+	     ^" Symbol.is_signature_symb: "
+	     ^(string_of_bool (Symbol.is_signature_symb symb))^"\n");
     if 
       (
        (Symbol.is_essential_input symb) 
@@ -341,7 +449,9 @@ let typed_congr_axiom_list () =
     then
       (
        match (typed_congruence_axiom eq_type_table symb) with 
-       |Some ax -> ax::rest
+       |Some ax -> 
+	   out_str ("ax: "^(Clause.to_string ax)^"\n --------------\n");
+	   ax::rest
        |None -> rest
       )	
     else rest
@@ -353,6 +463,10 @@ let typed_congr_axiom_list () =
       out_str ((Symbol.to_string symb)^"\n");  
 *)
 
+*)
+
+
+(*
 let axiom_list () = 
 (*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
   if (Symbol.is_essential_input Symbol.symb_typed_equality) 
@@ -361,6 +475,21 @@ let axiom_list () =
      let typed_cong_ax_list = typed_congr_axiom_list () in
      (typed_reflexivity_axiom ())::(typed_trans_symmetry_axiom ())::typed_cong_ax_list) 
   else []
+*)
+
+
+let eq_axiom_list clause_list = 
+(*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
+  let (sym_set, eq_type_set) = get_symb_and_type_eq_set_basic clause_list in
+  let typed_cong_ax_list = typed_congr_axiom_list eq_type_set sym_set in 
+  if (typed_cong_ax_list = []) 
+  then 
+    []           
+  else
+    ( 
+    (typed_reflexivity_axiom ())::((typed_trans_symmetry_axiom ())::typed_cong_ax_list)
+     )
+
 
 
 (*--------------------------------------------*)
