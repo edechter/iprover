@@ -499,9 +499,9 @@ let finite_models clauses =
   let model_bound = 500 in
   out_str (pref_str^"Finite Models:\n");
   let prep_clauses = Preprocess.preprocess clauses in
-  out_str ("\n\n DEBUG \n\n");
+(*  out_str ("\n\n DEBUG \n\n");
   out_str ("\n\n"^pref_str^"Finite Model on Clauses:\n");
-  Clause.out_clause_list_tptp prep_clauses; 
+  Clause.out_clause_list_tptp prep_clauses; *)
 
 
 (*  Finite_models.flat_signature ();*)
@@ -509,11 +509,11 @@ let finite_models clauses =
   Finite_models.init_finite_models ();
 
   let init_clauses = (Finite_models.flat_clause_list prep_clauses) in
-
+(*
     out_str ("\n---------Flat clauses------------------\n"
 	     ^(Clause.clause_list_to_tptp init_clauses)
 	       ^"\n------------------------\n");    
-  
+  *)
   out_str (pref_str^"lit_activity_flag true\n");
 (*  Prop_solver_exchange.set_lit_activity_flag false;*)
   List.iter 
@@ -562,21 +562,23 @@ let finite_models clauses =
 (*can use  Finite_models.domain_pred_axioms_all_dom new_bound_pred *)
 	Finite_models.domain_axioms_triangular new_bound_pred 
       in
+(*
       out_str ("\n---------Domain Axioms------------------\n"
 	       ^(Clause.clause_list_to_tptp domain_axioms)
 	       ^"\n------------------------\n");    
-  
+  *)
       let dis_eq_axioms =
 	if no_input_eq () 
 	then []
 	else
 (* can have Finite_models.dis_eq_axioms_all_dom () for exp. *)
 	  Finite_models.dis_eq_axioms_all_dom_sym ()
-      in  
+      in 
+(* 
       out_str ("\n---------Diseq Axioms------------------\n"
 	       ^(Clause.clause_list_to_tptp dis_eq_axioms)
 	       ^"\n------------------------\n");   
-      
+  *)    
 (*
       let domain_axioms = 
 	if no_input_eq () 
@@ -2034,11 +2036,11 @@ let run_iprover () =
 
 	let current_clauses_no_eq = ref (!current_clauses) in 
 
-
+(*
  	    out_str "\n-----------After sub_type_inf ---------\n";
 	    out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
 	    out_str "\n--------------------\n";
-
+*)
 
       let gen_equality_axioms = ref [] in
 
@@ -2065,12 +2067,12 @@ let run_iprover () =
 	   (
 	    gen_equality_axioms := Eq_axioms.axiom_list (); 
 (*debug *)
-
+(*
 	out_str "\n-----------Eq Axioms:---------\n";
 	out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 	out_str "\n--------------------\n";
 
-
+*)
 (*debug *)
 	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
 	   )

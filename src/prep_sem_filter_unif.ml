@@ -261,15 +261,19 @@ let process_given filter_state fclause =
       )  fclause.lits_to_try in
   fclause.lits_to_try <- lits_to_try_not_in_unif;
 (*--debug---*)
+(*
   out_str ("\n\n-----------------\n");
   out_str ("\n Process: "^(fclause_to_string fclause)^"\n");
+*)
 (*--debug---*)
   let old_lits_to_try  = fclause.lits_to_try in
   (try 
     let watch_lit = find_watch_lit filter_state fclause in 
 (*--debug---*)
+(*
     out_str ("\n Found watch: "^(Term.to_string watch_lit)^" ; "
 	     ^(fclause_to_string fclause)^"\n");
+*)
 (*--debug---*)
     (add_to_watch filter_state watch_lit fclause)
   with
@@ -281,9 +285,10 @@ let process_given filter_state fclause =
 	let (lit, fclause_list) = (find_movable_watch filter_state fclause) in
 (* move_from_watch_to_unprocessed it also moves in lits_to_try by one lit *)
 (*--debug---*)
-	out_str ("Found Movable watch: "^(Term.to_string lit)^" ; "
+(*	out_str ("Found Movable watch: "^(Term.to_string lit)^" ; "
 		 ^(fclause_to_string fclause)^"\n");
 	out_str ("Compl clauses: "^(list_to_string fclause_to_string fclause_list "\n     "));
+*)
 (*--debug---*)
 	List.iter (move_from_watch_to_unprocessed filter_state) fclause_list;
 	
@@ -292,7 +297,7 @@ let process_given filter_state fclause =
 	  fclause::(filter_state.unprocessed_fclauses)    
        with 
 	 Not_found ->
-	   (out_str "Whatch Not Found\n";
+	   ((*out_str "Whatch Not Found\n";*)
 	    no_watch_found filter_state fclause; )
       )
   )

@@ -547,8 +547,10 @@ let init_domains () =
   let f flat_pred = 
      let val_type = get_val_pred_type flat_pred in
      try 
+(*
        out_str ("dom pred "^(Symbol.to_string flat_pred)
 		^" domain type: "^(Symbol.to_string val_type)^"\n");
+*)
        let dom = TDomainH.find domain_table val_type in 
       dom.dom_flat_preds <- flat_pred::(dom.dom_flat_preds)
     with 
@@ -583,7 +585,7 @@ let add_domain_constant dom i =
 
 
 let add_domain_constant_all_dom i = 
-  out_str ("adding const"^(string_of_int i)^"\n");
+(*  out_str ("adding const"^(string_of_int i)^"\n");*)
   TDomainH.iter 
     (fun _dom_type dom -> add_domain_constant dom i) domain_table
 
@@ -647,7 +649,7 @@ let dis_eq_axioms_sym_list eq_type term_list =
  dis_eq_axioms_sym_list' [] term_list
 
 let dis_eq_axioms_dom_sym dom = 
-  out_str ("domain type"^(Symbol.to_string dom.dom_type)^" domain terms: "^(Term.term_list_to_string dom.dom_elements)^"\n");
+(*  out_str ("domain type"^(Symbol.to_string dom.dom_type)^" domain terms: "^(Term.term_list_to_string dom.dom_elements)^"\n");*)
 
 (* we do not need to add disequality axioms for non-equality types *)
   if (SymSet.mem dom.dom_type !eq_type_set) 

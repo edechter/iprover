@@ -2054,10 +2054,12 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 		     get_prop_gr_var_entry new_solver_sel_lit in
 (*		 out_str "\n Change here!!!!\n";*)
 		   change_model_solver move_lit_from_active_to_passive new_solver_sel_var_entry;
-(*		 out_str ("Solver select:"^
+(*
+		 out_str ("Solver select:"^
 			  "Sel_Lit: "^(Term.to_string new_solver_sel_lit)^"\n"
 			  ^"Sel_lit entry: "
-			  ^(var_entry_to_string new_solver_sel_var_entry)^"\n");*)
+			  ^(var_entry_to_string new_solver_sel_var_entry)^"\n");
+*)
 		   Clause.assign_inst_sel_lit new_solver_sel_lit clause; 
 		   ass_if_consistent new_solver_sel_lit clause
 		
