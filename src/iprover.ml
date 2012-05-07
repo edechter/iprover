@@ -1568,8 +1568,13 @@ let rec main clauses finite_model_clauses =
 	    if 
 
 	      (* Extrapolate axioms in unsat core? *)
-	      val_of_override 
-		!current_options.bmc1_unsat_core_extrapolate_axioms
+	      (val_of_override 
+		 !current_options.bmc1_unsat_core_extrapolate_axioms) && 
+
+		(* Only if unsat caor has been extracted *)
+		(not 
+		   ((val_of_override !current_options.bmc1_add_unsat_core) = 
+		       BMC1_Add_Unsat_Core_None))
 		
 	    then 
 	      
@@ -1581,11 +1586,12 @@ let rec main clauses finite_model_clauses =
 		  match 
 		    val_of_override !current_options.bmc1_add_unsat_core 
 		  with 
-
+		      
 		    (* Unsat core has not been calculated *)
 		    | BMC1_Add_Unsat_Core_None -> 
-		      TstpProof.get_leaves
-			(Prop_solver_exchange.unsat_core ())
+			
+			failwith 
+			  "Cannot extrapolate BMC1 axioms without unsat core"
 
 		    (* Leaves of unsat core have not been calculated *)
 		    | BMC1_Add_Unsat_Core_Clauses ->
