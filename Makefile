@@ -19,8 +19,8 @@ PROFILE=
 OCAMLOPTOPT=ocamlopt.opt
 OCAMLDEP=ocamldep
 INCLUDES=
-debug=true
-# debug=
+# debug=true
+debug=
 #OCAMLFLAGS=$(INCLUDES)
 #OCAMLOPTFLAGS=$(INCLUDES)
 

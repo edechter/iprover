@@ -10,8 +10,8 @@
 # export OCAMLINCDIR=/usr/lib/ocaml
 # export OCAMLLIBDIR=/home/chris/lib/ocaml
 # export OCAMLINCDIR=/home/chris/lib/ocaml
-export OCAMLLIBDIR=/shareddata/homes/sticksec/lib/ocaml
-export OCAMLINCDIR=/shareddata/homes/sticksec/lib/ocaml
+# export OCAMLLIBDIR=/shareddata/homes/sticksec/lib/ocaml
+# export OCAMLINCDIR=/shareddata/homes/sticksec/lib/ocaml
 
 MINISATDIR=$(CURDIR)/minisat
 HHLMUCDIR=$(CURDIR)/Haifa-HLMUC
@@ -186,19 +186,19 @@ clean-minisat-lib:
 # Make MiniSat OCaml interface using generic Makefile.clib
 
 # Set variables $(CLIBNAME), $(CLIBINCDIR) and $(CLIBLIBDIR)
-minisat-ocaml-lib \
-minisat-test \
-clean-minisat-ocaml-lib: export CLIBNAME=minisat
+# minisat-ocaml-lib \
+# minisat-test \
+# clean-minisat-ocaml-lib: export CLIBNAME=minisat
 export CLIBNAME=minisat
 
-minisat-ocaml-lib \
-minisat-test \
-clean-minisat-ocaml-lib: export CLIBINCDIR=$(MINISATDIR)
+# minisat-ocaml-lib \
+# minisat-test \
+# clean-minisat-ocaml-lib: export CLIBINCDIR=$(MINISATDIR)
 export CLIBINCDIR=$(MINISATDIR)
 
-minisat-ocaml-lib \
-minisat-test \
-clean-minisat-ocaml-lib: export CLIBLIBDIR=$(MINISATDIR)/simp
+# minisat-ocaml-lib \
+# minisat-test \
+# clean-minisat-ocaml-lib: export CLIBLIBDIR=$(MINISATDIR)/simp
 export CLIBLIBDIR=$(MINISATDIR)/simp
 
 # Make release library by default
