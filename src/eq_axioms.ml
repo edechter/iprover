@@ -297,7 +297,7 @@ let eq_axiom_list clause_list =
     typed_congr_axiom_list 
       (csig.Clause.sig_eq_types) 
       (csig.Clause.sig_fun_preds) in 
-  if (typed_cong_ax_list = []) 
+  if (SymSet.is_empty csig.Clause.sig_eq_types) 
   then 
     []           
   else
