@@ -9,5 +9,11 @@ if [ -d E_Prover ]; then
     cd ../
 fi
 
+if [ -d VClausifier ]; then
+   cd VClausifier
+   make vclausify_rel
+   cd ../
+fi
+
 OCAMLLIBSTR="OCAMLLIB=$(ocamlc -where)"
 echo "$OCAMLLIBSTR" > Makefile.extras

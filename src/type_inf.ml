@@ -387,7 +387,9 @@ let sub_type_inf clause_list =
     st_nf_table;
       
 
+(*------------ Add this output and an option ----------*)
     (* debug *)
+(*
   out_str "Inferred Subtypes:\n";
   STypeTable.iter 
     (fun nf st_list -> 
@@ -400,7 +402,7 @@ let sub_type_inf clause_list =
   SymSet.iter 
     (fun sym -> 
       out_str ((Symbol.to_string sym)^", "))  context.collapsed_types;
-
+*)
 
 (* end debug *)
 

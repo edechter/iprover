@@ -86,8 +86,17 @@ let clausifier_cmd_options () =
 (* new version of vclausify_rel *)
   let default_vclausify_rel_options  = 
 (*    " --mode clausify --epr_preserving_skolemization on --equality_propagation on "*)
-    " --mode clausify  --equality_propagation on "
-    ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+    if (!current_options.sat_mode || 
+    (!current_options.schedule = Options.Schedule_sat))
+    then
+      begin 
+      " --mode clausify  --equality_propagation on --predicate_equivalence_discovery all_atoms --predicate_definition_inlining non_growing --epr_restoring_inlining on --predicate_definition_merging on "^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+      end
+    else
+      begin
+      " --mode clausify  --equality_propagation on --predicate_definition_inlining non_growing  --predicate_definition_merging on "
+      ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+      end
   in
   let default_eprover_options = 
     " --tstp-format --free-numbers --free-objects --split-method=1  --silent --cnf "^

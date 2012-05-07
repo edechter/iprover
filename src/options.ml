@@ -668,9 +668,11 @@ let default_options () = {
   prep_prop_sim           = true;
   symbol_type_check       = false;
   clausify_out            = false;
-  prep_sem_filter         = Sem_Filter_None;
+(*  prep_sem_filter         = Sem_Filter_None;*)
+  prep_sem_filter         = Sem_Filter_Exhaustive;
   prep_sem_filter_out     = false;
-  sub_typing              = false;
+(*  sub_typing              = false;*)
+  sub_typing              = true;
   brand_transform         = false;
 
 (*---Large Theories---------------*)

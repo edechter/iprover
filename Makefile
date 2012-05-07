@@ -3,6 +3,7 @@
 # make CPP=true for c++ version of minisat
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
+# to archive Vampire's clausifier bundle "make V=true archive"
 # for debugging "make debug=true", 
 #     records backtraces run iproveropt with --dbg_backtrace true
 
@@ -13,6 +14,7 @@ OCAMLOPT=ocamlopt
 #OCAMLLIB=/usr/lib/ocaml/3.10.2
 #OCAMLLIB is set in Make.extras
 EPROVER_PATH="./E_Prover" 
+VCLAUSIFIER_PATH="./VClausifier"
 OPT=true
 OBJPATH=obj/
 ADDTONAME=
@@ -208,13 +210,14 @@ clean-util:
 
 
 clean_all: clean
-	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi
+	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi; if [ -d $(VCLAUSIFIER_PATH) ]; then cd $(VCLAUSIFIER_PATH); make clean; rm -f vclausify_rel; cd ../; fi
 
 
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util
 
 #use this to temporally adding some names
 ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
+
 
 #to archive E bundle "make E=true archive"
 
@@ -222,8 +225,13 @@ ifeq ($(E),true)
    ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(EPROVER_PATH) $(ARCHIVE_Extras)
    ARCHIVE_BASE_DIR="iprover_e_bundle"
 else 
+ ifeq ($(V),true)
+  ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(VCLAUSIFIER_PATH) $(ARCHIVE_Extras)
+  ARCHIVE_BASE_DIR="iprover_vampire_clausifier_bundle"
+ else	
    ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(ARCHIVE_Extras)
    ARCHIVE_BASE_DIR="iprover"
+ endif
 endif 
 
 archive:clean_all
