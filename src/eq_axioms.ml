@@ -25,6 +25,8 @@ type symbol = Symbol.symbol
 module SymSet = Symbol.SymSet
 type sym_set = Symbol.sym_set
 
+type csig = Clause.clause_signature
+
 (*type symbol_db_ref = SymbolDB.symbolDB ref*)
 (*type clause_db_ref = ClauseAssignDB.clauseDB ref*)
 
@@ -157,19 +159,17 @@ let typed_congruence_axiom eq_type_set symb =
   |Def (type_args, type_value) -> 
       if type_args = [] 
       then 
-	(out_str "None 1\n";
-	 None)
+	(None)
       else
 	let rec get_args_dis_lits 
 	    current_var current_type_args args1 args2 dis_eq_lits = 
 	  (match current_type_args with 
 	  |h::tl ->
-	      out_str ("h: "^(Symbol.to_string h)^"\n");
+	 (*     out_str ("h: "^(Symbol.to_string h)^"\n");*)
 	      if (SymSet.mem h eq_type_set) 
 	      then 
 		begin
 (* different varaibles *)
-		out_str "diff vars\n";
 		let next_var              = (Var.get_next_var current_var) in
 		let current_var_term      = (term_var current_var) in
 		let next_var_term         = (term_var next_var) in
@@ -187,7 +187,6 @@ let typed_congruence_axiom eq_type_set symb =
 	      else
 (* same varaibles *)
 		begin
-		  out_str "same vars\n";
 		let current_var_term = term_var current_var in
 		let new_current_var  = Var.get_next_var current_var in
 		get_args_dis_lits 
@@ -206,9 +205,7 @@ let typed_congruence_axiom eq_type_set symb =
 	    v0 type_args [] [] [] in
 	if (dis_eq_lits = [])
 	then
-	  ( out_str "None 2\n";
-	  None
-	   )
+	  (None)
 	else
 	  if (Symbol.is_pred symb) 
 	  then
@@ -231,12 +228,9 @@ let typed_congruence_axiom eq_type_set symb =
 		(Clause.create (pos_part::dis_eq_lits)) in
 	    assign_eq_ax_param fun_congr_ax;
 	    Some(fun_congr_ax)
-	    )
-
+	    )	      
   |Undef -> 
-      (out_str "None 3\n";
-       None
-      )
+      (None)
 
 
 
@@ -291,203 +285,24 @@ let typed_congr_axiom_list eq_type_set sym_set =
 
 
 let get_symb_and_type_eq_set_basic clause_list = 
-  let sym_set      = ref SymSet.empty in
-  let eq_type_set  = ref SymSet.empty in
-  let rec get_type_eq_set_form_term t = 
-    match t with
-    | Term.Fun(symb,args,_) -> 	
-	let relevant_args = 
-	  if (symb == Symbol.symb_typed_equality) 
-	  then 
-	    (
-	    let (eq_type, t1,t2) = 
-	      get_triple_from_list (Term.arg_to_list args) in
-	    let eq_type_sym = Term.get_top_symb eq_type in
-	    eq_type_set:= SymSet.add eq_type_sym !eq_type_set;
-	    Term.list_to_arg [t1;t2]
-	    )
-	  else
-	    (sym_set :=  SymSet.add symb !sym_set;	     
-	     args
-	    )
-	in
-	Term.arg_iter get_type_eq_set_form_term relevant_args
-    |Term.Var _ -> ()
-  in 
-  let get_type_eq_set_form_lit lit = 
-    get_type_eq_set_form_term (Term.get_atom lit)
-  in
-  let get_type_eq_set_form_cl cl = Clause.iter  get_type_eq_set_form_lit cl in 
-  List.iter get_type_eq_set_form_cl clause_list;
-  (!sym_set,!eq_type_set)
+  let csig = Clause.clause_list_signature  clause_list in 
+  csig
 
-
-
-(*
-
-let get_type_eq_term t = 
-  match t with
-  | Term.Fun(symb,args,_) -> 
-      if (symb == Symbol.symb_typed_equality)
-      then
-	(
-	 match (Term.arg_to_list args) with 
-	|stype_term::_ -> 
-	    (match stype_term with
-	    |Term.Fun(stype_symb,args,_) -> Some stype_symb
-	    |_ -> failwith 
-	       ("get_type_eq_term shouldn't happen" ^ Term.to_string t) 
-	    )
-	|_-> failwith 
-	   ("get_type_eq_term shouldn't happen\n" ^ Term.to_string t) 
-	)
-      else 
-	None
-  |_-> None
-*)
-
-(*
-  let typed_congr_axiom_list () = 
-    let eq_type_table = SymbTbl.create 101 in
-  
-
-
-    
-  let collect_essential_stypes = function
-
-    (* Symbol is a theory symbol (not a type symbol) that occurs in an
-       input term *)
-    | symb when 
-	(Symbol.is_essential_input symb) &&
-	  not (symb == Symbol.symb_typed_equality) -> 
-
-	(
-
-	  (* Get type of arguments and type of result of symbol *)
-	  match Symbol.get_stype_args_val symb with 
-	      
-	    (* Type of arguments and result determined *)
-	    | Def (a, v) -> 
-		
-		(* Add all types to table of types except bool type $o *)
-		List.iter
-		  (function 
-		       
-		     (* Do not generate axioms for bool type $o *)
-		     | s when (s == Symbol.symb_bool_type) -> ()
-	
-		     (* Generate axioms for all other types *)
-		     | s -> 
-			 
-			 (* Symbol not in table? *)
-			 if not (SymbTbl.mem eq_type_table s) then 
-			   
-			   (* Add symbol to table of types *)
-			   SymbTbl.add eq_type_table s s 
-
-		  )
-		  (v :: a)
-		  
-	    (* Skip if type is not known *)
-	    | Undef -> ()
-
-	)
-
-	  
-    (* Symbol is declared only, but does not occur *)
-    | _ -> ()
-	
-  in
-    
-    (* Iterate symbol table to find types to generate axioms for *)
-    SymbolDB.iter collect_essential_stypes !symbol_db_ref;
-      
-
-    out_str ("Types to generate congruence axioms for:\n");
-    SymbTbl.iter
-      (fun s _ -> out_str (Symbol.to_string s))
-      eq_type_table;
-*)
-  
-(* It is not enough to consider the types in equations only, must 
-   take the types of all symbols in the input as above *)
-(*
-(* for $equality_sorted(type, t,s) add type to symb_table *)
-  let add_eq_type t = 
-
-    match (get_type_eq_term t) with 
-    |Some symb -> 	
-	if (Symbol.is_essential_input symb)
-	then 
-	  (SymbTbl.add eq_type_table symb symb)
-	else ()	  
-    |None -> ()
-  in	 
-  TermDB.iter add_eq_type !term_db_ref;    
-
-
-
-  let f symb rest = 
-    out_str ("eq_ax: "
-	     ^(Symbol.to_string symb)
-	     ^" is_essential_input: "
-	     ^(string_of_bool (Symbol.is_essential_input symb))
-	     ^" Symbol.is_signature_symb: "
-	     ^(string_of_bool (Symbol.is_signature_symb symb))^"\n");
-    if 
-      (
-       (Symbol.is_essential_input symb) 
-	 && 
-       (not (symb == Symbol.symb_typed_equality)) 
-	 && 
-       (Symbol.is_signature_symb symb)
-(*	 &&
-(* We don't need congruence axioms for less and range symbols !*)
-(* but slower that with the axioms... *)
-       (not (is_less_range symb))*)
-      )
-    then
-      (
-       match (typed_congruence_axiom eq_type_table symb) with 
-       |Some ax -> 
-	   out_str ("ax: "^(Clause.to_string ax)^"\n --------------\n");
-	   ax::rest
-       |None -> rest
-      )	
-    else rest
-  in
-  SymbolDB.fold f !symbol_db_ref []
-   
-(*
-  out_str "\n----------------get_type_eq_term-------\n";
-      out_str ((Symbol.to_string symb)^"\n");  
-*)
-
-*)
-
-
-(*
-let axiom_list () = 
-(*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
-  if (Symbol.is_essential_input Symbol.symb_typed_equality) 
-  then
-    (
-     let typed_cong_ax_list = typed_congr_axiom_list () in
-     (typed_reflexivity_axiom ())::(typed_trans_symmetry_axiom ())::typed_cong_ax_list) 
-  else []
-*)
 
 
 let eq_axiom_list clause_list = 
 (*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
-  let (sym_set, eq_type_set) = get_symb_and_type_eq_set_basic clause_list in
-  let typed_cong_ax_list = typed_congr_axiom_list eq_type_set sym_set in 
+  let csig = get_symb_and_type_eq_set_basic clause_list in
+  let typed_cong_ax_list = 
+    typed_congr_axiom_list 
+      (csig.Clause.sig_eq_types) 
+      (csig.Clause.sig_fun_preds) in 
   if (typed_cong_ax_list = []) 
   then 
     []           
   else
     ( 
-    (typed_reflexivity_axiom ())::((typed_trans_symmetry_axiom ())::typed_cong_ax_list)
+      (typed_reflexivity_axiom ())::((typed_trans_symmetry_axiom ())::typed_cong_ax_list)
      )
 
 
@@ -925,4 +740,190 @@ let axiom_list () =
     (reflexivity_axiom ())::(trans_symmetry_axiom ())::cong_ax_list
   else []
 
+*)
+(*
+  let sym_set      = ref SymSet.empty in
+  let eq_type_set  = ref SymSet.empty in
+  let rec get_type_eq_set_form_term t = 
+    match t with
+    | Term.Fun(symb,args,_) -> 	
+	let relevant_args = 
+	  if (symb == Symbol.symb_typed_equality) 
+	  then 
+	    (
+	    let (eq_type, t1,t2) = 
+	      get_triple_from_list (Term.arg_to_list args) in
+	    let eq_type_sym = Term.get_top_symb eq_type in
+	    eq_type_set:= SymSet.add eq_type_sym !eq_type_set;
+	    Term.list_to_arg [t1;t2]
+	    )
+	  else
+	    (sym_set :=  SymSet.add symb !sym_set;	     
+	     args
+	    )
+	in
+	Term.arg_iter get_type_eq_set_form_term relevant_args
+    |Term.Var _ -> ()
+  in 
+  let get_type_eq_set_form_lit lit = 
+    get_type_eq_set_form_term (Term.get_atom lit)
+  in
+  let get_type_eq_set_form_cl cl = Clause.iter  get_type_eq_set_form_lit cl in 
+  List.iter get_type_eq_set_form_cl clause_list;
+  (!sym_set,!eq_type_set)
+*)
+
+
+(*
+
+let get_type_eq_term t = 
+  match t with
+  | Term.Fun(symb,args,_) -> 
+      if (symb == Symbol.symb_typed_equality)
+      then
+	(
+	 match (Term.arg_to_list args) with 
+	|stype_term::_ -> 
+	    (match stype_term with
+	    |Term.Fun(stype_symb,args,_) -> Some stype_symb
+	    |_ -> failwith 
+	       ("get_type_eq_term shouldn't happen" ^ Term.to_string t) 
+	    )
+	|_-> failwith 
+	   ("get_type_eq_term shouldn't happen\n" ^ Term.to_string t) 
+	)
+      else 
+	None
+  |_-> None
+*)
+
+(*
+  let typed_congr_axiom_list () = 
+    let eq_type_table = SymbTbl.create 101 in
+  
+
+
+    
+  let collect_essential_stypes = function
+
+    (* Symbol is a theory symbol (not a type symbol) that occurs in an
+       input term *)
+    | symb when 
+	(Symbol.is_essential_input symb) &&
+	  not (symb == Symbol.symb_typed_equality) -> 
+
+	(
+
+	  (* Get type of arguments and type of result of symbol *)
+	  match Symbol.get_stype_args_val symb with 
+	      
+	    (* Type of arguments and result determined *)
+	    | Def (a, v) -> 
+		
+		(* Add all types to table of types except bool type $o *)
+		List.iter
+		  (function 
+		       
+		     (* Do not generate axioms for bool type $o *)
+		     | s when (s == Symbol.symb_bool_type) -> ()
+	
+		     (* Generate axioms for all other types *)
+		     | s -> 
+			 
+			 (* Symbol not in table? *)
+			 if not (SymbTbl.mem eq_type_table s) then 
+			   
+			   (* Add symbol to table of types *)
+			   SymbTbl.add eq_type_table s s 
+
+		  )
+		  (v :: a)
+		  
+	    (* Skip if type is not known *)
+	    | Undef -> ()
+
+	)
+
+	  
+    (* Symbol is declared only, but does not occur *)
+    | _ -> ()
+	
+  in
+    
+    (* Iterate symbol table to find types to generate axioms for *)
+    SymbolDB.iter collect_essential_stypes !symbol_db_ref;
+      
+
+    out_str ("Types to generate congruence axioms for:\n");
+    SymbTbl.iter
+      (fun s _ -> out_str (Symbol.to_string s))
+      eq_type_table;
+*)
+  
+(* It is not enough to consider the types in equations only, must 
+   take the types of all symbols in the input as above *)
+(*
+(* for $equality_sorted(type, t,s) add type to symb_table *)
+  let add_eq_type t = 
+
+    match (get_type_eq_term t) with 
+    |Some symb -> 	
+	if (Symbol.is_essential_input symb)
+	then 
+	  (SymbTbl.add eq_type_table symb symb)
+	else ()	  
+    |None -> ()
+  in	 
+  TermDB.iter add_eq_type !term_db_ref;    
+
+
+
+  let f symb rest = 
+    out_str ("eq_ax: "
+	     ^(Symbol.to_string symb)
+	     ^" is_essential_input: "
+	     ^(string_of_bool (Symbol.is_essential_input symb))
+	     ^" Symbol.is_signature_symb: "
+	     ^(string_of_bool (Symbol.is_signature_symb symb))^"\n");
+    if 
+      (
+       (Symbol.is_essential_input symb) 
+	 && 
+       (not (symb == Symbol.symb_typed_equality)) 
+	 && 
+       (Symbol.is_signature_symb symb)
+(*	 &&
+(* We don't need congruence axioms for less and range symbols !*)
+(* but slower that with the axioms... *)
+       (not (is_less_range symb))*)
+      )
+    then
+      (
+       match (typed_congruence_axiom eq_type_table symb) with 
+       |Some ax -> 
+	   out_str ("ax: "^(Clause.to_string ax)^"\n --------------\n");
+	   ax::rest
+       |None -> rest
+      )	
+    else rest
+  in
+  SymbolDB.fold f !symbol_db_ref []
+   
+(*
+  out_str "\n----------------get_type_eq_term-------\n";
+      out_str ((Symbol.to_string symb)^"\n");  
+*)
+
+*)
+
+
+(*
+let axiom_list () = 
+(*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
+  if (Symbol.is_essential_input Symbol.symb_typed_equality) 
+  then
+    (
+     let typed_cong_ax_list = typed_congr_axiom_list () in
+     (typed_reflexivity_axiom ())::(typed_trans_symmetry_axiom ())::typed_cong_ax_list) 
+  else []
 *)

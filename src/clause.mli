@@ -26,6 +26,8 @@ type bound_subst   = SubstBound.bound_subst
 type clause
 type bound_clause = clause Lib.bind
 
+type sym_set = Symbol.sym_set
+
 
 type axiom = 
   |Eq_Axiom 
@@ -338,3 +340,23 @@ val to_stream_history : 'a string_stream -> clause -> unit
 val pp_clause_history : Format.formatter -> clause -> unit
 
 val out_history       : clause -> unit
+
+
+
+(*--------------------------*)
+type clause_signature = {
+  mutable sig_fun_preds : sym_set;
+  mutable sig_eq_types  : sym_set;
+}
+
+val create_clause_sig : unit -> clause_signature
+
+(* main fun  *)
+val clause_list_signature : clause list -> clause_signature
+
+val extend_clause_sig_term : clause_signature -> Term.term -> unit
+val extend_clause_sig_lit  : clause_signature -> Term.term -> unit
+val extend_clause_sig_cl   : clause_signature -> clause -> unit
+val extend_clause_list_signature : clause_signature -> clause list -> unit
+
+

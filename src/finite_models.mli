@@ -33,7 +33,7 @@ val domain_axioms_triangular : term ->  clause list
 
 val create_bound_pred : int -> term
 
-val init_finite_models : unit -> unit
+val init_finite_models : clause list -> unit
 
 val flat_clause_list : clause list -> clause list
 

@@ -576,8 +576,10 @@ type options = {
 (*----Sat Mode-----------*)
     mutable sat_mode              : bool; 
     mutable sat_gr_def            : bool;
+    mutable sat_epr_types         : bool;
     mutable sat_finite_models     : bool;
     mutable sat_out_model         : sat_out_model_type;
+    
 
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool; 
@@ -681,6 +683,7 @@ let default_options () = {
 
 (*---Sat mode------------*)
   sat_mode                = false;
+  sat_epr_types           = true;
   sat_gr_def              = false;
   sat_finite_models       = false;
   sat_out_model           = Model_Small;
@@ -1187,7 +1190,18 @@ let sat_gr_def_fun b =
 
 let sat_gr_def_inf = 
   bool_str^
-  inf_pref^"Add definitions of ground terms in sat mode\n"
+  inf_pref^"Add definitions of ground terms in sat mode (!!do not use for now!!)\n"
+
+(*--------*)
+let sat_epr_types_str = "--sat_epr_types"
+
+let sat_epr_types_fun b = 
+   !current_options.sat_epr_types <- b
+
+let sat_epr_types_inf = 
+  bool_str^
+  inf_pref^"using EPR types in sat mode\n"
+
 
 (*--------*)
 let sat_finite_models_str = "--sat_finite_models"
@@ -1960,6 +1974,7 @@ let spec_list =
 (*-----Sat Mode----------*)
    (sat_mode_str, Arg.Bool(sat_mode_fun),sat_mode_inf);
    (sat_gr_def_str,Arg.Bool(sat_gr_def_fun),sat_gr_def_inf);
+   (sat_epr_types_str, Arg.Bool(sat_epr_types_fun), sat_epr_types_inf);
    (sat_finite_models_str,Arg.Bool(sat_finite_models_fun),sat_finite_models_inf);
    (sat_out_model_str,Arg.String(sat_out_model_fun),sat_out_model_inf); 
 
@@ -2137,6 +2152,7 @@ let sat_options_str_list opt =
   [
    (sat_mode_str,(string_of_bool opt.sat_mode));
    (sat_gr_def_str,(string_of_bool opt.sat_gr_def));
+   (sat_epr_types_str, (string_of_bool opt.sat_epr_types));
    (sat_finite_models_str,(string_of_bool opt.sat_finite_models));
    (sat_out_model_str, (sat_out_model_type_to_str opt.sat_out_model))
  ]
@@ -2532,6 +2548,7 @@ let option_1 () = {
 (*----Sat Mode------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -2688,6 +2705,7 @@ let option_2 () = {
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -2814,6 +2832,7 @@ let option_3 () = {
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -2936,6 +2955,7 @@ let option_4 () = {
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -3068,6 +3088,7 @@ let option_finite_models () = {
 (*----Sat Mode-----*)
   sat_mode                = true;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = true;
   sat_out_model           = !current_options.sat_out_model;
 
@@ -3196,6 +3217,7 @@ let option_epr_non_horn () = {
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -3445,6 +3467,7 @@ let option_epr_horn () = {
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false;
   sat_out_model           = !current_options.sat_out_model; 
 
@@ -3693,6 +3716,7 @@ let option_verification_epr ver_epr_opt =
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -3823,6 +3847,7 @@ let option_verification_epr ver_epr_opt =
 (*----Sat Mode--------*)
   sat_mode                = false;
   sat_gr_def              = false;
+  sat_epr_types           = !current_options.sat_epr_types;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
 
@@ -3951,6 +3976,7 @@ let option_verification_epr ver_epr_opt =
 (*----Sat Mode--------*)
        sat_mode                = false;
        sat_gr_def              = false;
+       sat_epr_types           = !current_options.sat_epr_types;
        sat_finite_models       = false; 
        sat_out_model           = !current_options.sat_out_model;
 

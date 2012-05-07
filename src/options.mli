@@ -181,6 +181,7 @@ type options = {
 (*----Sat Mode-----------*)
     mutable sat_mode              : bool; 
     mutable sat_gr_def            : bool;
+    mutable sat_epr_types         : bool;
     mutable sat_finite_models     : bool;
     mutable sat_out_model         : sat_out_model_type;
 

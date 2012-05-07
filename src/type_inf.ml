@@ -207,12 +207,16 @@ let rec extend_uf_types context (vtable:vtable) top_sub_type_opt_term_ass_list =
 	      |((Term.Fun(sym,args,_) as f_term),(Term.Var (v, _) as v_term))
 		->
 			(
-			 (if (not (Term.is_neg_lit lit)) (* positive eq *)
+			(* (if (not (Term.is_neg_lit lit)) (* positive eq *)
 			 then
 			   (context.collapsed_types <-
 			     SymSet.add eq_v_type context.collapsed_types;)
 			 else ()
-			 );
+			 );*)
+			 context.collapsed_types <-
+			   SymSet.add eq_v_type context.collapsed_types;
+			   (* collapsed for both negative and positive X!=f(X) *)
+                           (* may be smth better can be done for negative *)
 			 (* arguments can be still of a different type  *)
 			 let val_sub_type = get_val_sub_type sym in
 			 

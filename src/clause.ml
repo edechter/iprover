@@ -30,6 +30,9 @@ type symbol       = Symbol.symbol
 (*type dismatching = Dismatching.constr_list_feature *)
 type dismatching = Dismatching.constr_set
 
+module SymSet = Symbol.SymSet
+type sym_set = Symbol.sym_set
+
 type literal   = Term.literal
 type literal_list = literal list
 type b_litlist = literal_list bind     
@@ -566,6 +569,8 @@ let get_min_conjecture_distance c_list =
 
 let cmp_conjecture_distance c1 c2 = 
   (Pervasives.compare c1.conjecture_distance c2.conjecture_distance)
+
+
 
 
 
@@ -1784,6 +1789,66 @@ and pp_clause_list_history ppf clauses =
     
 
 let out_history = to_stream_history stdout_stream
+
+
+
+
+
+(*------------------*)
+type clause_signature = 
+    { 
+(*sig_fun_pred contains all functions and predicate symbols *)
+(* occurring in the set of clauses except eq_types which are in sig_eq_types *)
+      mutable sig_fun_preds : sym_set;
+      mutable sig_eq_types : sym_set;
+   }
+
+let create_clause_sig () = 
+  {
+   sig_fun_preds = SymSet.empty;
+   sig_eq_types  = SymSet.empty;
+ }
+
+
+let rec extend_clause_sig_term csig t = 
+  match t with
+  |Term.Fun(symb,args,_) -> 	
+      let relevant_args = 
+	if (symb == Symbol.symb_typed_equality) 
+	then 
+	  (
+	   let (eq_type, t1,t2) = 
+	     get_triple_from_list (Term.arg_to_list args) in
+	   let eq_type_sym = Term.get_top_symb eq_type in
+	   csig.sig_eq_types <- SymSet.add eq_type_sym csig.sig_eq_types;
+
+	   Term.list_to_arg [t1;t2]
+	  )
+	else
+	  (
+	   csig.sig_fun_preds <- SymSet.add symb csig.sig_fun_preds;	     
+	   args
+	  )
+      in
+      Term.arg_iter (extend_clause_sig_term csig) relevant_args
+  |Term.Var _ -> ()
+	
+
+let extend_clause_sig_lit csig lit = 
+  extend_clause_sig_term csig (Term.get_atom lit) 
+
+let extend_clause_sig_cl csig clause = 
+  iter (extend_clause_sig_lit csig) clause
+
+
+let extend_clause_list_signature csig clause_list =
+  List.iter (extend_clause_sig_cl csig) clause_list 
+
+let clause_list_signature clause_list =
+  let cl_sig = create_clause_sig () in
+  extend_clause_list_signature  cl_sig clause_list;
+  cl_sig  
+
 
 
 

@@ -28,6 +28,8 @@ type clause = Clause.clause
 let symbol_db_ref  = Parser_types.symbol_db_ref
 let term_db_ref    = Parser_types.term_db_ref
 
+let get_sym_types sym = Symbol.get_stype_args_val_def sym
+
 (* The flattening transformation is based on                          *)
 (* Computing Finite Models by Reduction to Function-free clause logic *)
 (* by Baumgartner, Fuchs, de Nivelle, Tinelli *)
@@ -95,9 +97,35 @@ let get_val_type sym = Symbol.get_val_type_def sym
 
 module SymSet = Symbol.SymSet
 
+let init_sig     = ref (Clause.create_clause_sig ())
+
 let flat_sym_set = ref SymSet.empty
 let def_sym_set  = ref SymSet.empty
-let eq_type_set  = ref SymSet.empty
+(*let eq_type_set  = ref SymSet.empty*)
+
+let epr_type_set = ref SymSet.empty
+(*-------------------------------------*)
+
+(* can be extended later *)
+let epr_type_set_init () = 
+  let not_epr_type_set = ref SymSet.empty in
+  let val_types = ref SymSet.empty in
+  
+  not_epr_type_set := SymSet.add Symbol.symb_bool_type !not_epr_type_set;
+  let f symb = 
+    let (arg_types, val_type) = get_sym_types symb in
+    val_types := SymSet.add val_type !val_types;
+    if not (arg_types = []) 
+    then
+      not_epr_type_set := SymSet.add val_type !not_epr_type_set
+    else
+      ()
+  in
+  SymSet.iter f !init_sig.Clause.sig_fun_preds;
+  let epr_set = SymSet.diff !val_types !not_epr_type_set in
+  Statistics.incr_int_stat (SymSet.cardinal epr_set) Statistics.sat_num_of_epr_types;
+  epr_type_set := epr_set
+
 
 module SymH = Hashtbl.Make(Symbol)
 
@@ -128,30 +156,26 @@ let get_val_pred_type sym =
 let flat_signature () = 
   let f symb = 
     (
-    if (Symbol.is_fun symb) 
-	&&
-      (Symbol.get_num_input_occur symb) > 0 
-	&&
-      (not ((Symbol.get_property symb) = Symbol.Type))
-    then 
-      (
-      let new_symb_name = ("$$iProver_Flat_"^(Symbol.get_name symb)) in
-      let flat_type = 
+     if (Symbol.is_fun symb) 
+     then 
+       (
+	let new_symb_name = ("$$iProver_Flat_"^(Symbol.get_name symb)) in
+	let flat_type = 
 	match (Symbol.get_stype_args_val symb) with
 	|Def (old_args, old_val) ->
 (*            Symbol.create_stype (old_args@[old_val]) Symbol.symb_bool_type*)
 	    Symbol.create_stype (old_val::old_args) Symbol.symb_bool_type
 	|Undef -> Symbol.create_stype [] Symbol.symb_bool_type
-      in
+	in
       let add_flat_symb = create_symbol new_symb_name flat_type Symbol.Flat in 
       flat_sym_set:= SymSet.add add_flat_symb !flat_sym_set;
       add_flat_to_orig add_flat_symb symb;
       Symbol.assign_flattening symb add_flat_symb;
-      )
-    else ()
+       )
+     else ()
     )
   in 
-  SymbolDB.iter f !symbol_db_ref
+  SymSet.iter f !init_sig.Clause.sig_fun_preds
 
 
 
@@ -244,8 +268,8 @@ let rec term_flattening_env var_env max_var_ref term =
 		let (eq_type, t1,t2) = 
 		  get_triple_from_list (Term.arg_to_list args) in
 (* on the way we also fill set of equality types *)
-		let eq_type_sym = Term.get_top_symb eq_type in
-		eq_type_set:= SymSet.add eq_type_sym !eq_type_set;
+(*		let eq_type_sym = Term.get_top_symb eq_type in
+		eq_type_set:= SymSet.add eq_type_sym !eq_type_set;*)
 		Term.list_to_arg [t1;t2]
 	      else
 		args
@@ -322,7 +346,7 @@ let flat_lit_env var_env max_var_ref neg_var_subst_ref lit =
 	    term_flattening_env var_env max_var_ref atom
 
       | Term.Var _ -> failwith "flat_lit_env: atom cannot be a var"
-end
+    end
 
 (* positive lit*)
   else 
@@ -359,7 +383,7 @@ let flat_clause clause =
 	 (TermHash.find var_env term))
     with Not_found ->
       if (Term.is_var term)
-      then Subst.find_normalised  !neg_var_subst_ref term 
+      then Subst.find_normalised !neg_var_subst_ref term 
       else
 	failwith ("term_to_var_term: Not_found term: "
 				^(Term.to_string term))
@@ -627,7 +651,8 @@ let dis_eq_axioms_list eq_type term_list =
 
 let dis_eq_axioms_dom dom = 
 (* we do not need to add disequality axioms for non-equality types *)
-  if (SymSet.mem dom.dom_type !eq_type_set) 
+(* note that here we do  not need to close eq_types under function application *)
+  if (SymSet.mem dom.dom_type !init_sig.Clause.sig_eq_types) 
   then
     dis_eq_axioms_list dom.dom_type dom.dom_elements
   else
@@ -655,7 +680,7 @@ let dis_eq_axioms_dom_sym dom =
 (*  out_str ("domain type"^(Symbol.to_string dom.dom_type)^" domain terms: "^(Term.term_list_to_string dom.dom_elements)^"\n");*)
 
 (* we do not need to add disequality axioms for non-equality types *)
-  if (SymSet.mem dom.dom_type !eq_type_set) 
+  if (SymSet.mem dom.dom_type !init_sig.Clause.sig_eq_types) 
   then
     begin
       let sym_axiom = Eq_axioms.typed_symmetry_axiom_sym dom.dom_type in
@@ -703,7 +728,7 @@ let domain_pred_axioms bound_pred dom =
     dom.dom_flat_preds
 
 
-
+(* EPR congruence axioms *)
 
 (*------------ All domain axioms without symmetry breaking --------------------*)
 
@@ -789,6 +814,23 @@ let domain_axioms_triangular bound_pred =
   TDomainH.fold 
     (fun _dom_type dom rest_ax -> 
       ((dom_fun dom)@rest_ax)) domain_table []
+
+
+
+let init_finite_models clauses = 
+  init_sig := Clause.clause_list_signature clauses;
+  flat_signature ();  
+  epr_type_set_init ();
+
+(*
+  out_str ("EPR types: ");
+  
+  (SymSet.iter 
+     (fun s -> (out_str ((Symbol.to_string s)^", "))) !epr_type_set);
+  out_str "\n" ;
+*)	    
+  init_domains ()
+
 
 
 (*
@@ -905,7 +947,3 @@ let domain_axioms_unit dom_pred dom_terms =
   axioms_const@axioms_flat_rest
 		  
 *)
-
-let init_finite_models () = 
-  flat_signature ();  
-  init_domains ()

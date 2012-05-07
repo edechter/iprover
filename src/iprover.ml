@@ -499,14 +499,15 @@ let finite_models clauses =
   let model_bound = 500 in
   out_str (pref_str^"Finite Models:\n");
   let prep_clauses = Preprocess.preprocess clauses in
+(*
   out_str ("\n\n DEBUG \n\n");
   out_str ("\n\n"^pref_str^"Finite Model on Clauses:\n");
   Clause.out_clause_list_tptp prep_clauses; 
-
+*)
 
 (*  Finite_models.flat_signature ();*)
 
-  Finite_models.init_finite_models ();
+  Finite_models.init_finite_models prep_clauses;
 
   let init_clauses = (Finite_models.flat_clause_list prep_clauses) in
 (*
@@ -2036,12 +2037,12 @@ let run_iprover () =
 
 	let current_clauses_no_eq = ref (!current_clauses) in 
 
-
+(*
  	    out_str "\n-----------After sub_type_inf ---------\n";
 	    out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
 	    out_str "\n--------------------\n";
 
-
+*)
       let gen_equality_axioms = ref [] in
 
       (if (not (omit_eq_axioms ())) 
@@ -2067,12 +2068,12 @@ let run_iprover () =
 	   (
 	    gen_equality_axioms := Eq_axioms.eq_axiom_list !current_clauses; 
 (*debug *)
-
+(*
 	out_str "\n-----------Eq Axioms:---------\n";
 	out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 	out_str "\n--------------------\n";
 
-
+*)
 (*debug *)
 	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
 	   )
