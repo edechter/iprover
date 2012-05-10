@@ -402,8 +402,8 @@ let sub_type_inf clause_list =
   SymSet.iter 
     (fun sym -> 
       out_str ((Symbol.to_string sym)^", "))  context.collapsed_types;
-*)
 
+*)
 (* end debug *)
 
   let typed_symbs_set_ref = ref SymSet.empty in

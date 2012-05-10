@@ -104,6 +104,10 @@ let def_sym_set  = ref SymSet.empty
 (*let eq_type_set  = ref SymSet.empty*)
 
 let epr_type_set = ref SymSet.empty
+
+let epr_const_set = ref SymSet.empty
+
+
 (*-------------------------------------*)
 
 (* can be extended later *)
@@ -126,7 +130,64 @@ let epr_type_set_init () =
   Statistics.incr_int_stat (SymSet.cardinal epr_set) Statistics.sat_num_of_epr_types;
   epr_type_set := epr_set
 
+(* should be called after epr_type_set_init () *)
+let epr_const_set_init () = 
+  let f symb = 
+    let (arg_types, val_type) = get_sym_types symb in
+    if 
+      (arg_types = []) 
+	&& 
+      (SymSet.mem val_type !epr_type_set)
+    then
+      (
+       epr_const_set:= SymSet.add symb !epr_const_set
+      )
+    else ()
+  in
+  SymSet.iter f !init_sig.Clause.sig_fun_preds
+ 
 
+(* we do not falt terms sat this test*)
+let to_flat_symb_test symb =
+  if !current_options.sat_epr_types 
+  then
+   let vt = get_val_type symb in
+   if (SymSet.mem vt !epr_type_set)
+   then false 
+   else true
+  else 
+    true
+
+let to_flat_type_test stype =   
+  not( 
+  (!current_options.sat_epr_types) 
+    &&
+  (SymSet.mem stype !epr_type_set)
+ )
+
+let to_flat_atom_test atom = 
+  match atom with 
+  | Term.Var _ -> false
+  | Term.Fun (symb, args, _) -> 
+      (
+       if (symb == Symbol.symb_typed_equality) 
+       then 	
+	 let (eq_type, _t1,_t2) = 
+	   get_triple_from_list (Term.arg_to_list args) in
+	 let eq_type_sym = Term.get_top_symb eq_type in
+	 (to_flat_type_test eq_type_sym)
+       else
+	 true
+      )
+let to_flat_lit_test lit = 
+  to_flat_atom_test (Term.get_atom lit)
+
+
+(*
+let don_not_flat_term_test term =
+*)
+
+(*------------------------------------*)
 module SymH = Hashtbl.Make(Symbol)
 
 (* map from flat to original *)
@@ -137,6 +198,8 @@ let add_flat_to_orig flat orig =
   then ()
   else 
    SymH.add flat_to_orig flat orig
+
+
 
 (*--------------- Flattening Signature ----------------------------*)
 (* for each fun. symbol f in signature which also occrs in the input *)
@@ -156,21 +219,28 @@ let get_val_pred_type sym =
 let flat_signature () = 
   let f symb = 
     (
-     if (Symbol.is_fun symb) 
+     if 
+       (
+	(Symbol.is_fun symb) 
+	  &&
+	(to_flat_symb_test symb)
+       )
      then 
        (
-	let new_symb_name = ("$$iProver_Flat_"^(Symbol.get_name symb)) in
-	let flat_type = 
-	match (Symbol.get_stype_args_val symb) with
-	|Def (old_args, old_val) ->
+	  begin
+	    let new_symb_name = ("$$iProver_Flat_"^(Symbol.get_name symb)) in
+	    let flat_type = 
+	      match (Symbol.get_stype_args_val symb) with
+	      |Def (old_args, old_val) ->
 (*            Symbol.create_stype (old_args@[old_val]) Symbol.symb_bool_type*)
-	    Symbol.create_stype (old_val::old_args) Symbol.symb_bool_type
-	|Undef -> Symbol.create_stype [] Symbol.symb_bool_type
-	in
-      let add_flat_symb = create_symbol new_symb_name flat_type Symbol.Flat in 
-      flat_sym_set:= SymSet.add add_flat_symb !flat_sym_set;
-      add_flat_to_orig add_flat_symb symb;
-      Symbol.assign_flattening symb add_flat_symb;
+		  Symbol.create_stype (old_val::old_args) Symbol.symb_bool_type
+	      |Undef -> Symbol.create_stype [] Symbol.symb_bool_type
+	    in
+	    let add_flat_symb = create_symbol new_symb_name flat_type Symbol.Flat in 
+	    flat_sym_set:= SymSet.add add_flat_symb !flat_sym_set;
+	    add_flat_to_orig add_flat_symb symb;
+	    Symbol.assign_flattening symb add_flat_symb;
+	  end
        )
      else ()
     )
@@ -253,39 +323,40 @@ let rec term_flattening_env var_env max_var_ref term =
       if (TermHash.mem var_env term) 
       then ()
       else 
-	(
-	 (if (Symbol.is_fun symb) 
-	     && (add_term_to_def_test term)
-	 then 
+	begin
+	  (if (Symbol.is_fun symb) 
+	      && (add_term_to_def_test term)
+	  then 
 	   ((*out_str ("Adding to add_term_def_table term: "
-		     ^(Term.to_string term)^"\n");*)
+	      ^(Term.to_string term)^"\n");*)
 	    add_term_def_table term)
-	 else
-	   (
-	    let relevant_args = 
-	      if (symb == Symbol.symb_typed_equality) 
-	      then 
-		let (eq_type, t1,t2) = 
+	  else
+	    (
+	     let relevant_args = 
+	       if (symb == Symbol.symb_typed_equality) 
+	       then 
+		 let (eq_type, t1,t2) = 
 		  get_triple_from_list (Term.arg_to_list args) in
 (* on the way we also fill set of equality types *)
 (*		let eq_type_sym = Term.get_top_symb eq_type in
-		eq_type_set:= SymSet.add eq_type_sym !eq_type_set;*)
-		Term.list_to_arg [t1;t2]
-	      else
-		args
-	    in
-	    Term.arg_iter (term_flattening_env var_env max_var_ref) relevant_args)
-	 );
-	 if (Symbol.is_fun symb)  
-	 then
+  eq_type_set:= SymSet.add eq_type_sym !eq_type_set;*)
+		 Term.list_to_arg [t1;t2]
+	       else
+		 args
+	     in
+	     Term.arg_iter (term_flattening_env var_env max_var_ref) relevant_args)
+	  );
+	  if (Symbol.is_fun symb)
+	      && (to_flat_symb_test symb)
+	  then
 	   (
 	    max_var_ref:= Var.get_next_var !max_var_ref;
 	   let max_var_term = 
 	     TermDB.add_ref (Term.create_var_term !max_var_ref) term_db_ref in
 	   TermHash.add var_env term max_var_term
 	   )
-	 else ()
-	)
+	  else ()
+	end
 
 
 let flat_term_to_var var_env max_var_ref t = 
@@ -311,47 +382,53 @@ let order_term_var tv1 tv2 =
 (* subst is kept confluent *)
 (* later this substitution will be applied to all variables*)
 let flat_lit_env var_env max_var_ref neg_var_subst_ref lit = 
-  if (Term.is_neg_lit lit)
-  then 
+  if (not (to_flat_lit_test lit))
+  then
+    ()
+  else
     begin
-      let atom = Term.get_atom lit in 
-      match atom with 
+      if (Term.is_neg_lit lit)
+      then 
+	begin
+	  let atom = Term.get_atom lit in 
+	  match atom with 
       | Term.Fun (symb, args, _) -> 
 	  if (symb == Symbol.symb_typed_equality) 
 	  then 
-	  (* flat neg eq: t\=s 1. t->x s->y added to var_env,   *)
-          (* then x\not y is normalised and added to subst.     *)  
+	    (* flat neg eq: t\=s 1. t->x s->y added to var_env,   *)
+            (* then x\not y is normalised and added to subst.     *)  
 
 (*	    let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
-	    let (_eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
+	    let (eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
+	    begin
 (*	    let rec fl t1 t2 = *)
-	    if t1==t2 then ()
-	    else	      
-	      let var_t1 = flat_term_to_var var_env  max_var_ref t1 in
-	      let var_t2 = flat_term_to_var var_env  max_var_ref t2 in		   
-	      let norm_t1 = 
-		Subst.find_normalised !neg_var_subst_ref var_t1 in 
-	      let norm_t2 = 
-		Subst.find_normalised !neg_var_subst_ref var_t2 in
-	      if  norm_t1==norm_t2 
-	      then ()
-	      else 
-		begin
-		  let (big_t, small_t) = order_term_var norm_t1 norm_t2 in
-		  neg_var_subst_ref:= 
-		    Subst.add (Term.get_var big_t) small_t !neg_var_subst_ref
-		end		    
-		  (* atom is not equality *)
+	      if t1==t2 then ()
+	      else	      
+		let var_t1 = flat_term_to_var var_env  max_var_ref t1 in
+		let var_t2 = flat_term_to_var var_env  max_var_ref t2 in		   
+		let norm_t1 = 
+		  Subst.find_normalised !neg_var_subst_ref var_t1 in 
+		let norm_t2 = 
+		    Subst.find_normalised !neg_var_subst_ref var_t2 in
+		if  norm_t1==norm_t2 
+		then ()
+		else 
+		  begin
+		    let (big_t, small_t) = order_term_var norm_t1 norm_t2 in
+		      neg_var_subst_ref:= 
+			Subst.add (Term.get_var big_t) small_t !neg_var_subst_ref
+		  end		    
+	    end
+		(* atom is not equality *)
 	  else
 	    term_flattening_env var_env max_var_ref atom
-
+	      
       | Term.Var _ -> failwith "flat_lit_env: atom cannot be a var"
-    end
-
+	end
 (* positive lit*)
-  else 
-    term_flattening_env var_env max_var_ref lit
-	  
+      else 
+	term_flattening_env var_env max_var_ref lit
+    end
 
 let rec get_max_var_term current_max_var_ref term =  
   match term with 
@@ -388,41 +465,78 @@ let flat_clause clause =
 	failwith ("term_to_var_term: Not_found term: "
 				^(Term.to_string term))
   in
+(* auxilary function to flatten arguments taking into account epr sorts *)
+  let flat_args_fun symb old_arg_list =
+    let arg_types, _val_type = get_sym_types symb in 		
+    let (_,rev_new_args) =
+      let f (arg_types_rest, new_args_rest) old_arg = 
+	match arg_types_rest with 
+	|arg_type::tl -> 	   
+	    let new_arg  = 
+	      if (to_flat_type_test arg_type)
+	      then 
+		(
+(*
+		 out_str ("to flat type "^(Symbol.to_string arg_type)
+			  ^" term "^(Term.to_string old_arg)^"\n");
+*)		 
+		 term_to_var_term old_arg
+		)
+	      else
+		old_arg
+	    in
+	    (tl, new_arg::new_args_rest)
+	|[] -> failwith "flat_lit rest lit should not happen"
+	      
+      in
+      List.fold_left f (arg_types,[]) old_arg_list
+    in
+    let new_arg_list = List.rev rev_new_args in
+    new_arg_list
+  in
+
 (* first we flatten top of predicates and pos. eq. *)
 (* (neq eq translates to x\=y and was added to subst.), *)
 (* then we add all flattenings of terms in var_env *)
   let flat_lit rest lit = 
-    let atom = Term.get_atom lit in 
-    match atom with 
-    | Term.Fun (symb, args, _) -> 
-	if (symb == Symbol.symb_typed_equality) 
-	then
-	  if (Term.is_neg_lit lit) 
-	  then
+    if (not (to_flat_lit_test lit))
+    then
+      lit::rest
+    else
+      begin
+	let atom = Term.get_atom lit in 
+	match atom with 
+	| Term.Fun (symb, args, _) -> 
+	    if (symb == Symbol.symb_typed_equality) 
+	    then
+	      if (Term.is_neg_lit lit) 
+	      then
 (* all neg eq are falttend to x\not y which are added to neg_var_subst_ref *)
 (* and will be added to the rest later *)
-	    rest 
-	  else
-	    (*positive eq, terms replaced by definitions *)
-	   (* let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
-	    let (eq_type,t1,t2) = get_triple_from_list (Term.arg_to_list args) in
-	    (* replace *)
-	    (equality_term eq_type (term_to_var_term t1) (term_to_var_term t2))::rest
-	else 
-(* non equlaity literal *)
-	  let new_atom = 
-	    let new_args = Term.arg_to_list (Term.arg_map term_to_var_term args) in
-	    add_fun_term symb new_args 
-	  in   
-	  let new_lit = 
-	    if (Term.is_neg_lit lit) 
-	    then 
-	      add_fun_term Symbol.symb_neg [new_atom] 
+		rest 
+	      else
+		  (*positive eq, terms replaced by definitions *)
+		  (* let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
+		  (* replace *)
+		let (eq_type,t1,t2) = get_triple_from_list (Term.arg_to_list args) in
+		  (equality_term eq_type (term_to_var_term t1) (term_to_var_term t2))::rest
 	    else 
-	      new_atom 
-	  in
-	  new_lit::rest	  
-    | Term.Var _ -> failwith "flat_lit: atom cannot be var"
+(* non equlaity literal *)
+	      let new_atom = 
+		let old_arg_list = Term.arg_to_list args in
+		let new_arg_list = flat_args_fun symb old_arg_list in
+		add_fun_term symb new_arg_list
+	      in   
+	      let new_lit = 
+		if (Term.is_neg_lit lit) 
+		then 
+		  add_fun_term Symbol.symb_neg [new_atom] 
+		else 
+		  new_atom 
+	      in
+	      new_lit::rest
+	| Term.Var _ -> failwith "flat_lit: atom cannot be var"
+      end
   in
   let flat_part =  Clause.fold flat_lit [] clause in
   let get_env_part term var_term rest = 
@@ -440,10 +554,15 @@ let flat_clause clause =
 	      failwith "get_env_part: ground term shoud be in term_def_table "
 	    )
 	  else
-	    (let new_symb = Symbol.get_flattening symb in	  	
+	    (let new_symb = Symbol.get_flattening symb in	  
+(*	    out_str ("new symb: "^(Symbol.to_string new_symb)^"\n");*)
 (* the value of the function is the first argument of the relation*)	
-	    let new_args = 
-	      new_var_term::(Term.arg_to_list (Term.arg_map term_to_var_term args)) 
+
+	    let old_arg_list = Term.arg_to_list args in
+	    let non_flat_new_arg_list = flat_args_fun symb old_arg_list in
+
+	    let new_args =  new_var_term::non_flat_new_arg_list 
+(*	      new_var_term::(Term.arg_to_list (Term.arg_map term_to_var_term args)) *)
 	    in
 	    add_fun_term new_symb new_args 
 	    )
@@ -467,6 +586,8 @@ let flat_clause clause =
 (*--------------------fix later --------------------*)
 let _ = out_str ("\n\n!Fix Definitions in finite_models!\n\n")
 
+
+(*this should work fo non-gound definitions but for ground should add a be better translation *)
 let get_definitions () =
   let f t def_symb rest = 
     match t with 
@@ -539,7 +660,7 @@ let create_bound_pred i =
   add_fun_term add_bound_symb []
  
 
-(*-----------------------*)
+(*-------domains do not include epr domains----------------*)
 type domain = 
     {
      dom_type : symbol;
@@ -816,11 +937,27 @@ let domain_axioms_triangular bound_pred =
       ((dom_fun dom)@rest_ax)) domain_table []
 
 
+(*------------------------*)
+
+let get_epr_eq_axioms () = 
+  let epr_eq_types = 
+    (SymSet.inter !epr_type_set !init_sig.Clause.sig_eq_types) in
+  let csig = 
+    {
+     Clause.sig_fun_preds = 
+       SymSet.union !flat_sym_set !init_sig.Clause.sig_fun_preds;     
+     Clause.sig_eq_types = epr_eq_types
+   }
+  in
+  let epr_eq_ax = Eq_axioms.typed_eq_axioms_sig csig in
+(*  out_str ("\n EPR eq ax: "^(Clause.clause_list_to_string  epr_eq_ax )^"\n");*)
+  epr_eq_ax
 
 let init_finite_models clauses = 
   init_sig := Clause.clause_list_signature clauses;
   flat_signature ();  
   epr_type_set_init ();
+  epr_const_set_init ();
 
 (*
   out_str ("EPR types: ");
@@ -828,6 +965,13 @@ let init_finite_models clauses =
   (SymSet.iter 
      (fun s -> (out_str ((Symbol.to_string s)^", "))) !epr_type_set);
   out_str "\n" ;
+
+ out_str ("EPR const set: ");
+  
+  (SymSet.iter 
+     (fun s -> (out_str ((Symbol.to_string s)^", "))) !epr_const_set);
+  out_str "\n" ;
+
 *)	    
   init_domains ()
 

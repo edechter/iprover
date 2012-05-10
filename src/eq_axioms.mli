@@ -19,6 +19,8 @@ type clause = Clause.clause
 
 type sym_set = Symbol.sym_set
 
+type csig = Clause.clause_signature
+
 (*
 val axiom_list : unit -> clause list
 *)
@@ -27,7 +29,9 @@ val eq_axiom_list : clause list -> clause list
 
 (* typed_congr_axiom_list :  eq_type_set -> sym_set -> cong_axioms*)
 
-val typed_congr_axiom_list :  sym_set -> sym_set -> clause list
+val typed_eq_axioms_sig : csig -> clause list
+
+val typed_congr_axiom_list : csig -> clause list
 
 val eq_axioms_flatting  : clause list -> clause list
 

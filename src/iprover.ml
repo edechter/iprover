@@ -508,8 +508,14 @@ let finite_models clauses =
 (*  Finite_models.flat_signature ();*)
 
   Finite_models.init_finite_models prep_clauses;
-
-  let init_clauses = (Finite_models.flat_clause_list prep_clauses) in
+  let flat_clauses = (Finite_models.flat_clause_list prep_clauses)in
+  let init_clauses = 
+    if (!current_options.sat_epr_types)
+    then
+      (Finite_models.get_epr_eq_axioms ())@(flat_clauses)
+    else
+      flat_clauses
+  in
 (*
     out_str ("\n---------Flat clauses------------------\n"
 	     ^(Clause.clause_list_to_tptp init_clauses)
@@ -553,7 +559,7 @@ let finite_models clauses =
   while !model_size < model_bound
   do
     try 
-      out_str (pref_str^"Trying models of size: "
+      out_str (pref_str^"Trying non-epr domains of size: "
 	       ^(string_of_int !model_size)^"\n");
 
       

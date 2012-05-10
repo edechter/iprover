@@ -235,14 +235,14 @@ let typed_congruence_axiom eq_type_set symb =
 
 
 (* typed_congr_axiom_list_sym_set *)
-(* generic function for getting congruence based on eq_type_set             *)
+(* generic function for getting congruence based on csig.eq_type_set             *)
 (* internaly the function uses a closure of eq_type_set *)
 (* under function application    *)
 (*(e.g. a in eq_type_set then val_type of f(..,a,..) is also in eq_type_set *)
 
-let typed_congr_axiom_list eq_type_set sym_set = 
+let typed_congr_axiom_list csig = 
 (* we close eq_type_set first *)
-  let closed_eq_type_set = ref eq_type_set in
+  let closed_eq_type_set = ref csig.Clause.sig_eq_types in
   let rec f symb = 
     if (SymSet.mem symb !closed_eq_type_set) 
     then ()
@@ -263,8 +263,8 @@ let typed_congr_axiom_list eq_type_set sym_set =
        else ()
       end
   in
-  SymSet.iter f sym_set;
-  
+  SymSet.iter f csig.Clause.sig_fun_preds;  
+
 (*  let uf_eq_types = UF_ST.create 301 in *)
  
   let f symb rest = 
@@ -274,7 +274,19 @@ let typed_congr_axiom_list eq_type_set sym_set =
 	ax::rest
     |None -> rest
   in
-  SymSet.fold f sym_set []
+  SymSet.fold f csig.Clause.sig_fun_preds []
+
+
+let typed_eq_axioms_sig csig =
+  let typed_cong_ax_list = typed_congr_axiom_list csig in 
+  if (SymSet.is_empty csig.Clause.sig_eq_types) 
+  then 
+    []           
+  else
+    ( 
+      (typed_reflexivity_axiom ())::((typed_trans_symmetry_axiom ())::typed_cong_ax_list)
+     )
+
 
 
 (*module UF_ST = Union_find.Make(Symbol)*)
@@ -289,23 +301,10 @@ let get_symb_and_type_eq_set_basic clause_list =
   csig
 
 
-
 let eq_axiom_list clause_list = 
 (*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
   let csig = get_symb_and_type_eq_set_basic clause_list in
-  let typed_cong_ax_list = 
-    typed_congr_axiom_list 
-      (csig.Clause.sig_eq_types) 
-      (csig.Clause.sig_fun_preds) in 
-  if (SymSet.is_empty csig.Clause.sig_eq_types) 
-  then 
-    []           
-  else
-    ( 
-      (typed_reflexivity_axiom ())::((typed_trans_symmetry_axiom ())::typed_cong_ax_list)
-     )
-
-
+  typed_eq_axioms_sig csig
 
 (*--------------------------------------------*)
 let distinct_ax_list () = 
