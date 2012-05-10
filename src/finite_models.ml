@@ -442,8 +442,8 @@ let flat_clause clause =
 	  else
 	    (let new_symb = Symbol.get_flattening symb in	  	
 (* the value of the function is the first argument of the relation*)	
-	    let new_args = new_var_term::
-	      (Term.arg_to_list (Term.arg_map term_to_var_term args)) 
+	    let new_args = 
+	      new_var_term::(Term.arg_to_list (Term.arg_map term_to_var_term args)) 
 	    in
 	    add_fun_term new_symb new_args 
 	    )
