@@ -476,6 +476,8 @@ let symb_typed_equality =
 }
 
 
+
+
 (* at the moment we define arithmetic symbols having symbol_type_types as arguments *)
 
 let symb_plus =
@@ -536,7 +538,7 @@ let symb_answer =
 let symb_iprover_sorted_eq =
   {empty_sig_symb with 
    name      = "$$iProver_sorted_equality"; 
-   arity     = Def(2); 
+   arity     = Def(3); 
    stype     = create_stype [symb_type_types;symb_type_types;symb_type_types] symb_bool_type;
    sproperty = Theory;   
    is_skolem = Def(false);

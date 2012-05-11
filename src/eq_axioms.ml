@@ -116,14 +116,31 @@ let trans_symmetry_axiom () =
 (* we can preinstantiate for types occuring in the problem *)
 
 
-let typed_reflexivity_axiom () = 
+(*-------reflexifity-------*)
+let typed_reflexivity_axiom_var () = 
   let reflex_term = typed_equality_term tv0 tv1 tv1 in   
   let refl_ax =  Clause.create [reflex_term] in
   assign_eq_ax_param refl_ax;
   refl_ax 
   
+(* some times it is useful to have instantiatied eq axioms *)
+let typed_reflexivity_axiom_type eq_type_sym = 
+  let eq_type = (add_fun_term eq_type_sym []) in
+  let reflex_term = typed_equality_term eq_type tv1 tv1 in   
+  let refl_ax = Clause.create [reflex_term] in
+  assign_eq_ax_param refl_ax;
+  refl_ax
 
-let typed_trans_symmetry_axiom () = 
+
+let typed_reflexivity_axiom_type_set eq_type_set =
+  let f eq_type rest = 
+    (typed_reflexivity_axiom_type eq_type)::rest
+  in
+  SymSet.fold f eq_type_set []
+
+(*---------trans_symmetry---------*)
+
+let typed_trans_symmetry_axiom_var () = 
 (* tv3 is used for types *)
 (*  let type_var_term = tv3 in *)
   let x01 = dis_typed_equality tv3 tv0 tv1 in
@@ -134,6 +151,26 @@ let typed_trans_symmetry_axiom () =
   trans_sim_ax
 
 
+let typed_trans_symmetry_axiom_type eq_type_sym = 
+  let eq_type = (add_fun_term eq_type_sym []) in
+(* tv3 is used for types *)
+(*  let type_var_term = tv3 in *)
+  let x01 = dis_typed_equality eq_type tv0 tv1 in
+  let x21 = dis_typed_equality eq_type  tv2 tv1 in
+  let x20 = typed_equality_term eq_type tv2 tv0 in
+  let trans_sim_ax =  Clause.create [x01;x21;x20] in
+  assign_eq_ax_param trans_sim_ax;
+  trans_sim_ax
+
+
+let typed_trans_symmetry_axiom_type_set eq_type_set =
+  let f eq_type rest = 
+    (typed_trans_symmetry_axiom_type eq_type)::rest
+  in
+  SymSet.fold f eq_type_set []
+
+
+(*-------symmetry----------*)
 (* used in finite_models *)
 let typed_symmetry_axiom_sym eq_type_sym = 
   let eq_type = (add_fun_term eq_type_sym []) in
@@ -240,11 +277,12 @@ let typed_congruence_axiom eq_type_set symb =
 (* under function application    *)
 (*(e.g. a in eq_type_set then val_type of f(..,a,..) is also in eq_type_set *)
 
+(* it also closes signature under function application ! *)
 let typed_congr_axiom_list csig = 
 (* we close eq_type_set first *)
-  let closed_eq_type_set = ref csig.Clause.sig_eq_types in
+(*  let closed_eq_type_set = ref csig.Clause.sig_eq_types in*)
   let rec f symb = 
-    if (SymSet.mem symb !closed_eq_type_set) 
+    if (SymSet.mem symb csig.Clause.sig_eq_types) 
     then ()
     else 
       begin
@@ -252,13 +290,13 @@ let typed_congr_axiom_list csig =
 	List.iter f arg_types;
 	let arg_is_in_closed_eq_type_set =
 	  (List.exists 
-	     (fun arg_sym ->  (SymSet.mem arg_sym !closed_eq_type_set))
+	     (fun arg_sym ->  (SymSet.mem arg_sym csig.Clause.sig_eq_types))
 	     arg_types
 	  )
 	in
-	if arg_is_in_closed_eq_type_set 
+	if (arg_is_in_closed_eq_type_set)&& (not (val_type == Symbol.symb_bool_type))
 	then
-	 (closed_eq_type_set:= SymSet.add val_type !closed_eq_type_set
+	 (csig.Clause.sig_eq_types <- SymSet.add val_type csig.Clause.sig_eq_types
 	 )
        else ()
       end
@@ -268,7 +306,7 @@ let typed_congr_axiom_list csig =
 (*  let uf_eq_types = UF_ST.create 301 in *)
  
   let f symb rest = 
-    match (typed_congruence_axiom !closed_eq_type_set symb) with 
+    match (typed_congruence_axiom csig.Clause.sig_eq_types symb) with 
     |Some ax -> 
 	(* out_str ("ax: "^(Clause.to_string ax)^"\n --------------\n");*)
 	ax::rest
@@ -284,7 +322,13 @@ let typed_eq_axioms_sig csig =
     []           
   else
     ( 
-      (typed_reflexivity_axiom ())::((typed_trans_symmetry_axiom ())::typed_cong_ax_list)
+      let typed_reflexivity_ax = 
+	typed_reflexivity_axiom_type_set csig.Clause.sig_eq_types in
+
+      let typed_trans_symmetry_ax = 
+	typed_trans_symmetry_axiom_type_set csig.Clause.sig_eq_types in
+
+      ((typed_reflexivity_ax)@((typed_trans_symmetry_ax)@typed_cong_ax_list))
      )
 
 
@@ -299,7 +343,6 @@ let typed_eq_axioms_sig csig =
 let get_symb_and_type_eq_set_basic clause_list = 
   let csig = Clause.clause_list_signature  clause_list in 
   csig
-
 
 let eq_axiom_list clause_list = 
 (*  out_str_debug (SymbolDB.to_string !symbol_db_ref);*)
@@ -661,7 +704,7 @@ let eq_axioms_flatting clause_list =
     (
  
      let flat_clauses = List.map flat_clause clause_list in
-     let eq_ax = [(typed_reflexivity_axiom ());(typed_trans_symmetry_axiom ())] in 
+     let eq_ax = [(typed_reflexivity_axiom_var ());(typed_trans_symmetry_axiom_var ())] in 
      eq_ax@flat_clauses
     )
  else

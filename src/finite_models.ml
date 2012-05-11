@@ -950,7 +950,7 @@ let get_epr_eq_axioms () =
    }
   in
   let epr_eq_ax = Eq_axioms.typed_eq_axioms_sig csig in
-(*  out_str ("\n EPR eq ax: "^(Clause.clause_list_to_string  epr_eq_ax )^"\n");*)
+ (* out_str ("\n EPR eq ax: "^(Clause.clause_list_to_string  epr_eq_ax )^"\n");*)
   epr_eq_ax
 
 let init_finite_models clauses = 

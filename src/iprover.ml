@@ -581,11 +581,11 @@ let finite_models clauses =
 (* can have Finite_models.dis_eq_axioms_all_dom () for exp. *)
 	  Finite_models.dis_eq_axioms_all_dom_sym ()
       in 
-(* 
+ (*
       out_str ("\n---------Diseq Axioms------------------\n"
 	       ^(Clause.clause_list_to_tptp dis_eq_axioms)
 	       ^"\n------------------------\n");   
-  *)    
+  *)
 (*
       let domain_axioms = 
 	if no_input_eq () 
