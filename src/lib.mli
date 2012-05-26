@@ -398,6 +398,17 @@ module type NameM =
     val name : string
   end
 
+(*----------------reals-----------------*)
+
+(* decimal reals *)
+type real = 
+    {
+     (* real_fraction Ee b*)
+     mutable real_fraction    : float;
+     mutable real_exponent    : int; 
+   }
+
+val real_to_string : real -> string
 
 
 (*--------------Global Time Limits-------------------*)

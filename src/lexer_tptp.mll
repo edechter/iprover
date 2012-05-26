@@ -34,6 +34,11 @@ let slash             = '/'
 let zero_numeric      = '0'
 let non_zero_numeric  = ['1'-'9']
 let numeric           = ['0'-'9']
+let positive_decimal  = (non_zero_numeric)(numeric)*
+(* decimal: 0 or non_zero* *)
+let decimal           = (zero_numeric|positive_decimal)
+let dot_decimal       = (dot)(numeric)(numeric)*
+let decimal_fraction  = (decimal)(dot_decimal)
 let lower_alpha       = ['a'-'z']
 let upper_alpha       = ['A'-'Z']
 let alpha_numeric     = (lower_alpha|upper_alpha|numeric|'_')
@@ -108,12 +113,20 @@ rule token = parse
 *)
 
 (* nubers *)
-  | numeric+ {PositiveInteger (Lexing.lexeme lexbuf)}
+(*****************finish****************)
+  | zero_numeric     {Zero_numeric (Lexing.lexeme lexbuf)}
+  | non_zero_numeric {Non_zero_numeric (Lexing.lexeme lexbuf)}
+  | positive_decimal {Positive_Decimal (Lexing.lexeme lexbuf)}
+  | decimal          {Decimal (Lexing.lexeme lexbuf)}
+  | numeric
+  | decimal_fraction {Decimal_fraction (Lexing.lexeme lexbuf)}
   | '+'        {Plus}
   | '-'        {Minus}
   | '*'        {Star}
   | '>'        {Arrow}
   | '<'        {Less_Sign}
+  | slash      {Slash}
+  | exponent   {Exponent}
 
 
 (*keywords*)

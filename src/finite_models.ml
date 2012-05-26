@@ -149,12 +149,15 @@ let epr_const_set_init () =
 
 (* we do not falt terms sat this test*)
 let to_flat_symb_test symb =
+(*  out_str ("to flat test: "^(Symbol.to_string symb)^" ");*)
   if !current_options.sat_epr_types 
   then
+    (
    let vt = get_val_type symb in
-   if (SymSet.mem vt !epr_type_set)
-   then false 
-   else true
+   let res =  (not (SymSet.mem vt !epr_type_set)) in
+(*   out_str ((string_of_bool res)^"\n");*)
+   res
+    )
   else 
     true
 
@@ -950,18 +953,29 @@ let get_epr_eq_axioms () =
    }
   in
   let epr_eq_ax = Eq_axioms.typed_eq_axioms_sig csig in
- (* out_str ("\n EPR eq ax: "^(Clause.clause_list_to_string  epr_eq_ax )^"\n");*)
+(*  out_str ("\n EPR eq ax: "^(Clause.clause_list_to_string  epr_eq_ax )^"\n");*)
   epr_eq_ax
 
 let init_finite_models clauses = 
   init_sig := Clause.clause_list_signature clauses;
-  flat_signature ();  
+(*  out_str ("clause_sig_fun_preds: ");
+  (SymSet.iter 
+     (fun s -> (out_str ((Symbol.to_string s)^"; "))) 
+     !init_sig.Clause.sig_fun_preds
+  );
+  out_str "\n";	   
+  (SymSet.iter 
+     (fun s -> (out_str ((Symbol.to_string s)^"; "))) 
+     !init_sig.Clause.sig_eq_types);
+  out_str "\n";
+*)
   epr_type_set_init ();
   epr_const_set_init ();
-
+  flat_signature ();  
+ 
 (*
   out_str ("EPR types: ");
-  
+ 
   (SymSet.iter 
      (fun s -> (out_str ((Symbol.to_string s)^", "))) !epr_type_set);
   out_str "\n" ;
@@ -971,8 +985,8 @@ let init_finite_models clauses =
   (SymSet.iter 
      (fun s -> (out_str ((Symbol.to_string s)^", "))) !epr_const_set);
   out_str "\n" ;
-
-*)	    
+*)
+	    
   init_domains ()
 
 

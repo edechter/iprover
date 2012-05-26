@@ -18,8 +18,10 @@ open Parser_types
 
 
 /* nubers */
-%token <string> PositiveInteger
-%token Plus Minus
+/* %token <string> PositiveInteger Zero_numeric Non_zero_numeric */
+
+%token <string> Positive_Decimal Decimal Decimal_fraction Zero_numeric Non_zero_numeric 
+%token Plus Minus Slash Exponent
 
 /* extra */
 %token Star Arrow Less_Sign
@@ -159,7 +161,7 @@ attr_name :
  
 
 attr_args : 
-      number {Attr_Int ($1)}
+      unsigned_integer {Attr_Int ($1)}
 /*  |attr_interval {$1} */
   | attr_list_arg { Attr_List $1 } 
   | attr_str_arg { Attr_Str $1 }
@@ -177,8 +179,8 @@ attr_list_arg :
   | LBrace attr_list_arg_list RBrace { $2 }
       
 attr_list_arg_list :
-  | number { [$1] }
-  | number Comma attr_list_arg_list { $1 :: $3 }
+  | unsigned_integer { [$1] }
+  | unsigned_integer Comma attr_list_arg_list { $1 :: $3 }
 
 tff_untyped_atom : 
   | functor_name {$1}
@@ -300,7 +302,7 @@ defined_term        :
  | defined_atomic_term {$1}
 
 defined_atom : 
- | number {term_of_number_fun $1}
+ | number {$1}
  /*|    distinct_object */
 
 defined_atomic_term : 
@@ -377,10 +379,69 @@ formula_role : LowerWord {$1}
 
 /*------------Numbers---------------------*/
 number : 
- integer {$1}
-/* |rational
-  |real 
-*/
+ integer {(term_of_int_number_fun $1)}
+ |rational {(term_of_rat_number_fun $1)} 
+ |real  {(term_of_real_number_fun $1)}  
+
+
+
+
+rational :
+  signed_rational {$1} | unsigned_rational {$1}
+
+signed_rational :
+     Plus unsigned_rational {$2}
+   |Minus unsigned_rational 
+  { 
+   let (num,denom) = $2 in
+   (-num,denom)
+  }
+
+unsigned_rational : 
+     Decimal Slash Positive_Decimal {((int_of_string $1),(int_of_string $3))}
+
+
+real  : 
+  signed_real {$1} | unsigned_real {$1}
+
+signed_real : 
+     Plus unsigned_real {$2}
+    |Minus unsigned_real {
+      let real = $2 in 
+      real.real_fraction <- (~-. (real.real_fraction)); 
+      real }
+
+unsigned_real : decimal_fraction {$1} | decimal_exponent {$1} 
+
+
+decimal_fraction : Decimal_fraction 
+  {
+   let real = 
+     {
+      real_fraction = float_of_string $1;
+      real_exponent = 0
+    }
+   in real
+ } 
+  
+decimal_exponent :
+  Decimal Exponent integer {
+  let real = 
+      {
+       real_fraction = float_of_string $1;
+       real_exponent = $3}
+  in real 
+  }
+ | Decimal_fraction Exponent integer
+   {
+    let real = 
+      {
+       real_fraction = float_of_string $1;
+       real_exponent = $3}
+   in real 
+  }
+
+
 
 integer : 
  signed_integer {$1}
@@ -390,8 +451,7 @@ signed_integer  :
  Plus unsigned_integer {$2}
  |Minus unsigned_integer {-$2}
 
-unsigned_integer : PositiveInteger {int_of_string $1}
-
+unsigned_integer : Decimal {int_of_string $1}
 
 /*--------------------------------------*/
 
@@ -408,7 +468,7 @@ single_quoted :
      QuotedStr {disquote_string $1}
 
 integer_string :
-     PositiveInteger {$1}
+     Decimal {$1}
 
 /*
 integer :

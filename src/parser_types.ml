@@ -581,14 +581,29 @@ let variable_fun var_name =
       )
 
 (* change later on the number type *)
-let term_of_number_fun num = 
-  let int_symb = 
-    SymbolDB.add_ref 
-      (Symbol.create_from_str_type 
-	 (string_of_int num) (Symbol.create_stype [] Symbol.symb_default_type)) symbol_db_ref in
-  assign_param_input_symb int_symb;
-  Term.create_fun_term int_symb []
+
+let num_term name = 
+  let symb = SymbolDB.add_ref 
+    (Symbol.create_from_str_type 
+       name (Symbol.create_stype [] Symbol.symb_default_type)) symbol_db_ref in
+  assign_param_input_symb symb;
+  Term.create_fun_term symb []
     
+let term_of_int_number_fun num = 
+  let name = (string_of_int num) in
+  num_term name
+
+
+let term_of_rat_number_fun (num,denum) = 
+  let name = (string_of_int num)^"/"^(string_of_int denum) in
+  num_term name
+
+let term_of_real_number_fun real = 
+  let name = real_to_string real in
+  num_term name 
+    
+
+
 
 (*-------------ttf---------------*)
 (* Note $tType will be of $tType*)

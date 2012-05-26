@@ -55,7 +55,7 @@ let out_err_str s =
 let iprover_name_str = "iProver"
 
 (* version is a list of integers *)
-let iprover_current_version = [0;9;2]
+let iprover_current_version = [0;9;5]
 
 let rec iprover_version_to_str v = 
   match v with 
@@ -68,7 +68,7 @@ let iprover_version_str  = "v"^(iprover_version_to_str iprover_current_version)
 (*let iprover_add_info = "(Post CASC-22)"*)
 (*let iprover_add_info = "(post CASC-J5 2010)"*)
 
-let iprover_add_info = "post (CASC-23 2011)"
+let iprover_add_info = "pre (CASC-J6 2012)"
 
 let pref_str_head = "\n%---------------- " 
 
@@ -1035,6 +1035,21 @@ let rec list_to_string to_str_el l separator_str =
 
 let list_of_str_to_str str_list separator_str = 
     list_to_string (fun x->x) str_list separator_str
+
+
+(*----------------reals----------*)
+
+(* decimal reals *)
+type real = 
+    {
+     (* real_fraction Ee b*)
+     mutable real_fraction    : float;
+     mutable real_exponent    : int; 
+   }
+
+let real_to_string r = 
+  (string_of_float r.real_fraction)
+  ^"Ee"^(string_of_int r.real_exponent)
 
 
 (*--------Named modules----------------------*)

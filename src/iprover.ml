@@ -559,7 +559,7 @@ let finite_models clauses =
   while !model_size < model_bound
   do
     try 
-      out_str (pref_str^"Trying non-epr domains of size: "
+      out_str (pref_str^"Trying domains of size >= : "
 	       ^(string_of_int !model_size)^"\n");
 
       
