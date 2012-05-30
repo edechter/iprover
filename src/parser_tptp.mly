@@ -20,7 +20,8 @@ open Parser_types
 /* nubers */
 /* %token <string> PositiveInteger Zero_numeric Non_zero_numeric */
 
-%token <string> Positive_Decimal Decimal Decimal_fraction Zero_numeric Non_zero_numeric 
+%token <string> Positive_Decimal Decimal Decimal_fraction 
+
 %token Plus Minus Slash Exponent
 
 /* extra */
@@ -469,6 +470,8 @@ single_quoted :
 
 integer_string :
      Decimal {$1}
+ |Plus Decimal {("+"^$2)}
+ |Minus Decimal {("-"^$2)}
 
 /*
 integer :

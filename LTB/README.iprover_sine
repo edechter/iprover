@@ -1,0 +1,5 @@
+Usage: 
+
+nohup iprover_sine.sh ./iproveropt ./vclausify_rel LTB_Batch > ltb_sumo.log &
+
+where LTB_SMO a batch specification file see CASC-23 description.

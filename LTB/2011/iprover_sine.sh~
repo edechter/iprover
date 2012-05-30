@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#Copyright (C) The University of Manchester. 
+
+
+PROVER=$1
+CLAUSIFIER=$2
+BFILE=$3
+

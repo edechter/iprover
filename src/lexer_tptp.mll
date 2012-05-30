@@ -113,12 +113,11 @@ rule token = parse
 *)
 
 (* nubers *)
-(*****************finish****************)
-  | zero_numeric     {Zero_numeric (Lexing.lexeme lexbuf)}
+(*  | zero_numeric     {Zero_numeric (Lexing.lexeme lexbuf)}
   | non_zero_numeric {Non_zero_numeric (Lexing.lexeme lexbuf)}
-  | positive_decimal {Positive_Decimal (Lexing.lexeme lexbuf)}
+  | positive_decimal {Positive_Decimal (Lexing.lexeme lexbuf)}*)
+
   | decimal          {Decimal (Lexing.lexeme lexbuf)}
-  | numeric
   | decimal_fraction {Decimal_fraction (Lexing.lexeme lexbuf)}
   | '+'        {Plus}
   | '-'        {Minus}

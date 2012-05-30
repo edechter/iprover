@@ -1,0 +1,1389 @@
+cnf(u13390,axiom,
+    s__instance(s__TheKB2_1,s__ComputerProgram)).
+
+cnf(u13391,axiom,
+    s__instance(s__Inconsistent,s__Attribute)).
+
+cnf(u13392,axiom,
+    s__property(s__TheKB2_1,s__Inconsistent) | ~s__property(X2,X1) | ~s__property(X2,X0) | ~s__contraryAttribute_2(X0,X1) | ~s__instance(X1,s__Attribute) | ~s__instance(X0,s__Attribute)).
+
+cnf(u13393,axiom,
+    s__instance(s__Entity2_1,s__Organism)).
+
+cnf(u13394,axiom,
+    s__instance(s__Entity2_2,s__Organism)).
+
+cnf(u13395,axiom,
+    s__mother(s__Entity2_1,s__Entity2_2)).
+
+cnf(u13396,axiom,
+    s__father(s__Entity2_1,s__Entity2_2)).
+
+cnf(u13397,negated_conjecture,
+    ~s__property(s__TheKB2_1,s__Inconsistent)).
+
+cnf(u13398,axiom,
+    s__subclass(s__ComputerProgram,s__Abstract)).
+
+cnf(u13399,axiom,
+    s__subclass(s__ComputerProgram,s__Entity)).
+
+cnf(u13400,axiom,
+    s__subclass(s__ComputerProgram,s__Proposition)).
+
+cnf(u13402,axiom,
+    s__result(X0,sK0(X0)) | ~s__instance(X0,s__ComputerProgramming) | ~s__instance(X0,s__Process)).
+
+cnf(u13401,axiom,
+    s__instance(sK0(X0),s__ComputerProgram) | ~s__instance(X0,s__ComputerProgramming) | ~s__instance(X0,s__Process)).
+
+cnf(u13403,axiom,
+    s__subclass(s__Attribute,s__Entity)).
+
+cnf(u13404,axiom,
+    s__subclass(s__Attribute,s__Abstract)).
+
+cnf(u13405,axiom,
+    s__property(X2,X0) | ~s__property(X2,X1) | ~s__instance(X0,s__Attribute) | ~s__instance(X1,s__Attribute) | ~s__subAttribute(X1,X0)).
+
+cnf(u13861,axiom,
+    ~s__property(X0,s__ListOrderFn(s__ListFn_2(X1,X2),X3)) | ~s__property(X0,s__ListOrderFn(s__ListFn_2(X1,X2),X4)) | X3 = X4 | ~s__instance(X3,s__PositiveInteger) | ~s__instance(X4,s__PositiveInteger) | ~s__instance(s__ListOrderFn(s__ListFn_2(X1,X2),X4),s__Attribute) | ~s__instance(s__ListOrderFn(s__ListFn_2(X1,X2),X3),s__Attribute) | ~s__contraryAttribute_2(X1,X2)).
+
+cnf(u13881,axiom,
+    ~s__property(X2,X1) | ~s__instance(X1,s__Attribute) | s__property(X2,X1)).
+
+cnf(u13882,axiom,
+    ~s__property(X2,X1) | ~s__instance(X1,s__Attribute) | s__property(X2,X1)).
+
+cnf(u13411,axiom,
+    s__property(X0,X1) | ~s__attribute(X0,X1) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Attribute)).
+
+cnf(u13412,axiom,
+    s__subclass(s__Organism,s__Entity)).
+
+cnf(u13413,axiom,
+    s__subclass(s__Organism,s__Object)).
+
+cnf(u13414,axiom,
+    s__subclass(s__Organism,s__SelfConnectedObject)).
+
+cnf(u13415,axiom,
+    s__subclass(s__Organism,s__Physical)).
+
+cnf(u13416,axiom,
+    s__subclass(s__Organism,s__Agent)).
+
+cnf(u13417,axiom,
+    s__mother(X0,X1) | ~s__attribute(X1,s__Female) | ~s__parent(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13418,axiom,
+    s__attribute(X0,s__Female) | ~s__mother(X1,X0) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13419,axiom,
+    s__father(X1,X2) | s__mother(X1,X2) | ~s__result(X0,X1) | ~s__agent(X0,X2) | ~s__instance(X0,s__SexualReproduction) | ~s__parent(X1,X2) | ~s__instance(X0,s__Process) | ~s__instance(X1,s__Organism) | ~s__instance(X2,s__Organism)).
+
+cnf(u13423,axiom,
+    s__father(X0,sK2(X1,X0)) | ~s__result(X1,X0) | ~s__instance(X1,s__SexualReproduction) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Process)).
+
+cnf(u13422,axiom,
+    s__mother(X0,sK1(X1,X0)) | ~s__result(X1,X0) | ~s__instance(X1,s__SexualReproduction) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Process)).
+
+cnf(u13421,axiom,
+    s__instance(sK1(X1,X0),s__Organism) | ~s__result(X1,X0) | ~s__instance(X1,s__SexualReproduction) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Process)).
+
+cnf(u13420,axiom,
+    s__instance(sK2(X1,X0),s__Organism) | ~s__result(X1,X0) | ~s__instance(X1,s__SexualReproduction) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Process)).
+
+cnf(u13424,axiom,
+    X1 = X2 | ~s__mother(X0,X2) | ~s__mother(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism) | ~s__instance(X2,s__Organism)).
+
+cnf(u13425,axiom,
+    s__parent(X0,X1) | ~s__mother(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13426,axiom,
+    s__father(X0,X1) | ~s__attribute(X1,s__Male) | ~s__parent(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13427,axiom,
+    s__attribute(X0,s__Male) | ~s__father(X1,X0) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13428,axiom,
+    X1 = X2 | ~s__father(X0,X2) | ~s__father(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism) | ~s__instance(X2,s__Organism)).
+
+cnf(u13429,axiom,
+    s__parent(X0,X1) | ~s__father(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13430,axiom,
+    s__subclass(s__SetOrClass,s__Abstract)).
+
+cnf(u13431,axiom,
+    s__subclass(s__Abstract,s__Entity)).
+
+cnf(u13432,axiom,
+    s__subclass(s__SetOrClass,s__Entity)).
+
+cnf(u13433,axiom,
+    s__instance(sK3,s__Entity)).
+
+cnf(u13434,axiom,
+    s__instance(X0,s__Entity)).
+
+cnf(u13435,axiom,
+    s__subclass(s__Proposition,s__Entity)).
+
+cnf(u13436,axiom,
+    s__subclass(s__Proposition,s__Abstract)).
+
+cnf(u13437,axiom,
+    s__subclass(s__ComputerProgramming,s__Entity)).
+
+cnf(u13438,axiom,
+    s__subclass(s__ComputerProgramming,s__IntentionalProcess)).
+
+cnf(u13439,axiom,
+    s__subclass(s__ComputerProgramming,s__Process)).
+
+cnf(u13440,axiom,
+    s__subclass(s__ComputerProgramming,s__Physical)).
+
+cnf(u13441,axiom,
+    s__subclass(s__ComputerProgramming,s__ContentDevelopment)).
+
+cnf(u13442,axiom,
+    s__patient(X0,X1) | ~s__result(X0,X1) | ~s__instance(X0,s__Process)).
+
+cnf(u13443,axiom,
+    s__subclass(s__Process,s__Entity)).
+
+cnf(u13444,axiom,
+    s__subclass(s__Process,s__Physical)).
+
+cnf(u13867,axiom,
+    s__ListOrderFn(s__ListFn_2(X3,X2),X6) = s__ListOrderFn(s__ListFn_2(X1,X0),X6) | ~s__instance(X6,s__PositiveInteger) | s__ListFn_2(X1,X0) != s__ListFn_2(X3,X2)).
+
+cnf(u13869,axiom,
+    s__ListOrderFn(s__ListFn_1(X2),X5) = s__ListOrderFn(s__ListFn_2(X1,X0),X5) | ~s__instance(X5,s__PositiveInteger) | s__ListFn_1(X2) != s__ListFn_2(X1,X0)).
+
+cnf(u13871,axiom,
+    s__ListOrderFn(s__ListFn_1(X0),X5) = s__ListOrderFn(s__ListFn_2(X2,X1),X5) | ~s__instance(X5,s__PositiveInteger) | s__ListFn_1(X0) != s__ListFn_2(X2,X1)).
+
+cnf(u13448,axiom,
+    s__subAttribute(X0,X2) | ~s__subAttribute(X1,X2) | ~s__subAttribute(X0,X1) | ~s__instance(X0,s__Attribute) | ~s__instance(X1,s__Attribute) | ~s__instance(X2,s__Attribute)).
+
+cnf(u13449,axiom,
+    X0 = X1 | ~s__subAttribute(X1,X0) | ~s__subAttribute(X0,X1) | ~s__instance(X0,s__Attribute) | ~s__instance(X1,s__Attribute)).
+
+cnf(u13450,axiom,
+    s__subAttribute(X0,X0) | ~s__instance(X0,s__Attribute)).
+
+cnf(u13451,axiom,
+    s__instance(X2,X0) | ~s__instance(X1,X0) | ~s__subAttribute(X2,X1) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__Attribute) | ~s__instance(X2,s__Attribute)).
+
+cnf(u13453,axiom,
+    X0 = X1 | ~s__subclass(X1,X0) | ~s__subclass(X0,X1) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__SetOrClass)).
+
+cnf(u13883,axiom,
+    ~s__instance(X2,X1) | ~s__instance(X1,s__SetOrClass) | s__instance(X2,X1)).
+
+cnf(u13884,axiom,
+    ~s__instance(X2,X1) | ~s__instance(X1,s__SetOrClass) | s__instance(X2,X1)).
+
+cnf(u13460,axiom,
+    s__subclass(s__PositiveInteger,s__Abstract)).
+
+cnf(u13461,axiom,
+    s__subclass(s__PositiveInteger,s__Entity)).
+
+cnf(u13462,axiom,
+    s__subclass(s__PositiveInteger,s__Quantity)).
+
+cnf(u13463,axiom,
+    s__subclass(s__Object,s__Entity)).
+
+cnf(u13464,axiom,
+    X0 = X1 | ~s__attribute(X1,X0) | ~s__attribute(X0,X1) | ~s__instance(X0,s__Attribute) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Object) | ~s__instance(X1,s__Attribute)).
+
+cnf(u13465,axiom,
+    ~s__attribute(X0,X0) | ~s__instance(X0,s__Attribute) | ~s__instance(X0,s__Object)).
+
+cnf(u13466,axiom,
+    s__subclass(s__SelfConnectedObject,s__Entity)).
+
+cnf(u13467,axiom,
+    s__subclass(s__SelfConnectedObject,s__Physical)).
+
+cnf(u13468,axiom,
+    s__subclass(s__SelfConnectedObject,s__Object)).
+
+cnf(u13469,axiom,
+    s__instance(s__EnglishLanguage,s__Physical)).
+
+cnf(u13470,axiom,
+    s__subclass(s__Object,s__Physical)).
+
+cnf(u13471,axiom,
+    s__subclass(s__Physical,s__Entity)).
+
+cnf(u13472,axiom,
+    s__subclass(s__Agent,s__Entity)).
+
+cnf(u13473,axiom,
+    s__subclass(s__Agent,s__Physical)).
+
+cnf(u13474,axiom,
+    s__subclass(s__Agent,s__Object)).
+
+cnf(u13475,axiom,
+    s__instance(s__Female,s__Entity)).
+
+cnf(u13476,axiom,
+    s__instance(s__Female,s__Abstract)).
+
+cnf(u13477,axiom,
+    s__instance(s__Female,s__InternalAttribute)).
+
+cnf(u13478,axiom,
+    s__instance(s__Female,s__Attribute)).
+
+cnf(u13479,axiom,
+    s__instance(s__Female,s__BiologicalAttribute)).
+
+cnf(u13480,axiom,
+    s__attribute(X1,s__Female) | ~s__instance(X1,s__Organism) | ~s__part(X0,X1) | ~s__instance(X0,s__ReproductiveBody) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Object)).
+
+cnf(u13481,axiom,
+    s__attribute(X0,s__Female) | ~s__instance(X0,s__Woman) | ~s__instance(X0,s__Object)).
+
+cnf(u13483,axiom,
+    s__parent(X0,sK4(X0)) | ~s__instance(X0,s__Organism)).
+
+cnf(u13482,axiom,
+    s__instance(sK4(X0),s__Organism) | ~s__instance(X0,s__Organism)).
+
+cnf(u13484,axiom,
+    s__instance(X1,X0) | ~s__instance(X2,X0) | ~s__subclass(X0,s__Organism) | ~s__parent(X1,X2) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__Organism) | ~s__instance(X2,s__Organism)).
+
+cnf(u13485,axiom,
+    ~s__parent(X0,X2) | ~s__parent(X1,X2) | ~s__parent(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism) | ~s__instance(X2,s__Organism)).
+
+cnf(u13486,axiom,
+    X0 = X1 | ~s__parent(X1,X0) | ~s__parent(X0,X1) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Organism)).
+
+cnf(u13487,axiom,
+    ~s__parent(X0,X0) | ~s__instance(X0,s__Organism)).
+
+cnf(u13488,axiom,
+    s__subclass(s__SexualReproduction,s__Entity)).
+
+cnf(u13489,axiom,
+    s__subclass(s__SexualReproduction,s__OrganismProcess)).
+
+cnf(u13490,axiom,
+    s__subclass(s__SexualReproduction,s__InternalChange)).
+
+cnf(u13491,axiom,
+    s__subclass(s__SexualReproduction,s__BiologicalProcess)).
+
+cnf(u13492,axiom,
+    s__subclass(s__SexualReproduction,s__Process)).
+
+cnf(u13493,axiom,
+    s__subclass(s__SexualReproduction,s__PhysiologicProcess)).
+
+cnf(u13494,axiom,
+    s__subclass(s__SexualReproduction,s__Physical)).
+
+cnf(u13495,axiom,
+    s__subclass(s__SexualReproduction,s__Replication)).
+
+cnf(u13498,axiom,
+    s__agent(X0,sK5(X0)) | ~s__instance(X0,s__IntentionalProcess) | ~s__instance(X0,s__Process)).
+
+cnf(u13497,axiom,
+    s__instance(sK5(X0),s__CognitiveAgent) | ~s__instance(X0,s__IntentionalProcess) | ~s__instance(X0,s__Process)).
+
+cnf(u13496,axiom,
+    s__instance(sK5(X0),s__Agent) | ~s__instance(X0,s__IntentionalProcess) | ~s__instance(X0,s__Process)).
+
+cnf(u13499,axiom,
+    X0 = X1 | ~s__agent(X1,X0) | ~s__agent(X0,X1) | ~s__instance(X0,s__Agent) | ~s__instance(X0,s__Process) | ~s__instance(X1,s__Process) | ~s__instance(X1,s__Agent)).
+
+cnf(u13500,axiom,
+    ~s__agent(X0,X0) | ~s__instance(X0,s__Agent) | ~s__instance(X0,s__Process)).
+
+cnf(u13503,axiom,
+    s__instance(X0,s__Agent) | ~s__agent(X2,X0) | ~s__instance(X2,s__Process)).
+
+cnf(u13502,axiom,
+    s__agent(sK6(X0),X0) | ~s__instance(X0,s__Agent)).
+
+cnf(u13501,axiom,
+    s__instance(sK6(X0),s__Process) | ~s__instance(X0,s__Agent)).
+
+cnf(u13504,axiom,
+    s__instance(s__Male,s__Entity)).
+
+cnf(u13505,axiom,
+    s__instance(s__Male,s__Abstract)).
+
+cnf(u13506,axiom,
+    s__instance(s__Male,s__InternalAttribute)).
+
+cnf(u13507,axiom,
+    s__instance(s__Male,s__Attribute)).
+
+cnf(u13508,axiom,
+    s__instance(s__Male,s__BiologicalAttribute)).
+
+cnf(u13509,axiom,
+    s__contraryAttribute_2(s__Male,s__Female)).
+
+cnf(u13510,axiom,
+    s__attribute(X0,s__Male) | ~s__instance(X0,s__Man) | ~s__instance(X0,s__Object)).
+
+cnf(u13511,axiom,
+    s__subclass(X0,X2) | ~s__subclass(X1,X2) | ~s__subclass(X0,X1) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__SetOrClass) | ~s__instance(X2,s__SetOrClass)).
+
+cnf(u13512,axiom,
+    s__subclass(X0,X0) | ~s__instance(X0,s__SetOrClass)).
+
+cnf(u13513,axiom,
+    s__instance(X2,X1) | ~s__instance(X2,X0) | ~s__subclass(X0,X1) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__SetOrClass)).
+
+cnf(u13515,axiom,
+    s__instance(X1,s__SetOrClass) | ~s__subclass(X0,X1)).
+
+cnf(u13514,axiom,
+    s__instance(X0,s__SetOrClass) | ~s__subclass(X0,X1)).
+
+cnf(u13516,axiom,
+    s__subclass(s__IntentionalProcess,s__Entity)).
+
+cnf(u13517,axiom,
+    s__subclass(s__IntentionalProcess,s__Physical)).
+
+cnf(u13518,axiom,
+    s__subclass(s__IntentionalProcess,s__Process)).
+
+cnf(u13519,axiom,
+    s__relatedInternalConcept(s__ContentDevelopment,s__Communication)).
+
+cnf(u13520,axiom,
+    s__subclass(s__ContentDevelopment,s__Entity)).
+
+cnf(u13521,axiom,
+    s__subclass(s__ContentDevelopment,s__Process)).
+
+cnf(u13522,axiom,
+    s__subclass(s__ContentDevelopment,s__Physical)).
+
+cnf(u13523,axiom,
+    s__relatedInternalConcept(s__Communication,s__ContentDevelopment)).
+
+cnf(u13525,axiom,
+    s__result(X0,sK7(X0)) | ~s__instance(X0,s__ContentDevelopment) | ~s__instance(X0,s__Process)).
+
+cnf(u13524,axiom,
+    s__instance(sK7(X0),s__ContentBearingObject) | ~s__instance(X0,s__ContentDevelopment) | ~s__instance(X0,s__Process)).
+
+cnf(u13526,axiom,
+    s__subclass(s__ContentDevelopment,s__IntentionalProcess)).
+
+cnf(u13527,axiom,
+    X0 = X1 | ~s__patient(X1,X0) | ~s__patient(X0,X1) | ~s__instance(X0,s__Process) | ~s__instance(X1,s__Process)).
+
+cnf(u13528,axiom,
+    ~s__patient(X0,X0) | ~s__instance(X0,s__Process)).
+
+cnf(u13880,axiom,
+    s__ListOrderFn(s__ListFn_1(X0),X4) = s__ListOrderFn(s__ListFn_1(X1),X4) | ~s__instance(X4,s__PositiveInteger) | s__ListFn_1(X0) != s__ListFn_1(X1)).
+
+cnf(u13530,axiom,
+    s__subclass(s__Quantity,s__Entity)).
+
+cnf(u13531,axiom,
+    s__subclass(s__Quantity,s__Abstract)).
+
+cnf(u13532,axiom,
+    s__instance(s__EnglishLanguage,s__Entity)).
+
+cnf(u13533,axiom,
+    s__subclass(s__InternalAttribute,s__Abstract)).
+
+cnf(u13534,axiom,
+    s__subclass(s__InternalAttribute,s__Entity)).
+
+cnf(u13535,axiom,
+    s__subclass(s__InternalAttribute,s__Attribute)).
+
+cnf(u13536,axiom,
+    s__subclass(s__BiologicalAttribute,s__Abstract)).
+
+cnf(u13537,axiom,
+    s__subclass(s__BiologicalAttribute,s__Entity)).
+
+cnf(u13538,axiom,
+    s__subclass(s__BiologicalAttribute,s__Attribute)).
+
+cnf(u13539,axiom,
+    s__instance(X0,s__Organism) | ~s__instance(X1,s__BiologicalAttribute) | ~s__attribute(X0,X1) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Attribute)).
+
+cnf(u13540,axiom,
+    s__subclass(s__BiologicalAttribute,s__InternalAttribute)).
+
+cnf(u13541,axiom,
+    s__subclass(s__ReproductiveBody,s__Entity)).
+
+cnf(u13542,axiom,
+    s__subclass(s__ReproductiveBody,s__CorpuscularObject)).
+
+cnf(u13543,axiom,
+    s__subclass(s__ReproductiveBody,s__Object)).
+
+cnf(u13544,axiom,
+    s__subclass(s__ReproductiveBody,s__OrganicThing)).
+
+cnf(u13545,axiom,
+    s__subclass(s__ReproductiveBody,s__SelfConnectedObject)).
+
+cnf(u13546,axiom,
+    s__subclass(s__ReproductiveBody,s__AnatomicalStructure)).
+
+cnf(u13547,axiom,
+    s__subclass(s__ReproductiveBody,s__OrganicObject)).
+
+cnf(u13548,axiom,
+    s__subclass(s__ReproductiveBody,s__Physical)).
+
+cnf(u13549,axiom,
+    s__subclass(s__ReproductiveBody,s__BodyPart)).
+
+cnf(u13550,axiom,
+    s__subclass(s__Woman,s__Entity)).
+
+cnf(u13551,axiom,
+    s__subclass(s__Woman,s__Object)).
+
+cnf(u13552,axiom,
+    s__subclass(s__Woman,s__CorpuscularObject)).
+
+cnf(u13553,axiom,
+    s__subclass(s__Woman,s__Organism)).
+
+cnf(u13554,axiom,
+    s__subclass(s__Woman,s__OrganicThing)).
+
+cnf(u13555,axiom,
+    s__subclass(s__Woman,s__Vertebrate)).
+
+cnf(u13556,axiom,
+    s__subclass(s__Woman,s__Physical)).
+
+cnf(u13557,axiom,
+    s__subclass(s__Woman,s__Agent)).
+
+cnf(u13558,axiom,
+    s__subclass(s__Woman,s__Animal)).
+
+cnf(u13559,axiom,
+    s__subclass(s__Woman,s__SelfConnectedObject)).
+
+cnf(u13560,axiom,
+    s__subclass(s__Woman,s__CognitiveAgent)).
+
+cnf(u13561,axiom,
+    s__subclass(s__Woman,s__OrganicObject)).
+
+cnf(u13562,axiom,
+    s__subclass(s__Woman,s__Human)).
+
+cnf(u13563,axiom,
+    s__subclass(s__OrganismProcess,s__Entity)).
+
+cnf(u13564,axiom,
+    s__subclass(s__OrganismProcess,s__InternalChange)).
+
+cnf(u13565,axiom,
+    s__subclass(s__OrganismProcess,s__BiologicalProcess)).
+
+cnf(u13566,axiom,
+    s__subclass(s__OrganismProcess,s__Process)).
+
+cnf(u13567,axiom,
+    s__subclass(s__OrganismProcess,s__Physical)).
+
+cnf(u13568,axiom,
+    s__subclass(s__OrganismProcess,s__PhysiologicProcess)).
+
+cnf(u13569,axiom,
+    s__subclass(s__InternalChange,s__Entity)).
+
+cnf(u13570,axiom,
+    s__subclass(s__InternalChange,s__Physical)).
+
+cnf(u13571,axiom,
+    s__subclass(s__InternalChange,s__Process)).
+
+cnf(u13572,axiom,
+    s__subclass(s__BiologicalProcess,s__Entity)).
+
+cnf(u13573,axiom,
+    s__subclass(s__BiologicalProcess,s__Process)).
+
+cnf(u13574,axiom,
+    s__subclass(s__BiologicalProcess,s__Physical)).
+
+cnf(u13575,axiom,
+    s__subclass(s__BiologicalProcess,s__InternalChange)).
+
+cnf(u13576,axiom,
+    s__subclass(s__PhysiologicProcess,s__Entity)).
+
+cnf(u13577,axiom,
+    s__subclass(s__PhysiologicProcess,s__InternalChange)).
+
+cnf(u13578,axiom,
+    s__subclass(s__PhysiologicProcess,s__Process)).
+
+cnf(u13579,axiom,
+    s__subclass(s__PhysiologicProcess,s__Physical)).
+
+cnf(u13582,axiom,
+    s__result(sK8(X0),X0) | ~s__instance(X0,s__BodyPart)).
+
+cnf(u13581,axiom,
+    s__instance(sK8(X0),s__PhysiologicProcess) | ~s__instance(X0,s__BodyPart)).
+
+cnf(u13580,axiom,
+    s__instance(sK8(X0),s__Process) | ~s__instance(X0,s__BodyPart)).
+
+cnf(u13583,axiom,
+    s__subclass(s__PhysiologicProcess,s__BiologicalProcess)).
+
+cnf(u13584,axiom,
+    s__subclass(s__Replication,s__Entity)).
+
+cnf(u13585,axiom,
+    s__subclass(s__Replication,s__BiologicalProcess)).
+
+cnf(u13586,axiom,
+    s__subclass(s__Replication,s__InternalChange)).
+
+cnf(u13587,axiom,
+    s__subclass(s__Replication,s__Process)).
+
+cnf(u13588,axiom,
+    s__subclass(s__Replication,s__PhysiologicProcess)).
+
+cnf(u13589,axiom,
+    s__subclass(s__Replication,s__Physical)).
+
+cnf(u13592,axiom,
+    s__instance(sK9(X1,X0),s__Cell) | ~s__agent(X1,X0) | ~s__instance(X1,s__Replication) | ~s__instance(X0,s__Virus) | ~s__instance(X0,s__Agent) | ~s__instance(X1,s__Process)).
+
+cnf(u13591,axiom,
+    s__located(X1,sK9(X1,X0)) | ~s__agent(X1,X0) | ~s__instance(X1,s__Replication) | ~s__instance(X0,s__Virus) | ~s__instance(X0,s__Agent) | ~s__instance(X1,s__Process)).
+
+cnf(u13590,axiom,
+    s__instance(sK9(X1,X0),s__Object) | ~s__agent(X1,X0) | ~s__instance(X1,s__Replication) | ~s__instance(X0,s__Virus) | ~s__instance(X0,s__Agent) | ~s__instance(X1,s__Process)).
+
+cnf(u13594,axiom,
+    s__result(X0,sK10(X0)) | ~s__instance(X0,s__Replication) | ~s__instance(X0,s__Process)).
+
+cnf(u13593,axiom,
+    s__instance(sK10(X0),s__ReproductiveBody) | ~s__instance(X0,s__Replication) | ~s__instance(X0,s__Process)).
+
+cnf(u13595,axiom,
+    s__parent(X0,X2) | ~s__result(X1,X0) | ~s__agent(X1,X2) | ~s__instance(X1,s__Replication) | ~s__instance(X0,s__Organism) | ~s__instance(X1,s__Process) | ~s__instance(X2,s__Organism)).
+
+cnf(u13596,axiom,
+    s__subclass(s__Replication,s__OrganismProcess)).
+
+cnf(u13597,axiom,
+    s__subclass(s__CognitiveAgent,s__Entity)).
+
+cnf(u13598,axiom,
+    s__subclass(s__CognitiveAgent,s__Object)).
+
+cnf(u13599,axiom,
+    s__subclass(s__CognitiveAgent,s__Agent)).
+
+cnf(u13600,axiom,
+    s__subclass(s__CognitiveAgent,s__Physical)).
+
+cnf(u13601,axiom,
+    s__subclass(s__Man,s__Entity)).
+
+cnf(u13602,axiom,
+    s__subclass(s__Man,s__Object)).
+
+cnf(u13603,axiom,
+    s__subclass(s__Man,s__CorpuscularObject)).
+
+cnf(u13604,axiom,
+    s__subclass(s__Man,s__Organism)).
+
+cnf(u13605,axiom,
+    s__subclass(s__Man,s__OrganicThing)).
+
+cnf(u13606,axiom,
+    s__subclass(s__Man,s__Vertebrate)).
+
+cnf(u13607,axiom,
+    s__subclass(s__Man,s__Physical)).
+
+cnf(u13608,axiom,
+    s__subclass(s__Man,s__Animal)).
+
+cnf(u13609,axiom,
+    s__subclass(s__Man,s__Agent)).
+
+cnf(u13610,axiom,
+    s__subclass(s__Man,s__SelfConnectedObject)).
+
+cnf(u13611,axiom,
+    s__subclass(s__Man,s__CognitiveAgent)).
+
+cnf(u13612,axiom,
+    s__subclass(s__Man,s__OrganicObject)).
+
+cnf(u13613,axiom,
+    s__subclass(s__Man,s__Human)).
+
+cnf(u13614,axiom,
+    s__subclass(s__Communication,s__Entity)).
+
+cnf(u13615,axiom,
+    s__subclass(s__Communication,s__IntentionalProcess)).
+
+cnf(u13616,axiom,
+    s__subclass(s__Communication,s__Process)).
+
+cnf(u13617,axiom,
+    s__subclass(s__Communication,s__ContentBearingPhysical)).
+
+cnf(u13618,axiom,
+    s__subclass(s__Communication,s__Physical)).
+
+cnf(u13619,axiom,
+    s__subclass(s__Communication,s__SocialInteraction)).
+
+cnf(u13620,axiom,
+    s__relatedInternalConcept(X0,X2) | ~s__relatedInternalConcept(X1,X2) | ~s__relatedInternalConcept(X0,X1)).
+
+cnf(u13621,axiom,
+    s__relatedInternalConcept(X1,X0) | ~s__relatedInternalConcept(X0,X1)).
+
+cnf(u13622,axiom,
+    s__relatedInternalConcept(X0,X0)).
+
+cnf(u13623,axiom,
+    s__subclass(s__ContentBearingObject,s__Entity)).
+
+cnf(u13624,axiom,
+    s__subclass(s__ContentBearingObject,s__Object)).
+
+cnf(u13625,axiom,
+    s__subclass(s__ContentBearingObject,s__SelfConnectedObject)).
+
+cnf(u13626,axiom,
+    s__subclass(s__ContentBearingObject,s__Physical)).
+
+cnf(u13627,axiom,
+    s__subclass(s__Text,s__ContentBearingObject)).
+
+cnf(u13628,axiom,
+    s__subclass(s__ContentBearingObject,s__ContentBearingPhysical)).
+
+cnf(u13629,axiom,
+    s__subclass(s__ContentBearingObject,s__CorpuscularObject)).
+
+cnf(u13630,axiom,
+    s__subclass(s__Organism,s__CorpuscularObject)).
+
+cnf(u13631,axiom,
+    s__subclass(s__CorpuscularObject,s__Entity)).
+
+cnf(u13632,axiom,
+    s__subclass(s__CorpuscularObject,s__Object)).
+
+cnf(u13633,axiom,
+    s__subclass(s__CorpuscularObject,s__Physical)).
+
+cnf(u13634,axiom,
+    s__subclass(s__CorpuscularObject,s__SelfConnectedObject)).
+
+cnf(u13635,axiom,
+    s__subclass(s__Organism,s__OrganicThing)).
+
+cnf(u13636,axiom,
+    s__subclass(s__Human,s__OrganicThing)).
+
+cnf(u13637,axiom,
+    s__subclass(s__OrganicThing,s__Entity)).
+
+cnf(u13638,axiom,
+    s__subclass(s__OrganicThing,s__Object)).
+
+cnf(u13639,axiom,
+    s__subclass(s__OrganicThing,s__Physical)).
+
+cnf(u13640,axiom,
+    s__subclass(s__OrganicObject,s__OrganicThing)).
+
+cnf(u13641,axiom,
+    s__subclass(s__OrganicThing,s__SelfConnectedObject)).
+
+cnf(u13642,axiom,
+    s__subclass(s__AnatomicalStructure,s__Entity)).
+
+cnf(u13643,axiom,
+    s__subclass(s__AnatomicalStructure,s__Object)).
+
+cnf(u13644,axiom,
+    s__subclass(s__AnatomicalStructure,s__CorpuscularObject)).
+
+cnf(u13645,axiom,
+    s__subclass(s__AnatomicalStructure,s__OrganicThing)).
+
+cnf(u13646,axiom,
+    s__subclass(s__AnatomicalStructure,s__SelfConnectedObject)).
+
+cnf(u13647,axiom,
+    s__subclass(s__AnatomicalStructure,s__Physical)).
+
+cnf(u13648,axiom,
+    s__subclass(s__AnatomicalStructure,s__OrganicObject)).
+
+cnf(u13649,axiom,
+    s__subclass(s__Human,s__OrganicObject)).
+
+cnf(u13650,axiom,
+    s__subclass(s__OrganicObject,s__Entity)).
+
+cnf(u13651,axiom,
+    s__subclass(s__OrganicObject,s__Object)).
+
+cnf(u13652,axiom,
+    s__subclass(s__OrganicObject,s__SelfConnectedObject)).
+
+cnf(u13653,axiom,
+    s__subclass(s__OrganicObject,s__Physical)).
+
+cnf(u13654,axiom,
+    s__subclass(s__Organism,s__OrganicObject)).
+
+cnf(u13655,axiom,
+    s__subclass(s__OrganicObject,s__CorpuscularObject)).
+
+cnf(u13656,axiom,
+    s__subclass(s__BodyPart,s__Entity)).
+
+cnf(u13657,axiom,
+    s__subclass(s__BodyPart,s__CorpuscularObject)).
+
+cnf(u13658,axiom,
+    s__subclass(s__BodyPart,s__Object)).
+
+cnf(u13659,axiom,
+    s__subclass(s__BodyPart,s__OrganicThing)).
+
+cnf(u13660,axiom,
+    s__subclass(s__BodyPart,s__SelfConnectedObject)).
+
+cnf(u13661,axiom,
+    s__subclass(s__BodyPart,s__OrganicObject)).
+
+cnf(u13662,axiom,
+    s__subclass(s__BodyPart,s__Physical)).
+
+cnf(u13663,axiom,
+    s__subclass(s__BodyPart,s__AnatomicalStructure)).
+
+cnf(u13664,axiom,
+    s__subclass(s__Vertebrate,s__Entity)).
+
+cnf(u13665,axiom,
+    s__subclass(s__Vertebrate,s__Object)).
+
+cnf(u13666,axiom,
+    s__subclass(s__Vertebrate,s__CorpuscularObject)).
+
+cnf(u13667,axiom,
+    s__subclass(s__Vertebrate,s__Organism)).
+
+cnf(u13668,axiom,
+    s__subclass(s__Vertebrate,s__OrganicThing)).
+
+cnf(u13669,axiom,
+    s__subclass(s__Vertebrate,s__Agent)).
+
+cnf(u13670,axiom,
+    s__subclass(s__Vertebrate,s__SelfConnectedObject)).
+
+cnf(u13671,axiom,
+    s__subclass(s__Vertebrate,s__OrganicObject)).
+
+cnf(u13672,axiom,
+    s__subclass(s__Vertebrate,s__Physical)).
+
+cnf(u13673,axiom,
+    s__subclass(s__Human,s__Vertebrate)).
+
+cnf(u13674,axiom,
+    s__subclass(s__Vertebrate,s__Animal)).
+
+cnf(u13675,axiom,
+    s__subclass(s__Animal,s__Entity)).
+
+cnf(u13676,axiom,
+    s__subclass(s__Animal,s__CorpuscularObject)).
+
+cnf(u13677,axiom,
+    s__subclass(s__Animal,s__Object)).
+
+cnf(u13678,axiom,
+    s__subclass(s__Animal,s__OrganicThing)).
+
+cnf(u13679,axiom,
+    s__subclass(s__Animal,s__SelfConnectedObject)).
+
+cnf(u13680,axiom,
+    s__subclass(s__Animal,s__Agent)).
+
+cnf(u13681,axiom,
+    s__subclass(s__Animal,s__OrganicObject)).
+
+cnf(u13682,axiom,
+    s__subclass(s__Animal,s__Physical)).
+
+cnf(u13683,axiom,
+    s__subclass(s__Human,s__Animal)).
+
+cnf(u13684,axiom,
+    s__subclass(s__Animal,s__Organism)).
+
+cnf(u13685,axiom,
+    s__subclass(s__Human,s__Entity)).
+
+cnf(u13686,axiom,
+    s__subclass(s__Human,s__Object)).
+
+cnf(u13687,axiom,
+    s__subclass(s__Human,s__CorpuscularObject)).
+
+cnf(u13688,axiom,
+    s__subclass(s__Human,s__Organism)).
+
+cnf(u13689,axiom,
+    s__subclass(s__Human,s__Physical)).
+
+cnf(u13690,axiom,
+    s__subclass(s__Human,s__Agent)).
+
+cnf(u13691,axiom,
+    s__subclass(s__Human,s__SelfConnectedObject)).
+
+cnf(u13692,axiom,
+    s__subclass(s__Human,s__CognitiveAgent)).
+
+cnf(u13693,axiom,
+    s__subclass(s__Cell,s__Entity)).
+
+cnf(u13694,axiom,
+    s__subclass(s__Cell,s__CorpuscularObject)).
+
+cnf(u13695,axiom,
+    s__subclass(s__Cell,s__Object)).
+
+cnf(u13696,axiom,
+    s__subclass(s__Cell,s__OrganicThing)).
+
+cnf(u13697,axiom,
+    s__subclass(s__Cell,s__SelfConnectedObject)).
+
+cnf(u13698,axiom,
+    s__subclass(s__Cell,s__AnatomicalStructure)).
+
+cnf(u13699,axiom,
+    s__subclass(s__Cell,s__OrganicObject)).
+
+cnf(u13700,axiom,
+    s__subclass(s__Cell,s__Physical)).
+
+cnf(u13703,axiom,
+    s__part(sK11(X0),X0) | ~s__instance(X0,s__Tissue) | ~s__instance(X0,s__Object)).
+
+cnf(u13702,axiom,
+    s__instance(sK11(X0),s__Cell) | ~s__instance(X0,s__Tissue) | ~s__instance(X0,s__Object)).
+
+cnf(u13701,axiom,
+    s__instance(sK11(X0),s__Object) | ~s__instance(X0,s__Tissue) | ~s__instance(X0,s__Object)).
+
+cnf(u13704,axiom,
+    s__subclass(s__Cell,s__BodyPart)).
+
+cnf(u13707,axiom,
+    s__part(sK12(X0),X0) | ~s__instance(X0,s__AnatomicalStructure) | ~s__instance(X0,s__Object)).
+
+cnf(u13706,axiom,
+    s__instance(sK12(X0),s__Cell) | ~s__instance(X0,s__AnatomicalStructure) | ~s__instance(X0,s__Object)).
+
+cnf(u13705,axiom,
+    s__instance(sK12(X0),s__Object) | ~s__instance(X0,s__AnatomicalStructure) | ~s__instance(X0,s__Object)).
+
+cnf(u13710,axiom,
+    s__located(X0,sK13(X0)) | ~s__instance(X0,s__BiologicalProcess) | ~s__instance(X0,s__Physical)).
+
+cnf(u13709,axiom,
+    s__instance(sK13(X0),s__Organism) | ~s__instance(X0,s__BiologicalProcess) | ~s__instance(X0,s__Physical)).
+
+cnf(u13708,axiom,
+    s__instance(sK13(X0),s__Object) | ~s__instance(X0,s__BiologicalProcess) | ~s__instance(X0,s__Physical)).
+
+cnf(u13711,axiom,
+    s__located(X0,X2) | ~s__located(X1,X2) | ~s__instance(X0,s__Process) | ~s__instance(X1,s__Process) | ~s__instance(X2,s__Object) | ~s__subProcess(X0,X1)).
+
+cnf(u13712,axiom,
+    s__located(X2,X0) | ~s__subProcess(X2,X1) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Process) | ~s__instance(X2,s__Process) | ~s__located(X1,X0)).
+
+cnf(u13713,axiom,
+    s__located(X2,X1) | ~s__part(X2,X0) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Object) | ~s__instance(X2,s__Object) | ~s__located(X0,X1)).
+
+cnf(u13714,axiom,
+    s__located(X0,X2) | ~s__located(X1,X2) | ~s__located(X0,X1) | ~s__instance(X0,s__Physical) | ~s__instance(X1,s__Object) | ~s__instance(X2,s__Object)).
+
+cnf(u13715,axiom,
+    X0 = X1 | ~s__located(X1,X0) | ~s__located(X0,X1) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Object)).
+
+cnf(u13716,axiom,
+    X0 = X1 | ~s__located(X1,X0) | ~s__located(X0,X1) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Object)).
+
+cnf(u13718,axiom,
+    s__located(sK14(X0),X0) | ~s__instance(X0,s__Region) | ~s__instance(X0,s__Object)).
+
+cnf(u13717,axiom,
+    s__instance(sK14(X0),s__Physical) | ~s__instance(X0,s__Region) | ~s__instance(X0,s__Object)).
+
+cnf(u13719,axiom,
+    s__subclass(s__Virus,s__Entity)).
+
+cnf(u13720,axiom,
+    s__subclass(s__Virus,s__Object)).
+
+cnf(u13721,axiom,
+    s__subclass(s__Virus,s__CorpuscularObject)).
+
+cnf(u13722,axiom,
+    s__subclass(s__Virus,s__Organism)).
+
+cnf(u13723,axiom,
+    s__subclass(s__Virus,s__OrganicThing)).
+
+cnf(u13724,axiom,
+    s__subclass(s__Virus,s__Agent)).
+
+cnf(u13725,axiom,
+    s__subclass(s__Virus,s__SelfConnectedObject)).
+
+cnf(u13726,axiom,
+    s__subclass(s__Virus,s__OrganicObject)).
+
+cnf(u13727,axiom,
+    s__subclass(s__Virus,s__Physical)).
+
+cnf(u13728,axiom,
+    s__subclass(s__Virus,s__Microorganism)).
+
+cnf(u13729,axiom,
+    s__subclass(s__Formula,s__ContentBearingPhysical)).
+
+cnf(u13730,axiom,
+    s__subclass(s__ContentBearingPhysical,s__Entity)).
+
+cnf(u13731,axiom,
+    s__instance(s__EnglishLanguage,s__ContentBearingPhysical)).
+
+cnf(u13732,axiom,
+    s__subclass(s__ContentBearingPhysical,s__Physical)).
+
+cnf(u13733,axiom,
+    s__subclass(s__SocialInteraction,s__Entity)).
+
+cnf(u13734,axiom,
+    s__subclass(s__SocialInteraction,s__Process)).
+
+cnf(u13735,axiom,
+    s__subclass(s__SocialInteraction,s__Physical)).
+
+cnf(u13736,axiom,
+    s__subclass(s__SocialInteraction,s__IntentionalProcess)).
+
+cnf(u13737,axiom,
+    s__subclass(s__Text,s__Entity)).
+
+cnf(u13738,axiom,
+    s__subclass(s__Text,s__Object)).
+
+cnf(u13739,axiom,
+    s__subclass(s__Text,s__CorpuscularObject)).
+
+cnf(u13740,axiom,
+    s__subclass(s__Text,s__SelfConnectedObject)).
+
+cnf(u13741,axiom,
+    s__subclass(s__Text,s__ContentBearingPhysical)).
+
+cnf(u13742,axiom,
+    s__subclass(s__Text,s__Physical)).
+
+cnf(u13745,axiom,
+    s__instance(sK15(X0),s__LinguisticExpression) | ~s__instance(X0,s__Text) | ~s__instance(X0,s__Object)).
+
+cnf(u13744,axiom,
+    s__part(sK15(X0),X0) | ~s__instance(X0,s__Text) | ~s__instance(X0,s__Object)).
+
+cnf(u13743,axiom,
+    s__instance(sK15(X0),s__Object) | ~s__instance(X0,s__Text) | ~s__instance(X0,s__Object)).
+
+cnf(u13746,axiom,
+    s__subclass(s__Text,s__Artifact)).
+
+cnf(u13747,axiom,
+    s__subclass(s__Text,s__LinguisticExpression)).
+
+cnf(u13748,axiom,
+    s__subclass(s__UnitOfMeasure,s__Entity)).
+
+cnf(u13749,axiom,
+    s__subclass(s__UnitOfMeasure,s__Abstract)).
+
+cnf(u13750,axiom,
+    s__subclass(s__UnitOfMeasure,s__Quantity)).
+
+cnf(u13751,axiom,
+    s__subclass(s__UnitOfMeasure,s__PhysicalQuantity)).
+
+cnf(u13752,axiom,
+    s__subclass(s__NonCompositeUnitOfMeasure,s__PhysicalQuantity)).
+
+cnf(u13753,axiom,
+    s__subclass(s__NonCompositeUnitOfMeasure,s__Abstract)).
+
+cnf(u13754,axiom,
+    s__subclass(s__NonCompositeUnitOfMeasure,s__Entity)).
+
+cnf(u13755,axiom,
+    s__subclass(s__NonCompositeUnitOfMeasure,s__Quantity)).
+
+cnf(u13756,axiom,
+    s__subclass(s__NonCompositeUnitOfMeasure,s__UnitOfMeasure)).
+
+cnf(u13757,axiom,
+    s__subclass(s__CompositeUnitOfMeasure,s__PhysicalQuantity)).
+
+cnf(u13758,axiom,
+    s__subclass(s__CompositeUnitOfMeasure,s__Abstract)).
+
+cnf(u13759,axiom,
+    s__subclass(s__CompositeUnitOfMeasure,s__Entity)).
+
+cnf(u13760,axiom,
+    s__subclass(s__CompositeUnitOfMeasure,s__Quantity)).
+
+cnf(u13761,axiom,
+    s__subclass(s__CompositeUnitOfMeasure,s__UnitOfMeasure)).
+
+cnf(u13762,axiom,
+    s__subclass(s__TimePoint,s__Abstract)).
+
+cnf(u13763,axiom,
+    s__subclass(s__TimePoint,s__PhysicalQuantity)).
+
+cnf(u13764,axiom,
+    s__subclass(s__TimePoint,s__Entity)).
+
+cnf(u13765,axiom,
+    s__subclass(s__TimePoint,s__Quantity)).
+
+cnf(u13766,axiom,
+    s__subclass(s__TimePoint,s__ConstantQuantity)).
+
+cnf(u13767,axiom,
+    s__subclass(s__TimePoint,s__TimePosition)).
+
+cnf(u13768,axiom,
+    s__subclass(s__TimeInterval,s__Abstract)).
+
+cnf(u13769,axiom,
+    s__subclass(s__TimeInterval,s__PhysicalQuantity)).
+
+cnf(u13770,axiom,
+    s__subclass(s__TimeInterval,s__Entity)).
+
+cnf(u13771,axiom,
+    s__subclass(s__TimeInterval,s__Quantity)).
+
+cnf(u13772,axiom,
+    s__subclass(s__TimePosition,s__PhysicalQuantity)).
+
+cnf(u13773,axiom,
+    s__subclass(s__TimePosition,s__Entity)).
+
+cnf(u13774,axiom,
+    s__subclass(s__TimePosition,s__Abstract)).
+
+cnf(u13775,axiom,
+    s__subclass(s__TimePosition,s__Quantity)).
+
+cnf(u13776,axiom,
+    s__subclass(s__TimeInterval,s__TimePosition)).
+
+cnf(u13777,axiom,
+    s__subclass(s__RelationalAttribute,s__Entity)).
+
+cnf(u13778,axiom,
+    s__subclass(s__RelationalAttribute,s__Abstract)).
+
+cnf(u13779,axiom,
+    s__subclass(s__RelationalAttribute,s__Attribute)).
+
+cnf(u13780,axiom,
+    s__subclass(s__Tissue,s__Entity)).
+
+cnf(u13781,axiom,
+    s__subclass(s__Tissue,s__Object)).
+
+cnf(u13782,axiom,
+    s__subclass(s__Tissue,s__Substance)).
+
+cnf(u13783,axiom,
+    s__subclass(s__Tissue,s__SelfConnectedObject)).
+
+cnf(u13784,axiom,
+    s__subclass(s__Tissue,s__Physical)).
+
+cnf(u13787,axiom,
+    s__part(X0,sK16(X0)) | ~s__instance(X0,s__Tissue) | ~s__instance(X0,s__Object)).
+
+cnf(u13786,axiom,
+    s__instance(sK16(X0),s__Organism) | ~s__instance(X0,s__Tissue) | ~s__instance(X0,s__Object)).
+
+cnf(u13785,axiom,
+    s__instance(sK16(X0),s__Object) | ~s__instance(X0,s__Tissue) | ~s__instance(X0,s__Object)).
+
+cnf(u13788,axiom,
+    s__subclass(s__Tissue,s__BodySubstance)).
+
+cnf(u13789,axiom,
+    s__subProcess(X0,X2) | ~s__subProcess(X1,X2) | ~s__subProcess(X0,X1) | ~s__instance(X0,s__Process) | ~s__instance(X1,s__Process) | ~s__instance(X2,s__Process)).
+
+cnf(u13790,axiom,
+    X0 = X1 | ~s__subProcess(X1,X0) | ~s__subProcess(X0,X1) | ~s__instance(X0,s__Process) | ~s__instance(X1,s__Process)).
+
+cnf(u13791,axiom,
+    s__subProcess(X0,X0) | ~s__instance(X0,s__Process)).
+
+cnf(u13792,axiom,
+    s__subclass(s__Region,s__Entity)).
+
+cnf(u13793,axiom,
+    s__subclass(s__Region,s__Physical)).
+
+cnf(u13794,axiom,
+    s__subclass(s__GeographicArea,s__Region)).
+
+cnf(u13795,axiom,
+    s__subclass(s__Hole,s__Region)).
+
+cnf(u13796,axiom,
+    s__subclass(s__Region,s__Object)).
+
+cnf(u13797,axiom,
+    s__subclass(s__Microorganism,s__Entity)).
+
+cnf(u13798,axiom,
+    s__subclass(s__Microorganism,s__Object)).
+
+cnf(u13799,axiom,
+    s__subclass(s__Microorganism,s__CorpuscularObject)).
+
+cnf(u13800,axiom,
+    s__subclass(s__Microorganism,s__OrganicThing)).
+
+cnf(u13801,axiom,
+    s__subclass(s__Microorganism,s__Agent)).
+
+cnf(u13802,axiom,
+    s__subclass(s__Microorganism,s__SelfConnectedObject)).
+
+cnf(u13803,axiom,
+    s__subclass(s__Microorganism,s__OrganicObject)).
+
+cnf(u13804,axiom,
+    s__subclass(s__Microorganism,s__Physical)).
+
+cnf(u13805,axiom,
+    s__subclass(s__Bacterium,s__Microorganism)).
+
+cnf(u13806,axiom,
+    s__subclass(s__Microorganism,s__Organism)).
+
+cnf(u13807,axiom,
+    s__subclass(s__Formula,s__Entity)).
+
+cnf(u13808,axiom,
+    s__subclass(s__Formula,s__Physical)).
+
+cnf(u13809,axiom,
+    s__subclass(s__Formula,s__LinguisticExpression)).
+
+cnf(u13810,axiom,
+    s__subclass(s__LinguisticExpression,s__Entity)).
+
+cnf(u13811,axiom,
+    s__subclass(s__LinguisticExpression,s__Physical)).
+
+cnf(u13812,axiom,
+    s__instance(s__EnglishLanguage,s__LinguisticExpression)).
+
+cnf(u13813,axiom,
+    s__subclass(s__LinguisticExpression,s__ContentBearingPhysical)).
+
+cnf(u13814,axiom,
+    s__subclass(s__Artifact,s__Entity)).
+
+cnf(u13815,axiom,
+    s__subclass(s__Artifact,s__Physical)).
+
+cnf(u13816,axiom,
+    s__subclass(s__Artifact,s__Object)).
+
+cnf(u13817,axiom,
+    s__disjoint(s__Organism,s__Artifact)).
+
+cnf(u13818,axiom,
+    s__subclass(s__PhysicalQuantity,s__Abstract)).
+
+cnf(u13819,axiom,
+    s__subclass(s__PhysicalQuantity,s__Entity)).
+
+cnf(u13820,axiom,
+    s__subclass(s__PhysicalQuantity,s__Quantity)).
+
+cnf(u13821,axiom,
+    s__subclass(s__TimePosition,s__ConstantQuantity)).
+
+cnf(u13822,axiom,
+    s__subclass(s__ConstantQuantity,s__Abstract)).
+
+cnf(u13823,axiom,
+    s__subclass(s__ConstantQuantity,s__Entity)).
+
+cnf(u13824,axiom,
+    s__subclass(s__ConstantQuantity,s__Quantity)).
+
+cnf(u13825,axiom,
+    s__subclass(s__TimeInterval,s__ConstantQuantity)).
+
+cnf(u13826,axiom,
+    s__subclass(s__ConstantQuantity,s__PhysicalQuantity)).
+
+cnf(u13827,axiom,
+    s__subclass(s__Substance,s__Entity)).
+
+cnf(u13828,axiom,
+    s__subclass(s__Substance,s__Object)).
+
+cnf(u13829,axiom,
+    s__subclass(s__Substance,s__Physical)).
+
+cnf(u13830,axiom,
+    s__attribute(X1,X2) | ~s__part(X1,X0) | ~s__attribute(X0,X2) | ~s__instance(X0,s__Substance) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__Object) | ~s__instance(X2,s__Attribute)).
+
+cnf(u13831,axiom,
+    s__instance(X2,X1) | ~s__part(X2,X0) | ~s__instance(X0,X1) | ~s__subclass(X1,s__Substance) | ~s__instance(X0,s__Object) | ~s__instance(X1,s__SetOrClass) | ~s__instance(X2,s__Object)).
+
+cnf(u13832,axiom,
+    s__subclass(s__Substance,s__SelfConnectedObject)).
+
+cnf(u13833,axiom,
+    s__subclass(s__BodySubstance,s__Entity)).
+
+cnf(u13834,axiom,
+    s__subclass(s__BodySubstance,s__Object)).
+
+cnf(u13835,axiom,
+    s__subclass(s__BodySubstance,s__SelfConnectedObject)).
+
+cnf(u13836,axiom,
+    s__subclass(s__BodySubstance,s__Physical)).
+
+cnf(u13837,axiom,
+    s__subclass(s__BodySubstance,s__Substance)).
+
+cnf(u13838,axiom,
+    s__subclass(s__GeographicArea,s__Entity)).
+
+cnf(u13839,axiom,
+    s__subclass(s__GeographicArea,s__Object)).
+
+cnf(u13840,axiom,
+    s__subclass(s__GeographicArea,s__Physical)).
+
+cnf(u13841,axiom,
+    s__subclass(s__Hole,s__Entity)).
+
+cnf(u13842,axiom,
+    s__subclass(s__Hole,s__Object)).
+
+cnf(u13843,axiom,
+    s__subclass(s__Hole,s__Physical)).
+
+cnf(u13844,axiom,
+    s__subclass(s__Bacterium,s__Entity)).
+
+cnf(u13845,axiom,
+    s__subclass(s__Bacterium,s__CorpuscularObject)).
+
+cnf(u13846,axiom,
+    s__subclass(s__Bacterium,s__Object)).
+
+cnf(u13847,axiom,
+    s__subclass(s__Bacterium,s__Organism)).
+
+cnf(u13848,axiom,
+    s__subclass(s__Bacterium,s__OrganicThing)).
+
+cnf(u13849,axiom,
+    s__subclass(s__Bacterium,s__Agent)).
+
+cnf(u13850,axiom,
+    s__subclass(s__Bacterium,s__SelfConnectedObject)).
+
+cnf(u13851,axiom,
+    s__subclass(s__Bacterium,s__OrganicObject)).
+
+cnf(u13852,axiom,
+    s__subclass(s__Bacterium,s__Physical)).
+
+cnf(u13853,axiom,
+    s__disjoint(X1,X0) | ~s__disjoint(X0,X1) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__SetOrClass)).
+
+cnf(u13854,axiom,
+    s__disjoint(s__CorpuscularObject,s__Substance)).
+
+cnf(u13859,axiom,
+    s__disjoint(X0,X1) | s__instance(sK17(X1,X0),X1)).
+
+cnf(u13858,axiom,
+    s__disjoint(X0,X1) | s__instance(sK17(X1,X0),X0)).
+
+cnf(u13857,axiom,
+    s__disjoint(X0,X1) | s__instance(X0,s__SetOrClass)).
+
+cnf(u13856,axiom,
+    s__disjoint(X0,X1) | s__instance(X1,s__SetOrClass)).
+
+cnf(u13855,axiom,
+    ~s__instance(X2,X1) | ~s__instance(X2,X0) | ~s__instance(X0,s__SetOrClass) | ~s__instance(X1,s__SetOrClass) | ~s__disjoint(X0,X1)).
+

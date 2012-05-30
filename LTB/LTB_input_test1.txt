@@ -1,0 +1,12 @@
+% SZS start BatchConfiguration
+division.category LTB.MZR
+output.required Assurance
+output.desired Proof
+limit.time.problem.wc 120
+% SZS end BatchConfiguration
+% SZS start BatchIncludes
+% SZS end BatchIncludes
+% SZS start BatchProblems
+/M/TPTP-v5.1.0/Problems/LAT/LAT288+1.p /tmp/LTB/LAT288+1
+/M/TPTP-v5.1.0/Problems/LAT/LAT323+1.p /tmp/LTB/LAT323+1
+% SZS end BatchProblems
