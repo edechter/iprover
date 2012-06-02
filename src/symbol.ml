@@ -169,7 +169,7 @@ type symbol =
      mutable fast_key: fast_key;
      mutable bool_param : Bit_vec.bit_vec;
      name    : string; 
-     arity   : arity; 
+     mutable arity   : arity; 
      mutable stype : stype; (*(symbol list) param;*)
      mutable sproperty : sproperty;
      mutable group : int param;   
@@ -527,7 +527,7 @@ let symb_answer =
  {theory_symbol_template with 
     name      = "$$answer"; 
 (*!! Change to variadic/polymorphic symbols, take care since some indexies useing arity function !!*)
-  arity     = Def(1); 
+  arity     = Undef; 
   stype     = create_stype [symb_type_types] symb_bool_type;
   sproperty = Theory;   
   is_skolem = Def(false);
@@ -761,7 +761,14 @@ let get_arity (s:symbol)    =
   |Def(arity)   -> arity
   |Undef        -> raise  Arity_undef
 
+let is_arity_def s = 
+  match s.arity with 
+  |Def _ -> true 
+  |Undef -> false
 
+let assign_arity arity s = 
+  s.arity <- Def(arity)
+	
 let is_pred s = 
   if (is_signature_symb s) 
   then 

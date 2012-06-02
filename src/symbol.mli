@@ -176,6 +176,9 @@ val to_stream_full        : 'a string_stream -> symbol -> unit
 val to_string_full        : symbol -> string
 
 val get_arity             : symbol -> int
+val assign_arity          : int -> symbol -> unit
+val is_arity_def          : symbol -> bool
+
 val get_type              : symbol -> stype
 val get_group             : symbol -> int
 val is_input              : symbol -> bool

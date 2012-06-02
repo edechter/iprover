@@ -15,5 +15,13 @@ if [ -d VClausifier ]; then
    cd ../
 fi
 
+if [ -d LTB ]; then
+   cd  LTB
+   make
+   cd ../
+fi
+
+
+
 OCAMLLIBSTR="OCAMLLIB=$(ocamlc -where)"
 echo "$OCAMLLIBSTR" > Makefile.extras

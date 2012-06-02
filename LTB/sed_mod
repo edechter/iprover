@@ -1,0 +1,7 @@
+cat LTB_CSR | sed 's|^\(.*/\)\([^/]*\)$|\1\2 /tmp/korovin/LTB_CYC/\2|' >LTB_CYC
+
+cat LTB_MZR_TMP | sed 's|^\(.*/\)\([^/]*\)$|\1\2 /tmp/korovin/LTB_CYC/\2|' >LTB_MZR
+
+cat LTB_SMO_TMP | sed 's|^\(.*/\)\([^/]*\)$|\1\2 /tmp/korovin/LTB_CYC/\2|' >LTB_SMO
+
+

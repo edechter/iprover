@@ -4,7 +4,7 @@
 #For CASC-J5 use only
 
 
-#category: LTB.SMO, LTB.MZR or LTB.CYC
+#category: LTB.SMO, LTB.MZR, MZR.MZR or LTB.CYC
 CAT=$1
 #time limit
 TLIMIT=$2
@@ -73,20 +73,20 @@ if [ "$CAT" == "LTB.SMO" ]; then
     SLICE[11]="-ss included -sd 0 -st 20"
 
 else
-    if [ "$CAT" == "LTB.MZR" ]; then
+    if [ "$CAT" == "LTB.MZR" -o "$CAT" == "MZR.MZR" ]; then
 	echo "$CAT Slices"
-	SLICE[0]="-ss included"
-	SLICE[1]="-ss included -sd 1"
-	SLICE[2]="-ss included -sd 2"
-	SLICE[3]=" "
-	SLICE[4]="-ss included -st 2 -sd 1"
-	SLICE[5]="-ss axioms"
-	SLICE[6]="-ss included -st 1.2"	
-	SLICE[7]="-ss included -st 1.5"
-	SLICE[8]="-ss included -st 2"
-	SLICE[9]="-ss included -st 5 -sd 2"
-	SLICE[10]="-ss included -st 5"
-	SLICE[11]="-ss included -st 5 -sd 1" 
+	SLICE[0]=" "
+	SLICE[1]="-ss axioms -sd 0 -st 1"
+	SLICE[2]="-ss axioms -sd 1 -st 3"
+	SLICE[3]="-ss axioms -sd 2 -st 1.2"
+	SLICE[4]="-ss axioms -sd 2 -st 2"
+	SLICE[5]="-ss axioms -sd 2 -st 3"
+	SLICE[6]="-ss axioms -sd 2 -st 5"	
+	SLICE[7]="-ss axioms -sd 4 -st 1"
+	SLICE[8]="-ss axioms -sd 4 -st 2"
+	SLICE[9]="-ss axioms -sd 4 -sd 4"
+	SLICE[10]="-ss axioms -sd 0 -st 5"
+	SLICE[11]="-ss axioms -sd 0 -st 10" 
     else
 	if [ "$CAT" == "LTB.CYC" ]; then
 	    echo "$CAT Slices"

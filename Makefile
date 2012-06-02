@@ -215,6 +215,10 @@ clean_all: clean
 
 ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util
 
+#ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c ./LTB/README.iprover_sine ./LTB/LTB_input_test1.txt
+
+ARCHIVE_LTB_NAMES=./LTB
+
 #use this to temporally adding some names
 ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
 
@@ -222,14 +226,14 @@ ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
 #to archive E bundle "make E=true archive"
 
 ifeq ($(E),true) 
-   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(EPROVER_PATH) $(ARCHIVE_Extras)
+   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(EPROVER_PATH) $(ARCHIVE_Extras) $(ARCHIVE_LTB_NAMES)
    ARCHIVE_BASE_DIR="iprover_e_bundle"
 else 
  ifeq ($(V),true)
-  ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(VCLAUSIFIER_PATH) $(ARCHIVE_Extras)
+  ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(VCLAUSIFIER_PATH) $(ARCHIVE_Extras) $(ARCHIVE_LTB_NAMES)
   ARCHIVE_BASE_DIR="iprover_vampire_clausifier_bundle"
  else	
-   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(ARCHIVE_Extras)
+   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(ARCHIVE_Extras) $(ARCHIVE_LTB_NAMES)
    ARCHIVE_BASE_DIR="iprover"
  endif
 endif 

@@ -316,10 +316,10 @@ let neg_fun atom =
 
 
 let assign_param_input_symb symb = 
-  Symbol.assign_is_input true symb;
   Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
   Symbol.set_bool_param (is_less_symb symb)  Symbol.is_less symb;
   Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;
+  Symbol.assign_is_input true symb;
   Symbol.incr_num_input_occur symb
 
 
@@ -452,10 +452,13 @@ let defined_pred_fun name args =
       (contains_distinct:=true;
       create_theory_term Symbol.symb_distinct args
       )
+(* moved to system symbols 
+
   |"$answer" | "$$answer" |"\'$$answer\'" -> 
       answer_mode_ref := true;
+   
       create_theory_term Symbol.symb_answer args
-  
+  *)
   |_ -> failwith ("Parsing error: unsupported defined predicate \""^name^"\"")
 	
 
@@ -522,10 +525,37 @@ let system_pred_fun name args =
 
 	create_theory_term Symbol.symb_typed_equality args
 
+    |"$answer" | "$$answer" |"\'$$answer\'" -> 
+	answer_mode_ref := true;
+   let arity = List.length args in
+      (*--check arity compatibility with previous answer pred----*)
+      
+      (if (Symbol.is_arity_def Symbol.symb_answer) && 
+	(not ((Symbol.get_arity  Symbol.symb_answer)== arity))
+      then failwith "Only one arity for answer predicates is supported"
+      );	
+      let stype = 	      
+	Symbol.create_stype 
+	  (list_n arity Symbol.symb_default_type) Symbol.symb_bool_type
+      in
+      Symbol.assign_arity arity Symbol.symb_answer;
+      Symbol.assign_stype Symbol.symb_answer stype;
+      Symbol.assign_is_input true Symbol.symb_answer;
+      Symbol.incr_num_input_occur Symbol.symb_answer;
+
+(*   let symb = SymbolDB.add_ref 
+	       (Symbol.create_from_str_type 
+(*~is_sig:true it is a signature symbol *)
+		  ~is_sig:true symb_name stype) symbol_db_ref in*)
+
+	create_theory_term Symbol.symb_answer args
+	  
     | pred_name 
       when 
 	(Str.string_match system_pred_name_pref_reg_expr pred_name 0) ->
 	plain_term_fun_typed true name args
+
+ 
 
     | _ -> 
 

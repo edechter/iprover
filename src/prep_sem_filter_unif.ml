@@ -250,7 +250,9 @@ let rec find_movable_watch filter_state fclause =
       else
 	(h,fclause_list)
 
-
+(* some theory atoms should not be filterout *)
+let do_not_filter_atom atom = 
+  (Term.get_top_symb atom) == (Symbol.symb_answer)
 
 let process_given filter_state fclause = 
   let lits_to_try_not_in_unif = 
@@ -258,6 +260,8 @@ let process_given filter_state fclause =
       (fun l -> 
 	let atom = Term.get_atom l in
 	(not (is_unif filter_state.atom_unif_index atom))	
+	  && (not (do_not_filter_atom atom))
+
       )  fclause.lits_to_try in
   fclause.lits_to_try <- lits_to_try_not_in_unif;
 (*--debug---*)
