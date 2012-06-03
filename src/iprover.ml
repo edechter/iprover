@@ -1411,7 +1411,7 @@ let rec main clauses finite_model_clauses =
 	      List.iter 
 		(Format.printf 
 		   "%a@." 
-		   TstpProof.pp_clause_with_source)
+		   (TstpProof.pp_clause_with_source false))
 		unsat_core_parents;
 	      
 	      (* End proof output *)

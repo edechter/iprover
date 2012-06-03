@@ -15,7 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 open Lib
-
+open Options
 
 (* Get parent leaf clauses of a list of clauses *)
 let rec get_leaves' visited accum = function 
@@ -166,7 +166,6 @@ let rec get_parents' visited accum = function
 	  (parents @ (clause :: tl))
 	  
 
-
 (* Get parent clauses of a list of clauses *)
 let get_parents clause_list = 
   List.rev 
@@ -179,6 +178,7 @@ let pp_bind ppf (var, term) =
     "@[<h>bind(%a,$fot(%a))@]" 
     Var.pp_var var 
     Term.pp_term_tptp term 
+
   
 let pp_clause_name_bind bind ppf clause = 
   Format.fprintf ppf "@[<hov>%a:[%a]@]" 
@@ -285,7 +285,7 @@ let pp_inference_rule parents ppf = function
 
     Format.fprintf 
       ppf 
-      "splitting,@,[status(thm),new_symbols(definition,[%a])],@,@[<hov 1>[%a]@]" 
+      "splitting,@,[splitting(split),new_symbols(definition,[%a])],@,@[<hov 1>[%a]@]" 
       (pp_any_list Symbol.pp_symbol_tptp ",")
       symbols
       (pp_any_list Clause.pp_clause_name ",")
@@ -346,13 +346,37 @@ let pp_tstp_inference_record clause ppf = function
       
 
 (* Print source of a clause *)
-let pp_tstp_source clause ppf = function
+let pp_tstp_source clausify_proof clause ppf = function
 
   (* Clause is from a file *)
   | Clause.TSTP_external_source (Clause.TSTP_file_source (file, name)) -> 
 
-    Format.fprintf ppf "file('%s', %s)" file name
-      
+      (* Rewrite source to match clausification proof? *)
+      if clausify_proof then
+	
+	try 
+	  
+	  (* Scan name of clause into u<n> *)
+	  let fof_id = Scanf.sscanf name "u%d" (function i -> i) in
+	    
+	    (* Output name of fof formula *)
+	    Format.fprintf 
+	      ppf 
+	      "inference(cnf_transformation,[],[f%d])" 
+	      fof_id
+		
+	(* Name of clause is not u<n> *)
+	with Scanf.Scan_failure _ -> 
+	
+	  (* Print source as it is *)
+	  Format.fprintf ppf "file('%s', %s)" file name
+	    
+      else
+	
+	(* Print source as it is *)
+	Format.fprintf ppf "file('%s', %s)" file name
+	  
+
   (* Clause is from a theory *)
   | Clause.TSTP_external_source (Clause.TSTP_theory theory) -> 
     
@@ -382,69 +406,294 @@ let pp_tstp_source clause ppf = function
       (pp_tstp_inference_record clause)
       inference_record
 
+
 (* Print clause with source in TSTP format *)
-let pp_clause_with_source ppf clause = 
+let pp_clause_with_source clausify_proof ppf clause = 
   
   Format.fprintf 
     ppf 
     "@[<hv 4>cnf(%a,plain,@,@[<hv 2>%a,@]@,%a ).@]@\n@."
     Clause.pp_clause_name clause
     Clause.pp_clause_literals_tptp clause
-    (pp_tstp_source clause) (Clause.get_tstp_source clause)
+    (pp_tstp_source clausify_proof clause) 
+    (Clause.get_tstp_source clause)
 
+
+(* Output a list of integers *)
+let rec pp_clausify_proof_parents ppf = function 
+  | [] -> ()
+  | [p] -> Format.fprintf ppf "%d" p
+  | p :: tl -> 
+      pp_clausify_proof_parents ppf [p]; Format.fprintf ppf ","
+	
+(* Output one entry of the hash table for the clausification proof *)
+let pp_clausify_proof_line ppf f = function
+  | s, p->
+      Format.fprintf ppf "%d: %a@\n%s@." f pp_clausify_proof_parents p s
+	
+(* Output contents of hash table for the clausification proof *)
+let pp_clausify_proof ppf p =
+  Hashtbl.iter (pp_clausify_proof_line ppf) p 
+
+
+(* Output clausification *)
+let rec pp_clausification' visited clausify_proof ppf = function
+
+  (* All parent clauses printed *)
+  | [] -> ()
+
+  (* Clause already printed *)
+  | fof_id :: _ when Hashtbl.mem visited fof_id -> ()
+
+  (* Clause not already printed *)
+  | fof_id :: tl ->
+
+      (* Get clause and parents from hash table *)
+      let fof_clause, parents = Hashtbl.find clausify_proof fof_id in
+
+	(* Print clause *)
+	Format.fprintf ppf "%s@." fof_clause;
+	
+	(* Mark clause as printed *)
+	Hashtbl.add visited fof_id true;
+	
+	(* Output parent clauses *)
+	pp_clausification' visited clausify_proof ppf (parents @ tl)
+
+
+(* Output clausification if clause is an input clause *)
+let pp_clausification visited clausify_proof ppf clause = 
+
+  match Clause.get_tstp_source clause with
+
+    (* Clause is from a file *)
+    | Clause.TSTP_external_source (Clause.TSTP_file_source (_, name)) -> 
+	
+	(
+
+	  try 
+	    
+	    (* Scan name of clause into u<n> *)
+	    let fof_id = Scanf.sscanf name "u%d" (function i -> i) in
+	      
+	      (* Output clausification *)
+	      pp_clausification' visited clausify_proof ppf [fof_id]
+		
+	  (* Skip if name of clause is not u<n> *)
+	  with Scanf.Scan_failure _ -> ()
+
+	)
+
+    (* Ignore clauses that are not input clauses *)
+    | _ -> ()
+	
+
+(* Print derivation of clauses including clausification *)
+let pp_clauses_with_clausification ppf clauses = 
+	
+  (* Get parent clauses of unsat core clauses *)
+  let parent_clauses = get_parents clauses in
+
+    if 
+
+      (* Must output clausification for FOF problems *)
+      (!ParseFiles.input_problem_type = Some ParseFiles.FOF) && 
+
+	(* but cannot clausify again when input is stdin *)
+	(not !current_options.stdin)
+
+    then
+
+      (
+	
+	(* Hash table for proof of clausification *)
+	let clausify_proof = Hashtbl.create 100 in
+
+	(* Get command and options for clausification *)
+	let clausify_cmd, clausify_arg =
+	  ParseFiles.clausifier_cmd_options ()
+	in
+
+	(* $TPTP for includes has already been set in ParseFiles on
+	   first clausification *)
+
+	(* Array of arguments for clausify command *)
+	let clausify_cmd_args = 
+	  Array.of_list
+	    (clausify_cmd :: 
+	       (Str.split (Str.regexp "[ ]+") (clausify_arg)))
+	in
+
+	  (* Fill hash table with proof of clausification *)
+	  (
+
+	    (* Later support more than one clausifier, distinguish by
+	       name of executable *)
+	    match Filename.basename clausify_cmd  with 
+		
+	      (* Vampire clausifier *)
+	      | "vclausify_rel" ->
+		  
+		  (* Clausify one input file and store proof in hash
+		     table *)
+		  let clausify_file file =
+		    
+		    (* Additional arguments for clausification proof *)
+		    let clausify_cmd_args_proof =
+		      [| "--print_clausifier_premises"; "on"; 
+			 "--proof"; "tptp";
+			 "--input_file"; file |]
+		    in
+		      
+		    (* Add arguments to previous arguments of
+		       clausification *)
+		    let clausify_cmd_args' =
+		      Array.append clausify_cmd_args clausify_cmd_args_proof
+		    in
+		      
+		    (* Copy of environment *)
+		    let env = Unix.environment () in  
+		      
+		    (* Create pipe for stderr of command *)
+		    let cmd_stderr_out, cmd_stderr_in = 
+		      Unix.pipe () 
+		    in
+		      
+		    (* Create input channel of pipe output *)
+		    let cmd_stderr_out_ch = 
+		      Unix.in_channel_of_descr cmd_stderr_out
+		    in 
+		      
+		    (* Open /dev/null for reading *)
+		    let devnull_in = 
+		      Unix.openfile "/dev/null" [Unix.O_RDONLY] 0o640 
+		    in
+		      
+		    (* Open /dev/null for writing *)
+		    let devnull_out = 
+		      Unix.openfile "/dev/null" [Unix.O_WRONLY] 0o640 
+		    in
+		      
+		    (* Create process *)
+		    let cmd_pid = 
+		      Unix.create_process_env 
+			clausify_cmd
+			clausify_cmd_args'
+			env
+			devnull_in
+			devnull_out
+			cmd_stderr_in
+		    in
+		      
+		      (* Close all files of process to prevent blocks *)
+		      Unix.close devnull_in;
+		      Unix.close devnull_out;
+		      Unix.close cmd_stderr_in;
+		      
+		      (* Wait for process to terminate *)
+		      let cmd_pid_, cmd_status = 
+			Unix.waitpid [Unix.WUNTRACED] cmd_pid  
+		      in 
+			
+			(* Only continue if exited with 0 *)
+			if cmd_status = Unix.WEXITED 0 then
+			  
+			  (* Parse output of clausifier *)
+			  Lexer_fof.parse clausify_proof cmd_stderr_out_ch
+			    
+		  in
+		    
+		    (* Clausify all input files again *)
+		    List.iter
+		      clausify_file
+		      !current_options.problem_files
+		      
+	      (* Unsupported clausifier *)
+	      | _ -> ()
+		  
+	  );
+
+	  (* Print derivation of clauses from input formulae *)
+	  List.iter 
+	    (pp_clausification (Hashtbl.create 101) clausify_proof ppf) 
+	    parent_clauses;
+
+	  (* Print derivation of clauses in unsat core with rewriting
+	     of input clauses *)
+	  List.iter 
+	    (pp_clause_with_source true ppf) 
+	    parent_clauses;
+
+      )
+
+    else
+
+      (
+
+	(* Print derivation of clauses in unsat core *)
+	List.iter (pp_clause_with_source false ppf) parent_clauses;
+
+      )
+    
 
 (* Print leaf clauses first *)
 let pp_tstp_proof_resolution ppf clause =
-  List.iter (pp_clause_with_source ppf) (get_parents [clause])
 
+  (* Print derivation of empty clause including clausification *)
+  pp_clauses_with_clausification ppf [clause]
+
+(*
+  List.iter (pp_clause_with_source false ppf) (get_parents [clause])
+*)
 
 let pp_tstp_proof_unsat_core ppf clauses =
 
+  (* Set width of line to 72, that works with emails *)
   Format.set_margin 72;
 
-  (* Print derivation of clauses in unsat core *)
-  List.iter (pp_clause_with_source ppf) (get_parents clauses);
+  (* Print derivation of clauses including clausification *)
+  pp_clauses_with_clausification ppf clauses;
 
-  (* Separate non-ground clauses *)
-  let gnd_clauses, non_gnd_clauses = 
-    List.partition Clause.is_ground clauses 
-  in
-
-  (* Ground non-ground clauses *)
-  let non_gnd_clauses' = 
-    List.map Prop_solver_exchange.ground_clause non_gnd_clauses 
-  in
-
-  (* Print grounding of non-ground clauses in unsat core *)
-  List.iter 
-    (pp_clause_with_source ppf) 
-    non_gnd_clauses';
-    
-  (* Replace a non ground clause with its ground clause in the list *)
-  let rec fold_with_gnd_clauses accum gnd_clauses = function 
-    | [] -> List.rev accum 
-    | c :: tl when Clause.is_ground c -> 
-      fold_with_gnd_clauses (c :: accum) gnd_clauses tl
-    | c :: tl ->
-      fold_with_gnd_clauses 
-	(List.hd gnd_clauses :: accum) 
-	(List.tl gnd_clauses) 
-	tl
-  in
-
-  (* Replace each non ground clause with its ground clause *)
-  let clauses' = fold_with_gnd_clauses [] non_gnd_clauses' clauses in
-
-(*
-  (* Get assumptions in solver *)
-  let assumptions = Prop_solver_exchange.get_solver_assumptions_sat () in
-*)
-
-  (* Print refutation by minisat as a single inference *)
-  Format.fprintf ppf
-    "@[<hv 4>cnf(contradiction,plain,@,( $false ),@,@[<hv 10>inference(minisat,@,[status(thm)],@,@[<hov 1>[%a]@]@]) ).@]@\n@."
-(*    (pp_any_list Clause.pp_clause_name ",") (gnd_clauses @ non_gnd_clauses') *)
-    (pp_any_list Clause.pp_clause_name ",") clauses'
-
-
+    (* Separate non-ground clauses *)
+    let gnd_clauses, non_gnd_clauses = 
+      List.partition Clause.is_ground clauses 
+    in
+      
+    (* Ground non-ground clauses *)
+    let non_gnd_clauses' = 
+      List.map Prop_solver_exchange.ground_clause non_gnd_clauses 
+    in
+      
+      (* Print grounding of non-ground clauses in unsat core *)
+      List.iter 
+	(pp_clause_with_source false ppf) 
+	non_gnd_clauses';
+      
+      (* Replace a non ground clause with its ground clause in the list *)
+      let rec fold_with_gnd_clauses accum gnd_clauses = function 
+	| [] -> List.rev accum 
+	| c :: tl when Clause.is_ground c -> 
+	    fold_with_gnd_clauses (c :: accum) gnd_clauses tl
+	| c :: tl ->
+	    fold_with_gnd_clauses 
+	      (List.hd gnd_clauses :: accum) 
+	      (List.tl gnd_clauses) 
+	      tl
+      in
+	
+      (* Replace each non ground clause with its ground clause *)
+      let clauses' = fold_with_gnd_clauses [] non_gnd_clauses' clauses in
+	
+	(*
+	(* Get assumptions in solver *)
+	  let assumptions = Prop_solver_exchange.get_solver_assumptions_sat () in
+	*)
+	
+	(* Print refutation by minisat as a single inference *)
+	Format.fprintf ppf
+	  "@[<hv 4>cnf(contradiction,plain,@,( $false ),@,@[<hv 10>inference(minisat,@,[status(thm)],@,@[<hov 1>[%a]@]@]) ).@]@\n@."
+	  (*    (pp_any_list Clause.pp_clause_name ",") (gnd_clauses @ non_gnd_clauses') *)
+	  (pp_any_list Clause.pp_clause_name ",") clauses'
+	  
+	  
 

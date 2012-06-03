@@ -37,6 +37,10 @@ val parse_files : string -> string list -> unit
 *)
 
 type input_problem_type = FOF | CNF | TFF| THF
+
 val input_problem_type : ((input_problem_type option) ref)
 
+val clausifier_cmd_options : unit -> string * string
+
 val parse : unit -> unit
+
