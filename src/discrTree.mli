@@ -40,6 +40,8 @@ module type DiscrTree =
     val remove_term_path_ret : term -> ('a index) ref -> 'a ref_elem
     val unif_candidates : (('a list) index) -> term -> 'a list 
     val unif_cand_exists : 'a index -> term -> bool 
+(* iter_elem f index inter over all ref_elem in index *)
+    val iter_elem     : ('a ref_elem -> unit) -> 'a index -> unit
   end
 
 module Make (P:Param) : DiscrTree

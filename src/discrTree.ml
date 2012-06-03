@@ -51,6 +51,7 @@ module type DiscrTree =
       ('a index) ref -> 'a list *)
     val unif_candidates : (('a list) index) -> term -> 'a list 
     val unif_cand_exists : 'a index -> term -> bool 
+    val iter_elem     : ('a ref_elem -> unit) -> 'a index -> unit
 (*only for debug*)
 (*    val get_key_list : term -> sym_or_var list *)
   end
@@ -108,6 +109,9 @@ module Make (P:Param) =
     let mem term index = DTM.mem (get_key_list term) index  
 
     let find term index = DTM.find (get_key_list term) index 
+
+    let iter_elem f index = DTM.iter_elem f index
+
 (* works 
     let add_term_path term ref_index = 
        DTM.add_path (get_key_list term) ref_index 

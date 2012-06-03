@@ -860,7 +860,7 @@ let fill_stat_model model =
   NModel.iter f model 
 
 
-let build_model all_clauses = 
+let build_model all_clauses filtered_out_clauses = 
 (* debug *)
 
 (*
@@ -876,19 +876,27 @@ let build_model all_clauses =
   out_str "\n-------End All clauses------\n";
 *)
 
-  let new_model =
+(* first add model for fitered_out_clauses (by prep_sem_filter_unif) *)
+  let model_filtered_out = 
+    List.fold_left
+      (fun model clause -> extend_model clause model)
+      empty_model
+      filtered_out_clauses
+  in
+(* extened the model to the rest of clauses *)
+  let final_model =
     ClauseAssignDB.fold
       (fun clause model ->
 	if (Clause.get_bool_param Clause.in_active clause)
 	then extend_model clause model       
 	else model
       )
-      all_clauses
-      empty_model 
+      all_clauses   
+      model_filtered_out
   in
-  fill_stat_model new_model;
+  fill_stat_model final_model;
   stdout_stream.stream_add_str ("Done\n"); 
-  new_model
+  final_model
 
 
 

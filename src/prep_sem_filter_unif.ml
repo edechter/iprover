@@ -32,7 +32,12 @@ let term_db_ref    = Parser_types.term_db_ref
 (*-------------------------------*)
 type filter_clause = 
     {orig_clause : clause;
+
+(* side clauses are used as a background theory; *)
+(* they can prevent clauses to be filtered out but they themselves *)
+(* do not get filtered in *)
      is_side : bool;
+
 (* order literals first in the order of preferred selection *)
 (* e.g. negative/positive/ground first     *)
 
@@ -40,6 +45,17 @@ type filter_clause =
 (* is the watched literal  *)                 
      mutable lits_to_try : lit list;
  
+   }
+
+(* filtered_clauses  are used for output only *)
+type filtered_clauses =
+    {
+
+      filtered_in  : clause list;
+(* filtered out clauses are used in model representation *)
+(* for convenience  clauses get assigned inst_sel_lit which *)
+(* are the literals true in the model *)
+      filtered_out : clause list 
    }
 
 module DTParam = 
@@ -336,9 +352,24 @@ let pos_order_fun_2 () =
     [Lit_Sign true; Lit_Num_of_Symb true; Lit_Num_of_Var false]
 
 
+(*-----------------------*)
+let get_filtered_out_clauses filter_state = 
+  let filtered_out_clauses = ref [] in 
+  let f_index elem_ref = 
+    match !elem_ref with 
+    |Elem(fclause_list) -> 
+	let f fclause = 
+	  let watched_lit = (List.hd fclause.lits_to_try) in 
+	  Clause.assign_inst_sel_lit watched_lit fclause.orig_clause;
+	  filtered_out_clauses := fclause.orig_clause::(!filtered_out_clauses)
+	in 
+	List.iter f fclause_list
+    |Empty_Elem   -> ()
+  in
+  DiscrTreeM.iter_elem f_index filter_state.watch_unif_index;
+  !filtered_out_clauses
 
-
-
+(*-----------------------*)
 let sem_filter_unif_order order_fun clause_list side_clause_list = 
   let time_before = Unix.gettimeofday () in       	
   let filter_state = init_filter_state clause_list side_clause_list order_fun in
@@ -351,8 +382,14 @@ let sem_filter_unif_order order_fun clause_list side_clause_list =
     (List.length clause_list) - (List.length filter_state.filtered_in_clauses) in
 (*  out_str ("Num of : num_of_filtered_out "^(string_of_int num_of_filtered_out));*)
   incr_int_stat num_of_filtered_out num_of_sem_filtered_clauses;
-  filter_state.filtered_in_clauses
- 
+  let filtered_clauses = 
+    {
+     filtered_in =  filter_state.filtered_in_clauses;
+     filtered_out = get_filtered_out_clauses filter_state
+   } 
+  in
+  filtered_clauses
+
 (* when clauses are not in db length is not defined, may change this later *)
 let cmp_clause_length c1 c2 = 
   (compare 
@@ -367,17 +404,27 @@ let cmp_clause_length_compl c1 c2 = -cmp_clause_length c1 c2
 
 let sem_filter_unif clause_list side_clause_list = 
   match !current_options.prep_sem_filter with
-  | Sem_Filter_None -> clause_list
+  | Sem_Filter_None -> 
+      let filtered_clauses = 
+	{ filtered_in = clause_list;
+	  filtered_out = [] 
+	}
+      in filtered_clauses
+
   | Sem_Filter_Pos -> 
       sem_filter_unif_order 
 	(pos_order_fun_1 ()) 
 	clause_list side_clause_list
-  | Sem_Filter_Neg -> sem_filter_unif_order (neg_order_fun_1 ()) clause_list side_clause_list
+
+  | Sem_Filter_Neg -> 
+      sem_filter_unif_order (neg_order_fun_1 ()) clause_list side_clause_list
+
   | Sem_Filter_Exhaustive 
     -> 
       begin
 	let changed = ref true in
-	let current_clauses = ref clause_list in
+	let current_filter_in_clauses  = ref clause_list in
+	let current_filter_out_clauses = ref [] in
 (*	let current_clauses = ref (List.sort cmp_clause_length  clause_list) in*)
 	let order_fun_list = [(neg_order_fun_1 ());(pos_order_fun_1 ());(pos_order_fun_2 ());(neg_order_fun_2 ())] in
 	while !changed 
@@ -385,14 +432,26 @@ let sem_filter_unif clause_list side_clause_list =
 	  let num_of_sem_filtered_clauses_before = num_of_sem_filtered_clauses in
 	  let f order_fun  = 
 	 (*   current_clauses := (List.sort cmp_clause_length  !current_clauses);*)
-	    current_clauses := sem_filter_unif_order order_fun !current_clauses side_clause_list;
+	    let filtered_clauses = 
+	      sem_filter_unif_order order_fun 
+		!current_filter_in_clauses side_clause_list in
+	    current_filter_in_clauses := filtered_clauses.filtered_in;
+	    current_filter_out_clauses := 
+	      (filtered_clauses.filtered_out)@(!current_filter_out_clauses)
+	      
 	  in	  
 	  List.iter f order_fun_list;
 	  let num_of_sem_filtered_clauses_after = num_of_sem_filtered_clauses in
 	  changed := 
 	    (num_of_sem_filtered_clauses_before != num_of_sem_filtered_clauses_after)
 	done;
-	!current_clauses
+	let final_filtered_clauses = 
+	  {
+	   filtered_in =  !current_filter_in_clauses;
+	   filtered_out = !current_filter_out_clauses;
+	 } 
+	in
+	final_filtered_clauses	  
       end 
 
 

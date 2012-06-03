@@ -59,6 +59,7 @@ module type Trie =
     val get_subtrie   : key -> 'a trie -> 'a trie
     val fold_level0   : (key -> 'a trie -> 'b -> 'b)->'a trie -> 'b -> 'b 
     val iter_level0   : (key -> 'a trie -> unit)->'a trie -> unit 
+    val iter_elem     : ('a ref_elem -> unit) ->  'a trie -> unit
     val mem         : keylist -> 'a trie -> bool 
     val find          : keylist -> 'a trie -> 'a ref_elem  
     val add_path    : keylist -> ('a trie) ref -> 'a ref_elem

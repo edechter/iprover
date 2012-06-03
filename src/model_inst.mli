@@ -20,9 +20,13 @@ open Lib
 
 type all_clauses = ClauseAssignDB.clauseDB
 
+type clause = Clause.clause
+
 type model 
 
-val build_model : all_clauses -> model
+(* clause list are added to all_clauses *)
+(* normaly clauses list are clauses filtered out by prep_sem_filter_unif *)
+val build_model : all_clauses -> clause list -> model
 
 (*
 val model_to_stream : 'a string_stream -> model -> unit

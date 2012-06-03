@@ -527,7 +527,7 @@ let finite_models clauses =
     Prop_solver_exchange.add_clause_to_solver init_clauses;
   (if (Prop_solver_exchange.solve ()) = PropSolver.Unsat
   then raise PropSolver.Unsatisfiable);
-  let dom_const_list = ref [] in
+(*  let dom_const_list = ref [] in*)
   let bound_preds   = ref [] in
 
 
@@ -1146,20 +1146,20 @@ let unknown_str  ()   = szs_pref^"Unknown\n"
 
 
 
-let rec main clauses finite_model_clauses = 
+let rec main clauses finite_model_clauses filtered_out_clauses = 
 (* when Sat and eq ax are omitted we need to add them and start again *)
   let when_eq_ax_ommitted () =
     assert !eq_axioms_are_omitted;      
     out_str ("\n"^pref_str^("Adding Equality Axioms\n"));
     if !current_options.brand_transform then 
-      main (Eq_axioms.eq_axioms_flatting clauses) finite_model_clauses
+      main (Eq_axioms.eq_axioms_flatting clauses) finite_model_clauses filtered_out_clauses 
     else
       let equality_axioms = Eq_axioms.eq_axiom_list clauses in
       List.iter 
 	Prop_solver_exchange.add_clause_to_solver equality_axioms;
       eq_axioms_are_omitted:=false;
       let perp_eq_axs = Preprocess.preprocess equality_axioms in  
-      main (perp_eq_axs@clauses) finite_model_clauses
+      main (perp_eq_axs@clauses) finite_model_clauses filtered_out_clauses 
   in
   let sched_run sched = schedule_run clauses finite_model_clauses sched in
   if (not !current_options.instantiation_flag) 
@@ -1260,16 +1260,18 @@ let rec main clauses finite_model_clauses =
 
 	 if (not (!current_options.sat_out_model = Model_None))
 	 then
-	   Model_inst.out_model (Model_inst.build_model all_clauses)
+	   let inst_model = 
+	     (Model_inst.build_model all_clauses filtered_out_clauses) in
+	   Model_inst.out_model inst_model
 	 else ()
 	)
 
     (* Incremental BMC1 solving: unsatisfiable when there are higher
        bounds left to check *)
-    | (Discount.Unsatisfiable as e)
-    | (Instantiation.Unsatisfiable as e)
-    | (PropSolver.Unsatisfiable as e)
-    | ((Discount.Empty_Clause _) as e)
+    | (Discount.Unsatisfiable as _e)
+    | (Instantiation.Unsatisfiable as _e)
+    | (PropSolver.Unsatisfiable as _e)
+    | ((Discount.Empty_Clause _) as _e)
 	when !current_options.bmc1_incremental -> 
 	
 	(
@@ -1615,7 +1617,7 @@ let rec main clauses finite_model_clauses =
 	      main 
 		all_clauses
 		finite_model_clauses
-	      
+		filtered_out_clauses 
 	)
 
 (*-------- Reachability depth for father_of relation (Intel) -----------*)
@@ -1693,6 +1695,8 @@ let out_symb_reach_map srm =
 (*--parses and then runs main on the prepocessed clauses------*)
 
 let run_iprover () =
+
+  let filtered_out_clauses_ref = ref [] in
 
   (try
 (*---------Set System Signals--------------------*)
@@ -2115,6 +2119,7 @@ let run_iprover () =
 
 (*     out_str "\n\n\n Before Filtering \n\n\n ";*)
 
+
       if !current_options.prep_sem_filter_out 
       then  
 	(
@@ -2131,25 +2136,27 @@ let run_iprover () =
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
 *)
 	 
-     let prep_clauses = 
-       Prep_sem_filter_unif.sem_filter_unif !current_clauses (get_side_clauses ()) in       
+     let filtered_clauses = 
+       Prep_sem_filter_unif.sem_filter_unif (!current_clauses) (get_side_clauses ()) 
+     in       
+     let filtered_in_clauses = 
+       filtered_clauses.Prep_sem_filter_unif.filtered_in in
+     
+     out_str (pref_str^"Before sem filter:\n");
+     Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
+     
+     
+     out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 
-
-	  out_str (pref_str^"Before sem filter:\n");
-	  Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
-
-
-	  out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
-	  Clause.out_clause_list_tptp prep_clauses; 
-
-
-	 out_str "\n\n";
-	 out_str (unknown_str  ());
-	 out_stat ();
-	 exit(0);
-	(* raise SZS_Unknown *)
+     Clause.out_clause_list_tptp filtered_in_clauses; 
+     
+     out_str "\n\n";
+     out_str (unknown_str  ());
+     out_stat ();
+     exit(0);
+     (* raise SZS_Unknown *)
 	)
-    else 
+      else 
       (
 (*-------------------------------------------------*)
 	  out_str (pref_str^"Semantic Filtering...\n");
@@ -2169,17 +2176,26 @@ let run_iprover () =
 (*	  current_clauses := List.sort cmp_clause_length !current_clauses;*)
 
 	  let side_clauses = get_side_clauses () in
-	  current_clauses := 
-	    Prep_sem_filter_unif.sem_filter_unif !current_clauses side_clauses;
-	  (
+	 let filtered_clauses = 
+	   Prep_sem_filter_unif.sem_filter_unif !current_clauses side_clauses 
+	 in
+	 current_clauses := filtered_clauses.Prep_sem_filter_unif.filtered_in;
+	 filtered_out_clauses_ref := 
+	   filtered_clauses.Prep_sem_filter_unif.filtered_out;
+	 (
 	   if  (!current_options.sat_mode || !current_options.sat_finite_models || 
 	   !current_options.schedule = Schedule_sat)
 	   then 
 	     (
-	     
-	      current_clauses_no_eq :=
+	      let filtered_clauses = 	
 		Prep_sem_filter_unif.sem_filter_unif 
-		  !current_clauses_no_eq ((!gen_equality_axioms)@side_clauses);
+		  !current_clauses_no_eq ((!gen_equality_axioms)@side_clauses)
+	      in
+	      
+	      current_clauses_no_eq := 
+		filtered_clauses.Prep_sem_filter_unif.filtered_in;
+	      filtered_out_clauses_ref := 
+		filtered_clauses.Prep_sem_filter_unif.filtered_out;
 	     )
 	   else ()
 	  )
@@ -2212,7 +2228,7 @@ let run_iprover () =
 	(raise PropSolver.Unsatisfiable));
       (* Clause.out_clause_list_tptp !current_clauses; *)
       let finite_models_clauses = !current_clauses_no_eq in
-      main !current_clauses finite_models_clauses
+      main !current_clauses finite_models_clauses !filtered_out_clauses_ref 
     end
   with
 
@@ -2402,7 +2418,9 @@ let run_iprover () =
 
 	 if (not (!current_options.sat_out_model = Model_None))
 	 then
-	  Model_inst.out_model (Model_inst.build_model all_clauses)
+	   let model = 
+	     Model_inst.build_model all_clauses !filtered_out_clauses_ref in
+	   Model_inst.out_model model 
 	 else ()
 	)
 
