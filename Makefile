@@ -176,18 +176,18 @@ prop_solver_standalone : $(STANDALONE_OBJ)  src/prop_solver_standalone.ml
 #----------------------------------------
 
 
-#src/$(LEXER).ml : $(@)l
+#src/$(LEXER).ml : $(@l)
+#$(LEXER:%=src/%.ml) : $(@l)
 #	ocamllex $<
 
-#$(LEXER:%=src/%.ml) : $(LEXER:%=src/%.mll)
+#$(LEXER:%=src/%.ml) : $(LEXER:%=src/%.mll) 
 #	ocamllex $<
 
-src/lexer_tptp.ml : src/lexer_tptp.ml
-	 ocamllex $<
+src/lexer_tptp.ml : src/lexer_tptp.mll
+	ocamllex $<
 
 src/lexer_fof.ml : src/lexer_fof.mll
 	ocamllex $<
-
 
 
 #generates both mli and ml from mly
@@ -217,7 +217,7 @@ obj/%.cmx : src/%.ml
 .PHONY: clean clean-util depend archive
 
 clean: clean-util
-	rm -f $(IPROVER_NAME) $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp src/$(LEXER).ml src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o
+	rm -f $(IPROVER_NAME) $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp $(LEXER:%=src/%.ml) src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o
 
 clean-util:
 	cd util && $(MAKE) -f Makefile clean
