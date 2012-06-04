@@ -22,8 +22,9 @@ type clause = Clause.clause
 module ClauseKey =
   struct
     type t       = clause
-    let  compare = Clause.compare_key
-    let  assign_fast_key = Clause.assign_fast_key
+    let compare = Clause.compare_key
+    let assign_fast_key = Clause.assign_fast_key
+    let assign_db_id = Clause.assign_db_id
  end
 
 module ClauseDBM =  AbstAssignDB.Make (ClauseKey)

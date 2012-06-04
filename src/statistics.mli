@@ -49,6 +49,7 @@ val sat_num_of_epr_types : stat_int_entry
 
 val parsing_time         : stat_float_entry 
 val sem_filter_time      : stat_float_entry 
+val out_proof_time       : stat_float_entry 
 val total_time           : stat_float_entry 
 val num_of_terms         : stat_fun_entry 
 val num_of_symbols       : stat_fun_entry 
@@ -71,6 +72,7 @@ val bmc1_current_bound             : stat_fun_entry
 val bmc1_last_solved_bound         : stat_int_entry
 val bmc1_unsat_core_size           : stat_int_entry
 val bmc1_unsat_core_parents_size   : stat_int_entry
+val bmc1_unsat_core_clauses_time   : stat_float_entry
 
 (*----Instantiation------------*)
 val inst_num_of_clauses            : stat_fun_entry 

@@ -23,8 +23,9 @@ type stype    = Symbol.stype
 module SymKey = 
   struct 
     type t       = symbol
-    let  compare = Symbol.compare_key
-    let  assign_fast_key = Symbol.assign_fast_key
+    let compare = Symbol.compare_key
+    let assign_fast_key = Symbol.assign_fast_key
+    let assign_db_id = Symbol.assign_db_id
  end
     
 module SymbolDBM =  AbstAssignDB.Make (SymKey)
@@ -82,13 +83,36 @@ let create ()   =
   create_name "Symbol_DB"
 
 
+(* Create a fresh split symbol and add to the database 
+
+   Follow the TPTP convention for new names, that is, create the
+   symbol as sP{n}_iProver_split.
+*)
 let create_new_split_symb symb_db_ref stype = 
-  let new_symb_name = ("iProver_split_"
-		       ^(string_of_int !symb_db_ref.unused_split_symb_number)) in
+  (* let new_symb_name = ("iProver_split_" 
+     ^(string_of_int !symb_db_ref.unused_split_symb_number)) in *)
+
+  (* Name of symbol conforming to the TPTP convention for new names *)
+  let new_symb_name = 
+    Format.sprintf 
+      "sP%d_iProver_split" 
+      !symb_db_ref.unused_split_symb_number
+  in
+
+  (* Create new split symbol *)
   let new_symb = 
-    Symbol.create_from_str_type_property  new_symb_name stype Symbol.Split in
-  !symb_db_ref.unused_split_symb_number <- !symb_db_ref.unused_split_symb_number+1;
+    Symbol.create_from_str_type_property 
+      new_symb_name stype 
+      Symbol.Split 
+  in
+
+  (* Increment counter for split symbols *)
+  !symb_db_ref.unused_split_symb_number <- 
+    succ !symb_db_ref.unused_split_symb_number;
+  
+  (* Add symbol to symbol database *)
   add_ref new_symb symb_db_ref 
+
 
 
 let get_num_of_sym_groups db = 

@@ -31,7 +31,7 @@ type split_result =
     { 
       split_list : clause list;
       num_of_splits : int;
-      num_of_split_atoms : int
+      num_of_split_atoms : int;
    }
 
 let get_split_list         result = result.split_list
@@ -40,7 +40,9 @@ let get_num_of_split_atoms result = result.num_of_split_atoms
 
 
 let empty_result () = 
- {split_list = []; num_of_splits=0; num_of_split_atoms=0}
+  { split_list = []; 
+    num_of_splits = 0; 
+    num_of_split_atoms = 0 }
 
 module LitListKey =
   struct
@@ -164,6 +166,10 @@ let ground_split_clause clause =
   let split_ground_lits = ref ground_lits in
   let split_clauses     = ref [] in
   let num_of_split_atoms = ref 0 in
+
+  (* Record symbols introduced for splitting *)
+  let split_symbols = ref [] in
+
   let processed = 
     partition_lit_list var_tried_hash init_partition in
   if 
@@ -184,10 +190,16 @@ let ground_split_clause clause =
       with 
 	Not_found ->
 	  (
+
 	   let new_split_symb = 
 	     SymbolDB.create_new_split_symb 
-	       symb_db_ref (Symbol.create_stype [] Symbol.symb_bool_type) in
-	   num_of_split_atoms:=!num_of_split_atoms+1;
+	       symb_db_ref 
+	       (Symbol.create_stype [] Symbol.symb_bool_type) 
+	   in
+	   
+	   num_of_split_atoms := !num_of_split_atoms+1;
+	   split_symbols := new_split_symb :: !split_symbols;
+	   
 	   let split_atom = 
 	     TermDB.add_ref (Term.create_fun_term new_split_symb []) term_db_ref in
 	   let split_neg_atom = 
@@ -199,7 +211,14 @@ let ground_split_clause clause =
 *)
 	   let split_clause = (Clause.create (split_neg_atom::norm_list)) in
 	   Clause.inherit_param_modif clause split_clause;
-	   Clause.assign_split_history split_clause clause;
+	   (* Clause.assign_split_history split_clause clause; *)
+
+	   (* Clause was split with a fresh splitting symbol introduced *)
+	   Clause.assign_tstp_source_split 
+	     [new_split_symb] 
+	     split_clause 
+	     clause;
+
 	   split_clauses:= split_clause::(!split_clauses);
 	   split_ground_lits:=split_atom::(!split_ground_lits)
 	  )
@@ -208,7 +227,14 @@ let ground_split_clause clause =
     List.iter create_split_clause_split_atom processed;
     let ground_clause =  Clause.create !split_ground_lits in
     Clause.inherit_param_modif clause ground_clause;
-    Clause.assign_split_history ground_clause clause;
+    (* Clause.assign_split_history ground_clause clause; *)
+
+    (* Clause was split with fresh splitting symbols introduced *)
+    Clause.assign_tstp_source_split 
+      !split_symbols
+      ground_clause 
+      clause; 
+
     let split_final_list = ground_clause::(!split_clauses) in
     let result ={
       split_list          = split_final_list;

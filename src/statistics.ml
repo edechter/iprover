@@ -181,6 +181,12 @@ let sem_filter_time =
    float_value = 0.;
  }
  
+let out_proof_time = 
+  {
+   float_entry_name  = "out_proof_time";
+   float_value = 0.;
+ }
+ 
 
 
 
@@ -265,6 +271,12 @@ let bmc1_unsat_core_parents_size =
   {
    int_entry_name = "bmc1_unsat_core_parents_size";
    value = -1;
+ }
+
+let bmc1_unsat_core_clauses_time = 
+  {
+   float_entry_name = "bmc1_unsat_core_clauses_time";
+   float_value = 0.;
  }
 
 
@@ -566,6 +578,7 @@ let gen_float_stat_list =
   [
    parsing_time;
    sem_filter_time;
+   out_proof_time;
    total_time
  ]    
 
@@ -597,7 +610,7 @@ let bmc1_int_stat_list =
     bmc1_unsat_core_parents_size ]
 
 let bmc1_float_stat_list =
-  [  ]
+  [ bmc1_unsat_core_clauses_time ]
 
 
 let inst_fun_stat_list = 

@@ -39,10 +39,13 @@ let prop_simp clause_list =
   List.iter 
     Prop_solver_exchange.add_clause_to_solver clause_list;
   (if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat)
-  then 
-      (Format.eprintf "Unsatisfiable after solve call in Preprocess.prop_sim@.";
-       raise PropSolver.Unsatisfiable)
-  else ());
+   then 
+      ((* Format.eprintf "Unsatisfiable after solve call in Preprocess.prop_sim@."; *)
+       (* Raise separate exception, since BMC1 must continue if
+	  simplified and must not continue if solver is in invalid state *)
+       (* raise PropSolver.Unsatisfiable *)
+       raise Prop_solver_exchange.Unsatisfiable)
+   else ());
   let simplify_clause rest clause = 
     (Prop_solver_exchange.prop_subsumption clause)::rest
   in
@@ -111,7 +114,8 @@ let pred_to_fun_clause pred_to_fun_htbl clause =
       (Clause.get_literals clause) in
   let new_clause = 
     Clause.normalise term_db_ref (Clause.create new_lits)  in
-  Clause.assign_non_eq_to_eq_history new_clause clause;
+  (* Clause.assign_non_eq_to_eq_history new_clause clause; *)
+  Clause.assign_tstp_source_non_eq_to_eq new_clause clause;
   new_clause
       
 let preprocess clause_list =

@@ -75,7 +75,8 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
     let conclusion = Clause.normalise_blitlist_list 
 	term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)] in
-    Clause.assign_resolution_history conclusion [c1;c2] [l1;l2];
+    (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
+    Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
     Clause.assign_when_born [c1] [c2] conclusion;
     let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
     Clause.assign_conjecture_distance (min_conj_dist+1) conclusion;  
@@ -114,7 +115,8 @@ let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
     let conclusion = Clause.normalise_blitlist_list 
 	term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)] in
-    Clause.assign_resolution_history conclusion [c1;c2] [l1;l2];
+    (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
+    Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
     Clause.assign_when_born [c1] [c2] conclusion;
     let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
     Clause.assign_conjecture_distance (min_conj_dist+1) conclusion;
@@ -152,7 +154,8 @@ let factoring c l1 l2 term_db_ref =
       l1::(Clause.find_all (fun lit -> not(l1 == lit)) c) in
     let conclusion = Clause.create new_litlist in
     Clause.inherit_conj_dist c conclusion;
-    Clause.assign_factoring_history conclusion c [l1;l2];
+    (* Clause.assign_factoring_history conclusion c [l1;l2]; *)
+    Clause.assign_tstp_source_factoring conclusion c [l1;l2];
     conclusion
   else    
     let mgu =  Unif.unify_bterms (1,l1) (1,l2) in
@@ -162,7 +165,8 @@ let factoring c l1 l2 term_db_ref =
     let conclusion = Clause.normalise_b_litlist term_db_ref mgu (1,new_litlist) in
     Clause.inherit_conj_dist c conclusion;
     Clause.assign_when_born [c] [] conclusion;
-    Clause.assign_factoring_history conclusion c [l1;l2];
+    (* Clause.assign_factoring_history conclusion c [l1;l2]; *)
+    Clause.assign_tstp_source_factoring conclusion c [l1;l2];
     conclusion
 
 
@@ -365,8 +369,16 @@ let assign_param_clause parent parents_side conj_dist clause =
   Clause.assign_when_born [parent] parents_side clause;
   Clause.assign_activity ((Clause.get_activity parent)+1) parent;
   Clause.add_child parent clause;
+
+  if 
+    val_of_override !current_options.bmc1_unsat_core_children &&
+      Clause.get_bool_param Clause.in_unsat_core parent 
+  then
+    Clause.set_bool_param true Clause.in_unsat_core clause;
+
   Clause.assign_conjecture_distance conj_dist clause;
-  Clause.assign_instantiation_history clause parent parents_side 
+  (* Clause.assign_instantiation_history clause parent parents_side *)
+  Clause.assign_tstp_source_instantiation clause parent parents_side 
     
 
   
@@ -713,7 +725,8 @@ let resolution_dismatch
 		(Clause.set_bool_param true Clause.is_dead c2)
 	      else ()
 	    else ());      
-	    Clause.assign_resolution_history conclusion [c1;c2] [l1;l2];
+	    (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
+	    Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
 	    Clause.assign_when_born [c1] [c2] conclusion;
 	    conclusion::rest
 	  end  

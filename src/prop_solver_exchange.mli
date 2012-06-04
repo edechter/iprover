@@ -16,6 +16,13 @@
 
 open Lib
 
+(** Separate exception, different from PropSolver.Unsatisfiable. In
+    BMC1 we must not continue after PropSolver.Unsatisfiable, since
+    solver is in invalid state (unsat without assumptions), but we
+    must continue after this exception (unsat with assumptions). *)
+exception Unsatisfiable
+
+
 type prop_lit = PropSolver.lit
 
 type term     = Term.term
@@ -43,6 +50,12 @@ val assign_solver_assumptions : term list -> unit
 val assign_only_sim_solver_assumptions : term list -> unit
 val assign_only_norm_solver_assumptions : term list -> unit
 val assign_adjoint_preds     : term list -> unit
+
+(** Return literal assumptions for satisfiability solver *)
+(* val get_assumptions_sat : unit -> term list *)
+
+(** Return literal assumptions for simplification solver *)
+(* val get_assumptions_sim : unit -> term list *)
 
 val solve                : unit -> PropSolver.solver_out
 
@@ -82,6 +95,26 @@ val increase_lit_activity : int -> lit -> unit
 
 (*exception Non_simplifiable*)
 val prop_subsumption :  clause -> clause 
+
+
+(** Return a justification for propositional subsumption of the
+    clause.
+
+    The justification is a set of clauses, lifted from a minimal
+    unsatisfiable core, that propositionally subsume the given
+    clause. Only clauses whose propositional id is less or equal to
+    the id given are considered as justifications, hence the
+    justification can be done in retrospect. 
+*)
+val justify_prop_subsumption : int -> clause -> clause -> clause list 
+
+
+(** Return the grounding of the clause and a TSTP source statement
+    that documents the grounding, in particular the binding of the
+    clause's variables.
+*)
+val ground_clause : clause -> clause
+
 
 (*val fast_solve_main : unit -> PropSolver.fast_solve*)
 

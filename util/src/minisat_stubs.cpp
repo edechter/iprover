@@ -61,7 +61,13 @@ extern "C" {
 #define Val_none Val_int(0)
 
 /* 'a option = Some of 'a */
-static inline value Val_some( value v )
+
+/* Must not be used inside a nested block: CAMLlocal1 must be at the
+   beginning of each function. Cannot use inline, better copy the code
+   into your function: CAMLlocal and caml_alloc at the top,
+   Store_field to set the value. */
+/*
+CAMLprim value Val_some( value v )
 {   
     CAMLparam1 (v);
     CAMLlocal1 (some);
@@ -69,6 +75,7 @@ static inline value Val_some( value v )
     Store_field (some, 0, v);
     CAMLreturn (some);
 }
+*/
 
 #define Some_val(v) Field(v,0)
 
@@ -133,6 +140,10 @@ static struct custom_operations minisat_lit_custom_ops = {
 };
 
 /* Copy a MiniSat literal into a newly allocated OCaml custom tag */
+
+/* Cannot use CAMLlocal1 inside a nested block, using this function is
+   probably dangerous, better copy the code inside the function. */
+/*
 static inline value copy_minisat_lit( Lit *lit )
 {
     CAMLparam0();
@@ -140,6 +151,43 @@ static inline value copy_minisat_lit( Lit *lit )
     v = caml_alloc_custom( &minisat_lit_custom_ops, sizeof(Lit), 0, 1);
     memcpy( Data_custom_val(v), lit, sizeof(Lit) );
     CAMLreturn(v);
+}
+*/
+
+/* Append OCaml list of literals to a vector of MiniSat literals */
+void vec_lit_of_lit_list(value* lit_list_in, vec<Lit>* lits) 
+{
+
+  // Allocate local OCaml variable 
+  CAMLlocal1(head);
+
+  // Set to head of list 
+  head = *lit_list_in;
+
+  // Iterate list of literals
+  while (head != Val_emptylist) 
+    {
+      
+      // Get head element of list 
+      value lit_in = Field(head, 0);
+      
+      // Get MiniSat literal from value
+      Lit* lit = (Lit*) Data_custom_val(lit_in);
+      
+#ifdef DEBUG
+      fprintf(stderr, "%s%d ", 
+	      sign(*lit) ? "" : "~",
+	      var(*lit));
+#endif
+      
+      // Add literal to clause 
+      lits->push(*lit);
+      
+      // Continue with tail of list
+      head = Field(head, 1);
+      
+    }
+  
 }
 
 /* Create and return a MiniSat solver instance 
@@ -150,20 +198,22 @@ static inline value copy_minisat_lit( Lit *lit )
    an Abstract_tag.
 
 */
-extern "C" value minisat_create_solver(value unit)
+extern "C" CAMLprim value minisat_create_solver(value unit)
 {
 
   // Declare parameters 
   CAMLparam1 (unit);
-
+  CAMLlocal1 (res);
+  
   // Initialise MiniSat instance 
   Solver* s = new Solver;
 
-  // Initialise vector for tracking literals to be assumed
+  // Initialise vector for tracking literals to be assumed, this is a
+  // sorted vector of literals without duplicates
   vec<Lit>* v = new vec<Lit>;
 
   // Allocate abstract datatype for MiniSat instance 
-  value res = caml_alloc(3, Abstract_tag);
+  res = caml_alloc(3, Abstract_tag);
 
   // First field is pointer to solver 
   Store_field(res, 0, (value) s); 
@@ -195,11 +245,12 @@ extern "C" value minisat_create_solver(value unit)
    has not been allocated.
 
  */
-extern "C" value minisat_add_var (value solver_in, value var_id_in)
+extern "C" CAMLprim value minisat_add_var (value solver_in, value var_id_in)
 {  
 
   // Declare parameters 
   CAMLparam2 (solver_in, var_id_in);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
   int var_id = Int_val(var_id_in);
 
@@ -222,12 +273,15 @@ extern "C" value minisat_add_var (value solver_in, value var_id_in)
    datatype stored on the OCaml heap.
 
  */
-extern "C" value minisat_create_lit(value solver_in, value lit_sign_in, value lit_var_in)
+extern "C" CAMLprim value minisat_create_lit(value solver_in, value lit_sign_in, value lit_var_in)
 {
   
   // Declare parameters 
   CAMLparam3 (solver_in, lit_sign_in, lit_var_in);
+
+  // Allocate for a custom datatype for literal
   CAMLlocal1 (res);
+  res = caml_alloc_custom( &minisat_lit_custom_ops, sizeof(Lit), 0, 1);
 
   Solver* solver = (Solver*) Field(solver_in, 0);
   bool lit_sign = Bool_val(lit_sign_in);
@@ -247,8 +301,8 @@ extern "C" value minisat_create_lit(value solver_in, value lit_sign_in, value li
 	  lit_var);
 #endif
 
-  // Allocate and copy MiniSat literal to OCaml
-  res = copy_minisat_lit(&lit);
+  // Copy MiniSat literal to OCaml datatype
+  memcpy(Data_custom_val(res), &lit, sizeof(Lit));
 
   // Return literal
   CAMLreturn(res);
@@ -261,15 +315,14 @@ extern "C" value minisat_create_lit(value solver_in, value lit_sign_in, value li
    external minisat_add_clause : minisat_solver -> minisat_lit list -> bool = "minisat_add_clause" 
 
 */
-extern "C" value minisat_add_clause(value solver_in, value clause_in)
+extern "C" CAMLprim value minisat_add_clause(value solver_in, value clause_in)
 {	
 
   // Declare parameters 
   CAMLparam2 (solver_in, clause_in);
-  CAMLlocal1(head);
 
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
-  head = clause_in;
 
   // Clause to be asserted
   vec<Lit> lits;
@@ -279,29 +332,8 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
   fprintf(stderr, "Asserting clause ");
 #endif
 
-  // Iterate list of literals
-  while (head != Val_emptylist) 
-    {
-
-      // Get head element of list 
-      value lit_in = Field(head, 0);
-
-      // Get MiniSat literal from value
-      Lit* lit = (Lit*) Data_custom_val(lit_in);
-
-#ifdef DEBUG
-      fprintf(stderr, "%s%d ", 
-	      sign(*lit) ? "" : "~",
-	      var(*lit));
-#endif
-
-      // Add literal to clause 
-      lits.push(*lit);
-
-      // Continue with tail of list
-      head = Field(head, 1);
-
-    }
+  // Copy clause to vector
+  vec_lit_of_lit_list(&clause_in, &lits);
 
 #ifdef DEBUG
   fprintf(stderr, "\n");
@@ -312,7 +344,7 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
     {
 
       // Not immediately unsatisfiable 
-      CAMLreturn (Val_true);
+      CAMLreturn(Val_true);
 
     }
   else
@@ -323,7 +355,7 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
 #endif
 
       // Immediately unsatisfiable with added clause
-      CAMLreturn (Val_false);
+      CAMLreturn(Val_false);
 
     }
 
@@ -345,25 +377,33 @@ extern "C" value minisat_add_clause(value solver_in, value clause_in)
    assumptions. The tracking variable is assumed negatively and added
    to the clause positively, hence the conflict clause will contain
    the tracking literal, i.e. the identifier of the clause,
-   positively. If the tracking variable is None, a new variable is
-   created, otherwise the variable given is used to track the clause.
+   positively. 
+
+   If the tracking variable is None, a new variable is created,
+   otherwise the variable given is used to track the clause. If a
+   tracking variable is given, it must have been previously obtained
+   as a new variable. That is, only repeats of tracking variables are
+   allowed, tracking variables cannot be arbitrarily chosen.
 
    external minisat_add_clause_with_id : minisat_solver -> minisat_literal list -> int option -> bool * int option = "minisat_add_clause_with_id" 
 
 */
-extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value clause_in)
+extern "C" CAMLprim value minisat_add_clause_with_id(value solver_in, value id_in, value clause_in)
 {	
 
   // Declare parameters 
-  CAMLparam3 (solver_in, id_in, clause_in);
-  CAMLlocal2(head, res);
+  CAMLparam3(solver_in, id_in, clause_in);
 
-  // Allocate for OCaml pair 
+  // Allocate for OCaml pair and 'a option value
+  CAMLlocal2(res, res_track_var);
   res = caml_alloc(2, 0);
+  res_track_var = caml_alloc(1, 0);
 
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
+
+  // Get vector of tracking literals 
   vec<Lit>* assume_lits = (vec<Lit>*) Field(solver_in, 2);
-  head = clause_in;
 
   // Clause to be asserted
   vec<Lit> lits;
@@ -374,17 +414,32 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value 
 
   // Create a new variable if input ID is Null
   if (id_in == Val_none)
+
+    // Create a new variable
     track_var = solver->newVar();
+
   else
-    track_var = Int_val(Some_val(id_in));
-
-  // Create tracking literal of variable 
-  Lit assume_lit = mkLit(track_var, false);
-
-  // Add assumption literal 
-  assume_lits->push(assume_lit);
+    // Use variable given 
+    // It is not necessary to allocate the variable in MiniSat, since
+    // it must have been previously used
+    {
 
 #ifdef DEBUG
+      fprintf(stderr, "Setting clause id to %d\n", Int_val(Some_val(id_in)));
+#endif
+
+      track_var = Int_val(Some_val(id_in));
+
+    }
+
+  // Create negative tracking literal as assumption literal
+  Lit assume_lit = mkLit(track_var, false);
+
+  // Add assumption literal to tracking literals only if new
+  if (id_in == Val_none)
+    assume_lits->push(assume_lit);
+
+#ifdef VDEBUG
   fprintf(stderr, "Global assumptions ");
 
   for (int j = 0; j < assume_lits->size(); j++)
@@ -398,7 +453,7 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value 
   // Create positive literal to be added to clause as tracking literal
   Lit track_lit = mkLit(track_var, true);
 
-  // Add tracking literal to clause 
+  // Add tracking literal to clause as first literal
   lits.push(track_lit);
 
 #ifdef DEBUG
@@ -407,29 +462,8 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value 
 	  var(track_lit));
 #endif
 
-  // Iterate list of literals
-  while (head != Val_emptylist) 
-    {
-
-      // Get head element of list 
-      value lit_in = Field(head, 0);
-
-      // Get MiniSat literal from value
-      Lit* lit = (Lit*) Data_custom_val(lit_in);
-
-#ifdef DEBUG
-      fprintf(stderr, "%s%d ", 
-	      sign(*lit) ? "" : "~",
-	      var(*lit));
-#endif
-
-      // Add literal to clause 
-      lits.push(*lit);
-
-      // Continue with tail of list
-      head = Field(head, 1);
-
-    }
+  // Append clause to vector
+  vec_lit_of_lit_list(&clause_in, &lits);
 
 #ifdef DEBUG
   fprintf(stderr, "\n");
@@ -447,9 +481,14 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value 
       Store_field(res, 0, Val_true);
 
       // Clause was added with uid
-      Store_field(res, 1, Val_some(Val_int((int) track_var)));
+      Store_field(res_track_var, 0, Val_int(toInt(track_var)));
+      Store_field(res, 1, res_track_var);
 
-      // Not immediately unsatisfiable 
+#ifdef DEBUG
+  fprintf(stderr, "Exit minisat_add_clause_with_id\n");
+#endif
+
+      // Not immediately unsatisfiable with added clause
       CAMLreturn (res);
 
     }
@@ -463,7 +502,7 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value 
       // Clause set is immediately unsatisfiable
       Store_field(res, 0, Val_false);
       
-      // Clause was not added, does not have a uid
+      // Clause was not added, does not have an id
       Store_field(res, 1, Val_none);
       
       // Immediately unsatisfiable with added clause
@@ -473,30 +512,99 @@ extern "C" value minisat_add_clause_with_id(value solver_in, value id_in, value 
 
 }
 
+/* Return the position in the vector where the variables of all
+   literals are smaller than or equal to the given max_lit */
+int find_max_lit(const vec<Lit>& lits, int start, int end, int max_var)
+{
+    // Termination condition: start index greater than end index
+    if(start > end)
+    {
+        return end;
+    }
+ 
+    // Find the middle element of the vector and use that for splitting
+    // the array into two pieces.
+    int middle = start + ((end - start) / 2);
+ 
+    if(var(lits[middle]) == max_var)
+      {
+        return middle;
+      }
+    else if(var(lits[middle]) > max_var)
+      {
+        return find_max_lit(lits, start, middle - 1, max_var);
+      }
+    
+    return find_max_lit(lits, middle + 1, end, max_var);
+}
+
+/* Shrink the vector of literals to contain only the literals with
+   variables smaller then max_var */
+void vec_lit_upto(vec<Lit>& lits, int max_var) 
+{ 
+
+#ifdef DEBUG
+  fprintf(stderr, "Only assumptions up to %d\n", max_var);
+#endif
+
+  // Do nothing for empty vector
+  if (lits.size() > 0)
+    {
+      
+      int max_lit = find_max_lit(lits, 0, lits.size(), max_var);
+
+#ifdef DEBUG
+      fprintf(stderr, 
+	      "Splitting literal vector at %s%d, %s%d\n",
+	      sign(lits[max_lit]) ? "" : "~",
+	      var(lits[max_lit]),
+	      sign(lits[max_lit+1]) ? "" : "~",
+	      var(lits[max_lit+1]));
+#endif
+      
+      // Otherwise shrink vector to contain only literals smaller than
+      // max_var
+      lits.shrink(lits.size() - max_lit - 1);
+  
+    }
+}
+
 
 /* Test the given clause set for satisfiability. Return true if
    satisfiable, false if unsatisfiable.
 
-   external minisat_solve : minisat_solver -> bool = "minisat_solve" 
+   external minisat_solve : minisat_solver -> Some int -> bool = "minisat_solve" 
 
 */
-extern "C" value minisat_solve(value solver_in)
+extern "C" CAMLprim value minisat_solve(value solver_in, value max_clause_id_in)
 {
     
   // Declare parameters 
-  CAMLparam1(solver_in);
+  CAMLparam2(solver_in, max_clause_id_in);
+
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Get vector of tracking assumptions
-  vec<Lit>* assume_lits = (vec<Lit>*) Field(solver_in, 2);
+  vec<Lit>* all_assume_lits = (vec<Lit>*) Field(solver_in, 2);
 
-#ifdef DEBUG
+  // Vector of tracking assumptions to use
+  vec<Lit> assume_lits;
+
+  // Copy all assumptions
+  all_assume_lits->copyTo(assume_lits);
+
+  // Shrink vector to only tracking assumptions
+  if (max_clause_id_in != Val_none)
+    vec_lit_upto(assume_lits, Int_val(Some_val(max_clause_id_in)));
+
+#ifdef VDEBUG
   fprintf(stderr, "Global assumptions ");
 
-  for (int j = 0; j < assume_lits->size(); j++)
-	 fprintf(stderr, "%s%d",
-		 sign(assume_lits->operator[](j)) ? "" : "~",
-		 var(assume_lits->operator[](j)));
+  for (int j = 0; j < assume_lits.size(); j++)
+    fprintf(stderr, "%s%d",
+	    sign(assume_lits[j]) ? "" : "~",
+	    var(assume_lits[j]));
        
   fprintf(stderr, "\n");
 #endif
@@ -519,7 +627,7 @@ extern "C" value minisat_solve(value solver_in)
       Store_field(solver_in, 1, (value) solver->nVars()); 
       
       // Run MiniSat with tracking assumptions 
-      bool res = solver->solve(*assume_lits);
+      bool res = solver->solve(assume_lits);
       
       // Return result
       CAMLreturn(Val_bool(res));
@@ -545,40 +653,49 @@ extern "C" value minisat_solve(value solver_in)
    external minisat_solve_assumptions : minisat_solver -> minisat_lit list -> lbool = "minisat_solve_assumptions" 
 
 */
-extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in)
+extern "C" CAMLprim value minisat_solve_assumptions(value solver_in, value assumptions_in, value max_clause_id_in)
 {
 
   // Declare parameters 
   CAMLparam2 (solver_in, assumptions_in);
-  CAMLlocal1(head);
 
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Get vector of tracking assumptions
-  vec<Lit>* assume_lits = (vec<Lit>*) Field(solver_in, 2);
-  
-  // Initialise head of list 
-  head = assumptions_in;
+  vec<Lit>* all_assume_lits = (vec<Lit>*) Field(solver_in, 2);
 
-  // Assumptions for solving
-  vec<Lit> lits;
-  lits.clear();
+  // Vector of tracking assumptions to use
+  vec<Lit> assume_lits;
 
-  // Initialise assumptions with tracking assumptions
-  assume_lits->copyTo(lits);
+  // Copy all assumptions
+  all_assume_lits->copyTo(assume_lits);
+
+  // Shrink vector to only tracking assumptions
+  if (max_clause_id_in != Val_none)
+    {
 
 #ifdef DEBUG
+      fprintf(stderr, 
+	      "Assumptions up to %d\n", 
+	      Int_val(Some_val(max_clause_id_in)));
+#endif 
+
+      vec_lit_upto(assume_lits, Int_val(Some_val(max_clause_id_in)));
+    }
+
+#ifdef VDEBUG
   fprintf(stderr, "Global assumptions ");
 
-  for (int j = 0; j < lits.size(); j++)
+  for (int j = 0; j < assume_lits.size(); j++)
     fprintf(stderr, "%s%d ",
-	    sign(lits[j]) ? "" : "~",
-	    var(lits[j]));
+	    sign(assume_lits[j]) ? "" : "~",
+	    var(assume_lits[j]));
   
   fprintf(stderr, "\n");
 #endif
 
-  // Only if satisfiable after simplifications
+  // Must run simplify before solving under assumptions
   if (solver->simplify())
     {
 
@@ -586,30 +703,9 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
       fprintf(stderr, "Assuming ");
 #endif
 
-      // Iterate list of literals
-      while (head != Val_emptylist) 
-	{
-	  
-	  // Get head element of list 
-	  value lit_in = Field(head, 0);
-	  
-	  // Get MiniSat literal from value
-	  Lit* lit = (Lit*) Data_custom_val(lit_in);
-	  
-#ifdef DEBUG
-	  fprintf(stderr, "%s%d ", 
-		  sign(*lit) ? "" : "~",
-		  var(*lit));
-#endif
-	  
-	  // Add literal to assumptions
-	  lits.push(*lit);
-	  
-	  // Continue with tail of list
-	  head = Field(head, 1);
-	  
-	}
-      
+      // Append clause to vector
+      vec_lit_of_lit_list(&assumptions_in, &assume_lits);
+
 #ifdef DEBUG
       fprintf(stderr, "\n");
 #endif
@@ -618,10 +714,10 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
 #ifdef DEBUG
   fprintf(stderr, "All assumptions ");
 
-  for (int j = 0; j < lits.size(); j++)
+  for (int j = 0; j < assume_lits.size(); j++)
 	 fprintf(stderr, "%s%d ",
-		 sign(lits[j]) ? "" : "~",
-		 var(lits[j]));
+		 sign(assume_lits[j]) ? "" : "~",
+		 var(assume_lits[j]));
        
   fprintf(stderr, "\n");
 #endif
@@ -637,7 +733,7 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
       Store_field(solver_in, 1, (value) solver->nVars()); 
       
       // Solve with literal assumptions
-      if (solver->solve(lits))
+      if (solver->solve(assume_lits))
 	{
 	  
 #ifdef DEBUG
@@ -692,30 +788,52 @@ extern "C" value minisat_solve_assumptions(value solver_in, value assumptions_in
    external minisat_fast_solve : minisat_solver -> minisat_lit list -> int -> lbool option = "minisat_fast_solve"
 
 */
-extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value max_conflicts_in)
+extern "C" CAMLprim value minisat_fast_solve(value solver_in, value assumptions_in, value max_conflicts_in, value max_clause_id_in)
 {
 
   // Declare parameters 
   CAMLparam3 (solver_in, assumptions_in, max_conflicts_in);
-  CAMLlocal1(head);
 
+  // Allocate for two 'a option values 
+  CAMLlocal2 (Val_some_l_True, Val_some_l_Undef);
+
+  // Create one value Some l_True
+  Val_some_l_True = caml_alloc(1, 0);
+  Store_field (Val_some_l_True, 0, Val_l_True);
+
+  // Create one value Some l_Undef
+  Val_some_l_Undef = caml_alloc(1, 0);
+  Store_field (Val_some_l_Undef, 0, Val_l_Undef);
+
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
-  int max_conflicts = Int_val(max_conflicts_in);
 
   // Get vector of tracking assumptions
-  vec<Lit>* assume_lits = (vec<Lit>*) Field(solver_in, 2);
-  
-  // Initialise head of list 
-  head = assumptions_in;
+  vec<Lit>* all_assume_lits = (vec<Lit>*) Field(solver_in, 2);
 
-  // Assumptions for solving
-  vec<Lit> lits;
-  lits.clear();
+  // Vector of tracking assumptions to use
+  vec<Lit> assume_lits;
 
-  // Initialise assumptions with tracking assumptions
-  assume_lits->copyTo(lits);
+  // Copy all assumptions
+  all_assume_lits->copyTo(assume_lits);
 
-  // Only if satisfiable after simplifications
+  // Shrink vector to only tracking assumptions
+  if (max_clause_id_in != Val_none)
+    {
+
+#ifdef DEBUG
+      fprintf(stderr, 
+	      "Assumptions up to %d\n", 
+	      Int_val(Some_val(max_clause_id_in)));
+#endif 
+
+      vec_lit_upto(assume_lits, Int_val(Some_val(max_clause_id_in)));
+    }
+
+  // Conflict budget for fast solving
+  int max_conflicts = Int_val(max_conflicts_in);
+
+  // Must run simplify before solving under assumptions
   if (solver->simplify())
     {
 
@@ -723,34 +841,13 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
       fprintf(stderr, "Assuming ");
 #endif
 
-      // Iterate list of literals
-      while (head != Val_emptylist) 
-	{
-	  
-	  // Get head element of list 
-	  value lit_in = Field(head, 0);
-	  
-	  // Get MiniSat literal from value
-	  Lit* lit = (Lit*) Data_custom_val(lit_in);
-	  
-#ifdef DEBUG
-	  fprintf(stderr, "%s%d ", 
-		  sign(*lit) ? "" : "~",
-		  var(*lit));
-#endif
-	  
-	  // Add literal to assumptions
-	  lits.push(*lit);
-	  
-	  // Continue with tail of list
-	  head = Field(head, 1);
-	  
-	}
-      
+      // Append clause to vector
+      vec_lit_of_lit_list(&assumptions_in, &assume_lits);
+
 #ifdef DEBUG
       fprintf(stderr, "\n");
 
-      if (!lits.size()) fprintf(stderr, "No assumptions\n");
+      if (!assume_lits.size()) fprintf(stderr, "No assumptions\n");
 #endif
 
       // Set budget for number of conflicts
@@ -766,7 +863,7 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
       Store_field(solver_in, 1, (value) solver->nVars()); 
       
       // Solve with literal assumptions 
-      lbool res = solver->solveLimited(lits);
+      lbool res = solver->solveLimited(assume_lits);
 
       if (res == l_True) 
 	{
@@ -774,7 +871,7 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 	  fprintf(stderr, "Satisfiable with assumptions (fast solve)\n");
 #endif
 
-	  CAMLreturn(Val_some(Val_l_True));
+	  CAMLreturn(Val_some_l_True);
 	}
 
       if (res == l_False) 
@@ -783,7 +880,7 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 	  fprintf(stderr, "Unsatisfiable with assumptions (fast solve)\n");
 #endif
 
-	  CAMLreturn(Val_some(Val_l_True));
+	  CAMLreturn(Val_some_l_True);
 	}
 
       if (res == l_Undef) 
@@ -805,7 +902,7 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
 #endif
 
       // Unsatisfiable without assumptions
-      CAMLreturn(Val_some(Val_l_Undef));
+      CAMLreturn(Val_some_l_Undef);
       
     }
 
@@ -819,12 +916,16 @@ extern "C" value minisat_fast_solve(value solver_in, value assumptions_in, value
   external minisat_model_value : minisat_solver -> minisat_lit -> int = "minisat_model_value"
 
 */
-extern "C" value minisat_model_value (value solver_in, value lit_in)
+extern "C" CAMLprim value minisat_model_value (value solver_in, value lit_in)
 {
 
   // Declare parameters 
   CAMLparam2 (solver_in, lit_in);
+
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
+
+  // Get MiniSat literal from input 
   Lit* lit = (Lit*) Data_custom_val(lit_in);
 
   // Variable not present in last solve call?
@@ -842,6 +943,7 @@ extern "C" value minisat_model_value (value solver_in, value lit_in)
   else
     {
 
+      // Get value of literal in model
       lbool val = solver->modelValue(*lit);
 
 #ifdef DEBUG
@@ -877,11 +979,13 @@ extern "C" value minisat_model_value (value solver_in, value lit_in)
   external minisat_get_conflicts : minisat_solver -> int list = "minisat_get_conflicts"
 
 */
-extern "C" value minisat_get_conflicts (value solver_in)
+extern "C" CAMLprim value minisat_get_conflicts (value solver_in)
 {
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Initialise return value to empty list
@@ -927,14 +1031,20 @@ extern "C" value minisat_get_conflicts (value solver_in)
    external minisat_minimise_core : minisat_solver -> int list -> int list = "minisat_minimise_core"
    
 */
-extern "C" value minisat_minimise_core (value solver_in, value core_in)
+extern "C" CAMLprim value minisat_minimise_core (value solver_in, value core_in)
 {
 
   // Declare parameters 
   CAMLparam2 (solver_in, core_in);
+
+  // Initialise return value to empty list
+  CAMLlocal2(res, cons);
+  res = Val_emptylist;
+  
+  // Local variable for input list 
   CAMLlocal1(head);
 
-  // Solver instance 
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Resulting minimal unsatisfiable core
@@ -956,8 +1066,7 @@ extern "C" value minisat_minimise_core (value solver_in, value core_in)
 #endif
 
   // A literal and int to be used in the following loop
-  Lit lit;
-  int l;
+  Lit lit;  int l;
 
   // Iterate list of literals in core
   while (head != Val_emptylist) 
@@ -965,6 +1074,9 @@ extern "C" value minisat_minimise_core (value solver_in, value core_in)
       
       // Get head element of list 
       l = Int_val(Field(head, 0));
+
+      // Literals in conflict clause are positive, identical to clause
+      // id, but must be negative as assumption
       lit = mkLit(abs(l), l > 0 ? false : true);
       
 #ifdef DEBUG
@@ -1051,17 +1163,12 @@ extern "C" value minisat_minimise_core (value solver_in, value core_in)
       
     }
   
-  // Initialise return value to empty list
-  CAMLlocal2(res, cons);
-  res = Val_emptylist;
-  
 #ifdef DEBUG
   fprintf(stderr, "Minimal unsat core is ");
 #endif
   
-  // Iterate literals in minimal unsat core backwards to preserve order
-  // of list created
-  for (int j = min_core.size() - 1; j >= 0; --j)
+  // Iterate literals in minimal unsat core 
+  for (int j = 0; j < min_core.size(); j++)
     {
       
 #ifdef DEBUG
@@ -1072,12 +1179,13 @@ extern "C" value minisat_minimise_core (value solver_in, value core_in)
       // Allocate for new list elements
       cons = caml_alloc(2, 0);
 
-      // Head of list is literal in conflict clause
+      // Assumption literals are negative, must use complement to map
+      // to clause ids
       Store_field(cons, 
 		  0, 
 		  Val_int(sign(min_core[j]) ? 
-			  var(min_core[j]) : 
-			  -var(min_core[j])));
+			  -var(min_core[j]) : 
+			  var(min_core[j])));
 
       // Tail of list is previous list 
       Store_field(cons, 1, res);
@@ -1102,17 +1210,31 @@ extern "C" value minisat_minimise_core (value solver_in, value core_in)
   external minisat_get_model : minisat_solver -> bool option array = "minisat_get_model"
 
 */
-extern "C" value minisat_get_model (value solver_in)
+extern "C" CAMLprim value minisat_get_model (value solver_in)
 {
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
+  // Allocate for two 'a option values 
+  CAMLlocal2 (Val_some_true, Val_some_false);
+
+  // Create one value Some l_True
+  Val_some_true = caml_alloc(1, 0);
+  Store_field (Val_some_true, 0, Val_true);
+
+  // Create one value Some l_Undef
+  Val_some_false = caml_alloc(1, 0);
+  Store_field (Val_some_false, 0, Val_false);
+
+  // Get solver instance 
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Initialise return value to array of size of the model
   CAMLlocal1(res);
   res = caml_alloc(solver->model.size(), 0);
 
+  // Boolean value for model value
   lbool val;
 
   // Iterate variables in model
@@ -1133,12 +1255,12 @@ extern "C" value minisat_get_model (value solver_in)
       if (val == l_True) 
 	{ 
 	  // Store model value in array
-	  Store_field(res, j, Val_some(Val_true));
+	  Store_field(res, j, Val_some_true);
 	}
       else if (val == l_False) 
 	{ 
 	  // Store model value in array
-	  Store_field(res, j, Val_some(Val_false));
+	  Store_field(res, j, Val_some_false);
 	}
       else
 	{
@@ -1163,15 +1285,17 @@ extern "C" value minisat_get_model (value solver_in)
    external minisat_lit_var : minisat_solver -> minisat_lit -> int = "minisat_lit_to_int"
 
 */
-extern "C" value minisat_lit_var(value solver_in, value lit_in)
+extern "C" CAMLprim value minisat_lit_var(value solver_in, value lit_in)
 {
 
   // Declare parameters 
   CAMLparam2 (solver_in, lit_in);
-  Solver* solver = (Solver*) Field(solver_in, 0);
+  CAMLlocal1(res);
+
   Lit* lit = (Lit*) Data_custom_val(lit_in);
-  
-  value res = Val_int(var(*lit));
+
+  // Return OCaml integer
+  res = Val_int(var(*lit));
   CAMLreturn(res);
 
 }
@@ -1183,15 +1307,17 @@ extern "C" value minisat_lit_var(value solver_in, value lit_in)
    external minisat_lit_sign : minisat_solver -> minisat_lit -> bool = "minisat_lit_to_int"
     
 */
-extern "C" value minisat_lit_sign(value solver_in, value lit_in)
+extern "C" CAMLprim value minisat_lit_sign(value solver_in, value lit_in)
 {
 
   // Declare parameters 
   CAMLparam2 (solver_in, lit_in);
-  Solver* solver = (Solver*) Field(solver_in, 0);
+  CAMLlocal1(res);
+
   Lit* lit = (Lit*) Data_custom_val(lit_in);
   
-  value res = Val_bool(sign(*lit));
+  // Return OCaml Boolean
+  res = Val_bool(sign(*lit));
   CAMLreturn(res);
 
 }
@@ -1202,14 +1328,19 @@ extern "C" value minisat_lit_sign(value solver_in, value lit_in)
    external minisat_clauses_with_id : minisat_solver -> int = "minisat_clauses_with_id"
     
 */
-extern "C" value minisat_clauses_with_id(value solver_in)
+extern "C" CAMLprim value minisat_clauses_with_id(value solver_in)
 {
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
+  // Allocate for return value 
+  CAMLlocal1(res);
+
   vec<Lit>* assume_lits = (vec<Lit>*) Field(solver_in, 2);
 
-  value res = Val_int(assume_lits->size());
+  // Return OCaml integer
+  res = Val_int(assume_lits->size());
   CAMLreturn(res);
 
 }
@@ -1220,18 +1351,22 @@ extern "C" value minisat_clauses_with_id(value solver_in)
   external minisat_stat_vars : minisat_solver -> int = "minisat_stat_vars" 
 
 */
-extern "C" value minisat_stat_vars(value solver_in)
+extern "C" CAMLprim value minisat_stat_vars(value solver_in)
 {
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
+  // Allocate for return value 
+  CAMLlocal1(res);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Read number of variables 
   int vars = solver->nVars();
 
-  // Return integer
-  value res = Val_int(vars);
+  // Return OCaml integer
+  res = Val_int(vars);
   CAMLreturn(res);
 
 }
@@ -1241,18 +1376,22 @@ extern "C" value minisat_stat_vars(value solver_in)
   
   external minisat_stat_clauses : minisat_solver -> int = "minisat_stat_clauses" 
 */
-extern "C" value minisat_stat_clauses(value solver_in)
+extern "C" CAMLprim value minisat_stat_clauses(value solver_in)
 {
 
   // Declare parameters 
   CAMLparam1 (solver_in);
+
+  // Allocate for return value 
+  CAMLlocal1(res);
+
   Solver* solver = (Solver*) Field(solver_in, 0);
 
   // Read number of clauses 
   int vars = solver->nClauses();
 
-  // Return integer
-  value res = Val_int(vars);
+  // Return OCaml integer
+  res = Val_int(vars);
   CAMLreturn(res);
 
 }

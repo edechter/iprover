@@ -38,7 +38,7 @@ CSOLVER=solver
 OCAMLFLAGS=-inline 10 -I obj/ -I util/lib  
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
-LEXER = lexer_tptp
+LEXER = lexer_tptp lexer_fof
 PARSER = parser_tptp
 #BEFORE_PARSING = lib parser_types 
 #PARSER_TYPES = parser_types
@@ -54,7 +54,7 @@ BASE_NAMES_BEFORE_LEXER = lib union_find options statistics bit_vec tableArray h
 
 #BASE_NAMES_AFTER_LEXER = parser_tptp parsed_input_to_db parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms propSolver prop_solver_exchange inference_rules model_inst finite_models preprocess prep_sem_filter large_theories discount instantiation
 
-BASE_NAMES_AFTER_LEXER = parser_tptp parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms cMinisat propSolver prop_solver_exchange type_inf bmc1Axioms inference_rules model_inst finite_models preprocess prep_sem_filter prep_sem_filter_unif large_theories discount instantiation
+BASE_NAMES_AFTER_LEXER = parser_tptp parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms cMinisat propSolver prop_solver_exchange type_inf bmc1Axioms tstpProof inference_rules model_inst finite_models preprocess prep_sem_filter prep_sem_filter_unif large_theories discount instantiation
 
 BASE_NAMES_WITHOUT_LEXER = $(BASE_NAMES_BEFORE_LEXER) $(BASE_NAMES_AFTER_LEXER)
 BASE_NAMES_WITH_LEXER = $(BASE_NAMES_BEFORE_LEXER) $(LEXER) $(BASE_NAMES_AFTER_LEXER)

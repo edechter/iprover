@@ -17,6 +17,9 @@
 
 open Lib
 
+(* Unique identifier for next database created *)
+let next_db_id = ref 0
+
 module type ElemDB = 
   sig
     type t
@@ -39,6 +42,8 @@ module type AbstDB =
     val fold        : (elem -> 'a ->  'a) -> abstDB -> 'a -> 'a 
     val iter        : (elem -> unit) -> abstDB -> unit
     val get_name    : abstDB -> string
+    val get_db_id   : abstDB -> int
+
     val to_stream   : 
 	'a string_stream -> ('a string_stream -> elem -> unit) ->
 	    string -> abstDB -> unit
@@ -63,27 +68,59 @@ module Make(El : ElemDB) =
  struct
    type   elem  = El.t    
    module BasicAbstDB =  Map.Make (El) 
-   type   abstDB  = {db : (elem BasicAbstDB.t); name : string; size : int}   
- 
-   let create () = {db=BasicAbstDB.empty; name = "Anonymous DB"; size =0}
-   let create_name (name : string) = {db=BasicAbstDB.empty; name = name; size =0}
+
+   type abstDB = 
+       { db : (elem BasicAbstDB.t); 
+	 name : string; 
+
+	 (* Unique identifier for this database, needed to create
+	    globally unique names for elements with fast_key *)
+	 db_id : int;
+
+	 size : int}   
+	 
+   let create () = 
+
+     (* Increment unique identifier for next database *)
+     next_db_id := succ !next_db_id;
+
+     (* Create database *)
+     { db = BasicAbstDB.empty; 
+       name = "Anonymous DB"; 
+       db_id = pred !next_db_id;
+       size = 0 }
+       
+   let create_name (name : string) = 
+
+     (* Increment unique identifier for next database *)
+     next_db_id := succ !next_db_id;
+     
+     (* Create database *)
+     { db = BasicAbstDB.empty; 
+       name = name; 
+       db_id = pred !next_db_id;
+       size =0 }
+       
    let get_name elem_db = elem_db.name 
-       
+
+   (* Get unique identifier of the database *)
+   let get_db_id elem_db = elem_db.db_id 
+     
    let mem (elem : elem) (abstDB : abstDB) = BasicAbstDB.mem elem abstDB.db
-       
+     
    let find elem elem_db = BasicAbstDB.find elem elem_db.db
    let size elem_db = elem_db.size    
-       
+     
    let add_ref elem elem_db_ref = 
      try (find elem !elem_db_ref)
      with
-       Not_found-> 
-	 elem_db_ref:= 
-	   {!elem_db_ref with
-            db   =(BasicAbstDB.add elem elem (!elem_db_ref).db); 
-	    size = (!elem_db_ref).size + 1 };
-	 elem
-	   
+	 Not_found-> 
+	   elem_db_ref:= 
+	     {!elem_db_ref with
+               db   =(BasicAbstDB.add elem elem (!elem_db_ref).db); 
+	       size = (!elem_db_ref).size + 1 };
+	   elem
+	     
    let add elem  elem_db =
      let elem_db_ref = ref elem_db in
      let _= add_ref elem elem_db_ref in
@@ -92,22 +129,22 @@ module Make(El : ElemDB) =
 
    let remove elem elem_db =  
      {elem_db with 
-      db   = (BasicAbstDB.remove elem elem_db.db); 
-      size = elem_db.size-1}
+       db   = (BasicAbstDB.remove elem elem_db.db); 
+       size = elem_db.size-1}
        
    let map f elem_db = 
      { elem_db with
        db   = (BasicAbstDB.map f elem_db.db)}
 
    let fold f elem_db a = 
-       let f' key elem  a = f elem a in 
-       BasicAbstDB.fold f' elem_db.db a
-   
+     let f' key elem  a = f elem a in 
+     BasicAbstDB.fold f' elem_db.db a
+       
    let iter f elem_db = 
-       let f' key elem = f elem  in 
-       BasicAbstDB.iter f' elem_db.db
-   
-(*------------To streams/strings------------------------*)
+     let f' key elem = f elem  in 
+     BasicAbstDB.iter f' elem_db.db
+       
+   (*------------To streams/strings------------------------*)
 
    let to_stream s (el_to_str: 'a string_stream -> elem -> unit) separator elem_db =
      s.stream_add_str 

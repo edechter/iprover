@@ -22,6 +22,7 @@ module type ElemDB =
     type t
     val compare : t -> t -> int
     val assign_fast_key : t -> int -> unit
+    val assign_db_id : t -> int -> unit
   end
 
 module type AbstDB =
@@ -41,6 +42,7 @@ module type AbstDB =
     val iter        : (elem -> unit) -> abstDB -> unit
 (*    val to_string   : (elem -> string) -> string -> abstDB ->string*)
     val get_name    : abstDB -> string
+    val get_db_id   : abstDB -> int
     val to_stream   : 
 	'a string_stream -> ('a string_stream -> elem -> unit) ->
 	  string -> abstDB -> unit
@@ -66,11 +68,21 @@ module Make(El : ElemDB) =
       end
     module BasicAbstDB =  AbstDB.Make (BasicElem) 
   
-    type abstDB = {db : BasicAbstDB.abstDB; greatest_key : int }
-(* greates unused key*)
-    let create () = {db = BasicAbstDB.create (); greatest_key=0}
-    let create_name name = {db = BasicAbstDB.create_name name; greatest_key=0}
+    type abstDB = { db : BasicAbstDB.abstDB; 
+		    greatest_key : int }
+
+    (* greates unused key*)
+    let create () = 
+      { db = BasicAbstDB.create (); greatest_key = 0 }
+
+    let create_name name =
+      { db = BasicAbstDB.create_name name; greatest_key = 0 }
+
     let get_name elem_db  = BasicAbstDB.get_name elem_db.db
+
+    (* Return the unique identifier of the database *)
+    let get_db_id elem_db  = BasicAbstDB.get_db_id elem_db.db
+
     let mem elem elem_db  = BasicAbstDB.mem elem elem_db.db
     let find elem elem_db = BasicAbstDB.find elem elem_db.db
     let size elem_db = BasicAbstDB.size elem_db.db   
@@ -84,7 +96,12 @@ module Make(El : ElemDB) =
       try (find elem !elem_db_ref)
       with
 	Not_found-> 
-	  let ()=(El.assign_fast_key elem (!elem_db_ref).greatest_key) in        
+
+	  let ()=(El.assign_fast_key elem (!elem_db_ref).greatest_key) in       
+	  
+	  (* Assign unique identifier of database to element *)
+	  El.assign_db_id elem (get_db_id !elem_db_ref);
+
 	  let new_greatest_key = ((!elem_db_ref).greatest_key + 1) in
 	  elem_db_ref:={db =(BasicAbstDB.add elem (!elem_db_ref).db); 
 			greatest_key = new_greatest_key};	  

@@ -15,6 +15,7 @@
 
 MINISATDIR=$(CURDIR)/minisat
 HHLMUCDIR=$(CURDIR)/Haifa-HLMUC
+FIVERDIR=$(CURDIR)/Fiver
 
 export CXX=g++
 export AR=ar
@@ -28,11 +29,39 @@ export RANLIB=ranlib
 ########################################################################
 # Top-level targets
 
-all: minisat-ocaml # hhlmuc-ocaml
+all: minisat-ocaml fiver-ocaml # hhlmuc-ocaml
 
 .PHONY : clean
 
-clean: clean-minisat-ocaml # clean-hhlmuc-ocaml
+clean: clean-minisat-ocaml clean-fiver-ocaml # clean-hhlmuc-ocaml
+
+
+########################################################################
+# Make Fiver OCaml interface using generic Makefile.clib
+
+# Set variables $(CLIBNAME), $(CLIBINCDIR) and $(CLIBLIBDIR)
+fiver-opt-ocaml-lib fiver-nonopt-ocaml-lib fiver-test clean-fiver-ocaml: export CLIBNAME=fiver
+
+fiver-opt-ocaml-lib: export CLIBLIBDIR=$(FIVERDIR)/stOpt64
+
+fiver-nonopt-ocaml-lib: export CLIBLIBDIR=$(FIVERDIR)/st64
+
+fiver-opt-ocaml-lib fiver-nonopt-ocaml-lib fiver-test: export CLIBINCDIR=$(FIVERDIR)
+
+# Make optimised library by default
+fiver-ocaml: fiver-opt-ocaml-lib
+
+# Make Fiver interface
+fiver-opt-ocaml-lib fiver-nonopt-ocaml-lib: 
+	$(MAKE) -f Makefile.clib fiver-ocaml
+
+# Make testing executable for Fiver interface
+fiver-test: 
+	$(MAKE) -f Makefile.clib fiver-test
+
+# Clean interface 
+clean-fiver-ocaml: 
+	$(MAKE) -f Makefile.clib clean-fiver-ocaml
 
 
 ########################################################################

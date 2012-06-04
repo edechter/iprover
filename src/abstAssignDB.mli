@@ -28,6 +28,7 @@ module type ElemDB =
     type t
     val compare : t -> t -> int
     val assign_fast_key : t -> int -> unit
+    val assign_db_id : t -> int -> unit
   end
       
 module type AbstDB =
@@ -49,6 +50,10 @@ module type AbstDB =
     val iter        : (elem -> unit) -> abstDB -> unit
 (*    val to_string   : (elem -> string) -> string -> abstDB ->string*)
     val get_name    : abstDB -> string
+
+    (** Return the unique identifier of the database *)
+    val get_db_id   : abstDB -> int
+
     val to_stream   : 
 	'a string_stream -> ('a string_stream -> elem -> unit) ->
 	  string -> abstDB -> unit

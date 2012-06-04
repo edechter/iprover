@@ -246,7 +246,8 @@ let cnf_formula_fun name role formula annotations =
    begin
      let new_clause = 
        Clause.create (Clause.normalise_lit_list term_db_ref formula) in
-     Clause.assign_input_history new_clause;
+     (* Clause.assign_input_history new_clause; *)
+     Clause.assign_tstp_source_input new_clause "" name; 
      incr_int_stat 1 num_of_input_clauses;
      match role with 
      |"negated_conjecture" | "question" ->

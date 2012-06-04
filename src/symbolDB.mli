@@ -33,7 +33,11 @@ val map         : (symbol -> symbol)-> symbolDB -> symbolDB
 val fold        : (symbol -> 'a -> 'a) -> symbolDB -> 'a -> 'a
 val iter        : (symbol -> unit) -> symbolDB -> unit
 
-(* creates a fresh split symbol and adds it to DB*)
+(** Create a fresh split symbol and add it to the database
+
+    Follow the TPTP convention for new names, that is, create the
+    symbol as sP{n}_iProver_split.
+*)
 val create_new_split_symb : symbolDB ref ->  stype -> symbol
 
 val get_name    : symbolDB ->string

@@ -39,6 +39,7 @@ and term =
   | Var of var * var_info	
 and fun_info     = 
     {mutable fun_fast_key  : fast_key;
+     mutable fun_db_id     : fast_key;
      mutable num_of_symb : int param; 
      (* mutable var_list   : var_list param; *)
      (* can be very expensive and is used only in resol. for kbo, *)
@@ -55,11 +56,13 @@ and fun_info     =
 
 and var_info = 
     {mutable var_fast_key : fast_key;
+     mutable var_db_id    : fast_key;
 (*     mutable var_hash     : int param;*)
      mutable var_grounded : term param (*term obtained after grounding*)}
       
 let empty_fun_info () = 
   {fun_fast_key   = Undef; 
+   fun_db_id      = Undef; 
    num_of_symb    = Undef; 
    num_of_var     = Undef; 
    fun_grounded   = Undef; 
@@ -70,6 +73,7 @@ let empty_fun_info () =
 
 let empty_var_info () = 
   {var_fast_key = Undef; 
+   var_db_id    = Undef; 
 (*   var_hash     = Undef;*)
    var_grounded = Undef}    
 
@@ -100,6 +104,7 @@ type bound_term = term bind
 (* type term = {t : pure_term; info : info} *)  
 
 exception Term_fast_key_undef
+exception Term_db_id_undef
 exception Term_weight_undef
 exception Term_grounding_undef
 exception Term_assign_fkey_to_var
@@ -244,7 +249,7 @@ let rec pp_term_tptp ppf = function
   | Fun (s, [arg], _) when s == Symbol.symb_neg -> 
       Format.fprintf 
 	ppf 
-	"~%a" 
+	"~ %a" 
 	pp_term_tptp arg
 
   (* Non-unary negation *)
@@ -381,6 +386,27 @@ let get_var var_term =
   match var_term with 
   | Var(v,_) -> v
   | _-> failwith "term: get_var not a Var term"
+
+
+(* Get variables in term recursively *)
+let rec get_vars' accum = function 
+
+  (* No more subterms to recurse into *)
+  | [] -> accum 
+
+  (* Term is a functional term *)
+  | Fun(_, args, _) :: tl -> get_vars' accum (args @ tl)
+    
+  (* Term is a variable that has already been seen *)
+  | Var (v, _) :: tl when List.mem v accum -> get_vars' accum tl 
+
+  (* Term is a variable that has not been seen *)
+  | Var (v, _) :: tl -> get_vars' (v :: accum) tl
+
+
+(* Get all variables occurring in term *)
+let get_vars term = get_vars' [] [term]
+
 
 (* not efficient*)
 let rec get_var_list term = 
@@ -654,6 +680,29 @@ let assign_fast_key (t:term) (fkey:int) =
       |Undef -> var_info.var_fast_key <- Def(fkey)  
       |_     -> raise Term_fast_key_is_def
        )
+
+
+exception Term_db_id_is_def
+
+let assign_db_id = function 
+
+  (* Raise exception when db_id is already defined for functional term*)
+  | Fun(_, _, { fun_db_id = Def _ }) -> 
+    (function _ -> raise Term_db_id_is_def)
+
+  (* Raise exception when db_id is already defined for variable term *)
+  | Var(_, { var_db_id = Def _ }) -> 
+    (function _ -> raise Term_db_id_is_def)
+
+  (* Set db_id to defined value for functional term *)
+  | Fun(_, _, fun_info) -> 
+    (function db_id -> fun_info.fun_db_id <- Def(db_id))
+
+  (* Set db_id to defined value for variable *)
+  | Var(_, var_info) -> 
+    (function db_id -> var_info.var_db_id <- Def(db_id))
+
+
 
 (*
 exception Term_hash_is_def

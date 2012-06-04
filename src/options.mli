@@ -59,6 +59,13 @@ type bmc1_out_stat_type =
 type bmc1_axioms_type = 
     BMC1_Axioms_Reachable_All | BMC1_Axioms_Reachable_Last
 
+(** Adding unsat core for next bound *)
+type bmc1_add_unsat_core_type = 
+  | BMC1_Add_Unsat_Core_None (** Do not add clauses from unsat core *)
+  | BMC1_Add_Unsat_Core_Clauses (** Add clauses in unsat core *)
+  | BMC1_Add_Unsat_Core_Leaves (** Add leaf (input) clauses *)
+  | BMC1_Add_Unsat_Core_All (** Add all clauses and their parents *)
+
 (*--------*)
 type ground_splitting_type = Split_Input |Split_Full | Split_Off 
 
@@ -186,15 +193,18 @@ type options = {
     mutable sat_out_model         : sat_out_model_type;
 
 (*----BMC1---------------*)
-    mutable bmc1_incremental      : bool; 
+    mutable bmc1_incremental      : bool override; 
     mutable bmc1_axioms           : bmc1_axioms_type override;
     mutable bmc1_min_bound        : int override; 
     mutable bmc1_max_bound        : int override; 
     mutable bmc1_max_bound_default : int override; 
     mutable bmc1_symbol_reachability : bool; 
-    mutable bmc1_add_unsat_core   : bool override; 
+    mutable bmc1_add_unsat_core   : bmc1_add_unsat_core_type override; 
+    mutable bmc1_unsat_core_children : bool override; 
+    mutable bmc1_unsat_core_extrapolate_axioms : bool override; 
 
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
+    mutable bmc1_out_unsat_core   : bool override;
     mutable bmc1_verbose          : bool override;
     mutable bmc1_dump_clauses_tptp : bool override;
     mutable bmc1_dump_unsat_core_tptp : bool override;
@@ -205,10 +215,12 @@ type options = {
     mutable inst_lit_sel                      : inst_lit_sel_type;  
     mutable inst_solver_per_active            : int;
     mutable inst_solver_per_clauses           : int;
-    mutable inst_pass_queue1                  : pass_queue_type; 
-    mutable inst_pass_queue2                  : pass_queue_type;
-    mutable inst_pass_queue1_mult             : int;
-    mutable inst_pass_queue2_mult             : int;
+    mutable inst_pass_queue1                  : pass_queue_type override; 
+    mutable inst_pass_queue2                  : pass_queue_type override;
+    mutable inst_pass_queue3                  : pass_queue_type override;
+    mutable inst_pass_queue1_mult             : int override;
+    mutable inst_pass_queue2_mult             : int override;
+    mutable inst_pass_queue3_mult             : int override;
     mutable inst_dismatching                  : bool;
     mutable inst_eager_unprocessed_to_passive : bool;
     mutable inst_prop_sim_given               : bool;
@@ -219,6 +231,7 @@ type options = {
     mutable inst_start_prop_sim_after_learn   : int;
     mutable inst_sel_renew                    : inst_sel_renew_type;
     mutable inst_lit_activity_flag            : bool;
+    mutable inst_out_proof                    : bool override;
 
 (*----Resolution---------*)
     mutable resolution_flag               : bool;

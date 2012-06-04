@@ -53,6 +53,9 @@ val get_num_of_var        : term -> int
 (* assume that term is a Var term*)
 val get_var               : term -> var
 
+(** Return the list of variables occurring in the term *)
+val get_vars : term -> var list 
+
 val get_var_list          : term -> var_list  
 
 (* bool params *)
@@ -116,6 +119,9 @@ val iter_sym_depth : (int -> symbol -> unit) -> term -> unit
 (* assign_fast_key is done when building termDB *)
  
 val assign_fast_key   : term -> int -> unit
+
+val assign_db_id   : term -> int -> unit
+
 (* only to be used in termDB*)
 val assign_num_of_symb : term -> unit
 (* first arg is a ground term assigned to the second arg *)

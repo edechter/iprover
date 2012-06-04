@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------(C)-*)
-(* Copyright (C) 2006-2010 Konstantin Korovin and The University of Manchester. 
+(* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
    This file is part of iProver - a theorem prover for first-order logic.
 
    iProver is free software: you can redistribute it and/or modify
@@ -14,20 +14,17 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
+(** Get parent clauses which are input clauses *)
+val get_leaves : Clause.clause list -> Clause.clause list 
 
-type clause  = Clause.clause
+(** Get parent clauses *)
+val get_parents : Clause.clause list -> Clause.clause list 
 
-type split_map
-val create_split_map : unit -> split_map
+(** Output a clause and its source *)
+val pp_clause_with_source : bool -> Format.formatter -> Clause.clause -> unit
 
-type split_result 
-   
-val get_split_list         : split_result -> clause list
-val get_num_of_splits      : split_result -> int
-val get_num_of_split_atoms : split_result -> int
+(** Output a proof of the empty clause in TSTP format *)
+val pp_tstp_proof_resolution : Format.formatter -> Clause.clause -> unit
 
-
-val ground_split_clause : clause -> split_result 
-
-
-val ground_split_clause_list : clause list -> split_result 
+(** Output a proof of an ground unsatisfiable core in TSTP format *)
+val pp_tstp_proof_unsat_core : Format.formatter -> Clause.clause list -> unit
