@@ -300,6 +300,12 @@ let pp_inference_rule parents ppf = function
       (pp_any_list (pp_clause_name_bind bindings) ",")
       parents
 
+  | Clause.Subtyping -> 
+       Format.fprintf 
+	ppf 
+	"subtyping,@,[status(thm)],@,@[<hov 1>[%a]@]" 
+	(pp_any_list Clause.pp_clause_name ",")
+	parents
 
 (* Print an inference record 
 

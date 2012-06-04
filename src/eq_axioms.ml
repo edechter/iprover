@@ -329,7 +329,9 @@ let typed_eq_axioms_sig csig =
       let typed_trans_symmetry_ax = 
 	typed_trans_symmetry_axiom_type_set csig.Clause.sig_eq_types in
 
-      ((typed_reflexivity_ax)@((typed_trans_symmetry_ax)@typed_cong_ax_list))
+   let eq_axioms = 
+     ((typed_reflexivity_ax)@((typed_trans_symmetry_ax)@typed_cong_ax_list)) in 
+   eq_axioms
      )
 
 

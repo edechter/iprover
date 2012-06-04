@@ -66,6 +66,7 @@ type tstp_inference_rule =
   | Backward_subsumption_resolution
   | Splitting of symbol list
   | Grounding of (Var.var * Term.term) list
+  | Subtyping
 
 type tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -250,6 +251,8 @@ val assign_tstp_source_split : symbol list -> clause -> clause -> unit
 
 (** Clause is generated in grounding with variable substitutions *)
 val assign_tstp_source_grounding : (Var.var * Term.term) list -> clause -> clause -> unit 
+
+val assign_tstp_source_subtyping : clause -> clause -> unit 
 
 
 (** Clause is an equality axiom *)

@@ -38,6 +38,8 @@ CSOLVER=solver
 OCAMLFLAGS=-inline 10 -I obj/ -I util/lib  
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
+
+#LEXER = lexer_tptp lexer_fof
 LEXER = lexer_tptp lexer_fof
 PARSER = parser_tptp
 #BEFORE_PARSING = lib parser_types 
@@ -78,7 +80,8 @@ IPROVER_BASE_NAME = iprover
 ifeq ($(OPT),true)
   COMPILE=$(OCAMLOPT)
   ADDTONAME=opt
-  OBJ = $(OBJ_BASE_NAMES:%=obj/%.cmx) 
+ OBJ = $(OBJ_BASE_NAMES:%=obj/%.cmx) 
+#OBJ = $(BASE_NAMES_BEFORE_LEXER:%=obj/%.cmx) $(LEXER:%=src/%.ml) $(LEXER:%=obj/%.cmx) $(BASE_NAMES_AFTER_LEXER:%=obj/%.cmx)
  # IPROVER_ADD_OBJ = $(IPROVER_ADD_OBJ_BASE_NAMES:%=obj/%.cmx) obj/$(IPROVER_BASE_NAME).cmx
     IPROVER_ADD_OBJ = obj/$(IPROVER_BASE_NAME).cmx
 else 	
@@ -127,7 +130,7 @@ IPROVER_NAME = $(IPROVER_BASE_NAME)$(ADDTONAME)$(ADDTONAME_CPP)
 # $(IPROVER_NAME) : util/lib/minisat.cmxa util/lib/hhlmuc.cmxa \
 
 $(IPROVER_NAME) : util/lib/minisat.cmxa \
-		  $(INTERFACE)\
+		  $(INTERFACE) $(LEXER:%=src/%.ml)\
                   $(OBJ) $(IPROVER_C_OBJ) $(IPROVER_ADD_OBJ) src/$(IPROVER_BASE_NAME).ml 
 	$(COMPILE) $(IPROVERFLAGS) $(IPROVER_C_OBJ) -o $@ \
         $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
@@ -173,8 +176,19 @@ prop_solver_standalone : $(STANDALONE_OBJ)  src/prop_solver_standalone.ml
 #----------------------------------------
 
 
-src/$(LEXER).ml : src/$(LEXER).mll
-	ocamllex src/$(LEXER).mll
+#src/$(LEXER).ml : $(@)l
+#	ocamllex $<
+
+#$(LEXER:%=src/%.ml) : $(LEXER:%=src/%.mll)
+#	ocamllex $<
+
+src/lexer_tptp.ml : src/lexer_tptp.ml
+	 ocamllex $<
+
+src/lexer_fof.ml : src/lexer_fof.mll
+	ocamllex $<
+
+
 
 #generates both mli and ml from mly
 src/$(PARSER).mli src/$(PARSER).ml: src/$(PARSER).mly

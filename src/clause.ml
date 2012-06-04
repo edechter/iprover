@@ -189,6 +189,7 @@ and tstp_inference_rule =
   | Backward_subsumption_resolution
   | Splitting of symbol list
   | Grounding of (var * term) list
+  | Subtyping
 
 and tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -198,7 +199,7 @@ and tstp_source =
   | TSTP_internal_source of tstp_internal_source
   | TSTP_inference_record of tstp_inference_record
 
-(* ********************************************************************** *)
+(*---------------------------------------------------------*)
 
 
 
@@ -995,6 +996,11 @@ let assign_tstp_source_factoring clause parent upon_literals =
     clause
     (TSTP_inference_record ((Factoring upon_literals), [parent]))
 
+
+let assign_tstp_source_subtyping clause parent = 
+   assign_tstp_source 
+    clause
+    (TSTP_inference_record ((Subtyping), [parent])) 
 
 (* Clause is in input *)
 let assign_tstp_source_input clause file name = 

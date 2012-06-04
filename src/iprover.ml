@@ -1433,7 +1433,7 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 		"@\n%sTime to find parents of unsat core clauses: %.3f@."
 		pref_str
 		(end_time -. start_time);
-(*	      
+	      
 	      (* Print parents of unsat core *)
 	      Format.printf 
 		"@\n%sUnsat core parents has size %d@\n@." 
@@ -2241,7 +2241,7 @@ let run_iprover () =
 (*     out_str "\n\n\n Before get_side_clauses \n\n\n ";*)
 (*side_clauses used in sem filter*)
       let get_side_clauses () =  
-	if !current_options.bmc1_incremental then
+	if val_of_override !current_options.bmc1_incremental then
 (* we initialised Bmc1Axioms.init_bound !current_clauses above *)
 (* simulate is true in increment_bound *)
 	     ((Bmc1Axioms.get_bound_assumptions 1)
@@ -2378,51 +2378,57 @@ let run_iprover () =
     | Instantiation.Unsatisfiable ->
 
     (
-
 	(* Output backtrace of unsatisfiable exception *)
-      if !current_options.dbg_backtrace then
-	  Format.eprintf 
-	    "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." 
-	    (Printexc.get_backtrace ());
-      
-      (* In incremental BMC1? *)
-      if !current_options.bmc1_incremental then
+     ( if !current_options.dbg_backtrace 
+      then
+	Format.eprintf 
+	  "Unsatisfiable exception raised.@\nBacktrace:@\n%s@\n@." 
+	  (Printexc.get_backtrace ());
+      );
+
 	(* Output SZS status *)
 	out_str (proved_str ());
-	
-	(
+
+	(* Output answer *)
+     (if !answer_mode_ref then
+       Prop_solver_exchange.out_answer ();
+     );
+
      
 	(* Output proof from instantiation? *)
-	if val_of_override !current_options.inst_out_proof then 
-      (
-
-	    (* Record time when proof extraction started *)
-	    let start_time = Unix.gettimeofday () in
-
-	    (* Get unsatisfiable core *)
-	let unsat_core_clauses = Prop_solver_exchange.unsat_core () in
-	
-	    (* Start proof output *)
-	    Format.printf
-	      "@\n%% SZS output start CNFRefutation@\n@.";
+     begin
+       if val_of_override !current_options.inst_out_proof 
+       then 
+	 (
 	  
-	    (* Proof output *)
-	    Format.printf 
-	      "%a@." 
-	      TstpProof.pp_tstp_proof_unsat_core 
-	      unsat_core_clauses;
+	  (* Record time when proof extraction started *)
+	  let start_time = Unix.gettimeofday () in
 	  
-	    (* End proof output *)
-	Format.printf 
-	      "%% SZS output end CNFRefutation@\n@.";
+	  (* Get unsatisfiable core *)
+	  let unsat_core_clauses = Prop_solver_exchange.unsat_core () in
+	    
+	  (* Start proof output *)
+	  Format.printf
+	    "@\n%% SZS output start CNFRefutation@\n@.";
 	  
-	    (* Record time when proof extraction finished *)
+	  (* Proof output *)
+	  Format.printf 
+	    "%a@." 
+	    TstpProof.pp_tstp_proof_unsat_core 
+	    unsat_core_clauses;
+	  
+	  (* End proof output *)
+	  Format.printf 
+	    "%% SZS output end CNFRefutation@\n@.";
+	  
+	  (* Record time when proof extraction finished *)
 	    let end_time = Unix.gettimeofday () in
-
+	    
 	    (* Save time for proof extraction *)
 	    add_float_stat (end_time -. start_time) out_proof_time;
-	
-      );
+	    
+	 );
+     end;
       
       
       (* For ISA use 
@@ -2432,18 +2438,16 @@ let run_iprover () =
       *)
 
 
-	(* Output answer *)
-	if !answer_mode_ref then
-	  Prop_solver_exchange.out_answer ();
-      
 	
 	(* In incremental BMC1? 
 
 	   Then output status once for each bound to prove *)
-	if val_of_override !current_options.bmc1_incremental then
-
+     begin
+       if val_of_override !current_options.bmc1_incremental 
+       then
+	 
          (
-
+	  
 	  Format.printf 
 	    "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
 	    pref_str
@@ -2457,10 +2461,10 @@ let run_iprover () =
 	  in
 	  
 	  let rec skip_all_bounds () = 
-
+	    
 	    (* Next bound *)
 	    let next_bound = succ !bmc1_cur_bound in
-
+	    
 	    (* Output current bound *)
 	    Format.printf 
 	      "@.@\n%s BMC1 bound %d UNSAT@\n@."
@@ -2474,62 +2478,62 @@ let run_iprover () =
 	    assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
 	    
 	    (
-	      
-	      (* When to output statistics? *)
-	      match val_of_override !current_options.bmc1_out_stat with
-		  
-		(* Output statistics after each bound *)
+	     
+	     (* When to output statistics? *)
+	     match val_of_override !current_options.bmc1_out_stat with
+	       
+	       (* Output statistics after each bound *)
 		| BMC1_Out_Stat_Full -> out_stat ()
-
-		(* Output statistics after last bound *)
+		      
+		      (* Output statistics after last bound *)
 		| BMC1_Out_Stat_Last 
-		    when next_bound > max_bound -> out_stat ()
+		  when next_bound > max_bound -> out_stat ()
 
-		(* Do not output statistics for bounds before last *)
+		      (* Do not output statistics for bounds before last *)
 		| BMC1_Out_Stat_Last -> ()
-
-		(* Never output statistics *)
+		      
+		      (* Never output statistics *)
 		| BMC1_Out_Stat_None -> ()
 
 	    );
-	    
 	    if 
 	      
 	      (* Next bound less than or equal maximal bound? *)
 	      next_bound <= max_bound &&
 		
-		(* No maximal bound for -1 *)
-		max_bound >= 0 
+	      (* No maximal bound for -1 *)
+	      max_bound >= 0 
 		
 	    then
-	 
+	      
 	      (
-
+	       
 		(* Increment bound *)
-		bmc1_cur_bound := next_bound;
-		
-		(* Recurse to output all bounds up to maximum *)
-		skip_all_bounds ()
-
+	       bmc1_cur_bound := next_bound;
+	       
+	       (* Recurse to output all bounds up to maximum *)
+	       skip_all_bounds ()
+		 
 	      )
 		
 	  in
-
+	  
 	    (* Increment bound *)
-	    bmc1_cur_bound := succ !bmc1_cur_bound;
-		
+	  bmc1_cur_bound := succ !bmc1_cur_bound;
+	  
 	  (* Output results for all bounds up to maximum *)
 	  skip_all_bounds ()
 	    
-      );
+	 );
+     end;
       
        (* Do not output statistics in BMC1 mode with
 	  --bmc1_out_stat none *)
 	if (not (val_of_override !current_options.bmc1_incremental)) || 
 	(not (val_of_override !current_options.bmc1_out_stat = 
-	    BMC1_Out_Stat_None)) then
-	out_stat ()
-
+	      BMC1_Out_Stat_None)) then
+	  out_stat ()
+	    
     )
 
     (* Unsatisfiable due to empty clause in resolution *)
