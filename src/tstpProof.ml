@@ -318,7 +318,7 @@ let pp_inference_rule parents ppf = function
   | Clause.Subtyping -> 
        Format.fprintf 
 	ppf 
-	"subtyping,@,[status(thm)],@,@[<hov 1>[%a]@]" 
+	"subtyping,@,[status(esa)],@,@[<hov 1>[%a]@]" 
 	(pp_any_list Clause.pp_clause_name ",")
 	parents
 
