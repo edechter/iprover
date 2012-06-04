@@ -23,6 +23,9 @@ val get_parents : Clause.clause list -> Clause.clause list
 (** Output a clause and its source *)
 val pp_clause_with_source : bool -> Format.formatter -> Clause.clause -> unit
 
+(** Output a clause and its source *)
+val pp_clauses_with_clausification : Format.formatter -> Clause.clause list -> unit
+
 (** Output a proof of the empty clause in TSTP format *)
 val pp_tstp_proof_resolution : Format.formatter -> Clause.clause -> unit
 

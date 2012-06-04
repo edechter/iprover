@@ -78,7 +78,14 @@ let rec get_leaves' visited accum = function
 let get_leaves clause_list = 
   get_leaves' (Clause.ClauseHashtbl.create 101) [] clause_list
 
-
+(* Order clauses topologically: leaves at the beginning, root at the
+   end. First add all parents of a clause, then the clause.
+   
+   visited is a hash table of clauses seen and a flag if the
+   clause has been added to the accumulator: a clause in the hash
+   table with a false value has been seen but not added to the list, a
+   clause with a true value is already in the list.
+*)
 let rec get_parents' visited accum = function
 
   (* No more clause histories to recurse *)
@@ -86,6 +93,10 @@ let rec get_parents' visited accum = function
       
   (* Clause already seen *)
   | (clause :: tl) when Clause.ClauseHashtbl.mem visited clause ->
+
+      (* Format.eprintf "get_parents' (visited) %a@."
+	Clause.pp_clause
+	clause; *)
 
     (* Clause is already in the list *)
     if Clause.ClauseHashtbl.find visited clause then
@@ -108,6 +119,10 @@ let rec get_parents' visited accum = function
   (* New clause *)
   | clause :: tl -> 
     
+      (* Format.eprintf "get_parents' (new) %a@."
+	Clause.pp_clause
+	clause; *)
+      
     (* Remember recursion into parents of clause *)
     Clause.ClauseHashtbl.add visited clause false;
 
@@ -449,7 +464,8 @@ let rec pp_clausification' visited clausify_proof ppf = function
   | [] -> ()
 
   (* Clause already printed *)
-  | fof_id :: _ when Hashtbl.mem visited fof_id -> ()
+  | fof_id :: tl when Hashtbl.mem visited fof_id -> 
+      pp_clausification' visited clausify_proof ppf tl
 
   (* Clause not already printed *)
   | fof_id :: tl ->
@@ -618,6 +634,11 @@ let pp_clauses_with_clausification ppf clauses =
 	      | _ -> ()
 		  
 	  );
+
+	  (* Format.eprintf 
+	    "%a@."
+	    pp_clausify_proof 
+	    clausify_proof; *)
 
 	  (* Print derivation of clauses from input formulae *)
 	  List.iter 
