@@ -1213,7 +1213,40 @@ let rec main clauses finite_model_clauses =
 	    if (not (!current_options.sat_out_model = Model_None))
 	    then
 	      out_res_model all_clauses
-	    else ()
+	    else ();
+
+	    if !current_options.sat_out_clauses then
+	      
+	      (
+
+		(* Filter clause database for active clauses *)
+		let active_clauses =
+		  ClauseAssignDB.fold
+		    (fun c a ->
+		       if 
+			 Clause.get_bool_param Clause.in_active c
+		       then
+			 c :: a
+		       else
+			 a)
+		    all_clauses
+		    []
+		in
+
+	      (* Start saturation output *)
+	      Format.printf "@\n%% SZS output start Saturation@\n@.";
+	      
+	      (* Saturation output *)
+	      Format.printf 
+		"%a@." 
+		TstpProof.pp_clauses_with_clausification 
+		active_clauses;
+	      
+	      (* End saturation output *)
+	      Format.printf "%% SZS output end Saturation@\n@.";
+
+	      )
+
 	  )
       |
 	  Instantiation.Satisfiable all_clauses 
@@ -1234,7 +1267,40 @@ let rec main clauses finite_model_clauses =
 	   if (not (!current_options.sat_out_model = Model_None))
 	   then
 	     Model_inst.out_model (Model_inst.build_model all_clauses)
-	   else ()
+	   else ();
+
+	    if !current_options.sat_out_clauses then
+	      
+	      (
+
+		(* Filter clause database for active clauses *)
+		let active_clauses =
+		  ClauseAssignDB.fold
+		    (fun c a ->
+		       if 
+			 Clause.get_bool_param Clause.in_active c
+		       then
+			 c :: a
+		       else
+			 a)
+		    all_clauses
+		    []
+		in
+
+	      (* Start saturation output *)
+	      Format.printf "@\n%% SZS output start Saturation@\n@.";
+	      
+	      (* Saturation output *)
+	      Format.printf 
+		"%a@." 
+		TstpProof.pp_clauses_with_clausification 
+		active_clauses;
+	      
+	      (* End saturation output *)
+	      Format.printf "%% SZS output end Saturation@\n@.";
+
+	      )
+
 	  )
 
       (* Incremental BMC1 solving: unsatisfiable when there are higher

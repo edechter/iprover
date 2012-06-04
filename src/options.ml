@@ -629,6 +629,7 @@ type options = {
     mutable sat_gr_def            : bool;
     mutable sat_finite_models     : bool;
     mutable sat_out_model         : sat_out_model_type;
+    mutable sat_out_clauses       : bool;
 
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool override; 
@@ -740,6 +741,7 @@ let default_options () = {
   sat_gr_def              = false;
   sat_finite_models       = false;
   sat_out_model           = Model_Small;
+  sat_out_clauses         = false;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -1346,9 +1348,20 @@ let sat_out_model_inf =
   inf_pref^"debug   -- in addition outputs 1) clauses with selected literals in the form {|L|;L_1;...;L_n}"^
   inf_pref^"           where |L| is the selected literal and 2) constraints"^ 
   inf_pref^"           Using debug it is possible to recover the justification of why each clause is true in the model\n"^
-  inf_pref^"none     -- no model output \n"^
+  inf_pref^"none     -- no model output \n"
+
+(*--------*)
+let sat_out_clauses_str = "--sat_out_clauses"
+
+let sat_out_clauses_fun b = 
+    !current_options.sat_out_clauses <- b
+       
+let sat_out_clauses_inf = 
+  bool_str^
+  inf_pref^"Outputs all active clauses if the input is show satisfiable. "^
 (* ugly hack *)
   (dash_str "BMC1 Options")^"\n"
+
 
 (*----BMC1---------------*)
 
@@ -2182,6 +2195,7 @@ let spec_list =
    (sat_gr_def_str,Arg.Bool(sat_gr_def_fun),sat_gr_def_inf);
    (sat_finite_models_str,Arg.Bool(sat_finite_models_fun),sat_finite_models_inf);
    (sat_out_model_str,Arg.String(sat_out_model_fun),sat_out_model_inf); 
+   (sat_out_clauses_str,Arg.Bool(sat_out_clauses_fun),sat_out_clauses_inf); 
 
 (*----BMC1---------------*)
    (bmc1_incremental_str, 
@@ -2376,7 +2390,8 @@ let sat_options_str_list opt =
    (sat_mode_str,(string_of_bool opt.sat_mode));
    (sat_gr_def_str,(string_of_bool opt.sat_gr_def));
    (sat_finite_models_str,(string_of_bool opt.sat_finite_models));
-   (sat_out_model_str, (sat_out_model_type_to_str opt.sat_out_model))
+   (sat_out_model_str, (sat_out_model_type_to_str opt.sat_out_model));
+   (sat_out_clauses_str, (string_of_bool opt.sat_out_clauses))
  ]
 
 let bmc1_options_str_list opt =
@@ -2821,6 +2836,7 @@ let option_1 () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -2998,6 +3014,7 @@ let option_2 () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -3138,6 +3155,7 @@ let option_3 () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -3273,6 +3291,7 @@ let option_4 () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -3415,6 +3434,7 @@ let option_finite_models () = {
   sat_gr_def              = false;
   sat_finite_models       = true;
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -3553,6 +3573,7 @@ let option_epr_non_horn () = {
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -3811,6 +3832,7 @@ let option_epr_horn () = {
   sat_gr_def              = false;
   sat_finite_models       = false;
   sat_out_model           = !current_options.sat_out_model; 
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault false;
@@ -4070,6 +4092,7 @@ let option_verification_epr ver_epr_opt =
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault true;
@@ -4214,6 +4237,7 @@ let option_verification_epr ver_epr_opt =
   sat_gr_def              = false;
   sat_finite_models       = false; 
   sat_out_model           = !current_options.sat_out_model;
+  sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault true;
@@ -4358,6 +4382,7 @@ let option_verification_epr ver_epr_opt =
        sat_gr_def              = false;
        sat_finite_models       = false; 
        sat_out_model           = !current_options.sat_out_model;
+       sat_out_clauses         = !current_options.sat_out_clauses;
 
 (*----BMC1---------------*)
   bmc1_incremental        = ValueDefault true;

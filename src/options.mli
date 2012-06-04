@@ -189,6 +189,7 @@ type options = {
     mutable sat_gr_def            : bool;
     mutable sat_finite_models     : bool;
     mutable sat_out_model         : sat_out_model_type;
+    mutable sat_out_clauses       : bool;
 
 (*----BMC1---------------*)
     mutable bmc1_incremental      : bool override; 
