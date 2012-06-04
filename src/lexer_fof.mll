@@ -70,40 +70,115 @@ rule line proof = parse
 and cont fof_head fof_id proof = shortest
 
   (* Keyword inference found *)
-  | [^ '\n']* "inference(" graph+ ",[],[" as fof_cont 
+  | blank+ (alpha+ as inference) "(" graph+ ",[],[" as fof_cont 
 
       { 
 
-	(* Format.eprintf "Parsed '%s' @." fof_cont; *)
+	(* Inference rule found? *)
+	if inference = "inference" then
 
-	(* Parse lists of parent formulae *)
-	parents (fof_head ^ fof_cont) fof_id proof [] lexbuf
+	  (
 
+	    (* Format.eprintf "Parsed '%s' @." fof_cont; *)
+	  
+	    (* Parse lists of parent formulae *)
+	    parents (fof_head ^ fof_cont) fof_id proof [] lexbuf
+
+	  )
+
+	else
+
+	  (
+	   
+	    (* Format.eprintf "Not recognised '%s' as inference keyword@\nParsing '%s' as continued line@." inference fof_cont; *)
+	    
+	    (* Treat as continued line *)
+	    cont (fof_head ^ fof_cont) fof_id proof lexbuf 
+
+	  )
       }
 
   (* Keyword file found at the end of the line *)
-  | [^ '\n']* "file(" graph+ "," graph+ ")).\n" as fof_cont
+  | blank+ (alpha+ as introduced) "(" graph+ ",[])).\n" as fof_cont
 
       { 
 	
-	(* Format.eprintf "Parsed '%s' as file source @." fof_cont; *)
-
-	(* Increment line number *)
-	incr_linenum lexbuf;
-
-	(* Add line and no parent to hash table *)
-	Hashtbl.add 
-	  proof 
-	  (int_of_string fof_id) 
-	  ((fof_head ^ fof_cont), []);
-	
-	(* Continue with remaining lines *)
-	line proof lexbuf 
+	(* Introduced formula found? *)
+	if introduced = "introduced" then
 	  
+	  (
+	    
+	    (* Format.eprintf "Parsed '%s' as introduced formula @." fof_cont; *)
+	    
+	    (* Increment line number *)
+	    incr_linenum lexbuf;
+	    
+	    (* Add line and no parent to hash table *)
+	    Hashtbl.add 
+	      proof 
+	      (int_of_string fof_id) 
+	      ((fof_head ^ fof_cont), []);
+	    
+	    (* Continue with remaining lines *)
+	    line proof lexbuf 
+	  
+	  )
+	    
+	else
+
+	  (
+
+	    (* Format.eprintf "Not recognised '%s' as introduced keyword@\nParsing '%s' as continued line@." introduced fof_cont; *)
+
+
+	    (* Treat as continued line *)
+	    cont (fof_head ^ fof_cont) fof_id proof lexbuf 
+	    
+	  )
+
+      }
+      
+  (* Keyword file found at the end of the line *)
+  | blank+ (alpha+ as file) "(" graph+ "," graph+ ")).\n" as fof_cont
+
+      { 
+	
+	(* File source found? *)
+	if file = "file" then
+	  
+	  (
+	    
+	    (* Format.eprintf "Parsed '%s' as file source @." fof_cont; *)
+	    
+	    (* Increment line number *)
+	    incr_linenum lexbuf;
+
+	    (* Add line and no parent to hash table *)
+	    Hashtbl.add 
+	      proof 
+	      (int_of_string fof_id) 
+	      ((fof_head ^ fof_cont), []);
+	    
+	    (* Continue with remaining lines *)
+	    line proof lexbuf 
+	      
+	  )
+
+	else
+	  
+	  (
+
+	    (* Format.eprintf "Not recognised '%s' as file keyword@\nParsing '%s' as continued line@." file fof_cont; *)
+
+	    (* Treat as continued line *)
+	    cont (fof_head ^ fof_cont) fof_id proof lexbuf 
+	    
+	  )
+
       }
 
-  (* No keywords found at the end of the line *)
-  | _ [^ '\n']* "\n" as fof_cont
+  (* No keywords found until the end of the line *)
+  | [^ '\n']* "\n" as fof_cont
       
       { 
 	
@@ -128,12 +203,7 @@ and parents fof_head fof_id proof fof_parents = parse
   | "f" (digit+ as parent_id) as fof_cont 
 
       { 
-	
-	Format.eprintf 
-	"Parsed %d as parent of %d@." 
-	(int_of_string parent_id)
-	(int_of_string fof_id); 
-	
+
 	(* Recurse to get possibly multiple parents *)
 	parents 
 	  (fof_head ^  fof_cont) 
@@ -148,11 +218,6 @@ and parents fof_head fof_id proof fof_parents = parse
   | ",f" (digit+ as parent_id) as fof_cont 
 
       { 
-	
-	Format.eprintf 
-	"Parsed %d as parent of %d@." 
-	(int_of_string parent_id)
-	(int_of_string fof_id); 
 	
 	(* Recurse to get possibly multiple parents *)
 	parents 

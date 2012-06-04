@@ -445,7 +445,9 @@ let rec pp_clausify_proof_parents ppf = function
   | [] -> ()
   | [p] -> Format.fprintf ppf "%d" p
   | p :: tl -> 
-      pp_clausify_proof_parents ppf [p]; Format.fprintf ppf ","
+    pp_clausify_proof_parents ppf [p]; 
+    Format.fprintf ppf ","; 
+    pp_clausify_proof_parents ppf tl
 	
 (* Output one entry of the hash table for the clausification proof *)
 let pp_clausify_proof_line ppf f = function
@@ -470,17 +472,25 @@ let rec pp_clausification' visited clausify_proof ppf = function
   (* Clause not already printed *)
   | fof_id :: tl ->
 
-      (* Get clause and parents from hash table *)
-      let fof_clause, parents = Hashtbl.find clausify_proof fof_id in
+    (
 
+      try 
+
+	(* Get clause and parents from hash table *)
+	let fof_clause, parents = Hashtbl.find clausify_proof fof_id in
+      
 	(* Print clause *)
 	Format.fprintf ppf "%s@." fof_clause;
-	
+
 	(* Mark clause as printed *)
 	Hashtbl.add visited fof_id true;
-	
+      
 	(* Output parent clauses *)
 	pp_clausification' visited clausify_proof ppf (parents @ tl)
+
+      with Not_found -> ()
+
+    )
 
 
 (* Output clausification if clause is an input clause *)
