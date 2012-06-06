@@ -200,8 +200,8 @@ let get_assumptions_sim () =
 (* Return literal assumptions for unsat core solver *)
 let get_solver_uc_assumptions () = 
   !solver_uc_assumptions_ref @ 
-    !solver_uc_norm_assumptions_ref @ 
-    !solver_uc_sim_assumptions_ref
+  !solver_uc_norm_assumptions_ref @ 
+  !solver_uc_sim_assumptions_ref
 
 (* adjoint_preds are added for all simplified claues *)
 (* used in finite models *)

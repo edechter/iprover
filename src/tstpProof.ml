@@ -644,12 +644,12 @@ let pp_clauses_with_clausification ppf clauses =
 	      | _ -> ()
 		  
 	  );
-
-	  (* Format.eprintf 
+(*
+	   Format.eprintf 
 	    "%a@."
 	    pp_clausify_proof 
-	    clausify_proof; *)
-
+	    clausify_proof; 
+*)
 	  (* Print derivation of clauses from input formulae *)
 	  List.iter 
 	    (pp_clausification (Hashtbl.create 101) clausify_proof ppf) 

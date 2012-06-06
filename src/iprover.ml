@@ -1072,9 +1072,40 @@ let verification_epr_schedule_tables () =
   strip_conj_schedule [(option_last,time_last)]
 
 
-(* !!!FINISH!!!*)
-let out_res_model all_clauses = 
-  ()  
+(*------- out models for resolution ---------------*)
+
+let sat_out_active_clauses_db all_clauses_db filtered_out =
+
+  (* Filter clause database for active clauses *)
+  let active_clauses =
+    ClauseAssignDB.fold
+      (fun c a ->
+	if 
+	  Clause.get_bool_param Clause.in_active c
+	then
+	  c :: a
+	else
+	  a)
+      all_clauses_db
+      []
+  in
+  
+  (* Start saturation output *)
+  Format.printf "@\n%% SZS output start Saturation@\n@.";
+  let all_clauses = filtered_out@active_clauses in
+  (* Saturation output *)
+  Format.printf 
+    "%a@." 
+    TstpProof.pp_clauses_with_clausification 
+    all_clauses;
+	      
+	      (* End saturation output *)
+  Format.printf "%% SZS output end Saturation@\n@."
+
+
+let out_res_model all_clauses_db = 
+  sat_out_active_clauses_db all_clauses_db
+    
 
 (*
   let init_schedule () =  
@@ -1242,7 +1273,7 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 	then 	  
 	  when_eq_ax_ommitted ()
 	else	
-	  (
+	  begin
 	    out_str (satisfiable_str ());  
 
 	    (* Do not output statistics in BMC1 mode with
@@ -1252,44 +1283,15 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 		  BMC1_Out_Stat_None)) then
 	      out_stat ();	   
 
-	    if (not (!current_options.sat_out_model = Model_None))
+	    if 
+	      (not (!current_options.sat_out_model = Model_None)) ||
+	      !current_options.sat_out_clauses
 	    then
-	      out_res_model all_clauses
-	    else ();
-
-	    if !current_options.sat_out_clauses then
+	      out_res_model all_clauses filtered_out_clauses
+	    else ()
 	      
-	      (
+	  end
 
-		(* Filter clause database for active clauses *)
-		let active_clauses =
-		  ClauseAssignDB.fold
-		    (fun c a ->
-		       if 
-			 Clause.get_bool_param Clause.in_active c
-		       then
-			 c :: a
-		       else
-			 a)
-		    all_clauses
-		    []
-		in
-
-	      (* Start saturation output *)
-	      Format.printf "@\n%% SZS output start Saturation@\n@.";
-	      
-	      (* Saturation output *)
-	      Format.printf 
-		"%a@." 
-		TstpProof.pp_clauses_with_clausification 
-		active_clauses;
-	      
-	      (* End saturation output *)
-	      Format.printf "%% SZS output end Saturation@\n@.";
-
-	      )
-
-	  )
       |
 	  Instantiation.Satisfiable all_clauses 
 	->
@@ -1311,41 +1313,17 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 	   let inst_model = 
 	     (Model_inst.build_model all_clauses filtered_out_clauses) in
 	   Model_inst.out_model inst_model
-	   else ();
-
-	    if !current_options.sat_out_clauses then
-	      
-	      (
-
-		(* Filter clause database for active clauses *)
-		let active_clauses =
-		  ClauseAssignDB.fold
-		    (fun c a ->
-		       if 
-			 Clause.get_bool_param Clause.in_active c
-		       then
-			 c :: a
-		       else
-			 a)
-		    all_clauses
-		    []
-		in
-
-	      (* Start saturation output *)
-	      Format.printf "@\n%% SZS output start Saturation@\n@.";
-	      
-	      (* Saturation output *)
-	      Format.printf 
-		"%a@." 
-		TstpProof.pp_clauses_with_clausification 
-		active_clauses;
-	      
-	      (* End saturation output *)
-	      Format.printf "%% SZS output end Saturation@\n@.";
-
-	      )
-
+	   else ()
+(*	   
+	   if !current_options.sat_out_clauses then	      
+	     (
+	      sat_out_clauses all_clauses;		       
+	     )
+*)
+	       
 	  )
+
+	  
 
       (* Incremental BMC1 solving: unsatisfiable when there are higher
 	 bounds left to check *)
@@ -2661,9 +2639,10 @@ let run_iprover () =
 	     BMC1_Out_Stat_None)) then
 	 out_stat ();	   
 
-       if (not (!current_options.sat_out_model = Model_None))
+       if (not (!current_options.sat_out_model = Model_None)) 
+           || !current_options.sat_out_clauses
        then
-	 out_res_model all_clauses
+	 out_res_model all_clauses !filtered_out_clauses_ref
        else ()
       )
 

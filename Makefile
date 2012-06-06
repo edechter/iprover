@@ -214,7 +214,7 @@ obj/%.cmx : src/%.ml
 
 
 
-.PHONY: clean clean-util depend archive
+.PHONY : clean clean-util depend archive
 
 clean: clean-util
 	rm -f $(IPROVER_NAME) $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp $(LEXER:%=src/%.ml) src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o
@@ -265,6 +265,11 @@ archive:clean_all
 #dep:
 #	$(OCAMLDEP) -native $(BASE_NAMES:%=src/%.ml) $(BASE_NAMES:%=src/%.mli) $(IPROVER_ADD_OBJ_BASE_NAMES:%=src/%.ml) $(IPROVER_ADD_OBJ_BASE_NAMES:%=src/%.mli) $(IPROVER_BASE_NAME:%=src/%.ml)  > depend
 
+.PHONY: depend
 
+depend:
+	ocamldep -native -I src/ *.mli *.ml *.h *.cpp *.hpp *.c > depend
+
+include depend
 
 #include depend

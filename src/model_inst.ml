@@ -1158,7 +1158,10 @@ let to_stream_model s opt model =
   	model_pref_str^"If we have equality in the problem then it is also defined as a predicate above, \n"^
 	model_pref_str^"to avoid the clash with \"=\" in the denfitions (interpreted over the term algebra) it is renamed to "
 	^(Symbol.to_string Symbol.symb_iprover_eq)^"\n"^
-	model_pref_str^"See help for --sat_out_model for different model outputs.\n");
+	model_pref_str^"See help for --sat_out_model for different model outputs.\n"^
+        model_pref_str^"equality_sorted(X0,X1,X2) can be used in the place of usual \"=\"\n"^
+	model_pref_str^"where the first argument stands for the sort ($i in the unsorted case)\n");
+
      s.stream_add_str "\n\n% SZS output start Model \n\n";
 
 
