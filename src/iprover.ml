@@ -2430,17 +2430,18 @@ let run_iprover () =
 	    (Printexc.get_backtrace ());
       );
 
+	(* Output answer first *)
+       (if !answer_mode_ref then
+	 Prop_solver_exchange.out_answer ();
+       );
+
 	(* Output SZS status *)
-	out_str (proved_str ());
+       out_str (proved_str ());
 	  
-	(* Output answer *)
-     (if !answer_mode_ref then
-       Prop_solver_exchange.out_answer ();
-     );
 
      
 	(* Output proof from instantiation? *)
-     begin
+       begin
        if val_of_override !current_options.inst_out_proof 
        then 
 	  (
@@ -2584,16 +2585,21 @@ let run_iprover () =
     | Discount.Empty_Clause (clause) -> 
       
       (
-	
+       out_str(" Resolution empty clause:\n");
+       
+	(* in this case the unsat is already without answer clauses *)
+       if !answer_mode_ref then
+	 out_str "% SZS answers Tuple [[]]";
+       
 	(* Output status *)
-	out_str (proved_str ());
-	
-	(* Output proof from resolution? *)
+       out_str (proved_str ());
+       
+       (* Output proof from resolution? *)
 	if !current_options.res_out_proof then 
+	  
+	  (
 
-	(
-
-	  (* Record time when proof extraction started *)
+	   (* Record time when proof extraction started *)
 	  let start_time = Unix.gettimeofday () in
 
 	  (* Start proof output *)
@@ -2601,17 +2607,17 @@ let run_iprover () =
   
 	  (* Proof output *)
 	  (Format.printf "%a@." TstpProof.pp_tstp_proof_resolution clause);
-
+	  
 	  (* End proof output *)
 	  Format.printf "%% SZS output end CNFRefutation@\n@.";
-
+	  
 	  (* Record time when proof extraction finished *)
 	  let end_time = Unix.gettimeofday () in
-
+	  
 	  (* Save time for proof extraction *)
 	  assign_float_stat (end_time -. start_time) out_proof_time;
 
-	);
+	  );
 
 	(* Do not output statistics in BMC1 mode with
 	   --bmc1_out_stat none *)
@@ -2620,11 +2626,7 @@ let run_iprover () =
 	      BMC1_Out_Stat_None)) then
 	  out_stat ();	   
 	
-	out_str(" Resolution empty clause:\n");
 
-	(* in this case the unsat is already without answer clauses *)
-	if !answer_mode_ref then
-	  out_str "% SZS answers Tuple [[]]";
       )
 
     |Discount.Satisfiable all_clauses

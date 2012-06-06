@@ -177,6 +177,7 @@ let solver_uc_sim_assumptions_ref = ref []
 
 (* only for non-simplifying*)
 let answer_assumptions_ref = ref [] 
+let answer_assumptions_uc_ref = ref [] 
 
 
 
@@ -200,8 +201,9 @@ let get_assumptions_sim () =
 (* Return literal assumptions for unsat core solver *)
 let get_solver_uc_assumptions () = 
   !solver_uc_assumptions_ref @ 
-  !solver_uc_norm_assumptions_ref @ 
-  !solver_uc_sim_assumptions_ref
+  !solver_uc_norm_assumptions_ref @
+  !solver_uc_sim_assumptions_ref @
+  !answer_assumptions_uc_ref 
 
 (* adjoint_preds are added for all simplified claues *)
 (* used in finite models *)
@@ -659,6 +661,32 @@ let get_prop_gr_compl_lit lit =
   | _ -> raise (Failure "Instantiation get_prop_gr_lit: lit is undefind")
 
 
+
+
+let get_prop_gr_compl_lit_uc lit =
+  let atom = Term.get_atom lit in 
+  let atom_prop_gr_key = Term.get_prop_gr_key atom in
+  let prop_var_entry = TableArray.get var_table atom_prop_gr_key in
+  let def_lit = 
+    if (Term.is_neg_lit lit) 
+    then      
+      prop_var_entry.prop_var_uc
+    else
+      prop_var_entry.prop_neg_var_uc 
+
+  in
+  match def_lit with 
+  |Def plit -> 
+    (* Format.eprintf 
+      "Literal %s is %s in simplification solver@." 
+      (Term.to_string lit) 
+      (PropSolver.lit_to_string solver_sim plit); *)
+    plit
+  | _ -> raise (Failure "Instantiation get_prop_gr_lit: lit is undefind")
+
+
+
+
 (* adds literal after grounding to propositional solver and to var_table *)
 let get_prop_gr_lit_assign lit =
   let atom = Term.get_atom lit in 
@@ -1067,7 +1095,9 @@ let add_answer_assumption answer =
   else
     begin
       PropHash.add !answer_assumptions_table gr_compl_answer answer_bot;
-      answer_assumptions_ref:= gr_compl_answer::(!answer_assumptions_ref)
+      answer_assumptions_ref:= gr_compl_answer::(!answer_assumptions_ref);
+      answer_assumptions_uc_ref:= 
+	(get_prop_gr_compl_lit_uc answer_bot)::(!answer_assumptions_uc_ref)
     end
 
 (* we assume that the solver is unsat under answer assumptions and we minimise them*)
