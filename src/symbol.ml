@@ -530,7 +530,7 @@ let symb_answer =
     name      = "$$answer"; 
 (*!! Change to variadic/polymorphic symbols, take care since some indexies useing arity function !!*)
   arity     = Undef; 
-  stype     = create_stype [symb_type_types] symb_bool_type;
+  stype     = Undef; (*create_stype [symb_type_types] symb_bool_type;*)
   sproperty = Theory;   
   is_skolem = Def(false);
 

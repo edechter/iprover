@@ -119,7 +119,8 @@ let get_term_for_grounding () =
 (* first try the  constant with max occurrence, which is in the conjecture*)
       let gr_symb = 
 	let f_max_sym s max_sym = 
-	  if ((Symbol.is_fun s) &&
+	  if ((Symbol.is_fun s) &&  
+	      (Symbol.is_arity_def s)&&
 	      ((Symbol.get_arity s) = 0) &&
 	      (Symbol.get_num_input_occur s) > (Symbol.get_num_input_occur max_sym)) 
 	  then s 

@@ -212,9 +212,10 @@ let add_flat_to_orig flat orig =
 
 (* val pred is first arg *)
 let get_val_pred_type sym = 
-  assert (((Symbol.is_flat sym) && (Symbol.get_arity sym) >0)
-	||(Symbol.is_defpred sym));
-
+ (* assert ((Symbol.is_flat sym) && 
+	  ( ( (not (Symbol.is_arity_def sym)) || (Symbol.get_arity sym) >0)
+	||(Symbol.is_defpred sym)));
+*)
   let arg_types,_bool_type = Symbol.get_stype_args_val_def  sym in
   let (val_type,_rest) = split_list arg_types in
   val_type
