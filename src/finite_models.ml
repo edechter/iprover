@@ -588,7 +588,7 @@ let flat_clause clause =
 
 (*----------------definitions are wrong and do not work!---------------------*)
 (*--------------------fix later --------------------*)
-let _ = out_str ("\n\n!Fix Definitions in finite_models!\n\n")
+(*let _ = out_str ("\n\n!Fix Definitions in finite_models!\n\n")*)
 
 
 (*this should work fo non-gound definitions but for ground should add a be better translation *)

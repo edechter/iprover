@@ -829,7 +829,7 @@ let default_options () = {
   res_backward_subs_resolution   = true;
   res_orphan_elimination         = true;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = true;
 (*----Combination--------*)
   comb_res_mult                  = 300;
   comb_inst_mult                 = 1000;
@@ -2952,7 +2952,7 @@ let option_1 () = {
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 300;
   comb_inst_mult                 = 1000;
@@ -3129,7 +3129,7 @@ let option_2 () = {
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 300;
   comb_inst_mult                 = 1000;
@@ -3270,7 +3270,7 @@ let option_3 () = {
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 300;
   comb_inst_mult                 = 1000;
@@ -3405,7 +3405,7 @@ let option_4 () = {
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 300;
   comb_inst_mult                 = 1000;
@@ -3566,7 +3566,7 @@ let option_finite_models () = {
   res_backward_subs_resolution   = true;
   res_orphan_elimination         = true;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 1;
   comb_inst_mult                 = 1000;
@@ -3710,7 +3710,7 @@ let option_epr_non_horn () = {
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 0.1;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 30;
   comb_inst_mult                 = 100;
@@ -3968,7 +3968,7 @@ let option_epr_horn () = {
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 1000;
   comb_inst_mult                 = 300;
@@ -4237,7 +4237,7 @@ let option_verification_epr ver_epr_opt =
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 30;
   comb_inst_mult                 = 1000;
@@ -4385,7 +4385,7 @@ let option_verification_epr ver_epr_opt =
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 30;
   comb_inst_mult                 = 10000;
@@ -4575,7 +4575,7 @@ let option_verification_epr ver_epr_opt =
   res_backward_subs_resolution   = false;
   res_orphan_elimination         = false;
   res_time_limit                 = 2.0;
-  res_out_proof                  = false;
+  res_out_proof                  = !current_options.res_out_proof;
 (*----Combination--------*)
   comb_res_mult                  = 30;
   comb_inst_mult                 = 1000;
