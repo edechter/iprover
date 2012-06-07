@@ -622,17 +622,23 @@ let pp_clauses_with_clausification ppf clauses =
 		      Unix.close devnull_out;
 		      Unix.close cmd_stderr_in;
 		      
+ (* Parse output of clausifier *)
+			let parse_out =  
+			  Lexer_fof.parse clausify_proof cmd_stderr_out_ch
+			in
 		      (* Wait for process to terminate *)
 		      let cmd_pid_, cmd_status = 
 			Unix.waitpid [Unix.WUNTRACED] cmd_pid  
 		      in 
-			
+		      Unix.close cmd_stderr_out;
+		      parse_out
+		(*	
 			(* Only continue if exited with 0 *)
 			if cmd_status = Unix.WEXITED 0 then
 			  
 			  (* Parse output of clausifier *)
 			  Lexer_fof.parse clausify_proof cmd_stderr_out_ch
-			    
+		*)	    
 		  in
 		    
 		    (* Clausify all input files again *)
@@ -652,7 +658,7 @@ let pp_clauses_with_clausification ppf clauses =
 *)
 	  (* Print derivation of clauses from input formulae *)
 	  List.iter 
-	    (pp_clausification (Hashtbl.create 101) clausify_proof ppf) 
+	    (pp_clausification (Hashtbl.create 1001) clausify_proof ppf) 
 	    parent_clauses;
 
 	  (* Print derivation of clauses in unsat core with rewriting

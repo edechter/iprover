@@ -35,7 +35,7 @@ CPP=
 CSOLVER=solver
 #CSOLVER=solver_basic
 
-OCAMLFLAGS=-inline 10 -I obj/ -I util/lib  
+OCAMLFLAGS=-inline 10 -noassert -I obj/ -I util/lib  
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
 
