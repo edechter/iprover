@@ -227,11 +227,11 @@ clean_all: clean
 	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi; if [ -d $(VCLAUSIFIER_PATH) ]; then cd $(VCLAUSIFIER_PATH); make clean; rm -f vclausify_rel; cd ../; fi
 
 
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB_batch_test.txt ./README.CASC-J6
 
-#ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c ./LTB/README.iprover_sine ./LTB/LTB_input_test1.txt
+ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c
 
-ARCHIVE_LTB_NAMES=./LTB
+#ARCHIVE_LTB_NAMES=./LTB
 
 #use this to temporally adding some names
 ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
@@ -240,20 +240,20 @@ ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
 #to archive E bundle "make E=true archive"
 
 ifeq ($(E),true) 
-   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(EPROVER_PATH) $(ARCHIVE_Extras) $(ARCHIVE_LTB_NAMES)
+   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(EPROVER_PATH) $(ARCHIVE_Extras)
    ARCHIVE_BASE_DIR="iprover_e_bundle"
 else 
  ifeq ($(V),true)
-  ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(VCLAUSIFIER_PATH) $(ARCHIVE_Extras) $(ARCHIVE_LTB_NAMES)
+  ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(VCLAUSIFIER_PATH) $(ARCHIVE_Extras) $
   ARCHIVE_BASE_DIR="iprover_vampire_clausifier_bundle"
  else	
-   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(ARCHIVE_Extras) $(ARCHIVE_LTB_NAMES)
+   ARCHIVE_NAMES= $(ARCHIVE_IPROVER_NAMES) $(ARCHIVE_Extras)
    ARCHIVE_BASE_DIR="iprover"
  endif
 endif 
 
 archive:clean_all
-	add=$$(date +%Y_%-b_%-d_%-kh); echo $(ARCHIVE_BASE_DIR); new_dir="$(ARCHIVE_BASE_DIR)_$${add}"; name_tar="$${new_dir}.tar.gz"; mkdir $${new_dir}; mkdir "$${new_dir}/obj"; cp -r $(ARCHIVE_NAMES) "$${new_dir}"; pwd; tar -czvf "$${name_tar}" "$${new_dir}"; rm -rf $${new_dir}; if [ -d "Archive" ]; then mv "$${name_tar}" "Archive/"; fi;
+	add=$$(date +%Y_%-b_%-d_%-kh); echo $(ARCHIVE_BASE_DIR); new_dir="$(ARCHIVE_BASE_DIR)_$${add}"; name_tar="$${new_dir}.tar.gz"; mkdir $${new_dir}; mkdir "$${new_dir}/obj"; mkdir "$${new_dir}/LTB"; cp -r $(ARCHIVE_NAMES) "$${new_dir}"; cp -r $(ARCHIVE_LTB_NAMES) "$${new_dir}/LTB/"; pwd; tar -czvf "$${name_tar}" "$${new_dir}"; rm -rf $${new_dir}; if [ -d "Archive" ]; then mv "$${name_tar}" "Archive/"; fi;
 
 
 #archive_with_e: clean_all

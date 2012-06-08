@@ -14,6 +14,8 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
+
+
 (** Get parent clauses which are input clauses *)
 val get_leaves : Clause.clause list -> Clause.clause list 
 

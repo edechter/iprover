@@ -1,0 +1,54 @@
+
+Install:
+========
+1) OCaml >= 3.12 
+
+2)
+./configure
+make
+
+Run:
+=====
+
+1) iproveropt_run.sh time_limit problem_name
+
+
+2) for FNT and other satisfiability divisions: 
+  
+   iproveropt_run_sat.sh time_limit problem_name
+
+
+3) For LTB: 
+
+   iprover_path/LTB/iprover_sine.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel LTB_Batch
+
+  For iProver-Eq LTB in above replace  iprover_path/iproveropt with 
+  iprover_path_eq_path/iprover-cvc-eq-nc
+
+
+Status strings: 
+========================
+
+% SZS status Theorem
+% SZS status Unsatisfiable
+% SZS status CounterSatisfiable
+% SZS status Satisfiable
+
+% SZS status Unknown
+
+Proof output:
+=============
+% SZS output start CNFRefutation
+% SZS output end CNFRefutation
+
+Answer output:
+=============
+% SZS answers Tuple
+
+Model outputs (2 types): 
+===============
+% SZS output start Model
+% SZS output end Model
+
+% SZS output start Saturation
+% SZS output end Saturation

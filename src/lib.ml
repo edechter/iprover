@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------(C)-*)
-(* Copyright (C) 2006-2010 Konstantin Korovin and The University of Manchester. 
+(* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
    This file is part of iProver - a theorem prover for first-order logic.
 
    iProver is free software: you can redistribute it and/or modify
@@ -13,6 +13,8 @@
    You should have received a copy of the GNU General Public License
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
+
+
 
 (*  question_answering_mode_ref = true if input has $answer *)
 
@@ -55,7 +57,7 @@ let out_err_str s =
 let iprover_name_str = "iProver"
 
 (* version is a list of integers *)
-let iprover_current_version = [0;9;5]
+let iprover_current_version = [0;99]
 
 let rec iprover_version_to_str v = 
   match v with 
@@ -68,7 +70,7 @@ let iprover_version_str  = "v"^(iprover_version_to_str iprover_current_version)
 (*let iprover_add_info = "(Post CASC-22)"*)
 (*let iprover_add_info = "(post CASC-J5 2010)"*)
 
-let iprover_add_info = "pre (CASC-J6 2012)"
+let iprover_add_info = "(CASC-J6 2012)"
 
 let pref_str_head = "\n%---------------- " 
 
