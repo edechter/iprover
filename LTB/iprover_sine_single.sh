@@ -68,8 +68,11 @@ if [ "$CAT" == "LTB.SMO" ]; then
     SLICE[7]="-ss included -sd 10 -st 2"
     SLICE[8]=" "
     SLICE[9]="-ss axioms -sd 20 -st 3"
-    SLICE[10]="-ss -sd 30 -st 4"
-    SLICE[11]="-ss included -sd 40  -st 3"
+    SLICE[10]="-ss axioms -sd 4 -st 4"
+    SLICE[11]="-ss axioms -sd 5 -st 5"
+    SLICE[12]="-ss axioms -sd 5 -st 2 -sgt 10"
+    SLICE[13]="-ss included -sd 6 -st 6"
+    SLICE[14]="-ss included -sd 40  -st 3"
    
 else
     if [ "$CAT" == "LTB.MZR" -o "$CAT" == "MZR.MZR" ]; then
@@ -81,11 +84,15 @@ else
 	SLICE[4]="-ss axioms -sd 2 -st 2"
 	SLICE[5]="-ss axioms -sd 2 -st 3"
 	SLICE[6]="-ss axioms -sd 2 -st 5"	
-	SLICE[7]="-ss axioms -sd 4 -st 1"
-	SLICE[8]="-ss axioms -sd 4 -st 2"
+	SLICE[7]="-ss included -sd 4 -st 1"
+	SLICE[8]="-ss included -sd 4 -st 2"
 	SLICE[9]="-ss axioms -sd 4 -sd 4"
-	SLICE[10]="-ss axioms -sd 0 -st 5"
-	SLICE[11]="-ss axioms -sd 0 -st 10" 
+	SLICE[10]="-ss included -sd 0 -st 1"
+	SLICE[11]="-ss included -sd 0 -st 1.5" 
+	SLICE[12]="-ss axioms -sd 0 -st 2" 
+	SLICE[13]="-ss axioms -sd 0 -st 3" 
+	SLICE[14]="-ss axioms -sd 0 -st 4" 
+	SLICE[15]="-ss axioms -sd 0 -st 4 -sgt 7" 
     else
 	if [ "$CAT" == "LTB.CYC" ]; then
 	    echo "$CAT Slices"
@@ -93,51 +100,52 @@ else
             SLICE[1]="-ss included -st 5 -sd 2"
 	    SLICE[2]=" "
 	    SLICE[3]="-ss included -st 1.2"
-
-
 	    SLICE[4]="-ss included -st 2 -sd 1"
 	    SLICE[5]="-ss included -st 1.5"
 	    SLICE[6]="-ss included -st 2"
 	    SLICE[7]="-ss included -st 5"
-
-	   SLICE[8]="-ss included -st 5 -sd 1" 
-	   SLICE[9]="-ss axioms"
-	   SLICE[10]="-ss included -sd 1"
-	   SLICE[11]="-ss included -sd 2"
-       else
-	if [ "$CAT" == "LTB.ISA" ]; then
-	    echo "$CAT Slices"
-            SLICE[0]="-ss axioms -sd 3 -st 3 -sgt 7"
-            SLICE[1]="-ss axioms -sd 2 -st 5"
-            SLICE[2]=" "
-            SLICE[3]="-ss axioms -sd 1 -st 1"
-            SLICE[4]="-ss axioms -sd 2 -st 5"
-            SLICE[5]="-ss axioms -sd 2 -st 1.2"
-            SLICE[6]="-ss axioms -sd 6 -st 1.6 "
-            SLICE[7]="-ss axioms -sd 8 -st 2"
-            SLICE[8]="-ss axioms -sd 0 -st 1"   
-	    SLICE[9]="-ss axioms -sd 0 -st 1.5"
-            SLICE[10]="-ss axioms -sd 0 -st 2"
-            SLICE[11]="-ss axioms -sd 0 -st 5"
-          else	
-	    echo "Category $CAT"
-	    echo "Default: All Slices"
-	    SLICE[0]="-ss axioms"
-	    SLICE[1]="-ss included -sd 2"
-	    SLICE[2]=" "
-	    SLICE[3]="-ss included -sd 1 -st 1"
-	    SLICE[4]="-ss included -sd 0 -st 1.2"
-	    SLICE[5]="-ss axioms -sd 2 -st 1.5"
-	    SLICE[6]="-ss axioms -sd 3 -st 2"
-	    SLICE[7]="-ss included -sd 4 -st 2.5"
-	    SLICE[8]="-ss axioms -sd 5 -st 3"
-	    SLICE[9]="-ss included -sd 6 -st 4"
-	    SLICE[10]="-ss included -sd 7 -st 5"
-	    SLICE[11]="-ss included -sd 0 -st 6" 
+	    SLICE[8]="-ss included -st 5 -sd 1" 
+	    SLICE[9]="-ss axioms"
+	    SLICE[10]="-ss included -sd 1"
+	    SLICE[11]="-ss included -sd 2"
+	else
+	    if [ "$CAT" == "LTB.ISA" ]; then
+		echo "$CAT Slices"
+		SLICE[0]="-ss axioms -sd 3 -st 3 -sgt 7"
+		SLICE[1]="-ss axioms -sd 2 -st 5"
+		SLICE[2]=" "
+		SLICE[3]="-ss axioms -sd 1 -st 1"
+		SLICE[4]="-ss axioms -sd 2 -st 5"
+		SLICE[5]="-ss axioms -sd 2 -st 1.2"
+		SLICE[6]="-ss axioms -sd 6 -st 1.6 "
+		SLICE[7]="-ss axioms -sd 8 -st 2"
+		SLICE[8]="-ss included -sd 2 -st 2"   
+		SLICE[9]="-ss included -sd 0 -st 1.5"
+		SLICE[10]="-ss axioms -sd 0 -st 1"
+		SLICE[11]="-ss axioms -sd 0 -st 2"
+		SLICE[12]="-ss axioms -sd 0 -st 3"
+		SLICE[13]="-ss axioms -sd 0 -st 4"
+		SLICE[14]="-ss axioms -sd 0 -st 5"
+		SLICE[15]="-ss axioms -sd 0 -st 7"
+            else	
+		echo "Category $CAT"
+		echo "Default: All Slices"
+		SLICE[0]="-ss axioms"
+		SLICE[1]="-ss included -sd 2"
+		SLICE[2]=" "
+		SLICE[3]="-ss included -sd 1 -st 1"
+		SLICE[4]="-ss included -sd 0 -st 1.2"
+		SLICE[5]="-ss axioms -sd 2 -st 1.5"
+		SLICE[6]="-ss axioms -sd 3 -st 2"
+		SLICE[7]="-ss included -sd 4 -st 2.5"
+		SLICE[8]="-ss axioms -sd 5 -st 3"
+		SLICE[9]="-ss included -sd 6 -st 4"
+		SLICE[10]="-ss included -sd 7 -st 5"
+		SLICE[11]="-ss included -sd 0 -st 6" 
  	   
-          fi
-       fi
-   fi
+            fi
+	fi
+    fi
 fi
 
 function killChildProcesses {

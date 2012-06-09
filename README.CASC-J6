@@ -18,10 +18,18 @@ Run:
    iproveropt_run_sat.sh time_limit problem_name
 
 
-3) For LTB: 
+3) LTB.
 
+ LTB Turing: 
+------------
+   iprover_path/LTB/iprover_sine_turing.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel overall_time_limit LTB_Batch
+
+   
+ General LTB:
+---------------
    iprover_path/LTB/iprover_sine.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel LTB_Batch
 
+ *iProver-Eq* 
   For iProver-Eq LTB in above replace  iprover_path/iproveropt with 
   iprover_path_eq_path/iprover-cvc-eq-nc
 
@@ -39,16 +47,20 @@ Status strings:
 Proof output:
 =============
 % SZS output start CNFRefutation
+...
 % SZS output end CNFRefutation
 
 Answer output:
 =============
-% SZS answers Tuple
+
+% SZS answers Tuple ...
 
 Model outputs (2 types): 
 ===============
 % SZS output start Model
+...
 % SZS output end Model
 
 % SZS output start Saturation
+...
 % SZS output end Saturation
