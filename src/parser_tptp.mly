@@ -403,7 +403,7 @@ unsigned_rational :
    let num = int_of_string $1 in 
    let denom = int_of_string $3 in
    if denom > 0 then 
-     ((int_of_string $1),(int_of_string $3))
+     (num,denom)
    else 
      failwith ("Parsing: division by zero in "^$1^"/"^$3)
 }
