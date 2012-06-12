@@ -213,7 +213,7 @@ let str_to_bmc1_out_stat_type = function
   | "last" -> BMC1_Out_Stat_Last
   | _ -> raise Unknown_bmc1_out_stat_type
 
-let bmc1_out_stat_type_list_str = "<none | full | last>"
+let bmc1_out_stat_type_list_str = "<none|full|last>"
 
 (*--------*)
 
@@ -230,7 +230,7 @@ let str_to_bmc1_axioms_type = function
   | "reachable_last" -> BMC1_Axioms_Reachable_Last
   | _ -> raise Unknown_bmc1_axioms_type
 
-let bmc1_axioms_type_list_str = "<reachable_all | reachable_last>"
+let bmc1_axioms_type_list_str = "<reachable_all|reachable_last>"
 
 (*--------*)
 
@@ -254,7 +254,7 @@ let str_to_bmc1_add_unsat_core_type = function
   | "all" -> BMC1_Add_Unsat_Core_All
   | _ -> raise Unknown_bmc1_add_unsat_core_type
 
-let bmc1_add_unsat_core_type_list_str = "<none | leaves | all>"
+let bmc1_add_unsat_core_type_list_str = "<none|leaves|clauses|all>"
 
 (*--------*)
 
@@ -1475,13 +1475,17 @@ let bmc1_symbol_reachability_inf  =
 let bmc1_add_unsat_core_str = "--bmc1_add_unsat_core" 
 
 let bmc1_add_unsat_core_fun str =
-  !current_options.bmc1_add_unsat_core <- 
-    override_cmd 
-    (str_to_bmc1_add_unsat_core_type str) 
-    !current_options.bmc1_add_unsat_core
+  try
+    !current_options.bmc1_add_unsat_core <- 
+      override_cmd 
+	(str_to_bmc1_add_unsat_core_type str) 
+	!current_options.bmc1_add_unsat_core
+  with
+    Unknown_bmc1_add_unsat_core_type ->
+      failwith (args_error_msg bmc1_add_unsat_core_str str)  
 
 let bmc1_add_unsat_core_inf  =
-  bmc1_add_unsat_core_str^
+  bmc1_add_unsat_core_type_list_str^
   inf_pref^"add clauses in unsatisfiable core to next bound in BMC1\n"
 
 (*--------*)

@@ -229,7 +229,7 @@ clean_all: clean
 
 ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB_batch_test.txt ./README.CASC-J6
 
-ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/iprover_sine_turing.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c
+ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/iprover_sine_turing.sh ./LTB/create_ltb_batch.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c
 
 #ARCHIVE_LTB_NAMES=./LTB
 

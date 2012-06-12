@@ -327,7 +327,7 @@ while [ $SLICE_INDEX -lt $SLICE_CNT ]; do
 	
 	while [ $CORES_LEFT -le 0 ]; do
 		while ! handleDeadChildProcess; do
-			sleep 0.5
+			sleep 0.2
 		done
 		CORES_LEFT=$(($CORES_LEFT+1))
 	done
@@ -337,7 +337,7 @@ done
 
 while [ $CHILD_CNT -gt 0 ]; do
 	while ! handleDeadChildProcess; do
-		sleep 0.5
+		sleep 0.2
 	done
 done
 

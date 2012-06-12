@@ -399,7 +399,14 @@ signed_rational :
   }
 
 unsigned_rational : 
-     Decimal Slash Positive_Decimal {((int_of_string $1),(int_of_string $3))}
+     Decimal Slash Decimal {
+   let num = int_of_string $1 in 
+   let denom = int_of_string $3 in
+   if denom > 0 then 
+     ((int_of_string $1),(int_of_string $3))
+   else 
+     failwith ("Parsing: division by zero in "^$1^"/"^$3)
+}
 
 
 real  : 
