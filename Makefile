@@ -265,11 +265,9 @@ archive:clean_all
 #dep:
 #	$(OCAMLDEP) -native $(BASE_NAMES:%=src/%.ml) $(BASE_NAMES:%=src/%.mli) $(IPROVER_ADD_OBJ_BASE_NAMES:%=src/%.ml) $(IPROVER_ADD_OBJ_BASE_NAMES:%=src/%.mli) $(IPROVER_BASE_NAME:%=src/%.ml)  > depend
 
-.PHONY: depend
+#.PHONY: depend
 
-depend:
-	ocamldep -native -I src/ *.mli *.ml *.h *.cpp *.hpp *.c > depend
-
-include depend
+#depend:
+#	ocamldep -native -I src/ *.mli *.ml *.h *.cpp *.hpp *.c > depend
 
 #include depend

@@ -30,7 +30,7 @@ type term   = Term.term
 type clause = Clause.clause
 module SymbMap = Symbol.Map
 
-(* init_lexbuf should be applied before lexing, for coorect line counting*)
+(* init_lexbuf should be applied before lexing, for coorect line counting *)
 let position_init_lnum position = 
    {Lexing.pos_fname = position.Lexing.pos_fname;
     Lexing.pos_lnum  = 1;
@@ -353,26 +353,84 @@ let plain_term_fun symb_name symbol_type args =
 
 (* we assume that all symbols in terms are typed already! and added to SymbolDB.add_ref *)
 
+let overriding_arities_warning_shown_ref = ref false
 
-
-let plain_term_fun_typed ~is_top symb_name args = 
+let plain_term_fun_typed ~is_top input_symb_name args = 
 (* we check that the arity is the same for the untyped symbols *)
+(* if current symbol has an occurence in DB with different arity *)
+(* then all occurences with new aritied will be prefexed by $$iProver_arity_symname *)
 (* we do not do full type checking at the moment *)
+  let symb_name_ref = ref input_symb_name in
   let arity = List.length args in
   let symb  =
     try  
       (  
 	 let symb = SymbolDB.find 
-	     (Symbol.create_template_key_symb symb_name) !symbol_db_ref in
-	 (if (Symbol.get_arity symb) = arity then ()
+	     (Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
+
+	 if ((Symbol.get_arity symb) = arity ) && (is_top = (Symbol.is_pred symb))
+	 then 
+	   (symb)
 	 else 
+	  ( 
+	    ( if (not !overriding_arities_warning_shown_ref) && 
+              (not ((Symbol.get_arity symb) = arity))
+	    then
+	      (	      
+		      out_err_str 
+			("\n\n Warning: "^
+			 "plain_term_fun_typed: symbol "^(!symb_name_ref)
+			 ^" occurred with two arities: "
+			 ^(string_of_int (Symbol.get_arity symb))
+			 ^" and "^(string_of_int arity)
+			 ^" the latter will be replaced by fresh symbol (other similar warnings are surpressed)\n"
+			);
+		      overriding_arities_warning_shown_ref:=true     
+		     )
+	    else ()
+	    );
+	    ( if (not !overriding_arities_warning_shown_ref) && 
+              (not ((Symbol.get_arity symb) = arity))
+	    then
+	      (	      
+		      out_err_str 
+			("\n\n Warning: "^
+			 "plain_term_fun_typed: symbol "^(!symb_name_ref)
+			 ^" occurred as function and as predicate "
+			 ^" on of them will be replaced by fresh symbol (other similar warnings are surpressed)\n"
+			);
+		      overriding_arities_warning_shown_ref:=true     
+		     )
+	    else ()
+	     );
+
+
+	    let pred_fun_str = 
+	      if is_top 
+	      then "pred"
+	      else "fun"
+	    in
+	    symb_name_ref:= 
+	      ("$$iProver_"^"arity_"^(string_of_int arity)^"_"
+	       ^pred_fun_str^"_"^(!symb_name_ref));
+
+	    let new_symb = SymbolDB.find 
+		(Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
+(* at this point we assume that the arity problem is fixed ! *)
+	    assert ((Symbol.get_arity new_symb) = arity);
+	    new_symb 
+           (*
+
 	   failwith ("plain_term_fun_typed: symbol "^symb_name
 		     ^" occurred with two arities: "
 		     ^(string_of_int (Symbol.get_arity symb))
 		     ^" and "^(string_of_int arity))
-	 );
-	 symb
+          *)
+
+	   )
 	)
+	
+	 
       with 
 	 Not_found -> 
 	   (  let stype = 
@@ -388,7 +446,7 @@ let plain_term_fun_typed ~is_top symb_name args =
 	   let symb = SymbolDB.add_ref 
 	       (Symbol.create_from_str_type 
 (*~is_sig:true it is a signature symbol *)
-		  ~is_sig:true symb_name stype) symbol_db_ref in
+		  ~is_sig:true !symb_name_ref stype) symbol_db_ref in
  	   symb
 	     )
 (*	   failwith 
