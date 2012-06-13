@@ -928,6 +928,7 @@ let to_string (s:symbol) = s.name
 let pp_symbol ppf { name = n } = Format.fprintf ppf "%s" n
 
 let pp_symbol_tptp ppf { name = n } = 
+(*
   let n' = 
     if (String.length n) < 2 then
       n
@@ -939,8 +940,10 @@ let pp_symbol_tptp ppf { name = n } =
       else
 	n
   in
+  Format.fprintf ppf "%s" n'
+*)
 
-    Format.fprintf ppf "%s" n'
+  Format.fprintf ppf "%s" n
     
 
 let rec to_stream_full s symb = 

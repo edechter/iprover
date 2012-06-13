@@ -465,7 +465,7 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 *)
      (* out_str ("Symb: "
 	       ^(Symbol.to_string symb)
-	       ^" is conj symb: "
+	^" is conj symb: "
 	       ^ (string_of_bool
 		    (Symbol.get_bool_param Symbol.is_conj_symb symb ))^"\n");*)
   (*let args = 
