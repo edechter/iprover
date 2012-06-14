@@ -22,12 +22,13 @@ Run:
 
  LTB Turing: 
 ------------
-   iprover_path/LTB/iprover_sine_turing.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel overall_time_limit LTB_Batch
+
+   iprover_path/LTB/iprover_sine.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel overall_time_limit LTB.batch
 
    
  General LTB:
 ---------------
-   iprover_path/LTB/iprover_sine.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel LTB_Batch
+   iprover_path/LTB/iprover_sine.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel 0 LTB.batch
 
  *iProver-Eq* 
   For iProver-Eq LTB in above replace  iprover_path/iproveropt with 

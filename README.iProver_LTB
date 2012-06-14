@@ -1,19 +1,20 @@
-
-iProver LTB scripts are using SInE algorithm for axiom selection 
-as implemented in Vampire and iProver for solving.
+iProver LTB scripts are using Vampire's clausifier for axiom selection 
+which implements SInE selection; iProver is used for solving.
 
 TreeLimitedRun from Geoff's TPTP tools is used for process termination. 
 
-Usage: 
+Usage: (from iProver's directory otherwise append corresponding paths)
 
-iprover_path/LTB/iprover_sine.sh iprover_path/iproveropt iprover_path/VClausifier/vclausify_rel LTB_Batch 
+LTB/iprover_sine.sh iproveropt VClausifier/vclausify_rel timelimit LTB.batch 
 
-where LTB_Batch a batch specification file see CASC-J6 description.
+where timelimit is overall time limit; 0 stands for MAXTIME=10000000,
+LTB.batch is a batch specification file see CASC-J6 description.
 
 We assume iProver installation bundeled with Vampire's clausifier.
 
 To run in background:
-nohup iprover_sine.sh iprover_path/iproveropt vampire_clausifier_path/vclausify_rel LTB_Batch > ltb.log &
+nohup LTB/iprover_sine.sh iproveropt VClausifier/vclausify_rel timelimit LTB.batch > LTB.log & 
+
 
 
 %---------------------------------------------
@@ -23,6 +24,6 @@ To create an LTB batch from a problem list:
 
 # if OutDir does not exists then it is created
 
-#create_ltb_batch.sh MZR_header MZR_tail MZR_list /shareddata/korovin/LTB_2012/MZR_bushy_list/
+#create_ltb_batch.sh MZR.header MZR.list /shareddata/korovin/LTB_2012/MZR_bushy_list/ > MZR.batch
 
 

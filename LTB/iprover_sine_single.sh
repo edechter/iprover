@@ -37,10 +37,10 @@ function runProver {
 	if [ "$4" == "1" ]; then
 	#    echo  \(ulimit -v $MEMLIM;"$PROVER" --clausifier "$CLAUSIFIER" --clausifier_options "--mode clausify -t $2 $1" --time_out_real $2 $INP\)
  #       	 iProver_sine/TreeLimitedRun 10000 10000 $MEMLIM "$PROVER" --clausifier "$CLAUSIFIER" --clausifier_options "--mode clausify -t $2 $1" --time_out_real $2 $INP > $3 &
-	    (ulimit -v $MEMLIM -s 300000; "$PROVER" --clausifier "$CLAUSIFIER" --clausifier_options "--mode clausify -t $2 $1" --sat_out_model none  --time_out_real $2 $INP >> $3)&  
+	    (ulimit -v $MEMLIM -s 300000; "$PROVER" --clausifier "$CLAUSIFIER" --clausifier_options "--mode clausify -t $2 $1" --sat_out_model none  --time_out_real $2 $INP >> $3 2>/dev/null)&  
       		PROVER_PID=$!
 	else	 
-	    (ulimit -v $MEMLIM -s 300000;"$PROVER" --clausifier "$CLAUSIFIER" --clausifier_options "--mode clausify -t $2 $1" --sat_out_model none --time_out_real $2 $INP >> $3)
+	    (ulimit -v $MEMLIM -s 300000;"$PROVER" --clausifier "$CLAUSIFIER" --clausifier_options "--mode clausify -t $2 $1" --sat_out_model none --time_out_real $2 $INP >> $3 2>/dev/null)
 	fi
 }
 
@@ -161,8 +161,11 @@ function killChildProcesses {
 function terminate {
 # <SZS status> <process result>
         echo ""
-	echo "% SZS status $1 for $INP" >> $OUTP
+#	echo "% SZS status $1 for $INP" >> $OUTP
 	echo "% SZS status $1 for $INP"
+	if [ $2 -eq 1 ]; then
+	    echo "% SZS status $1 for $INP" >> $OUTP
+	fi
         echo ""
         grep "% SZS answers Tuple" $OUTP
         echo ""
@@ -191,9 +194,13 @@ function postprocessRun {
 
 	#we want to keep the record of the run of the prover, but we 
 	#don't want to report failure while we're still trying
-	grep -v "% SZS status" $1 >> $OUTP
-	if wasSuccess $1; then
-		success
+#	grep -v "% SZS status" $1 >> $OUTP
+	if wasSuccess $1; then	    
+##KK 
+	    cat $1 >> $OUTP
+	    success
+	else
+	    grep -v "% SZS status" $1 >> $OUTP 
 	fi
 }
 

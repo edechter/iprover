@@ -9,13 +9,13 @@ CLAUSIFIER=$2
 #for simplicity unlimited it is replaced by MAXTIME
 MAXTIME=10000000
 OTLIMIT=$3
+
 #batch file
 BFILE=$4
 
+#test $OTLIMIT is a positive integer
 
-#test $OTLIMIT is an integer
-
-test $OTLIMIT -eq 0 2>/dev/null
+test $OTLIMIT -ge 0 2>/dev/null
 
 if [[ $? -ne 0 || $# -ne 4 || $1 = "-h" || $1 = "--help" || ! -e $PROVER || ! -e $CLAUSIFIER || ! -e $BFILE ]]
 then
@@ -46,7 +46,20 @@ else
 	PREFIX=""
 fi
 
-CPU_CORES=`grep processor /proc/cpuinfo | wc -l`
+#total number of cores
+TCPU_CORES=`grep processor /proc/cpuinfo | wc -l`
+
+CPU_CORES=$TCPU_CORES
+
+# if >4 then reduce by 25%
+
+if [ $TCPU_CORES -ge 5 ]; then
+    CPU_CORES=$(($CPU_CORES - $CPU_CORES/4))
+fi
+
+echo ""
+echo "Using $CPU_CORES CPU cores"
+
 #count the total  number of problems 
 
 PROBNUM=0
@@ -139,6 +152,7 @@ do
 		echo " "
 		echo "% SZS status Ended for $INP"
 		echo " "
+
 		if grep -q "% SZS status Theorem" $OUTP; then
 		    PROB_SOLVED=$(($PROB_SOLVED+1))
 		fi
