@@ -49,13 +49,14 @@ fi
 #total number of cores
 TCPU_CORES=`grep processor /proc/cpuinfo | wc -l`
 
+#TCPU_CORES=4
 CPU_CORES=$TCPU_CORES
 
 # if >4 then reduce by 25%
 
-if [ $TCPU_CORES -ge 5 ]; then
-    CPU_CORES=$(($CPU_CORES - $CPU_CORES/4))
-fi
+#if [ $TCPU_CORES -ge 5 ]; then
+CPU_CORES=$(($CPU_CORES - $CPU_CORES/4))
+#fi
 
 echo ""
 echo "Using $CPU_CORES CPU cores"

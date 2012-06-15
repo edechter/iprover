@@ -15,7 +15,7 @@ BFILE=$4
 
 #test $OTLIMIT is an integer
 
-test $OTLIMIT -eq 0 2>/dev/null
+test $OTLIMIT -ge 0 2>/dev/null
 
 if [[ $? -ne 0 || $# -ne 4 || $1 = "-h" || $1 = "--help" || ! -e $PROVER || ! -e $CLAUSIFIER || ! -e $BFILE ]]
 then
