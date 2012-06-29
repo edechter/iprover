@@ -23,12 +23,12 @@
 #include <procfs.h>
 #endif
 //---------------------------------------------------------------------------
-#define STRING_LENGTH 80
+#define STRING_LENGTH 10240
 #define MAX_PROCESSES 1000
 #define DEFAULT_DELAY_BETWEEN_CHECKS 10
 #define NANOSECONDS 1E9
 #define MICROSECONDS 1E6
-#define JIFFIES 100
+#define JIFFIES sysconf(_SC_CLK_TCK)
 
 #define STDOUT 1
 #define STDERR 2
@@ -57,11 +57,11 @@ void SIGCHLDHandler(int TheSignal) {
 //---------------------------------------------------------------------------
 void SIGCHLDReaper(int TheSignal) {
 
-    int DeadPID;
+    pid_t DeadPID;
     int Status;
 
     while ((DeadPID = waitpid(-1,&Status,WNOHANG)) > 0) {
-//DEBUG printf("!!! Child %d of TreeLimitedRun %d has died\n",DeadPID,getpid());fflush(stdout);
+//DEBUG printf("!!! Child %ld of TreeLimitedRun %ld has died\n",DeadPID,getpid());fflush(stdout);
     }
 
 }
@@ -70,7 +70,7 @@ void SIGCHLDReaper(int TheSignal) {
 //----SIGQUIT to stop things
 void SIGQUITHandler(int TheSignal) {
 
-//DEBUG printf("!!! TreeLimitedRun %d got a signal %d\n",getpid(),TheSignal);fflush(stdout);
+//DEBUG printf("!!! TreeLimitedRun %ld got a signal %d\n",getpid(),TheSignal);fflush(stdout);
     GlobalInterrupted = 1;
     GlobalSignalReceived = TheSignal;
 
@@ -143,12 +143,23 @@ void SetNoCoreDump(void) {
     }
 }
 //---------------------------------------------------------------------------
-#ifdef LINUX
-void GetProcessesOwnedByMe(uid_t MyRealUID,ProcessDataArray OwnedPIDs,
-int *NumberOfOwnedPIDs) {
+void IncrementPIDIndex(int *NumberOfOwnedPIDs) {
 
+    (*NumberOfOwnedPIDs)++;
+    if (*NumberOfOwnedPIDs >= MAX_PROCESSES) {
+        printf("ERROR: Ran out of PID space with index %d\n",
+*NumberOfOwnedPIDs);
+        exit(EXIT_FAILURE);
+    }
+}
+//---------------------------------------------------------------------------
+#ifdef LINUX
+int GetProcessesOwnedByMe(uid_t MyRealUID,ProcessDataArray OwnedPIDs) {
+
+    int NumberOfOwnedPIDs;
     DIR *ProcDir;
     struct dirent *ProcessDir;
+    long ScanfDummy;
     pid_t UID,PID,PPID;
     FILE *ProcFile;
     String ProcFileName,Line;
@@ -159,22 +170,23 @@ int *NumberOfOwnedPIDs) {
     }
 //DEBUG printf("look for processes owned by %d\n",MyRealUID);
 
-    *NumberOfOwnedPIDs = 0;
+    NumberOfOwnedPIDs = 0;
     while ((ProcessDir = readdir(ProcDir)) != NULL) {
         if (isdigit(ProcessDir->d_name[0])) {
-            PID = (pid_t)atoi(ProcessDir->d_name);
-            sprintf(ProcFileName,"/proc/%d/status",PID);
+            PID = (pid_t)atol(ProcessDir->d_name);
+            sprintf(ProcFileName,"/proc/%ld/status",(long)PID);
             if ((ProcFile = fopen(ProcFileName,"r")) != NULL) {
                 PPID = -1;
                 UID = -1;
                 while ((PPID == -1 || UID == -1) &&
 fgets(Line,STRING_LENGTH,ProcFile) != NULL) {
-                    sscanf(Line,"PPid: %d",&PPID);
+                    sscanf(Line,"PPid: %ld",&ScanfDummy);
+                    PPID = (pid_t)ScanfDummy;
                     sscanf(Line,"Uid: %d",&UID);
                 }
                 fclose(ProcFile);
 //----Check that data was found
-//DEBUG printf("PID = %d PPID = %d UID = %d\n",PID,PPID,UID);
+//DEBUG printf("PID = %ld PPID = %ld UID = %d\n",PID,PPID,UID);
                 if (PPID == -1 || UID == -1) {
 //----Bloody child just died (or something very bad, but I'll pray not)
 //                    fprintf(stderr,"Could not get process information\n");
@@ -182,15 +194,11 @@ fgets(Line,STRING_LENGTH,ProcFile) != NULL) {
 //----Check if this process is owned by this user
                 } else if (UID == MyRealUID) {
 //----Record the PIDs as potentially relevant
-                    OwnedPIDs[*NumberOfOwnedPIDs].Active = 1;
-                    OwnedPIDs[*NumberOfOwnedPIDs].PID = PID;
-                    OwnedPIDs[*NumberOfOwnedPIDs].PPID = PPID;
-                    (*NumberOfOwnedPIDs)++;
-//DEBUG printf("%d I own PID = %d PPID = %d UID = %d\n",*NumberOfOwnedPIDs,PID,PPID,UID);
-                    if (*NumberOfOwnedPIDs >= MAX_PROCESSES) {
-                        fprintf(stderr,"ERROR: Out of save process space\n");
-                        exit(EXIT_FAILURE);
-                    }
+                    OwnedPIDs[NumberOfOwnedPIDs].Active = 1;
+                    OwnedPIDs[NumberOfOwnedPIDs].PID = PID;
+                    OwnedPIDs[NumberOfOwnedPIDs].PPID = PPID;
+                    IncrementPIDIndex(&NumberOfOwnedPIDs);
+//DEBUG printf("%d I own PID = %ld PPID = %ld UID = %d\n",*NumberOfOwnedPIDs,PID,PPID,UID);
                 } else {
 //----Not my process
                 }
@@ -200,6 +208,7 @@ fgets(Line,STRING_LENGTH,ProcFile) != NULL) {
         }
     }
     closedir(ProcDir);
+    return(NumberOfOwnedPIDs);
 }
 //---------------------------------------------------------------------------
 float GetProcessTime(pid_t PID,int IncludeSelf,int IncludeChildren) {
@@ -211,12 +220,14 @@ float GetProcessTime(pid_t PID,int IncludeSelf,int IncludeChildren) {
 ChildSystemModeJiffies;
 
     ProcessTime = 0;
-    sprintf(ProcFileName,"/proc/%d/stat",PID);
+    UserModeJiffies = SystemModeJiffies = ChildUserModeJiffies =
+ChildSystemModeJiffies = 0;
+    sprintf(ProcFileName,"/proc/%ld/stat",(long)PID);
     if ((ProcFile = fopen(ProcFileName,"r")) != NULL) {
         fscanf(ProcFile,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d %d %d",&UserModeJiffies,&SystemModeJiffies,&ChildUserModeJiffies,
 &ChildSystemModeJiffies);
         fclose(ProcFile);
-//DEBUG printf("%d: my jiffies = %d, dead child jiffies = %d\n",PID,UserModeJiffies+SystemModeJiffies,ChildUserModeJiffies+ChildSystemModeJiffies);
+//DEBUG printf("%ld: my jiffies = %d, dead child jiffies = %d\n",PID,UserModeJiffies+SystemModeJiffies,ChildUserModeJiffies+ChildSystemModeJiffies);
 //----Time used by this process
         MyTime = ((float)(UserModeJiffies + SystemModeJiffies))/JIFFIES;
 //----Time used by this process's dead children (man pages are wrong - does
@@ -229,7 +240,7 @@ JIFFIES;
         if (IncludeChildren) {
             ProcessTime += ChildTime;
         }
-//DEBUG printf("Process time for %d is %f\n",PID,ProcessTime);
+//DEBUG printf("Process time for %ld is %f\n",PID,ProcessTime);
         return(ProcessTime);
     } else {
 //----Bloody process died, return 0 and catch it in the parent next time
@@ -259,8 +270,8 @@ int *NumberOfOwnedPIDs) {
     *NumberOfOwnedPIDs = 0;
     while ((ProcessDir = readdir(ProcDir)) != NULL) {
         if (isdigit((int)ProcessDir->d_name[0])) {
-            PID = (pid_t)atoi(ProcessDir->d_name);
-            sprintf(ProcFileName,"/proc/%d/psinfo",(int)PID);
+            PID = (pid_t)atol(ProcessDir->d_name);
+            sprintf(ProcFileName,"/proc/%ld/psinfo",(long)PID);
             if ((ProcFile = fopen(ProcFileName,"r")) != NULL) {
                 fread(&ProcessRecord,sizeof(ProcessRecord),1,ProcFile);
                 fclose(ProcFile);
@@ -269,11 +280,7 @@ int *NumberOfOwnedPIDs) {
 //----Record the PIDs as potentially relevant
                     OwnedPIDs[*NumberOfOwnedPIDs].PID = PID;
                     OwnedPIDs[*NumberOfOwnedPIDs].PPID = ProcessRecord.pr_ppid;
-                    (*NumberOfOwnedPIDs)++;
-                    if (*NumberOfOwnedPIDs >= MAX_PROCESSES) {
-                        fprintf(stderr,"ERROR: Out of save process space\n");
-                        exit(EXIT_FAILURE);
-                    }
+                    IncrementPIDIndex(NumberOfOwnedPIDs);
                 }
             } else {
 //----Bloody child just died
@@ -291,7 +298,7 @@ float GetProcessTime(pid_t PID,int IncludeSelf,int IncludeChildren) {
     float ProcessTime;
 
     ProcessTime = 0;
-    sprintf(ProcFileName,"/proc/%d/status",(int)PID);
+    sprintf(ProcFileName,"/proc/%ld/status",(long)PID);
     if ((ProcFile = fopen(ProcFileName,"r")) != NULL) {
         fread(&StatusRecord,sizeof(StatusRecord),1,ProcFile);
         fclose(ProcFile);
@@ -307,7 +314,7 @@ StatusRecord.pr_cstime.tv_sec +
 ((float)(StatusRecord.pr_cutime.tv_nsec+StatusRecord.pr_cstime.tv_nsec))/
 NANOSECONDS;
         }
-//DEBUG printf("Process %d has used U %ld +n%ld + S %ld +n%ld + CU %ld +n%ld + CS %ld +n%ld = %.1f\n",
+//DEBUG printf("Process %ld has used U %ld +n%ld + S %ld +n%ld + CU %ld +n%ld + CS %ld +n%ld = %.1f\n",
 //DEBUG PID,StatusRecord.pr_utime.tv_sec,StatusRecord.pr_utime.tv_nsec,
 //DEBUG StatusRecord.pr_stime.tv_sec,StatusRecord.pr_stime.tv_nsec,
 //DEBUG StatusRecord.pr_cutime.tv_sec,StatusRecord.pr_cutime.tv_nsec,
@@ -337,8 +344,8 @@ int PIDInArray(pid_t PID,ProcessDataArray PIDs,int NumberOfPIDs) {
     return(0);
 }
 //---------------------------------------------------------------------------
-#if (defined(LINUX)||defined(SUN))
 //----Only for systems that have /proc
+#if (defined(LINUX)||defined(SUN))
 
 int GetTreeTimes(uid_t MyRealUID,pid_t FirstBornPID,ProcessDataArray 
 TreeTimes) {
@@ -350,10 +357,10 @@ TreeTimes) {
     int OwnedIndex;
 
 //----Get the list of processes owned by this user
-    GetProcessesOwnedByMe(MyRealUID,OwnedPIDs,&NumberOfOwnedPIDs);
+    NumberOfOwnedPIDs = GetProcessesOwnedByMe(MyRealUID,OwnedPIDs);
 
 //----Check that the root of the tree is still there
-//DEBUG printf("Check if %d is alive\n",FirstBornPID);
+//DEBUG printf("Check if %ld is alive\n",FirstBornPID);
     if (!PIDInArray(FirstBornPID,OwnedPIDs,NumberOfOwnedPIDs)) {
 //DEBUG printf("It is dead\n");
         return(0);
@@ -369,7 +376,7 @@ TreeTimes) {
     NumberOfTreeTimes = 1;
 
     while (CurrentTreeIndex < NumberOfTreeTimes) {
-//DEBUG printf("%d %d is in the tree\n",TreeTimes[CurrentTreeIndex].PID,TreeTimes[CurrentTreeIndex].PPID);
+//DEBUG printf("%ld %ld is in the tree\n",TreeTimes[CurrentTreeIndex].PID,TreeTimes[CurrentTreeIndex].PPID);
 //----Scan for offspring
         TreeTimes[CurrentTreeIndex].CPUTime = 
 GetProcessTime(TreeTimes[CurrentTreeIndex].PID,1,1);
@@ -378,7 +385,7 @@ GetProcessTime(TreeTimes[CurrentTreeIndex].PID,1,1);
                 TreeTimes[NumberOfTreeTimes].Active = 1;
                 TreeTimes[NumberOfTreeTimes].PID = OwnedPIDs[OwnedIndex].PID;
                 TreeTimes[NumberOfTreeTimes].PPID = OwnedPIDs[OwnedIndex].PPID;
-                NumberOfTreeTimes++;
+                IncrementPIDIndex(&NumberOfTreeTimes);
             }
         }
 //----Move on to the next process in the tree
@@ -394,7 +401,7 @@ GetProcessTime(TreeTimes[CurrentTreeIndex].PID,1,1);
 #endif
 //---------------------------------------------------------------------------
 //----Send signals and reports if process is known to be gone
-int SignalAndReport(int PID,int Signal,int RepeatUntilTerminated,
+int SignalAndReport(pid_t PID,int Signal,int RepeatUntilTerminated,
 char * ProcessType) {
 
     String ErrorMessage;
@@ -406,7 +413,7 @@ char * ProcessType) {
     NumberOfLoops = 0;
     do {
         NumberOfLoops++;
-//DEBUG printf("!!! TreeLimitedRun %d sends signal %d to %s %d\n",getpid(),Signal,ProcessType,PID);fflush(stdout);
+//DEBUG printf("!!! TreeLimitedRun %ld sends signal %d to %s %ld\n",getpid(),Signal,ProcessType,PID);fflush(stdout);
         if (kill(PID,Signal) != 0) {
 //DEBUG printf("The kill errno is %d\n",errno);
 //----If process no longer exists record that to avoid killing again
@@ -414,8 +421,8 @@ char * ProcessType) {
                 Terminated = 1;
             } else {
                 sprintf(ErrorMessage,
-"!!! ERROR: TreeLimitedRun %d cannot signal %s %d with %d",getpid(),ProcessType,
-PID,Signal);
+"!!! ERROR: TreeLimitedRun %ld cannot signal %s %ld with %d",(long)getpid(),
+ProcessType,(long)PID,Signal);
                 perror(ErrorMessage);
             }
         }
@@ -430,7 +437,7 @@ int NumberInTree,int Signal) {
 
     int ChildIndex;
 
-//DEBUG printf("!!! TreeLimitedRun %d killing tree below PID %d with %d\n",getpid(),TreeTimes[TargetIndex].PID,Signal);fflush(stdout);
+//DEBUG printf("!!! TreeLimitedRun %ld killing tree below PID %ld with %d\n",getpid(),TreeTimes[TargetIndex].PID,Signal);fflush(stdout);
     for (ChildIndex=0; ChildIndex < NumberInTree; ChildIndex++) {
         if (TreeTimes[TargetIndex].PID == TreeTimes[ChildIndex].PPID) {
             ChildKillTree(ChildIndex,TreeTimes,NumberInTree,Signal);
@@ -458,7 +465,7 @@ int KillTree(uid_t MyRealUID,pid_t FirstBornPID,int Signal) {
 
 //----The first born gets it first so that it can curb its descendants nicely
         if (TreeTimes[0].Active) {
-//DEBUG printf("!!! TreeLimitedRun %d killing top process %d with %d\n",getpid(),TreeTimes[0].PID,Signal);fflush(stdout);
+//DEBUG printf("!!! TreeLimitedRun %ld killing top process %ld with %d\n",getpid(),TreeTimes[0].PID,Signal);fflush(stdout);
 //----TreeTimes[0].PID is FirstBornPID
             if (SignalAndReport(TreeTimes[0].PID,Signal,Signal == SIGKILL,
 "top process")) {
@@ -468,7 +475,7 @@ int KillTree(uid_t MyRealUID,pid_t FirstBornPID,int Signal) {
 
 //----200000 is not enough - EP's eproof script gets killed before it can
 //----kill eprover
-        usleep(500000);
+        usleep(200000);
 //----Now gently from the bottom up
         ChildKillTree(0,TreeTimes,NumberOfTreeTimes,Signal);
         usleep(100000);
@@ -508,11 +515,11 @@ int NumberOfSavePIDs) {
 
     do {
 //----Get the list of processes owned by this user
-        GetProcessesOwnedByMe(MyRealUID,OwnedPIDs,&NumberOfOwnedPIDs);
+        NumberOfOwnedPIDs = GetProcessesOwnedByMe(MyRealUID,OwnedPIDs);
 
         NumberOfOrphansKilled = 0;
         for (OwnedIndex = 0; OwnedIndex < NumberOfOwnedPIDs; OwnedIndex++) {
-//DEBUG printf("!!! TreeLimitedRun %d considers %d with parent %d\n",getpid(),OwnedPIDs[OwnedIndex].PID, OwnedPIDs[OwnedIndex].PPID);fflush(stdout);
+//DEBUG printf("!!! TreeLimitedRun %ld considers %ld with parent %ld\n",getpid(),OwnedPIDs[OwnedIndex].PID,OwnedPIDs[OwnedIndex].PPID);fflush(stdout);
             if (OwnedPIDs[OwnedIndex].PPID == 1 &&
 !PIDInArray(OwnedPIDs[OwnedIndex].PID,SavePIDs,NumberOfSavePIDs)) {
 //DEBUG printf("!!! TreeLimitedRun %d kills orphan %d\n",getpid(),OwnedPIDs[OwnedIndex].PID);fflush(stdout);
@@ -542,15 +549,17 @@ int NumberOfSavePIDs) {
 void PrintTimes(char* Tag,float TreeCPUTime,float WCTime) {
 
 //----You can print times with more accuracy here
-    printf("%s: %.1f CPU %.1f WC\n",Tag,TreeCPUTime,WCTime);
-    fflush(NULL);
+    printf("%s: %.2f CPU %.2f WC\n",Tag,TreeCPUTime,WCTime);
+    fflush(stdout);
 }
 //---------------------------------------------------------------------------
 float WallClockSoFar(struct timeval WCStartTime) {
 
     struct timeval WCEndTime;
 
-    gettimeofday(&WCEndTime,NULL);
+//----Assume I can get it if I keep trying
+    while (gettimeofday(&WCEndTime,NULL) != 0) {
+    }
 //DEBUG printf("Started at %ld +%f and ended at %ld +%f\n",
 //DEBUG WCStartTime.tv_sec,WCStartTime.tv_usec/MICROSECONDS,
 //DEBUG WCEndTime.tv_sec,WCEndTime.tv_usec/MICROSECONDS);
@@ -561,35 +570,40 @@ float WallClockSoFar(struct timeval WCStartTime) {
 }
 //---------------------------------------------------------------------------
 double AccumulateTreeTime(int TargetIndex,ProcessDataArray TreeTimes,
-int NumberInTree) {
+int NumberInTree,int RecursionDepth) {
 
     int ChildIndex;
 
+//DEBUG fprintf(stderr,"AccumulateTreeTime TargetIndex=%d, NumberInTree=%d\n",TargetIndex,NumberInTree);
     TreeTimes[TargetIndex].AccumulatedCPUTime = TreeTimes[TargetIndex].CPUTime;
     for (ChildIndex=0; ChildIndex < NumberInTree; ChildIndex++) {
         if (TreeTimes[TargetIndex].PID == TreeTimes[ChildIndex].PPID) {
-            TreeTimes[TargetIndex].AccumulatedCPUTime += 
-AccumulateTreeTime(ChildIndex,TreeTimes,NumberInTree);
+//DEBUG fprintf(stderr,"Found a child at position %d, recurse\n",ChildIndex);
+            if (RecursionDepth < 100) {
+                TreeTimes[TargetIndex].AccumulatedCPUTime += 
+AccumulateTreeTime(ChildIndex,TreeTimes,NumberInTree,RecursionDepth+1);
+//DEBUG fprintf(stderr,"Exit recursion child at position %d\n",ChildIndex);
+            } else {
+                fprintf(stderr,"YIKES, recursion depth 100 seems crazy\n");
+            }
         }
     }
 
     return(TreeTimes[TargetIndex].AccumulatedCPUTime);
 }
 //---------------------------------------------------------------------------
-float WatchChildTree(int MyPID,int ChildPID,int CPUTimeLimit,
+float WatchChildTree(pid_t MyPID,pid_t ChildPID,int CPUTimeLimit,
 int DelayBetweenChecks,struct timeval WCStartTime,int PrintEachCheck) {
 
-    double TreeTime,LastTreeTime,LostTime;
+    double TreeTime,LastTreeTime,ChildTreeTime,LostTime;
     int NumberInTree;
     int KilledInTree;
     int Status;
-    int DeadPID;
+    pid_t DeadPID;
 #if (defined(LINUX)||defined(SUN))
     ProcessDataArray TreeTimes;
 #endif
-#ifdef OSX
     struct rusage ResourceUsage;
-#endif
 
     LastTreeTime = 0.0;
     LostTime = 0.0;
@@ -600,7 +614,7 @@ int DelayBetweenChecks,struct timeval WCStartTime,int PrintEachCheck) {
 #if (defined(LINUX)||defined(SUN))
 //----Look at the tree
         NumberInTree = GetTreeTimes(getuid(),ChildPID,TreeTimes);
-        TreeTime = AccumulateTreeTime(0,TreeTimes,NumberInTree);
+        TreeTime = AccumulateTreeTime(0,TreeTimes,NumberInTree,0);
 //DEBUG fprintf(stderr,"now %5.2f limit %d\n",TreeTime,CPUTimeLimit);
 //----For those with /proc, reap the children. Need to reap late so /proc
 //----entries do not disappear
@@ -610,24 +624,28 @@ int DelayBetweenChecks,struct timeval WCStartTime,int PrintEachCheck) {
         }
 #endif
 #ifdef OSX
+//----Will update with getrusage below
+        TreeTime = LastTreeTime;
 //----Check if child is gone (-1 if no child, 0 if not dead, PID if dead)
         DeadPID = waitpid(-1,&Status,WNOHANG);
         if (DeadPID == ChildPID || DeadPID == -1) {
-            TreeTime = LastTreeTime;
             NumberInTree = 0;
         } else {
 //----Maybe more than 1, but we don't know in OSX version
             NumberInTree = 1;
         }
+#endif
         if (getrusage(RUSAGE_CHILDREN,&ResourceUsage) != -1) {
-            TreeTime = ResourceUsage.ru_utime.tv_sec +
+            ChildTreeTime = ResourceUsage.ru_utime.tv_sec +
 ResourceUsage.ru_utime.tv_usec / 1000000 + ResourceUsage.ru_stime.tv_sec +
 ResourceUsage.ru_stime.tv_usec / 1000000;
         } else {
             printf("TreeLimitedRun could not getrusage\n");
-            TreeTime = LastTreeTime;
+            ChildTreeTime = LastTreeTime;
         }
-#endif
+        if (ChildTreeTime > TreeTime) {
+            TreeTime = ChildTreeTime;
+        }
 
 //DEBUG fprintf(stderr,"acc time is %.2f\n",TreeTime);
 //----This happens when an intermediate process dies and does not reap its
@@ -643,7 +661,7 @@ LastTreeTime - TreeTime,LostTime);
 
 //----Print each loop if requested
         if (PrintEachCheck) {
-            PrintTimes("WATCH",TreeTime,WallClockSoFar(WCStartTime));
+            PrintTimes("\nWATCH",TreeTime,WallClockSoFar(WCStartTime));
         }
 //----If we're going to loop, wait a bit first
 //----DANGER - if the last descedant process dies between GetTreeTimes() and 
@@ -684,9 +702,9 @@ NumberInTree > 0 && !GlobalInterrupted);
 //---------------------------------------------------------------------------
 int main(int argc,char *argv[]) {
 
-    int CPUTimeLimit;
-    int WCTimeLimit;
-    int MemoryLimit;
+    rlim_t CPUTimeLimit;
+    rlim_t WCTimeLimit;
+    rlim_t MemoryLimit;
     int ArgNumber;
     int QuietnessLevel;
     int ArgOffset;
@@ -732,10 +750,10 @@ strstr(argv[ArgOffset+1],"-p") == argv[ArgOffset+1]) {
         }
 
 //----Extract time limits
-        CPUTimeLimit = atoi(argv[ArgOffset+1]);
-        WCTimeLimit = atoi(argv[ArgOffset+2]);
+        CPUTimeLimit = atol(argv[ArgOffset+1]);
+        WCTimeLimit = atol(argv[ArgOffset+2]);
         if (isdigit((int)argv[ArgOffset+3][0])) {
-            MemoryLimit = atoi(argv[ArgOffset+3]);
+            MemoryLimit = atol(argv[ArgOffset+3]);
             ArgOffset++;
         } else {
             MemoryLimit = 0;
@@ -748,14 +766,14 @@ strstr(argv[ArgOffset+1],"-p") == argv[ArgOffset+1]) {
             for (ArgNumber=ArgOffset+4;ArgNumber<argc;ArgNumber++)
                 printf("%s ",argv[ArgNumber]);
             printf("\n");
-            printf("TreeLimitedRun: CPU time limit is %ds\n",CPUTimeLimit);
-            printf("TreeLimitedRun: WC  time limit is %ds\n",WCTimeLimit);
+            printf("TreeLimitedRun: CPU time limit is %lds\n",CPUTimeLimit);
+            printf("TreeLimitedRun: WC  time limit is %lds\n",WCTimeLimit);
             if (MemoryLimit > 0) {
-                printf("TreeLimitedRun: Memory   limit is %dbytes\n",
+                printf("TreeLimitedRun: Memory   limit is %ldbytes\n",
 MemoryLimit);
             }
 //----Output the PID for possible later use
-            printf("TreeLimitedRun: PID is %d\n",(int)getpid());
+            printf("TreeLimitedRun: PID is %ld\n",(long)getpid());
             printf(
 "TreeLimitedRun: ----------------------------------------------------------\n");
             fflush(stdout);
@@ -781,7 +799,7 @@ MemoryLimit);
 
 #if (defined(LINUX)||defined(SUN))
 //----Record running processes at start (xeyes, gnome, etc)
-        GetProcessesOwnedByMe(getuid(),SavePIDs,&NumberOfSavePIDs);
+        NumberOfSavePIDs = GetProcessesOwnedByMe(getuid(),SavePIDs);
 #endif
 #ifdef OSX
 //----No recording processes for OSX
@@ -798,7 +816,7 @@ MemoryLimit);
             if (setvbuf(stdout,NULL,_IONBF,0) != 0) {
                 perror("Setting unbuffered");
             }
-//DEBUG printf("The prover PID will be %d\n",getpid());
+//DEBUG printf("The prover PID will be %ld\n",getpid());
 //----Set memory limit for child only
             if (MemoryLimit > 0) {
                 SetMemoryLimit(MemoryLimit);

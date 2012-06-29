@@ -122,8 +122,8 @@ do
 		PTL=$MAXTIME
 		TAVAIL=$(($OTLIMIT-$SECONDS))
 		PTLO=$(($TAVAIL/$PROBREMAINS))
-		if [ $PTLI -ge $PTLO ]; then
-		    PTL=$PTLO
+		if [ $PTLI -gt $PTLO ]; then
+		    PTL=$(($PTLO+30))
 		else
 		    PTL=$PTLI
 		fi
