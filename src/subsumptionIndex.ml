@@ -505,16 +505,18 @@ module Make(Feature:Feature)  =
 	if  not (Clause.get_bool_param Clause.is_dead d)
 	then
 	  try
-	  let unif = Unif.subsumes d clause in 
-	  Some ((d,unif))
+(*	    out_str ("Trying subs: "^(Clause.to_string clause)^" by "
+		     ^(Clause.to_string d)^"\n");*)
+	    let unif = Unif.subsumes d clause in 
+	    Some ((d,unif))
 	  with   
-	  Unif.Subsumtion_failed -> 
-	    (
+	    Unif.Subsumtion_failed -> 
+	      (
 	     (*out_str ("Clause to subume: "
 		      ^(Clause.to_string clause)^" "
 	       ^(to_string_feat_list feature_list)^"\n");
 	     out_str ("Failed by: "^(Clause.to_string d)^"\n");*)
-	     None)
+	       None)
 	else None
       in 
       VIndexM.findf_leq (list_findf is_subsumed_by) feature_list index_ref

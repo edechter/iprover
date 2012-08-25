@@ -320,8 +320,10 @@ let full_loop prover_functions_ref input_clauses =
   let instantiation_counter = ref 0 in
   let full_loop_counter     = ref 0 in 
   while true do
-    ( check_sched_time (!full_loop_counter);
-      full_loop_counter:= !full_loop_counter+1;
+    ( 
+
+      check_sched_time (!full_loop_counter);
+      full_loop_counter:= !full_loop_counter+1;      
       if (!current_options.resolution_flag && 
 	     (!resolution_counter < !current_options.comb_res_mult)) 
       then
@@ -353,7 +355,8 @@ let full_loop prover_functions_ref input_clauses =
 	       if (not (ClauseAssignDB.mem clause !clause_db_ref))
 	       then ( clause)
 	       else ()
-	       in*)
+	       in
+      *)
       (*List.iter 
 	(Prop_solver_exchange.add_clause_to_solver gr_by) exchange_clauses;*)
       (*       out_str ("\n Exchange Clauses: "

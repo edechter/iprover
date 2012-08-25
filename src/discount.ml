@@ -1675,7 +1675,7 @@ let rec discount_change_sel_loop_body () =
      (* let clause =  PassiveQueue.maximum !(passive_queue_ref) in 
       passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
       let clause = remove_from_passive () in
-(*      out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n");*)
+     (* out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n");*)
       if ((Clause.get_bool_param Clause.is_dead clause) ||
       (Clause.get_bool_param Clause.in_active clause))
       then ()      

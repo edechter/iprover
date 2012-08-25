@@ -20,6 +20,7 @@
 
 open Lib
 open Statistics
+open Options
 
 type var = Var.var 
 type term = Term.term
@@ -397,10 +398,18 @@ let rec subsumes_list subst lit_list1 list2_occup unexplored_part_of_list2 =
 let subsumes c1 c2 = 
   check_disc_time_limit ();
   incr_int_stat 1 res_clause_to_clause_subsumption;
-(*  out_str ("Try Subsumes: "^(Clause.to_string c1)^"  "
+  (*out_str ("Try Subsumes: "^(Clause.to_string c1)^" \n "
 	   ^(Clause.to_string c2)^"\n");*)
-  let c1_lit_list = Clause.get_literals c1 in
-  let c2_lit_list = Clause.get_literals c2 in
+  (* order large first *)
+
+  let pos_order_fun () =  
+    Term.lit_cmp_type_list_to_lex_fun 
+      [Lit_Sign true;  Lit_Num_of_Symb true; Lit_Num_of_Var false] in
+  let order_lits_fun lits = 
+    List.sort (compose_sign false (pos_order_fun ())) lits
+  in
+  let c1_lit_list =  order_lits_fun (Clause.get_literals c1) in
+  let c2_lit_list =  order_lits_fun (Clause.get_literals c2) in
   let c2_occup = 
     List.map (fun lit -> (lit, ref false)) c2_lit_list in 
   (* old
