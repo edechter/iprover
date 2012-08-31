@@ -541,7 +541,7 @@ let pp_clauses_with_clausification ppf clauses =
       (
 	
 	(* Hash table for proof of clausification *)
-	let clausify_proof = Hashtbl.create 100 in
+	let clausify_proof = Hashtbl.create 1001 in
 
 	(* Get command and options for clausification *)
 	let clausify_cmd, clausify_arg =

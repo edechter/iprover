@@ -34,9 +34,14 @@ let upper = ['A'-'Z']
 let alpha = lower | upper
 let digit = ['0'-'9']
 let alnum = alpha | digit
+(*KK uncomment punct !*)
+
+
 let punct = 
   ['!' '\\' '"' '#' '$' '%' '&' '\'' '(' ')' '*' '+' ',' '-' '.' '/' ':' ';' 
      '<' '=' '>' '?' '@' '[' ']' '^' '_' '`' '{' '|' '}' '~']
+
+
 let graph = alnum | punct
 let blank = ' ' | '\t'
 
