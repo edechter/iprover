@@ -694,8 +694,11 @@ let length clause =
 let when_born clause = 
   match clause.when_born with 
   |Def(n) -> n
-  |Undef  -> failwith "Clause: when_born is undef"
-
+  |Undef  -> 
+      (
+       let fail_str = "Clause: when_born is undef for "^(to_string clause) in
+       failwith fail_str
+      )
 
 
 let assign_max_atom_input_occur c = 

@@ -156,6 +156,7 @@ let factoring c l1 l2 term_db_ref =
       l1::(Clause.find_all (fun lit -> not(l1 == lit)) c) in
     let conclusion = Clause.create new_litlist in
     Clause.inherit_conj_dist c conclusion;
+    Clause.assign_when_born [c] [] conclusion;
     (* Clause.assign_factoring_history conclusion c [l1;l2]; *)
     Clause.assign_tstp_source_factoring conclusion c [l1;l2];
     conclusion
