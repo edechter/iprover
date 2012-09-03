@@ -1,6 +1,7 @@
-# first run "./configure" to create Makefile.extras
-# make PROFILE=true for profile 
-# make CPP=true for c++ version of minisat
+# first run './configure' to create Makefile.extras
+# 'make PROFILE=true' for profile 
+# 'make CPP=true' for c++ version of minisat
+# 'make LGL=true' lingeling for solving/for proofs/unsat cores minisat will still be used
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
 # to archive Vampire's clausifier bundle "make V=true archive"
@@ -19,6 +20,7 @@ OPT=true
 OBJPATH=obj/
 ADDTONAME=
 PROFILE=
+C_PROFFLAGS=
 OCAMLOPTOPT=ocamlopt.opt
 OCAMLDEP=ocamldep
 INCLUDES=
@@ -92,24 +94,31 @@ else
   CFLAGS    = -I$(OCAMLLIB) -std=c99
 endif
 
+ifeq ($(PROFILE),true)
+  OCAMLFLAGS= -p -I obj/ -I util/lib 
+  C_PROFFLAGS = -p 
+  ADDTONAME=prof
+endif
+
 
 ifeq ($(CPP),true)	
   CC = g++
   PROP_SOLVER_NAMES=Solver_cpp minisat_c_wrapper minisat_ocaml_wrapper
   IPROVERFLAGS= -cc g++ -ccopt -L$(OCAMLLIB) -I $(OCAMLLIB)
-  CFLAGS = -I$(OCAMLLIB)
+  CFLAGS = -I$(OCAMLLIB) $(C_PROFFLAGS)
   ADDTONAME_CPP="_cpp"	
 else
+ifeq ($(LGL),true)
+   CC=gcc
+   PROP_SOLVER_NAMES = lglib lgl_ocaml_wrapper
+   CFLAGS = -I$(OCAMLLIB) $(C_PROFFLAGS) -Wall -O3 -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
+else # default C minisat
   CC=gcc
   PROP_SOLVER_NAMES= $(CSOLVER) solver_interface 
-  CFLAGS = -O3 -I$(OCAMLLIB)
+  CFLAGS = -O3 -I$(OCAMLLIB) $(C_PROFFLAGS)
+endif
 endif
 
-ifeq ($(PROFILE),true)
-  OCAMLFLAGS= -p -I obj/ -I util/lib 
-  CFLAGS = -I$(OCAMLLIB) -p 
-  ADDTONAME=prof
-endif
 
 ifeq ($(debug),true)
 #:= "Simply expanded variable"
@@ -168,10 +177,13 @@ test : $(TEST_INTERFACE)\
 
 #------------satandalone prop solver----------------------------------------
 
-STANDALONE_OBJ=obj/lib.cmx obj/statistics.cmx obj/propSolver.cmx $(IPROVER_C_OBJ)
-prop_solver_standalone : $(STANDALONE_OBJ)  src/prop_solver_standalone.ml
+STANDALONE_OCAML_NAMES=lib statistics cMinisat propSolver
+STANDALONE_OCAML_INT=$(STANDALONE_OCAML_NAMES:%=obj/%.cmi)
+STANDALONE_OCAML_OBJ=$(STANDALONE_OCAML_NAMES:%=obj/%.cmx)
+STANDALONE_OBJ=$(STANDALONE_OCAML_OBJ) $(IPROVER_C_OBJ)
+prop_solver_standalone :  util/lib/minisat.cmxa $(STANDALONE_OCAML_INT) $(STANDALONE_OBJ)  src/prop_solver_standalone.ml
 	$(COMPILE) $(IPROVERFLAGS)  -o $@ \
-        $(OCAMLFLAGS) unix.cmxa str.cmxa $(STANDALONE_OBJ) src/prop_solver_standalone.ml
+        $(OCAMLFLAGS) unix.cmxa str.cmxa  util/lib/minisat.cmxa $(STANDALONE_OBJ) src/prop_solver_standalone.ml
 
 #----------------------------------------
 

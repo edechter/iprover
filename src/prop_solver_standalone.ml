@@ -53,7 +53,7 @@ let add_clause i_c =
 	PropSolver.create_lit solver (sign l) var_id
       ) i_c  
   in        
-  out_str ((PropSolver.lit_list_to_string lit_list)^"\n");
+  out_str ((PropSolver.lit_list_to_string solver lit_list)^"\n");
   PropSolver.add_clause solver lit_list
 
 let read_clauses () =
@@ -66,7 +66,7 @@ let read_clauses () =
       then ()
       else
 	(
-	 if (str.[0] = 'c' || str.[0] ='p') 
+	 if (str.[0] = 'c' || str.[0] ='p'|| str.[0] ='%') 
 	 then ()
 	 else
 	   let str_list = Str.split (Str.regexp " ") str in

@@ -209,7 +209,7 @@ value C_get_lit_val (value solver_In, value lit_In)
   solver  * solver = solver_mem -> solver_ptr;
   int lit = Int_val(lit_In);
   int var = lit_var(lit);
-  //sign true if there neg lit
+  //sign true if it is a  negative lit
   int sign =lit_sign (lit);
 
   int* model = veci_begin(&solver->model);
@@ -381,7 +381,7 @@ value C_solve_assumptions(value solver_In, value assumptions)
 	    
 	    lit* begin = (lit *)veci_begin(lits);
 	    int n = veci_size(lits);
-	    lbool   solver_out = solver_solve(solver,begin,begin+n);
+	    lbool solver_out = solver_solve(solver,begin,begin+n);
 	    if (solver_out == true)
 	  { //sat under assumprions
 	    CAMLreturn(Val_int(l_True));
