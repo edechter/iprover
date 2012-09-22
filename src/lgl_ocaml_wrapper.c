@@ -13,6 +13,19 @@
 #include <errno.h>
 
 
+typedef int  bool;
+static const bool  true      = 1;
+static const bool  false     = 0;
+
+typedef char               lbool;
+static const lbool l_Undef   =  0;
+static const lbool l_True    =  1;
+static const lbool l_False   = -1;
+// returned when an error occured (should never happen..)
+static const lbool l_Err     = -13;
+
+
+
 struct solver_model {
     LGL  *lgl;
     veci model;    
@@ -55,7 +68,15 @@ value C_create_solver(value is_sim_In)
   //
 
   lglsetopt(s->lgl,"verbose",0);
-  // lglsetopt(s->lgl,"phase",1);
+  lglsetopt(s->lgl,"phase",0);
+    //scdpd_miter_full-range.cnf
+
+    //minisat: MC1 bound 3 UNSAT after 29.484s BMC1 bound 4 UNSAT after 73.016s BMC1 bound 5 UNSAT after 181.933s
+    //phase -1:BMC1 bound 3 UNSAT after 47.318s BMC1 bound 4 UNSAT after 98.067s BMC1 bound 5 UNSAT after 152.924s BMC1 bound 6 UNSAT after 221
+    //phase 0: BMC1 bound 3 UNSAT after 25.761s BMC1 bound 4 UNSAT after 70.702s BMC1 bound 5 UNSAT after 139.671s
+   // phase 0: BMC1 bound 2 UNSAT after 77.202s
+
+  lglsetopt(s->lgl,"flipping",0);
   value val = alloc(1, Abstract_tag);
   Field(val,0) = (value) s; 
   CAMLreturn(val);
@@ -344,17 +365,20 @@ value C_solve(value solver_In)
 	    int i;
 	    int msize = model_size(s);
 	    veci_resize(&s->model,0);
+	    //	    fprintf(stderr, "Model\n");
 	    for (i = 0; i < msize; i++) 	  
 	         {
-		 
+
 		int var = mvar_to_var(i);
 		int var_val = lglderef(s->lgl,var);
 		//DEBUG
 		//	int max_var = lglmaxvar (s->lgl);
-		//	fprintf(stderr, "max_var = %i, var=%i, var_val = %i", max_var, var,var_val);
+		//	fprintf(stderr, "v%i= %i, ", var,var_val);
 	
 		veci_push(&s->model,var_val);
               }
+	    lglsetphases(s->lgl);
+	    //   fprintf(stderr, "Model\n");
 	  }
 	CAMLreturn(Val_bool(true));    
       }
@@ -366,6 +390,64 @@ value C_solve(value solver_In)
 }
 
 
+value C_solve_assumptions(value solver_In, value assumptions)
+{
+  CAMLparam2 (solver_In, assumptions);
+  solver * s = (solver *)Field(solver_In, 0);
+  int i , lit ;
+  int size = Wosize_val(assumptions); 	
+  for (i = 0; i < size; i++)
+    {
+      lit = Int_val( Field(assumptions, i) );		
+	//	fprintf(stderr,"assume %i\n",lit);
+      lglassume (s->lgl, lit); //assume
+	lglfreeze (s->lgl, lit); //freeze
+	
+    }
+  
+  if (lglinconsistent (s->lgl))
+    //unsat without assumptions
+    CAMLreturn(Val_int(l_Undef));
+ 
+  int res = lglsat(s->lgl);
+  
+  if (res == LGL_UNSATISFIABLE)
+    CAMLreturn(Val_int(l_False));
+  
+    if (res == LGL_SATISFIABLE)
+      {
+	//	if (lglchanged(s->lgl))
+	  {
+	    //copy model
+	    int i;
+	    int msize = model_size(s);
+	    veci_resize(&s->model,0);
+	    // fprintf(stderr,"Model\n");
+	    for (i = 0; i < msize; i++) 
+	      {
+
+
+		int var = mvar_to_var(i);
+		int var_val = lglderef(s->lgl,var);
+		//DEBUG
+		//		int max_var = lglmaxvar (s->lgl);
+		//	fprintf(stderr, "max_var = %i, var=%i, var_val = %i\n", max_var, var,var_val);
+		//		fprintf(stderr, "v%i= %i\n ", var,var_val);	
+		veci_push(&s->model,var_val);
+
+              }
+	    lglsetphases(s->lgl);
+	  }
+	CAMLreturn(Val_bool(l_True));    
+      }
+  
+    fprintf(stderr,"Lingeling: unknown solver result: %i \n", res);
+    fflush(stderr);
+    exit(EXIT_FAILURE); 
+}
+
+
+   
 value C_fast_solve(value solver_In, value assumptions)
 {
   CAMLparam2 (solver_In, assumptions);
@@ -414,62 +496,6 @@ value C_fast_solve(value solver_In, value assumptions)
    
 
 
-value C_solve_assumptions(value solver_In, value assumptions)
-{
-  CAMLparam2 (solver_In, assumptions);
-  solver * s = (solver *)Field(solver_In, 0);
-  int i , lit ;
-  int size = Wosize_val(assumptions); 	
-  for (i = 0; i < size; i++)
-    {
-      lit = Int_val( Field(assumptions, i) );		
-	//	fprintf(stderr,"assume %i\n",lit);
-      lglassume (s->lgl, lit); //assume
-	lglfreeze (s->lgl, lit); //freeze
-	
-    }
-  
-  if (lglinconsistent (s->lgl))
-    //unsat without assumptions
-    CAMLreturn(Val_int(l_Undef));
- 
-  int res = lglsat(s->lgl);
-  
-  if (res == LGL_UNSATISFIABLE)
-    CAMLreturn(Val_int(l_False));
-  
-    if (res == LGL_SATISFIABLE)
-      {
-	//	if (lglchanged(s->lgl))
-	  {
-	    //copy model
-	    int i;
-	    int msize = model_size(s);
-	    veci_resize(&s->model,0);
-	    for (i = 0; i < msize; i++) 
-	      {
-
-
-		int var = mvar_to_var(i);
-		int var_val = lglderef(s->lgl,var);
-		//DEBUG
-		//		int max_var = lglmaxvar (s->lgl);
-		//	fprintf(stderr, "max_var = %i, var=%i, var_val = %i\n", max_var, var,var_val);
-	
-		veci_push(&s->model,var_val);
-
-              }
-	  }
-	CAMLreturn(Val_bool(l_True));    
-      }
-  
-    fprintf(stderr,"Lingeling: unknown solver result: %i \n", res);
-    fflush(stderr);
-    exit(EXIT_FAILURE); 
-}
-
-
-   
 
 
 /* value C_add_clause(value clause_In, value solver_In)

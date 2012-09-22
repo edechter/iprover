@@ -879,7 +879,11 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
                 int i;
 		//KK added see above 
 		veci_resize(&s->model,0);
-                for (i = 0; i < s->size; i++) veci_push(&s->model,(int)values[i]);
+                for (i = 0; i < s->size; i++) 
+		  { //DEBUG
+		    // fprintf(stderr, "vm%i=%i\n",i,(int)values[i]);
+		    veci_push(&s->model,(int)values[i]);
+		  }
                 solver_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
 		//KK

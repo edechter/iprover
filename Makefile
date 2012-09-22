@@ -8,6 +8,9 @@
 # for debugging "make debug=true", 
 #     records backtraces run iproveropt with --dbg_backtrace true
 
+# time iproveropt_lgl --inst_out_proof false --prep_sem_filter none --schedule verification_epr --bmc1_incremental true --bmc1_add_unsat_core none --bmc1_max_bound 10 /M/Intel_Examples/ijcar-paper-cnf/scdpd_miter_full-range.cnf
+
+
 OCAML=ocaml
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
@@ -112,6 +115,7 @@ ifeq ($(LGL),true)
    CC=gcc
    PROP_SOLVER_NAMES = lglib lgl_ocaml_wrapper
    CFLAGS = -I$(OCAMLLIB) $(C_PROFFLAGS) -Wall -O3 -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
+  ADDTONAME_CPP="_lgl"	
 else # default C minisat
   CC=gcc
   PROP_SOLVER_NAMES= $(CSOLVER) solver_interface 
