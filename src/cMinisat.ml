@@ -51,6 +51,9 @@ type minisat_lit_list = minisat_lit list
 
 external create_solver_core : bool -> solver_core = "C_create_solver"
 
+(* resets solver but keeps clauses/in some solvers does not do anything *)
+(*external solver_reset_core      : solver_core -> unit = "C_solver_reset"*)
+
 external add_var_minisat : solver_core -> int -> unit = "C_add_var"
 
 external create_lit_minisat: int ->solver_core ->bool->minisat_lit = "C_create_lit"

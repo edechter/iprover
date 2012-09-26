@@ -82,6 +82,13 @@ value C_create_solver(value is_sim_In)
   CAMLreturn(val);
 }
 
+//value C_solver_reset(value solver_In)
+//{
+//  CAMLparam1(solver_In);
+//  solver * s = (solver *)Field(solver_In, 0);
+  
+//}
+
 //add_var       : solver -> var_id -> unit = "C_add_var"
 
 value C_add_var(value solver_In, value var_In)

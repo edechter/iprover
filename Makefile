@@ -1,7 +1,8 @@
 # first run './configure' to create Makefile.extras
-# 'make PROFILE=true' for profile 
+# 'make' for standard version
 # 'make CPP=true' for c++ version of minisat
 # 'make LGL=true' lingeling for solving/for proofs/unsat cores minisat will still be used
+# 'make PROFILE=true' for profile 
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
 # to archive Vampire's clausifier bundle "make V=true archive"
