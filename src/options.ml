@@ -612,13 +612,14 @@ type options = {
     mutable schedule              : schedule_type;
     mutable ground_splitting      : ground_splitting_type;
     mutable non_eq_to_eq          : bool;
-    mutable prep_prop_sim         : bool;
+    mutable prep_gs_sim           : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
     mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
     mutable sub_typing            : bool;
     mutable brand_transform       : bool;
+    mutable min_unsat_core        : bool;
 
 (*---Large Theories---------------*)
     mutable large_theory_mode     : bool;
@@ -726,7 +727,7 @@ let default_options () = {
   schedule                = Schedule_default;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim             = true;
   symbol_type_check       = false;
   clausify_out            = false;
 (*  prep_sem_filter         = Sem_Filter_None;*)
@@ -735,6 +736,7 @@ let default_options () = {
 (*  sub_typing              = false;*)
   sub_typing              = true;
   brand_transform         = false;
+  min_unsat_core          = false;
 
 (*---Large Theories---------------*)
   large_theory_mode       = true; 
@@ -1195,14 +1197,14 @@ let non_eq_to_eq_inf  =
 (*--------*)
 
 (*--------*)
-let prep_prop_sim_str = "--prep_prop_sim"
+let prep_gs_sim_str = "--prep_gs_sim"
 
-let prep_prop_sim_fun b = 
-  !current_options.prep_prop_sim <- b
+let prep_gs_sim_fun b = 
+  !current_options.prep_gs_sim <- b
 
-let prep_prop_sim_inf = 
+let prep_gs_sim_inf = 
   bool_str^
-  inf_pref^"simplify input clauses using propositional solver \n"
+  inf_pref^"simplify input first-order clauses using propositional solver by global subsumption\n"
 
 
 (*--------*)
@@ -1270,6 +1272,16 @@ let brand_transform_fun b =
 let brand_transform_inf = 
   bool_str^
   inf_pref^"apply Brand's transformation to remove equality monotonicity axioms by flattening clauses\n"
+
+(*-------*)
+let min_unsat_core_str = "--min_unsat_core"
+
+let min_unsat_core_fun b = 
+  !current_options.min_unsat_core <- b
+
+let min_unsat_core_inf = 
+  bool_str^
+  inf_pref^"minimise unsat core whenever is used; can be expenisve but can lead to shorter proofs and current state: for proofs better true for bmc1 better false \n"
 
 (*-------Large Theories---------------*)
 
@@ -2211,14 +2223,14 @@ let spec_list =
    (schedule_str, Arg.String(schedule_fun), schedule_inf);
    (ground_splitting_str,Arg.String(ground_splitting_fun), ground_splitting_inf);
    (non_eq_to_eq_str,Arg.Bool(non_eq_to_eq_fun),non_eq_to_eq_inf); 
-  (prep_prop_sim_str, Arg.Bool(prep_prop_sim_fun), prep_prop_sim_inf);
+  (prep_gs_sim_str, Arg.Bool(prep_gs_sim_fun), prep_gs_sim_inf);
    (symbol_type_check_str, Arg.Bool(symbol_type_check_fun), symbol_type_check_inf);
    (clausify_out_str,  Arg.Bool(clausify_out_fun), clausify_out_inf);
    (prep_sem_filter_str, Arg.String(prep_sem_filter_fun), prep_sem_filter_inf);
    (prep_sem_filter_out_str, Arg.Bool(prep_sem_filter_out_fun), prep_sem_filter_out_inf);
    (sub_typing_str, Arg.Bool(sub_typing_fun), sub_typing_inf);
    (brand_transform_str, Arg.Bool(brand_transform_fun), brand_transform_inf);
-
+   (min_unsat_core_str, Arg.Bool(min_unsat_core_fun), min_unsat_core_inf);
   
 (*---Large Theories----*)
    (large_theory_mode_str, Arg.Bool(large_theory_mode_fun),large_theory_mode_inf);
@@ -2411,7 +2423,7 @@ let general_options_str_list opt =
        (schedule_str, (schedule_type_to_str opt.schedule)); 
        (ground_splitting_str, (ground_splitting_type_to_str opt.ground_splitting));
        (non_eq_to_eq_str, (string_of_bool opt.non_eq_to_eq));
-       (prep_prop_sim_str, (string_of_bool opt.prep_prop_sim));
+       (prep_gs_sim_str, (string_of_bool opt.prep_gs_sim));
        (symbol_type_check_str, (string_of_bool opt.symbol_type_check));
        (clausify_out_str, (string_of_bool opt.clausify_out));
        (large_theory_mode_str, (string_of_bool opt.large_theory_mode));
@@ -2419,6 +2431,7 @@ let general_options_str_list opt =
        (prep_sem_filter_out_str, (string_of_bool opt.prep_sem_filter_out));
        (sub_typing_str, (string_of_bool opt.sub_typing));
        (brand_transform_str, (string_of_bool opt.brand_transform));
+       (min_unsat_core_str,(string_of_bool opt.min_unsat_core));
        (prolific_symb_bound_str, (string_of_int opt.prolific_symb_bound));
        (lt_threshold_str,(string_of_int opt.lt_threshold));
      ]
@@ -2591,7 +2604,7 @@ let prop_solver_is_on () =
   !current_options.instantiation_flag      ||
   !current_options.res_prop_simpl_new   ||
   !current_options.res_prop_simpl_given ||
-  !current_options.prep_prop_sim           ||
+  !current_options.prep_gs_sim           ||
   (match !current_options.res_to_prop_solver with 
     Res_to_Solver_Active | Res_to_Solver_Passive -> true 
   | Res_to_Solver_None    -> false)
@@ -2859,7 +2872,7 @@ let option_1 () = {
   schedule                = !current_options.schedule;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim             = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
   large_theory_mode       = true; 
@@ -2867,6 +2880,7 @@ let option_1 () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -3040,7 +3054,7 @@ let option_2 () = {
   schedule                = !current_options.schedule;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim             = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3049,6 +3063,7 @@ let option_2 () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -3183,7 +3198,7 @@ let option_3 () = {
   schedule                = !current_options.schedule;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3192,6 +3207,7 @@ let option_3 () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -3321,7 +3337,7 @@ let option_4 () = {
   schedule                = !current_options.schedule;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3330,6 +3346,7 @@ let option_4 () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = !current_options.brand_transform;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -3467,7 +3484,7 @@ let option_finite_models () = {
   schedule                = Schedule_none;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3476,6 +3493,7 @@ let option_finite_models () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -3607,7 +3625,7 @@ let option_epr_non_horn () = {
   schedule                = !current_options.schedule; 
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3616,6 +3634,7 @@ let option_epr_non_horn () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -3747,7 +3766,7 @@ let option_epr_non_horn () = {
   schedule                = !current_options.schedule;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3869,7 +3888,7 @@ let option_epr_horn () = {
   schedule                = !current_options.schedule; 
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
  symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -3878,6 +3897,7 @@ let option_epr_horn () = {
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 500; 
   lt_threshold            = 2000;
 
@@ -4005,7 +4025,7 @@ let option_epr_horn () = {
 
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
@@ -4128,7 +4148,7 @@ let option_verification_epr ver_epr_opt =
   schedule                = !current_options.schedule;
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
-  prep_prop_sim           = true;
+  prep_gs_sim           = true;
   symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
                            
@@ -4139,6 +4159,7 @@ let option_verification_epr ver_epr_opt =
   prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
   brand_transform         = false;
+  min_unsat_core          = !current_options.min_unsat_core;
   prolific_symb_bound     = 5000; 
   lt_threshold            = 2000;
 
@@ -4275,7 +4296,7 @@ let option_verification_epr ver_epr_opt =
     schedule                = !current_options.schedule;
     ground_splitting        = Split_Off;
     non_eq_to_eq            = false;
-    prep_prop_sim           = true;
+    prep_gs_sim           = true;
     symbol_type_check       = !current_options.symbol_type_check;
     clausify_out            = false;
                            
@@ -4286,6 +4307,7 @@ let option_verification_epr ver_epr_opt =
     prep_sem_filter_out     = false;
   sub_typing              = !current_options.sub_typing;
     brand_transform         = false;
+    min_unsat_core          = !current_options.min_unsat_core;
     prolific_symb_bound     = 20000000; 
     lt_threshold            = 20000000;
 
@@ -4327,8 +4349,9 @@ let option_verification_epr ver_epr_opt =
   inst_solver_per_active         = 7500;
 
 (* inst_solver_per_clauses        = 5000; is ok*)
-(*  inst_solver_per_clauses        = 5000;*)
+(* inst_solver_per_clauses        = 5000;*)
   inst_solver_per_clauses        = !current_options.inst_solver_per_clauses;
+
 
   inst_pass_queue1 = 
        ValueDefault 
@@ -4336,6 +4359,14 @@ let option_verification_epr ver_epr_opt =
 	  Cl_Age true; 
 	  Cl_Num_of_Symb false];
 
+
+(*
+  inst_pass_queue1 = 
+       ValueDefault 
+	 [Cl_Has_Non_Prolific_Conj_Symb false; Cl_min_defined_symb true; 
+	  Cl_Age true; 
+	  Cl_Num_of_Symb false];
+*)
   inst_pass_queue1_mult = ValueDefault 20;
 
   inst_pass_queue2 =
@@ -4362,6 +4393,7 @@ let option_verification_epr ver_epr_opt =
   inst_prop_sim_given               = false;
   inst_prop_sim_new                 = false;
   inst_learning_loop_flag           = true;
+ (* inst_learning_start               = 1000;*)
   inst_learning_start               = 100000;
   inst_learning_factor              = 10;
   inst_start_prop_sim_after_learn   = 300000000;
@@ -4422,7 +4454,7 @@ let option_verification_epr ver_epr_opt =
        schedule                = !current_options.schedule;
        ground_splitting        = Split_Input;
        non_eq_to_eq            = false;
-       prep_prop_sim           = true;
+       prep_gs_sim           = true;
        symbol_type_check       = !current_options.symbol_type_check;
        clausify_out            = false;
        
@@ -4433,6 +4465,7 @@ let option_verification_epr ver_epr_opt =
        prep_sem_filter_out     = false;
        sub_typing              = !current_options.sub_typing;
        brand_transform         = false;
+       min_unsat_core          = !current_options.min_unsat_core;
        prolific_symb_bound     = 5000; 
        lt_threshold            = 2000;
        
@@ -4592,6 +4625,8 @@ let named_option_verification_epr () =
   {options_name = "Option_verification_epr"; 
 (*   options = (option_verification_epr Ver_EPR_TABLES_BOUND_3)*)
    options = (option_verification_epr Ver_EPR_DCU)
+(*was Ver_EPR_DCU when in June 8th 2012*)
+ (*  options = (option_verification_epr Ver_EPR_Default)*)
 }
 
 

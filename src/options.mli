@@ -173,14 +173,15 @@ type options = {
     mutable schedule              : schedule_type;
     mutable ground_splitting      : ground_splitting_type;
     mutable non_eq_to_eq          : bool;
-    mutable prep_prop_sim         : bool;
+    mutable prep_gs_sim           : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
     mutable prep_sem_filter       : prep_sem_filter_type;
     mutable prep_sem_filter_out   : bool;
     mutable sub_typing            : bool;
     mutable brand_transform       : bool;
-
+    mutable min_unsat_core        : bool;
+ 
 (*---Large Theories---------------*)
     mutable large_theory_mode     : bool;
     mutable prolific_symb_bound   : int;

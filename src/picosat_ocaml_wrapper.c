@@ -1,6 +1,6 @@
 
 
-#include "lglib.h"
+#include "picosat.h"
 //#include "solver.h" 
 #include "vec.h" //from minisat
 #include <assert.h>
@@ -27,8 +27,9 @@ static const lbool l_Err     = -13;
 
 
 struct solver_model {
-    LGL  *lgl;
+    PicoSAT  *picosat;
     veci model;
+    int max_var;
   //simplification solver     
     bool sim;
 }; 
@@ -69,9 +70,9 @@ value C_create_solver(value is_sim_In)
       s->sim = false;
     }
 
-  s->lgl = lglinit ();
+  s->picosat = picosat_init ();
   veci_new(&s->model);
-
+  s->max_var = 0;
 
   //DEBUG 
   // FILE *trace_file;
@@ -79,17 +80,19 @@ value C_create_solver(value is_sim_In)
   //  lglwtrapi (s->lgl,trace_file);
   //
 
-  lglsetopt(s->lgl,"verbose",0);
-  lglsetopt(s->lgl,"phase",0);
-    //scdpd_miter_full-range.cnf
+  // lglsetopt(s->lgl,"verbose",0);
+  // lglsetopt(s->lgl,"phase",0);
 
-    //minisat: MC1 bound 3 UNSAT after 29.484s BMC1 bound 4 UNSAT after 73.016s BMC1 bound 5 UNSAT after 181.933s
+  picosat_set_global_default_phase (s->picosat, 2);
+
+  //scdpd_miter_full-range.cnf
+  //minisat: MC1 bound 3 UNSAT after 29.484s BMC1 bound 4 UNSAT after 73.016s BMC1 bound 5 UNSAT after 181.933s
     //phase -1:BMC1 bound 3 UNSAT after 47.318s BMC1 bound 4 UNSAT after 98.067s BMC1 bound 5 UNSAT after 152.924s BMC1 bound 6 UNSAT after 221
     //phase 0: BMC1 bound 3 UNSAT after 25.761s BMC1 bound 4 UNSAT after 70.702s BMC1 bound 5 UNSAT after 139.671s BMC1 bound 6 UNSAT after 181.668s BMC1 bound 7 UNSAT after 214.556s
    // phase 0: BMC1 bound 2 UNSAT after 77.202s
   // 
 
-  lglsetopt(s->lgl,"flipping",0);
+  //  lglsetopt(s->lgl,"flipping",0);
   value val = alloc(1, Abstract_tag);
   Field(val,0) = (value) s; 
   CAMLreturn(val);
@@ -110,18 +113,25 @@ value C_add_var(value solver_In, value var_In)
    solver * s = (solver *)Field(solver_In, 0);
    int var_id = Int_val(var_In);
 
-   int max_var = lglmaxvar (s->lgl);
+   int max_var = s->max_var;
   //  fprintf(stderr, "var_id = %i, max_var_before = %i ", var_id, max_var);
   int i=0;
+  int next_var;
+  // fprintf(stderr, "v: var_id = %i, max_var_before = %i\n ", var_id, max_var);
   for (i = 0; i < (var_id - max_var); i++)
     {
       //lgl 
-      int next_var= lglincvar (s->lgl);
-      lglfreeze (s->lgl,next_var);
-
+      next_var= picosat_inc_max_var (s->picosat);
+      //    lglfreeze (s->lgl,next_var);
+      s->max_var = next_var;
+      //   fprintf(stderr, "v: nex_var_id = %i \n", next_var);
       //model
       veci_push(&s->model,l_False);
+
     }
+
+  //  fprintf(stderr, "v: max_var_after = %i\n ", s->max_var);
+
   //  {solver_setnvars(solver,var_id+1);
   //if (solver->size <= var_id)
   //  {solver_setnvars(solver,var_id+1);}
@@ -142,19 +152,25 @@ value C_create_lit(value v, value solver_In,value sign_In)
     }
   bool sign = Bool_val(sign_In);
 
-  int max_var = lglmaxvar (s->lgl);
+  int max_var = s->max_var;
+
   //  fprintf(stderr, "var_id = %i, max_var_before = %i ", var_id, max_var);
   int i=0;
+  int next_var;
+  //  fprintf(stderr, "l: var_id = %i, max_var_before = %i \n", var_id, max_var);
   for (i = 0; i < (var_id - max_var); i++)
     {
       //lgl 
-      int next_var= lglincvar (s->lgl);
-      lglfreeze (s->lgl,next_var);
-      
+       next_var= picosat_inc_max_var (s->picosat);
+      //      lglfreeze (s->lgl,next_var);
+       //          fprintf(stderr, "l: next_var_id = %i \n", next_var);
+	    s->max_var = next_var;
       //model
       veci_push(&s->model,l_False);
     }
-  
+
+  //  fprintf(stderr, "l: max_var_after = %i\n ", s->max_var);
+
   //sover->size is the number of defined vars 
   // 
   //  {solver_setnvars(solver,var_id+2);}
@@ -164,8 +180,8 @@ value C_create_lit(value v, value solver_In,value sign_In)
   // if (solver->size <= var_id)
   // {solver_setnvars(solver,var_id+1);}
 
-  int lgl_lit = (sign ? var_id : -var_id);
-  CAMLreturn(Val_int(lgl_lit));
+  int picosat_lit = (sign ? var_id : -var_id);
+  CAMLreturn(Val_int(picosat_lit));
 }
 
 
@@ -178,20 +194,20 @@ value C_add_clause(value clause_In, value solver_In)
     int size = Wosize_val(clause_In);
     //  int arr[size];
     int i, lit ;
- 
+    //not the best for picosat
     for (i = 0; i < size; i++)
       {
       lit = Int_val(Field(clause_In, i));
-      lgladd (s->lgl, lit);
+      picosat_add (s->picosat, lit);
       //we need to freeze all lits since they may occur in future clauses/assumptions
       //we assume all lits are added and frozen already
       //      lglfreeze (solver, lit);
       //      fprintf(stderr,"%i ",lit);   
       }
-    lgladd (s->lgl,0); //end of clause
+    picosat_add (s->picosat,0); //end of clause
     //fprintf(stderr,"%i\n",0);   
 
-    if (lglinconsistent(s->lgl) != 0){
+    if (picosat_inconsistent(s->picosat) != 0){
       // fprintf(stdout,"Inconsistent solver \n");
 	CAMLreturn (Val_bool(false));
     }
@@ -346,7 +362,7 @@ value C_get_lit_val (value solver_In, value lit_In)
   // }
 
   // can be very expensive to check sat each time! ?
-  //  if (lglsat(solver) == LGL_SATISFIABLE) 
+  //  if (lglsat(solver) == PICOSAT_SATISFIABLE) 
     {
       int res = lglderef (solver,lit);
   // lglderef return values which coincide with l_True = 1, l_False = -1 , l_Undef =0
@@ -367,17 +383,17 @@ value C_solve(value solver_In)
       
     // fprintf(stdout,"Solver res: %i\n",res);
 	  
-    if (lglinconsistent (s->lgl))
+    if (picosat_inconsistent (s->picosat))
       //unsat
       CAMLreturn(Val_bool(false));
  
-    int res = lglsat(s->lgl);
+    int res = picosat_sat(s->picosat,-1);
     // fprintf(stdout,"After Solve:\n");
     // fflush(stdout);
-    if (res == LGL_UNSATISFIABLE)
+    if (res == PICOSAT_UNSATISFIABLE)
       CAMLreturn(Val_bool(false));
   
-    if (res == LGL_SATISFIABLE)
+    if (res == PICOSAT_SATISFIABLE)
       {
 	//	if (lglchanged(s->lgl))
 	  {
@@ -390,14 +406,19 @@ value C_solve(value solver_In)
 	         {
 
 		int var = mvar_to_var(i);
-		int var_val = lglderef(s->lgl,var);
+		int var_val = picosat_deref(s->picosat,var);
 		//DEBUG
 		//	int max_var = lglmaxvar (s->lgl);
-		//	fprintf(stderr, "v%i= %i, ", var,var_val);
+		//			fprintf(stderr, "v%i= %i, ", var,var_val);
 	
 		veci_push(&s->model,var_val);
+		
+
+//		picosat_set_default_phase_lit(s->picosat, var, var_val);
+
+
               }
-	    lglsetphases(s->lgl);
+	    //	    lglsetphases(s->lgl);
 	    //   fprintf(stderr, "Model\n");
 	  }
 	CAMLreturn(Val_bool(true));    
@@ -420,21 +441,21 @@ value C_solve_assumptions(value solver_In, value assumptions)
     {
       lit = Int_val( Field(assumptions, i) );		
 	//	fprintf(stderr,"assume %i\n",lit);
-      lglassume (s->lgl, lit); //assume
-	lglfreeze (s->lgl, lit); //freeze
+      picosat_assume (s->picosat, lit); //assume
+      //	lglfreeze (s->lgl, lit); //freeze
 	
     }
   
-  if (lglinconsistent (s->lgl))
+  if (picosat_inconsistent (s->picosat))
     //unsat without assumptions
     CAMLreturn(Val_int(l_Undef));
  
-  int res = lglsat(s->lgl);
+  int res = picosat_sat(s->picosat,-1);
   
-  if (res == LGL_UNSATISFIABLE)
+  if (res == PICOSAT_UNSATISFIABLE)
     CAMLreturn(Val_int(l_False));
   
-    if (res == LGL_SATISFIABLE)
+    if (res == PICOSAT_SATISFIABLE)
       {
 	//	if (lglchanged(s->lgl))
 	  {
@@ -448,15 +469,17 @@ value C_solve_assumptions(value solver_In, value assumptions)
 
 
 		int var = mvar_to_var(i);
-		int var_val = lglderef(s->lgl,var);
+		int var_val = picosat_deref(s->picosat,var);
 		//DEBUG
 		//		int max_var = lglmaxvar (s->lgl);
 		//	fprintf(stderr, "max_var = %i, var=%i, var_val = %i\n", max_var, var,var_val);
 		//		fprintf(stderr, "v%i= %i\n ", var,var_val);	
 		veci_push(&s->model,var_val);
 
+				picosat_set_default_phase_lit(s->picosat, var, var_val);
+
               }
-	    lglsetphases(s->lgl);
+	    //	    lglsetphases(s->lgl);
 	  }
 	CAMLreturn(Val_bool(l_True));    
       }
@@ -481,7 +504,7 @@ value C_fast_solve(value solver_In, value assumptions)
     // if (solver_out_without_ass == l_True)
     //  {	
 
-   if (lglinconsistent (s->lgl))
+   if (picosat_inconsistent (s->picosat))
     //unsat without assumptions
      CAMLreturn(Val_int(l_Undef));
  
@@ -490,8 +513,8 @@ value C_fast_solve(value solver_In, value assumptions)
      {
        lit = Int_val( Field(assumptions, i) );		
        //	fprintf(stderr,"assume %i\n",lit);
-       lglassume (s->lgl, lit); //assume
-       lglfreeze (s->lgl, lit); //freeze
+       picosat_assume (s->picosat, lit); //assume
+       //       lglfreeze (s->lgl, lit); //freeze
      }
 
    //    int old_clim = lglgetopt (solver, "clim");
@@ -499,14 +522,14 @@ value C_fast_solve(value solver_In, value assumptions)
    //   lglsetopt (solver, "clim", 0);
    // int res = lglsat(solver);
    //  lglsetopt (solver, "clim", old_clim);
-   int res= lglsimp(s->lgl,0);
+   int res= picosat_sat(s->picosat,0);
 
 
-   if ((res == LGL_SATISFIABLE) || (res == LGL_UNKNOWN))
+   if ((res == PICOSAT_SATISFIABLE) || (res == PICOSAT_UNKNOWN))
       //sat under assumprions or unknown
       CAMLreturn(Val_int(l_True));
 
-    if (res == LGL_UNSATISFIABLE)
+    if (res == PICOSAT_UNSATISFIABLE)
       //unsat under assumprions
       CAMLreturn(Val_int(l_False));
  

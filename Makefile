@@ -2,6 +2,8 @@
 # 'make' for standard version
 # 'make CPP=true' for c++ version of minisat
 # 'make LGL=true' lingeling for solving/for proofs/unsat cores minisat will still be used
+# 'make PicoSAT=true' PicoSAT version
+
 # 'make PROFILE=true' for profile 
 # to archive "make archive"
 # to archive E bundle "make E=true archive"
@@ -102,6 +104,7 @@ ifeq ($(PROFILE),true)
   OCAMLFLAGS= -p -I obj/ -I util/lib 
   C_PROFFLAGS = -p 
   ADDTONAME=prof
+
 endif
 
 
@@ -117,10 +120,18 @@ ifeq ($(LGL),true)
    PROP_SOLVER_NAMES = lglib lgl_ocaml_wrapper
    CFLAGS = -I$(OCAMLLIB) $(C_PROFFLAGS) -Wall -O3 -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
   ADDTONAME_CPP="_lgl"	
+else
+ifeq ($(PicoSAT),true)
+   CC=gcc
+   PROP_SOLVER_NAMES = picosat picosat_ocaml_wrapper
+   CFLAGS = -I$(OCAMLLIB) $(C_PROFFLAGS) -Wall -O3 -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
+  ADDTONAME_CPP="_picosat"	
 else # default C minisat
+
   CC=gcc
   PROP_SOLVER_NAMES= $(CSOLVER) solver_interface 
   CFLAGS = -O3 -I$(OCAMLLIB) $(C_PROFFLAGS)
+endif
 endif
 endif
 
@@ -161,6 +172,7 @@ export OCAMLLIBDIR=$(OCAMLLIB)
 export OCAMLINCDIR=$(OCAMLLIB)
 
 util/lib/minisat.cmxa:
+#	cd util && $(MAKE) -f Makefile minisat-ocaml-profile
 	cd util && $(MAKE) -f Makefile minisat-ocaml
 #	cd util && $(MAKE) -f Makefile minisat-ocaml-debug
 

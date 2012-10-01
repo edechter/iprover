@@ -20,6 +20,7 @@
 
 open Lib
 open Statistics
+open Options
 
 exception Unsatisfiable
 exception Create_lit_error
@@ -272,14 +273,34 @@ let lit_var_uc solver lit = SatSolverUC.lit_var solver lit
 let lit_sign_uc solver lit = SatSolverUC.lit_sign solver lit
 
 let get_conflicts solver = 
-  let core = SatSolverUC.get_conflicts solver in
-  let min_core = SatSolverUC.minimise_core solver core in
-  (* Format.eprintf 
+
+(*  let start_core_time = Unix.gettimeofday () in*)
+  let basic_core = SatSolverUC.get_conflicts solver in
+(*  let end_core_time = Unix.gettimeofday () in
+  out_str ("\n\n core time: "^(string_of_float (end_core_time -. start_core_time))^"\n");*)
+(*
+  let start_min_core_time = Unix.gettimeofday () in*)
+  let core = 
+    if !current_options.min_unsat_core 
+    then 
+      let min_core = SatSolverUC.minimise_core solver basic_core in
+      min_core
+    else
+      basic_core
+  in
+(*  let end_min_core_time = Unix.gettimeofday () in
+  out_str ("\n\n min core time: "^(string_of_float (end_min_core_time -. start_min_core_time))^"\n");
+*)
+
+(*
+  Format.eprintf 
     "Core size: %d, minimal core size: %d@." 
     (List.length core) 
-    (List.length min_core); *)
-  (* Format.eprintf
+    (List.length min_core); 
+*) 
+ (* Format.eprintf
     "Core: %a@.@\nMinimal core: %a@.@\n" 
     (pp_int_list " ") core
     (pp_int_list " ") min_core; *)
-  min_core 
+(*  min_core *)
+  core

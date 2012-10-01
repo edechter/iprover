@@ -103,7 +103,8 @@ let init_clause_list_ref = Parser_types.all_current_clauses
 
 (*let lit_activity_threshold   = ref 200*)
 (*let lit_activity_flag_ref    = ref true*)
-let lit_activity_threshold   = ref 500
+let lit_activity_threshold   = ref 500  (*was for CASC 2012*)
+
 
 (*
 let set_lit_activity_flag  b  =  

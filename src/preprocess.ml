@@ -131,7 +131,7 @@ let preprocess clause_list =
     )
   else ()
   ); 
- (if  !current_options.prep_prop_sim 
+ (if  !current_options.prep_gs_sim 
  then current_list := prop_simp !current_list
  else ());  
  (match !current_options.ground_splitting with
