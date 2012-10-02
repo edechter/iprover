@@ -414,7 +414,7 @@ value C_solve(value solver_In)
 		veci_push(&s->model,var_val);
 		
 
-//		picosat_set_default_phase_lit(s->picosat, var, var_val);
+		picosat_set_default_phase_lit(s->picosat, var, var_val);
 
 
               }
