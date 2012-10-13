@@ -299,19 +299,19 @@ let () = assign_fun_stat
 let solve_num = ref 0 
 (*---------------------*)
 
-let solve () = 
+let solve ?(reset=false) () = 
   solve_num:= !solve_num +1;
  (* out_str ("Solve num: "^(string_of_int !solve_num));*)
  (* out_str ("Assumptions: "^
 	     (PropSolver.lit_list_to_string 
 		(get_solver_assumptions solver)) ^ "\n"); *)
-  PropSolver.solve_assumptions solver (get_solver_assumptions solver)
+  PropSolver.solve_assumptions ~reset:reset solver (get_solver_assumptions solver)
 
 
-let solve_assumptions solver assumptions = 
+let solve_assumptions ?(reset=false) solver assumptions = 
   try 
     let ass = normalise_assumptions (assumptions@(get_solver_assumptions solver)) in
-    PropSolver.solve_assumptions solver ass  
+    PropSolver.solve_assumptions ~reset:reset solver ass  
   with 
     AssumptionsInconsistent -> PropSolver.Unsat
 
@@ -756,7 +756,10 @@ let get_prop_neg_var_var_entry var_entry =
   |Undef ->   raise (Failure "get_prop_neg_var_var_entry: prop_var is Undef\n")
 
 
-	
+(* (grounding of) the literal will be set as important in prop solver *)
+let is_important_for_prop_lit lit = 
+  Term.is_clock_lit lit
+(* add activity check *)
 
 let get_lit_activity lit = 
 (*  out_str ("Lit Act !\n"^(Term.to_string lit));*)
@@ -1746,23 +1749,47 @@ let add_clause_to_solver clause =
       );
 	    
       (*----- add answer assumtions *)
-      
-      let add_answer_lit lit = 
+      (  
+	 
+	 let add_answer_lit lit = 
 	   (* answer lits are assumed to occur only positively*)
-	if ((Term.get_top_symb lit) == Symbol.symb_answer)
-	then
-	  add_answer_assumption lit 
-	else ()
-      in
-      if !answer_mode_ref 
-      then 
-	List.iter add_answer_lit lits
-      else ()
-	
+	   if ((Term.get_top_symb lit) == Symbol.symb_answer)
+	   then
+	     add_answer_assumption lit 
+	   else ()
+	 in
+	 if !answer_mode_ref 
+	 then 
+	   List.iter add_answer_lit lits
+	 else ()
+	);	
+        (*------set important prop lits-----------*)
+      (* add an option *)	
+      (  
+	 (
+(*	  
+	  let set_imp_lit lit = 
+	if (is_important_for_prop_lit lit) 
+	then 
+	  (
 	   
+
+	   PropSolver.set_important_lit solver (get_prop_lit lit);
+	   PropSolver.set_important_lit solver (get_prop_gr_lit lit);
+	   
+(*	    out_str ("Setting important lit for: "^(Term.to_string lit)^"\n");*)
+	  )
+	else ()
+	  in
+	  List.iter set_imp_lit lits
+	 );
+     
+ *)
+	)
+    )
     )
 
-
+    
 (*------------------ end add clause to solver -----------------------*)
 
 (*----------------- change selection -----------------------------*)
@@ -2312,7 +2339,12 @@ let lit_activity_check move_lit_from_active_to_passive lit =
 	  && (var_entry.neg_activity > var_entry.pos_activity + var_entry.change_activity_limit) 
        )
     then
-      (match (solve_assumptions solver [(get_prop_var_var_entry var_entry)])
+      (
+
+(*     PropSolver.set_important_lit solver (get_prop_lit lit);
+       PropSolver.set_important_lit solver (get_prop_gr_lit lit);
+       out_str ("Setting important lit for: "^(Term.to_string lit)^"\n"); *)
+      match (solve_assumptions solver [(get_prop_var_var_entry var_entry)])
        with 
        |PropSolver.Unsat -> 
 	   (var_entry.change_activity_limit <-  1000000; (*any big number*)
@@ -2335,7 +2367,8 @@ let lit_activity_check move_lit_from_active_to_passive lit =
 				      ^(var_entry_to_string solver var_entry)^"\n");
 *)
 			     raise Activity_Check)
-      )
+
+ )
     else 
       if ((model_truth_val = true)
 	   (* && (var_entry.pos_activity > (var_entry.neg_activity + !lit_activity_threshold+(!max_lit_activity lsr 2))) *)
@@ -2343,6 +2376,11 @@ let lit_activity_check move_lit_from_active_to_passive lit =
 )
       then
 	( 
+(*
+	  PropSolver.set_important_lit solver (get_prop_lit lit);
+	  PropSolver.set_important_lit solver (get_prop_gr_lit lit);
+	  out_str ("Setting important lit for: "^(Term.to_string lit)^"\n");*)
+
 	  match (solve_assumptions solver [(get_prop_neg_var_var_entry var_entry)])
 	 with 
 	 |PropSolver.Unsat -> 
@@ -2369,6 +2407,7 @@ let lit_activity_check move_lit_from_active_to_passive lit =
 					^(var_entry_to_string solver var_entry)^"\n");
 *)
 			       raise Activity_Check)
+
 	)
       else ()
       with Activity_Undef -> ()

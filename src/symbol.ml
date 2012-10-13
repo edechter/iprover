@@ -115,9 +115,9 @@ let to_string_sproperty = function
   |Quantifier       -> "quantifier"
   |Undef_Prop       -> "undefined property" 
 
-  |FDLess i          -> "less_"^(string_of_int i) (*finte domain less_i (x)*) 
+  |FDLess i         -> "less_"^(string_of_int i) (*finte domain less_i (x)*) 
 
-  |FDRange (i, j)    -> "range_"^(string_of_int i)^"_"^(string_of_int j)  
+  |FDRange (i, j)   -> "range_"^(string_of_int i)^"_"^(string_of_int j)  
                         (* finite domain range_i_j (x)*)
   
 						     
@@ -190,6 +190,7 @@ type symbol =
 (* number of occurences of this symbol into *)
      mutable num_input_occur : int;
 
+(* circuit depth *)
      mutable defined_depth   : int param;
      mutable flattening : symbol param
    }

@@ -60,9 +60,11 @@ external create_lit_minisat: int ->solver_core ->bool->minisat_lit = "C_create_l
 
 external add_clause_to_minisat: minisat_lit array -> solver_core ->bool = "C_add_clause"
 
-external solve_minisat: solver_core ->bool = "C_solve"
+(* the second argument is solver reset, done only in PicoSAT version *)
+external solve_minisat: solver_core -> bool ->bool = "C_solve"
 
-external solve_assumptions_minisat: solver_core -> minisat_lit array -> int = "C_solve_assumptions"
+(* the third argument is solver reset, done only in PicoSAT version *)
+external solve_assumptions_minisat: solver_core -> minisat_lit array -> bool -> int = "C_solve_assumptions"
 
 external fast_solve_minisat: solver_core -> minisat_lit array -> int = "C_fast_solve"
 
@@ -71,6 +73,8 @@ external fast_solve_minisat: solver_core -> minisat_lit array -> int = "C_fast_s
 (*external lit_val_minisat: solver -> minisat_lit -> bool -> int = "C_get_lit_val"*)
     
 external lit_val_minisat: solver_core -> minisat_lit -> int = "C_get_lit_val"
+
+external important_lit_minisat: solver_core -> minisat_lit -> unit = "C_important_lit"
    
 (* only functions allowed... so define explicitly 
 external l_False : int = "C_l_False"
@@ -124,7 +128,7 @@ let add_var solver var_id =
 *)
 let create_lit solver sign var =
   (* TODO: var = 0 seems to be allowed, but check before changing
-     calling code *)
+     calling code; Not in PicoSAT/Lingeling *)
   if var <= 0 then raise Create_lit_error 
   else
     (solver.num_of_vars <- solver.num_of_vars + 1;
@@ -174,19 +178,19 @@ let model_value solver lit  =
   int_to_bool_option 
     (lit_val_minisat solver.core lit.minisat_val) 
 
-(* Test the given clause set for satisfiability *)
-let solve solver =
+(* Test the given clause set for satisfiability; reset solver if reset is true *)
+let solve ?(reset = false) solver =
   solver.num_of_solver_calls <- solver.num_of_solver_calls+1;
-  let outcome = solve_minisat solver.core in  
+  let outcome = solve_minisat solver.core reset in  
   if outcome = true then true else false
 
 (* Test the given clause set for satisfiability when the given
     literals are to be made true. *)
-let solve_assumptions solver (assumptions : lit_list) =
+let solve_assumptions ?(reset = false) solver (assumptions : lit_list) =
   solver.num_of_solver_calls <- solver.num_of_solver_calls+1;
   let list_of_minisat_lits = List.map get_minisat_lit assumptions in
   let ass_array = Array.of_list list_of_minisat_lits in
-  let result = solve_assumptions_minisat solver.core ass_array in
+  let result = solve_assumptions_minisat solver.core ass_array reset in
   match result with 
   |  1  -> true    (* under assumption *) 
   | -1  -> false  (* under assumption *) 
@@ -205,6 +209,10 @@ let fast_solve solver (assumptions : lit_list) =
   |  -2  -> None  (* from C++ MiniSat *) 
   |_    -> failwith "MiniSat error: fast_solve  unknown truth value"
 	
+
+let set_important_lit solver lit = 
+  important_lit_minisat solver.core lit.minisat_val
+    
 
 (* First variable is 0, but here always use var > 0 *)
 let lit_var _ lit = lit.var 

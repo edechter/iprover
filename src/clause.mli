@@ -450,10 +450,13 @@ val out                        : clause -> unit
 *)
 val pp_clause_name : Format.formatter -> clause -> unit
 
+
 val pp_clause : Format.formatter -> clause -> unit
 val pp_clause_literals_tptp : Format.formatter -> clause -> unit
 val pp_clause_tptp : Format.formatter -> clause -> unit
 val pp_clause_list_tptp : Format.formatter -> clause list -> unit
+
+val pp_clause_min_depth : Format.formatter -> clause -> unit
 
 val tptp_to_stream             : 'a string_stream -> clause -> unit
 val out_tptp                   : clause -> unit

@@ -760,7 +760,8 @@ let default_options () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+(*bmc1_symbol_reachability should be modified only by input options and not by options in schedule since it is calculated before options in schedule become active *)
+  bmc1_symbol_reachability = true;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -1480,7 +1481,7 @@ let bmc1_symbol_reachability_fun b =
 
 let bmc1_symbol_reachability_inf  =
   bool_str^
-  inf_pref^"calculate symbol reachability in BMC1\n"
+  inf_pref^"calculate symbol reachability for father/son relation in Intel BMC1; \n"
 
 (*--------*)
 
@@ -2899,7 +2900,7 @@ let option_1 () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -3082,7 +3083,7 @@ let option_2 () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -3226,7 +3227,7 @@ let option_3 () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -3365,7 +3366,7 @@ let option_4 () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -3511,7 +3512,7 @@ let option_finite_models () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -3653,7 +3654,7 @@ let option_epr_non_horn () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -3889,7 +3890,7 @@ let option_epr_horn () = {
   ground_splitting        = Split_Input;
   non_eq_to_eq            = false;
   prep_gs_sim           = true;
- symbol_type_check       = !current_options.symbol_type_check;
+  symbol_type_check       = !current_options.symbol_type_check;
   clausify_out            = false;
 
   large_theory_mode       = true; 
@@ -3915,7 +3916,7 @@ let option_epr_horn () = {
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
@@ -4179,7 +4180,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_Leaves;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
@@ -4328,7 +4329,7 @@ let option_verification_epr ver_epr_opt =
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+  bmc1_symbol_reachability = !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_Leaves;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
@@ -4487,7 +4488,8 @@ let option_verification_epr ver_epr_opt =
   bmc1_min_bound          = ValueDefault 0;
   bmc1_max_bound          = ValueDefault (-1);
   bmc1_max_bound_default  = ValueDefault (-1);
-  bmc1_symbol_reachability = false;
+(*  bmc1_symbol_reachability should always be taken from !current_options.bmc1_symbol_reachability *)
+  bmc1_symbol_reachability =  !current_options.bmc1_symbol_reachability;
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_Leaves;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
@@ -4528,6 +4530,7 @@ let option_verification_epr ver_epr_opt =
        inst_pass_queue1               = 
 	  ValueDefault 
 	    [Cl_in_unsat_core true; 
+	     Cl_min_defined_symb false;
 	     Cl_Age true; 
 	     Cl_Num_of_Symb false];
 
@@ -4545,7 +4548,8 @@ let option_verification_epr ver_epr_opt =
 *)  
 
 	  ValueDefault
-	    [ Cl_min_defined_symb false;
+	    [ 
+	      Cl_min_defined_symb false;
 	    Cl_Conj_Dist false;
 	    Cl_Has_Conj_Symb true;
 	    Cl_has_bound_constant true; 
@@ -4591,7 +4595,7 @@ let option_verification_epr ver_epr_opt =
        inst_learning_factor              = 3;
        inst_start_prop_sim_after_learn   = 0;
        inst_sel_renew                    = Inst_SR_Solver;
-       inst_lit_activity_flag            = false;
+       inst_lit_activity_flag            = false; 
   (*    inst_lit_activity_flag            = true;*)
        inst_out_proof                    = ValueDefault true;
 

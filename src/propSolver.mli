@@ -85,8 +85,9 @@ val add_clause_with_id : solver_uc -> int option -> lit_uc list -> int option
 
 val clauses_with_id : solver_uc -> int
 
+val set_important_lit : solver -> lit -> unit
 
-val solve : solver -> solver_out
+val solve : ?reset:bool -> solver -> solver_out
 
 val solve_uc : solver_uc -> solver_out 
 
@@ -95,7 +96,7 @@ val solve_uc : solver_uc -> solver_out
 val get_conflicts : solver_uc -> int list 
 
 (* can raise Unsatisfiable if unsat wihtout assumptions *)
-val solve_assumptions: solver -> lit list -> solver_out
+val solve_assumptions: ?reset:bool -> solver -> lit list -> solver_out
 
 val solve_assumptions_uc : solver_uc -> lit_uc list -> solver_out 
 

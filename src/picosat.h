@@ -274,6 +274,7 @@ unsigned long long picosat_visits (PicoSAT *);		/* #visits */
  * returned if, right after initialization 'picosat_measure_all_calls'
  * is called.
  */
+
 double picosat_seconds (PicoSAT *);
 
 /*------------------------------------------------------------------------*/
@@ -379,6 +380,7 @@ void picosat_print (PicoSAT *, FILE *);
  *       picosat_sat (-1);
  *     }
  */
+
 void picosat_assume (PicoSAT *, int lit);
 
 /*------------------------------------------------------------------------*/
@@ -389,6 +391,7 @@ void picosat_assume (PicoSAT *, int lit);
  *
  * TODO: also handle top level assigned literals here.
  */
+
 void picosat_add_ado_lit (PicoSAT *, int);
 
 /*------------------------------------------------------------------------*/

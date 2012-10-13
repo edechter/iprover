@@ -83,13 +83,13 @@ value C_create_solver(value is_sim_In)
   // lglsetopt(s->lgl,"verbose",0);
   // lglsetopt(s->lgl,"phase",0);
 
-  picosat_set_global_default_phase (s->picosat, 2);
+  picosat_set_global_default_phase (s->picosat, 1);
 
   //scdpd_miter_full-range.cnf
   //minisat: MC1 bound 3 UNSAT after 29.484s BMC1 bound 4 UNSAT after 73.016s BMC1 bound 5 UNSAT after 181.933s
-    //phase -1:BMC1 bound 3 UNSAT after 47.318s BMC1 bound 4 UNSAT after 98.067s BMC1 bound 5 UNSAT after 152.924s BMC1 bound 6 UNSAT after 221
-    //phase 0: BMC1 bound 3 UNSAT after 25.761s BMC1 bound 4 UNSAT after 70.702s BMC1 bound 5 UNSAT after 139.671s BMC1 bound 6 UNSAT after 181.668s BMC1 bound 7 UNSAT after 214.556s
-   // phase 0: BMC1 bound 2 UNSAT after 77.202s
+    //lgl phase -1:BMC1 bound 3 UNSAT after 47.318s BMC1 bound 4 UNSAT after 98.067s BMC1 bound 5 UNSAT after 152.924s BMC1 bound 6 UNSAT after 221
+    //lgl phase 0: BMC1 bound 3 UNSAT after 25.761s BMC1 bound 4 UNSAT after 70.702s BMC1 bound 5 UNSAT after 139.671s BMC1 bound 6 UNSAT after 181.668s BMC1 bound 7 UNSAT after 214.556s
+   //lgl phase 0: BMC1 bound 2 UNSAT after 77.202s
   // 
 
   //  lglsetopt(s->lgl,"flipping",0);
@@ -144,7 +144,7 @@ value C_create_lit(value v, value solver_In,value sign_In)
   CAMLparam3(v, solver_In,sign_In);
 
   solver* s = (solver *)Field(solver_In, 0);
-  int  var_id = Int_val(v);
+  int var_id = Int_val(v);
   if (var_id <= 0)
     {fprintf(stderr,"Var_id = %i \n", var_id);
      fflush(stderr);
@@ -182,6 +182,15 @@ value C_create_lit(value v, value solver_In,value sign_In)
 
   int picosat_lit = (sign ? var_id : -var_id);
   CAMLreturn(Val_int(picosat_lit));
+}
+
+value C_important_lit(value solver_In, value lit_in)
+{
+   CAMLparam2 (solver_In, lit_in);
+   solver * s = (solver *)Field(solver_In, 0);
+   int lit = Int_val(lit_in);
+   picosat_set_more_important_lit(s->picosat,lit);
+   CAMLreturn(Val_unit);
 }
 
 
@@ -374,19 +383,29 @@ value C_get_lit_val (value solver_In, value lit_In)
 }
 */
 
-value C_solve(value solver_In)
+//solve with reset true resets phase and other parameters of the solver
+value C_solve(value solver_In, value reset)
 {
-    CAMLparam1(solver_In);
+  CAMLparam2(solver_In,reset);
 
-    solver * s = (solver *)Field(solver_In, 0);
+  bool reset_flag=Bool_val(reset);
+  solver * s = (solver *)Field(solver_In, 0);
+
     
-      
     // fprintf(stdout,"Solver res: %i\n",res);
 	  
     if (picosat_inconsistent (s->picosat))
       //unsat
       CAMLreturn(Val_bool(false));
- 
+    
+
+    if (reset_flag) 
+      {
+	picosat_reset_phases (s->picosat);
+	picosat_reset_scores (s->picosat);
+	//	fprintf(stderr,"Solver reset\n");
+      }
+      
     int res = picosat_sat(s->picosat,-1);
     // fprintf(stdout,"After Solve:\n");
     // fflush(stdout);
@@ -395,6 +414,7 @@ value C_solve(value solver_In)
   
     if (res == PICOSAT_SATISFIABLE)
       {
+
 	//	if (lglchanged(s->lgl))
 	  {
 	    //copy model
@@ -413,7 +433,6 @@ value C_solve(value solver_In)
 	
 		veci_push(&s->model,var_val);
 		
-
 		picosat_set_default_phase_lit(s->picosat, var, var_val);
 
 
@@ -431,12 +450,22 @@ value C_solve(value solver_In)
 }
 
 
-value C_solve_assumptions(value solver_In, value assumptions)
+value C_solve_assumptions(value solver_In, value assumptions, value reset)
 {
-  CAMLparam2 (solver_In, assumptions);
+  CAMLparam3 (solver_In, assumptions,reset);
   solver * s = (solver *)Field(solver_In, 0);
   int i , lit ;
   int size = Wosize_val(assumptions); 	
+
+  bool reset_flag=Bool_val(reset);
+
+  if (reset_flag) 
+    {
+      picosat_reset_phases (s->picosat);
+      picosat_reset_scores (s->picosat);
+      //      fprintf(stderr,"Solver reset\n");
+    }
+ 
   for (i = 0; i < size; i++)
     {
       lit = Int_val( Field(assumptions, i) );		
@@ -449,7 +478,8 @@ value C_solve_assumptions(value solver_In, value assumptions)
   if (picosat_inconsistent (s->picosat))
     //unsat without assumptions
     CAMLreturn(Val_int(l_Undef));
- 
+  
+
   int res = picosat_sat(s->picosat,-1);
   
   if (res == PICOSAT_UNSATISFIABLE)
@@ -476,7 +506,7 @@ value C_solve_assumptions(value solver_In, value assumptions)
 		//		fprintf(stderr, "v%i= %i\n ", var,var_val);	
 		veci_push(&s->model,var_val);
 
-				picosat_set_default_phase_lit(s->picosat, var, var_val);
+		picosat_set_default_phase_lit(s->picosat, var, var_val);
 
               }
 	    //	    lglsetphases(s->lgl);

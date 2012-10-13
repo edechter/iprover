@@ -169,6 +169,12 @@ value C_create_lit(value v, value solver_In,value sign_In)
 }
 
 
+value C_important_lit (value solver_In, value lit_in)
+{
+    CAMLparam2 (solver_In, lit_in);
+    CAMLreturn(Val_unit);
+}
+
 value C_add_clause(value clause_In, value solver_In)
 {	
     CAMLparam2 (clause_In, solver_In);
@@ -358,9 +364,10 @@ value C_get_lit_val (value solver_In, value lit_In)
 }
 */
 
-value C_solve(value solver_In)
+//currently reset is implemented only in PicoSAT
+value C_solve(value solver_In, value reset)
 {
-    CAMLparam1(solver_In);
+  CAMLparam2(solver_In,reset);
 
     solver * s = (solver *)Field(solver_In, 0);
     
@@ -410,9 +417,10 @@ value C_solve(value solver_In)
 }
 
 
-value C_solve_assumptions(value solver_In, value assumptions)
+//currently reset is implemented only in PicoSAT
+value C_solve_assumptions(value solver_In, value assumptions,value reset)
 {
-  CAMLparam2 (solver_In, assumptions);
+  CAMLparam3 (solver_In, assumptions,reset);
   solver * s = (solver *)Field(solver_In, 0);
   int i , lit ;
   int size = Wosize_val(assumptions); 	

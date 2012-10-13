@@ -70,7 +70,9 @@ val add_clause: solver -> literal list -> unit
 (** Test the given clause set for satisfiability 
 
     Return [true] if satisfiable and [false] if unsatisfiable *)
-val solve: solver -> bool
+
+(* the first argument is solver reset, done only in PicoSAT version, default value is false *)
+val solve: ?reset:bool -> solver -> bool
 
 (** Test the given clause set for satisfiability when the given
     literals are to be made true. 
@@ -79,7 +81,8 @@ val solve: solver -> bool
     unsatisfiable with assumptions and raise exception
     {!Unsatisfiable} if immediately unsatisfiable without
     assumptions. *)
-val solve_assumptions: solver -> literal list -> bool
+(* the first argument is solver reset, done only in PicoSAT version, default value is false *)
+val solve_assumptions: ?reset:bool -> solver -> literal list  -> bool
 
 (** Test the given clause set for satisfiability when the given
     literals are to be made true. 
@@ -122,6 +125,8 @@ val num_of_clauses : solver -> int
 (** Return [true] if the solver was created as a simplification
     solver in {!create_solver} *)
 val is_simplification : solver -> bool
+
+val set_important_lit : solver -> literal -> unit
 
 (** {1 Output and string representations} *)
 

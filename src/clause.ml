@@ -456,6 +456,16 @@ let pp_clause ppf clause =
     "@[<h>{%a}@]" 
     (pp_any_list Term.pp_term ";") clause.literals
 
+let pp_clause_min_depth ppf clause = 
+  pp_clause ppf clause;
+  let s = clause.min_defined_symb in
+(*  let d = Symbol.get_defined_depth 
+      (Term.lit_get_top_symb s) in
+*)
+(*  out_str *)
+   Format.fprintf 
+    ppf "@[<h> depth: %s @]" (param_to_string  string_of_int s)
+ 
 
 let rec pp_literals_tptp ppf = function 
 
@@ -794,9 +804,14 @@ let assign_min_defined_symb c =
     let d2 = Symbol.get_defined_depth (Term.lit_get_top_symb l2) in
     match (d1, d2) with 
     |(Def(i1),Def(i2)) -> Pervasives.compare i1 i2
+
+(* changed to the opposite since spliting symbols by vapi become big!
 (* Undef is greater then Def *)
     |(Undef, Def _) ->  1
     |(Def _, Undef) -> -1
+*)
+    |(Undef, Def _) ->  -1
+    |(Def _, Undef) -> 1
     |(Undef,Undef) ->   0
   in
   let lit_list = get_literals c in 
@@ -806,6 +821,7 @@ let assign_min_defined_symb c =
 
 let get_min_defined_symb c = 
   c.min_defined_symb
+    
 
 let assign_ground c = 
   set_bool_param (is_ground c) ground c

@@ -174,10 +174,10 @@ let lit_val solver lit  =
   bool_option_to_val (SatSolver.model_value solver lit)
 
 
-let solve solver =
+let solve ?(reset=false) solver =
   try 
     let start_time = Unix.gettimeofday () in
-    let outcome = SatSolver.solve solver in  
+    let outcome = SatSolver.solve ~reset:reset solver in  
     let end_time = Unix.gettimeofday () in
     add_float_stat (end_time -. start_time) prop_solver_time;
     if outcome = true then Sat else Unsat
@@ -186,6 +186,9 @@ let solve solver =
       (* Format.eprintf "Unsatisfiable on solve call@."; *)
       raise Unsatisfiable
     )
+
+let set_important_lit solver lit = 
+  SatSolver.set_important_lit solver lit
       
 let solve_uc solver =
   try 
@@ -201,10 +204,10 @@ let solve_uc solver =
     )
       
 
-let solve_assumptions solver assumptions =
+let solve_assumptions  ?(reset=false) solver assumptions =
   try 
     let start_time = Unix.gettimeofday () in
-    let result = SatSolver.solve_assumptions solver assumptions in
+    let result = SatSolver.solve_assumptions ~reset:reset solver assumptions in
     let end_time = Unix.gettimeofday () in
     add_float_stat (end_time -. start_time) prop_solver_time;
     (match result with 

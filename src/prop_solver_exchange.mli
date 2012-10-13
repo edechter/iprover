@@ -59,7 +59,7 @@ val assign_adjoint_preds     : term list -> unit
 (** Return literal assumptions for simplification solver *)
 (* val get_assumptions_sim : unit -> term list *)
 
-val solve                : unit -> PropSolver.solver_out
+val solve           : ?reset:bool -> unit -> PropSolver.solver_out
 
 (** Output and return an unsatisfiable core *)
 val unsat_core : unit -> Clause.clause list

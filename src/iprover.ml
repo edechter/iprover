@@ -382,7 +382,16 @@ let full_loop prover_functions_ref input_clauses =
 	       ((* Format.eprintf "Learning restart in instantiation@."; *)
 		 learning_bound:=!learning_bound * !current_options.inst_learning_factor;
 		 learning_counter:=0;
-		 incr_int_stat 1  inst_num_of_learning_restarts;
+
+		incr_int_stat 1 inst_num_of_learning_restarts;
+		(if (Prop_solver_exchange.solve ~reset:true ()) = PropSolver.Unsat
+		then 
+      (* Raise separate exception, solver is not in an invalid state
+	 and can be satisfiable without assumptions *)
+      (* raise PropSolver.Unsatisfiable *)
+		  raise Prop_solver_exchange.Unsatisfiable
+		);
+
 		 apply_fun !prover_functions_ref.inst_clear_all ();
 		(* simplify current_input_clauses with the new solver state *)
 		(* when simpl. given and new are switched off *)	      
@@ -406,8 +415,12 @@ let full_loop prover_functions_ref input_clauses =
 				out_str (Clause.to_string c)
 				else()) 
 				!current_input_clauses;
-
-		*)
+*)
+(*		*)
+(*		out_str ("\n Simplifying input clauses after restart...");
+		let simp_input_clauses = List.map Prop_solver_exchange.prop_subsumption input_clauses in
+		out_str ("done\n");
+*)
 		(* end debug *)
 		 let module InstInput = 
 		     struct 
@@ -416,6 +429,7 @@ let full_loop prover_functions_ref input_clauses =
 			  ^(string_of_int (get_val_stat inst_num_of_learning_restarts)))
 			   
 		    (*		    let input_clauses = !current_input_clauses		  *)
+(*		       let input_clauses = simp_input_clauses		*)
 		       let input_clauses = input_clauses		
 		     end in 
 		 let module InstM = Instantiation.Make (InstInput) in
@@ -1223,7 +1237,7 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 	|Schedule_default           -> 
 	  sched_run (default_schedule ())
 	|Schedule_verification_epr  -> 
-	  sched_run (verification_epr_schedule ())
+	    sched_run (verification_epr_schedule ())
 	|Schedule_verification_epr_tables  -> 
 	  sched_run (verification_epr_schedule_tables ())
 	|Schedule_none              ->
@@ -1393,7 +1407,7 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 		"@\n%sUnsat core has size %d@\n@\n%a@." 
 		pref_str
 		(List.length unsat_core_clauses)
-		(pp_any_list Clause.pp_clause "\n") unsat_core_clauses;
+		(pp_any_list Clause.pp_clause_min_depth "\n") unsat_core_clauses;
 	      
 	    );
 
@@ -1959,9 +1973,8 @@ let run_iprover () =
     if !current_options.bmc1_symbol_reachability then
 
       (
-	
 	let reach_map_start_time = Unix.gettimeofday () in
-	
+
 	out_symb_reach_map  
 	  (symbol_reach 
 	     !(Parser_types.neg_conjectures));
