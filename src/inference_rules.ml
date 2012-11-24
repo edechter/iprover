@@ -64,6 +64,7 @@ let strict_subset_subsume by_clause to_clause =
     false
 
 exception Main_subsumed_by of clause
+
 (* literals l1 l2 are in c1 and c2 *)
 let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref = 
 (*  let compl_l1 = Term.compl_lit l1 in*)

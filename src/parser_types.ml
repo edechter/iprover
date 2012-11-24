@@ -319,9 +319,9 @@ let neg_fun atom =
 
 
 let assign_param_input_symb symb = 
-  Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
+  (*Symbol.set_bool_param (is_clock_symb symb) Symbol.is_clock symb;
   Symbol.set_bool_param (is_less_symb symb)  Symbol.is_less symb;
-  Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;
+  Symbol.set_bool_param (is_range_symb symb) Symbol.is_range symb;*)
   Symbol.assign_is_input true symb;
   Symbol.incr_num_input_occur symb
 
@@ -353,7 +353,7 @@ let plain_term_fun symb_name symbol_type args =
 
 (* we assume that all symbols in terms are typed already! and added to SymbolDB.add_ref *)
 
-let overriding_arities_warning_shown_ref = ref false
+let overriding_arities_warning_was_shown_ref = ref false
 
 let plain_term_fun_typed ~is_top input_symb_name args = 
 (* we check that the arity is the same for the untyped symbols *)
@@ -373,7 +373,7 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 	   (symb)
 	 else 
 	  ( 
-	    ( if (not !overriding_arities_warning_shown_ref) && 
+	    ( if (not !overriding_arities_warning_was_shown_ref) && 
               (not ((Symbol.get_arity symb) = arity))
 	    then
 	      (	      
@@ -385,11 +385,11 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 			 ^" and "^(string_of_int arity)
 			 ^" the latter will be replaced by fresh symbol (other similar warnings are surpressed)\n"
 			);
-		      overriding_arities_warning_shown_ref:=true     
+		      overriding_arities_warning_was_shown_ref:=true     
 		     )
 	    else ()
 	    );
-	    ( if (not !overriding_arities_warning_shown_ref) && 
+	    ( if (not !overriding_arities_warning_was_shown_ref) && 
               (not ((Symbol.get_arity symb) = arity))
 	    then
 	      (	      
@@ -399,7 +399,7 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 			 ^" occurred as function and as predicate "
 			 ^" on of them will be replaced by fresh symbol (other similar warnings are surpressed)\n"
 			);
-		      overriding_arities_warning_shown_ref:=true     
+		      overriding_arities_warning_was_shown_ref:=true     
 		     )
 	    else ()
 	     );
@@ -549,15 +549,15 @@ let system_pred_fun name args =
 
     (* Next state predicate for BMC1 *)
     | "$$nextState" -> 
-
+        create_theory_term Symbol.symb_ver_next_state args
 	(* Create term like plain term *)
-	plain_term_fun_typed true name args
+(*	plain_term_fun_typed true name args*)
 
     (* Reachable state predicate for BMC1 *)
     | "$$reachableState" -> 
-
+	create_theory_term Symbol.symb_ver_reachable_state args
 	(* Create term like plain term *)
-	plain_term_fun_typed true name args
+(*	plain_term_fun_typed true name args*)
 
     (* Less predicate for BMC1 *)
 (*    | term when 
@@ -686,7 +686,6 @@ let term_of_int_number_fun num =
   let name = (string_of_int num) in
   num_term name
 
-
 let term_of_rat_number_fun (num,denum) = 
   let name = (string_of_int num)^"/"^(string_of_int denum) in
   num_term name
@@ -723,18 +722,19 @@ let ttf_add_typed_atom_out_symb_fun symb_name stype =
     Symbol.set_bool_param true Symbol.is_bound_constant added_symb
   else () 
   );
-  if (Symbol.is_defined_type added_symb)     
+  if (Symbol.is_special_symbol added_symb)
+ (*(Symbol.is_defined_type added_symb) || (Symbol.is_defined_symb )     *)
   then 
     (    assign_param_input_symb added_symb;
 	 added_symb
       )
   else
-    if (symb == added_symb)
+    if (symb == added_symb) 
     then
       (symb)  (* added_symb *) (*just return unit*)
     else
       failwith 
-	("parser_types, ttf_add_typed_atom_fun: symbol \""
+	("parser_types, ttf_add_typed_atom_out_fun: symbol \""
 	  ^symb_name
 	  ^"\" was already declared!")
 
@@ -901,14 +901,16 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 	then ()
 	else
 	  (
-	   less_map := SymbMap.add symb i !less_map
+	   less_map := SymbMap.add symb i !less_map;
+	   Symbol.set_bool_param true Symbol.is_less symb
 	  )
     |Some(ARange (i,j)) -> 
 	if (SymbMap.mem symb !range_map) 
 	then ()
 	else
 	  (
-	   range_map := SymbMap.add symb (i,j) !range_map
+	   range_map := SymbMap.add symb (i,j) !range_map;
+           Symbol.set_bool_param true Symbol.is_range symb
 	  )
 
     (* Symbol is a clock with pattern p *)
@@ -939,8 +941,8 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 		  (Symbol.to_string symb));
 	   
 	   (* Add symbol to map *)
-	   clock_map := SymbMap.add symb p !clock_map
-
+	  clock_map := SymbMap.add symb p !clock_map;
+	  Symbol.set_bool_param true Symbol.is_clock symb
 	 )
 
     (* Symbol has cardinality c *)

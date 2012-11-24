@@ -68,6 +68,9 @@ val symb_true              : symbol
 val symb_false             : symbol
 val symb_equality          : symbol
 val symb_typed_equality    : symbol
+val symb_ver_next_state    : symbol
+val symb_ver_reachable_state : symbol
+ 
 val symb_plus              : symbol
 val symb_product           : symbol
 val symb_minus             : symbol
@@ -82,6 +85,8 @@ val symb_answer            : symbol
 (* list of all symbols above *)
 val special_symbols : symbol list
 
+val is_special_symbol : symbol -> bool
+ 
 val is_defined_type : symbol -> bool
 
 exception Symbol_fast_key_undef

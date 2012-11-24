@@ -243,7 +243,10 @@ obj/%.cmx : src/%.ml
 
 
 
-.PHONY : clean clean-util depend archive
+.PHONY : clean clean-util depend archive docs
+
+docs: $(INTERFACE)
+	ocamldoc -dot -I obj/ -I util/lib -d docs $(BASE_NAMES_WITHOUT_LEXER:%=src/%.mli) $(BASE_NAMES_WITHOUT_LEXER:%=src/%.ml) src/$(IPROVER_BASE_NAME).ml
 
 clean: clean-util
 	rm -f $(IPROVER_NAME) $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp $(LEXER:%=src/%.ml) src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o

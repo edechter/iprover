@@ -145,7 +145,7 @@ let signature_symb                 = 4
 
 let is_input                       = 5 
 
-(* is not in a clause that got proprocessed etc. *)
+(* is not in a clause that got removed during proprocessed etc. *)
 let is_essential_input             = 6
  
 (* defined predicates are predicates connected with father_of/son_of attributes *)
@@ -154,7 +154,7 @@ let is_defined_symb_input           =7
 
 
 let is_clock = 8
-let is_less = 9
+let is_less  = 9
 let is_range = 10
 
 (* signature symbol is used to distinguish fun/preds from other symbols like connectives types etc.*)
@@ -327,7 +327,8 @@ let symb_default_type =
  }
     
 (*---------types used in verification at Intel------*)
-(* since these symbols are  not defined in TPTP we use $$ *)
+(* since these symbols are  not defined in TPTP we use $$, to be consistent with current Zurab output $$ is omitted *)
+
 let symb_ver_state_type = 
   {symb_type_template with
 (*   name      = "$$state_type"; *)
@@ -481,7 +482,23 @@ let symb_typed_equality =
 }
 
 
+let symb_ver_next_state = 
+  {
+   theory_symbol_template with 
+   name      = "$$nextState";
+   arity     = Def(2);
+   stype     = create_stype [symb_ver_state_type;symb_ver_state_type] symb_bool_type;
+(*   stype     = create_stype [symb_type_types;symb_type_types] symb_bool_type;*)
+ }
 
+let symb_ver_reachable_state = 
+  {
+  theory_symbol_template with 
+   name      = "$$reachableState";
+   arity     = Def(1);
+(*   stype     = create_stype [symb_type_types] symb_bool_type;*)
+   stype     = create_stype [symb_ver_state_type] symb_bool_type;
+ }
 
 (* at the moment we define arithmetic symbols having symbol_type_types as arguments *)
 
@@ -591,6 +608,8 @@ defined_types@
    symb_false; 
    symb_equality;
    symb_typed_equality;
+   symb_ver_next_state;
+   symb_ver_reachable_state;
    symb_plus;    
    symb_product;
    symb_minus;   
@@ -602,6 +621,10 @@ defined_types@
    symb_top;       
    symb_answer
  ]
+
+let is_special_symbol s = List.memq s special_symbols
+
+
 
 exception Symbol_fast_key_undef
 exception Arity_undef

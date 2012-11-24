@@ -2276,8 +2276,8 @@ let run_iprover () =
 	     out_str "\n-----------Eq Axioms:---------\n";
 	out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 	     out_str "\n--------------------\n";
-
-	   *)
+           *)
+	   
 	   (*debug *)
 	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
 	      )

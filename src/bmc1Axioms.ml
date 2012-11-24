@@ -48,7 +48,7 @@ let state_type = Symbol.symb_ver_state_type
 let bitindex_type = Symbol.symb_ver_bit_index_type
   
 (* Name of path symbol *)
-let path_symbol_name = "$$nextState"
+(*let path_symbol_name = "$$nextState"*)
 
 (* Name of reachable state symbol *)
 let reachable_state_symbol_name = "$$reachableState"
@@ -110,11 +110,11 @@ let term_xn n =
 let term_x0 = TermDB.add_ref (term_xn 0) term_db 
 
 
-(* Create term for variable X0 *)
+(* Create term for variable X1 *)
 let term_x1 = TermDB.add_ref (term_xn 1) term_db 
 
 
-(* Create term for variable X0 *)
+(* Create term for variable X2 *)
 let term_x2 = TermDB.add_ref (term_xn 2) term_db 
 
 
@@ -195,6 +195,12 @@ let create_atom symbol_name arg_types args =
     (* Return created atom *)
     atom
 
+let create_atom_symb symb args = 
+ let atom = TermDB.add_ref
+     (Term.create_fun_term symb args)
+     term_db
+ in
+ atom
 
 (* Create complementary literal *)
 let create_compl_lit term = 
@@ -249,20 +255,24 @@ let create_bitvector_atom bitvector_symbol_name bitindex_term =
 
 (* Create path atom for two states, i.e. nextState(constB{p}, constB{q}) *)
 let create_path_atom state_p state_q =
-  create_atom 
+(*
+  create_atom
     path_symbol_name    
     [ state_type; state_type]
     [ state_p; state_q ]
-      
+*)
+  create_atom_symb Symbol.symb_ver_next_state [state_p; state_q]
+
 
 (* Create reachable state atom for given state,
    i.e. reachableState(state) *)
 let create_reachable_state_atom state =
-  create_atom 
+(*  create_atom 
     reachable_state_symbol_name 
     [ state_type ]
     [ state ]
-
+*)
+  create_atom_symb Symbol.symb_ver_reachable_state [state]
 
 (* Create addressDiff atom for given arguments *)
 let create_address_diff_atom arg1 arg2 arg3 =
