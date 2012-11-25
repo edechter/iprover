@@ -35,6 +35,8 @@ let invalid_bound_assumptions = ref []
 (* Clauses to be instantiated for each bound *)
 let bound_instantiate_axioms = ref []
   
+(* in state preinstantiation strategy separated next state clauses *)
+let next_state_clauses = ref []
 
 (********** Symbol names and name patterns **********)  
 
@@ -264,6 +266,7 @@ let create_path_atom state_p state_q =
   create_atom_symb Symbol.symb_ver_next_state [state_p; state_q]
 
 
+
 (* Create reachable state atom for given state,
    i.e. reachableState(state) *)
 let create_reachable_state_atom state =
@@ -299,6 +302,8 @@ let create_address_atom address =
 
 
 (********** Path axioms **********)
+
+ 
 
 (* Create path axiom $$nextState(b-1, b) *)
 let create_path_axiom b =
@@ -344,6 +349,60 @@ let rec create_path_axioms accum lbound = function
     (* Add path axioms for lesser states *)
     create_path_axioms (path_axiom_b :: accum) lbound (pred b)
 
+
+let pre_instantiate_next_state_clause state_p state_q clause = 
+  let lits = Clause.get_literals clause in
+  let next_list, rest_lits = 
+    List.partition Term.is_next_state_lit lits in
+  let next_cl_lit = 
+    match next_list 
+    with 
+      [lit] -> lit 
+    |_-> failwith "bmc1Axioms: exactly one next atom is expected"
+  in
+  (* next_cl_lit = ~$$nextState(VarCurr,VarNext) *)
+  let next_cl_atom = Term.get_atom next_cl_lit in 
+
+  (* Create state term for state *)
+  let state_term_p = create_state_term state_p in
+
+  (* Create state term for preceding state *)
+  let state_term_q = create_state_term state_q in
+  
+  (* nex_gr_atom = $$nextState($$constBq,$$constBp) *)
+  let next_gr_atom = create_path_atom state_term_p state_term_q in
+  let next_gr_cl =
+    Clause.normalise term_db
+      (Clause.create [next_gr_atom ])
+  in
+  try 
+    let mgu = Unif.unify_bterms (1,next_gr_atom) (2,next_cl_atom) in
+    let resolved = 
+      Clause.normalise_blitlist_list 
+	term_db mgu [(2,rest_lits)] in
+    Clause.assign_tstp_source_resolution 
+      resolved [clause;next_gr_cl] [next_cl_lit;next_gr_atom];    
+    resolved
+  with 
+    Unif.Unification_failed -> 
+      failwith "bmc1Axioms: next_state atoms should be unifyable"
+
+(* pre_instantiate for all bounds down to [lbound] *)
+let rec pre_instantiate_next_state_clause_lu accum clause lbound = function 
+    (* No more axioms if state is less than lower bound *)
+  | b when b <= lbound -> accum 
+  | b -> 
+      let pre_inst_cl =  pre_instantiate_next_state_clause (pred b) b clause in
+      pre_instantiate_next_state_clause_lu (pre_inst_cl:: accum) clause lbound (pred b)
+      
+let pre_instantiate_all_next_state_clauses lbound ubound = 
+  List.fold_left 
+    (fun rest cl -> 
+      let pre_inst_cls = 
+	pre_instantiate_next_state_clause_lu [] cl lbound ubound in
+      pre_inst_cls@rest
+    )
+    [] !next_state_clauses
 
 (********** Reachable state axioms (for all states) **********)
 
@@ -1048,7 +1107,15 @@ let instantiate_bound_axioms bound clauses =
 let separate_bound_axioms clauses =
   List.partition is_bound_clause clauses
        
+(* separte clauses containing $$nextState, used in preinstantiation strategy *)
+(* first are the nextState clauses *)
+let separate_next_state_clauses clauses = 
+  (* Clause.has_next_state is not assigned at this point so need to explicitely search for next state *)
 
+  let has_next_state clause = 
+    (List.exists Term.is_next_state_lit (Clause.get_literals clause)) in
+  List.partition has_next_state clauses
+ 
 
 (********** Utility functions **********)
 
@@ -1123,15 +1190,28 @@ let get_bound_assumptions bound =
   (* Return unit clause containing positive bound atom *)
   [ Clause.normalise term_db (Clause.create [ bound_literal ]) ]
     
+(* change to an option *)
+let pre_instantiate_next_state_flag = true
+
+let _= out_str "\n!!!pre_instantiate_next_state_flag add to options!!!\n"
 
 (* Axioms for bound 0 *)
 let init_bound all_clauses = 
 
   (* Separate axioms to be instantiated for each bound *)
-  let bound_instantiate_axioms_of_clauses, clauses = 
+  let bound_instantiate_axioms_of_clauses, clauses' = 
     separate_bound_axioms all_clauses 
   in
-  
+  let clauses = 
+    if pre_instantiate_next_state_flag 
+    then 
+     (let cl_next_state,cl_rest = separate_next_state_clauses clauses' in
+     next_state_clauses:=cl_next_state;
+     cl_rest
+     )
+    else
+      clauses'
+  in
   (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
     
@@ -1232,7 +1312,11 @@ let increment_bound cur_bound next_bound simulate =
   (* Create path axioms for all states between next bound and current
      bound *)
   let path_axioms =
-    create_path_axioms [ ] cur_bound next_bound
+  if pre_instantiate_next_state_flag
+  then
+    pre_instantiate_all_next_state_clauses cur_bound next_bound 
+  else
+    create_path_axioms [] cur_bound next_bound
   in
 
   (* Create reachable states axiom for next bound *)

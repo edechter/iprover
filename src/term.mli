@@ -67,6 +67,9 @@ val inst_in_unif_index      : fun_term_bool_param
 val has_conj_symb       : fun_term_bool_param
 val has_bound_constant  : fun_term_bool_param (* used for BMC *)
 
+val is_next_state_lit   : term -> bool
+val is_reachable_state_lit   : term -> bool
+
 val assign_has_conj_symb      : term -> unit
 
 val has_non_prolific_conj_symb : fun_term_bool_param

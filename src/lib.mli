@@ -127,6 +127,10 @@ val pair_compare_lex : ('a -> 'a -> int)-> ('b -> 'b -> int) -> 'a*'b ->'a*'b ->
 (* bool operations *)
 val bool_plus : bool -> bool -> bool
 
+(* returns 1 if true and 0 if false *)
+(* in OCaml true >= false and compare true false = 1 *)
+val bool_to_int : bool-> int
+
 (*-------- folds a function over intervals -------------*)
 (*  fold_up_interval f a b init_val *)
 (* folds f from a to b inclusive *)

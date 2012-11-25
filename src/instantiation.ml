@@ -967,13 +967,19 @@ let bmc1_bounds = ref []
 	  else*)
        (try  
 	 ((*out_str (" Start Simpl Given Clause: \n");*)
+(*
+	   out_str("\n--------------------------\n");
+         out_str("\n Given Clause: "
+                 ^(Clause.to_string given_clause)^"\n");
+*)
              let simplified_given_clause 
 	       = simplify_given_clause  given_clause in
 (*
 	     out_str("\n--------------------------\n");
-             out_str ("\n Given Clause: "
+             out_str ("\n Simpl Given Clause: "
                      ^(Clause.to_string simplified_given_clause)^"\n");
-
+*)
+(*
 	     out_str ("Min def symb depth: "
 		      ^(param_to_string string_of_int 
 			  (Clause.get_min_defined_symb simplified_given_clause))^"\n");

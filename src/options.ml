@@ -295,6 +295,9 @@ type lit_cmp_type =
   | Lit_Split                      of bool 
   | Lit_has_conj_symb              of bool 
   | Lit_has_bound_constant         of bool 
+  | Lit_next_state                 of bool 
+  | Lit_reachable_state            of bool 
+(*  | Lit_reachable_state            of bool *)
   | Lit_has_non_prolific_conj_symb of bool  
   | Lit_eq                         of bool 
   | Lit_clock                      of bool 
@@ -310,6 +313,8 @@ let lit_cmp_type_to_str par =
   |Lit_Split       b   -> if b then "+split"     else "-split"
   |Lit_has_conj_symb b -> if b then "+conj_symb" else "-conj_symb"
   |Lit_has_bound_constant b -> if b then "+has_bound_constant" else "-has_bound_constant"
+  |Lit_next_state b -> if b then "+next_state" else "-next_state"
+  |Lit_reachable_state b -> if b then "+reachable_state" else "-reachable_state"
   |Lit_has_non_prolific_conj_symb b -> 
       if b then "+non_prol_conj_symb" else "-non_prol_conj_symb"
   |Lit_eq          b   -> if b then "+eq"     else "-eq"
@@ -334,6 +339,10 @@ let str_to_lit_cmp_type str =
   | "-conj_symb"   -> Lit_has_conj_symb false
   | "+has_bound_constant" -> Lit_has_bound_constant true
   | "-has_bound_constant" -> Lit_has_bound_constant false
+  | "+next_state"   -> Lit_next_state true 
+  | "-next_state"   -> Lit_next_state false
+  | "+reachable_state"   -> Lit_reachable_state true 
+  | "-reachable_state"   -> Lit_reachable_state false
   | "+non_prol_conj_symb" -> Lit_has_non_prolific_conj_symb true
   | "-non_prol_conj_symb" -> Lit_has_non_prolific_conj_symb false
   | "+eq"          -> Lit_eq       true
@@ -347,7 +356,7 @@ let str_to_lit_cmp_type str =
   | _              -> raise  Unknown_lit_cmp_type
 
 
-let lit_cmp_type_list_str = "<[((+|-)(sign|ground|num_var|num_symb|split|conj_symb|non_prol_conj_symb|eq|clock|less|range|has_bound_constant)^+]>"
+let lit_cmp_type_list_str = "<[((+|-)(sign|ground|num_var|num_symb|split|conj_symb|non_prol_conj_symb|eq|clock|less|range|has_bound_constant|next_state|reachable_state)^+]>"
 
 (* if there is no conjectures then we can to remove corresponding comparisons*)
 
@@ -375,6 +384,8 @@ type cl_cmp_type =
   |Cl_Conj_Dist   of bool
   |Cl_Has_Conj_Symb of bool
   |Cl_has_bound_constant of bool
+  |Cl_has_next_state of bool
+  |Cl_has_reachable_state of bool
   |Cl_Has_Non_Prolific_Conj_Symb of bool
   |Cl_Max_Atom_Input_Occur of bool
   |Cl_Horn         of bool
@@ -394,6 +405,8 @@ let cl_cmp_type_to_str par =
   |Cl_Conj_Dist        b -> if b then "+conj_dist" else "-conj_dist" 
   |Cl_Has_Conj_Symb b -> if b then "+conj_symb" else "-conj_symb" 
   |Cl_has_bound_constant b -> if b then "+has_bound_constant" else "-has_bound_constant" 
+  |Cl_has_next_state b -> if b then "+next_state" else "-next_state"
+  |Cl_has_reachable_state b -> if b then "+reachable_state" else "-reachable_state"
   |Cl_Has_Non_Prolific_Conj_Symb b -> if b then "+conj_non_prolific_symb" else "-conj_non_prolific_symb" 
   |Cl_Max_Atom_Input_Occur b -> if b then "+max_atom_input_occur" else
     "-max_atom_input_occur"
@@ -421,8 +434,12 @@ let str_to_cl_cmp_type str =
   |"-conj_dist"  -> Cl_Conj_Dist          false
   |"+has_bound_constant" -> Cl_has_bound_constant true 
   |"-has_bound_constant" -> Cl_has_bound_constant false
-  |"+conj_symb"  -> Cl_Has_Conj_Symb   true
-  |"-conj_symb"  -> Cl_Has_Conj_Symb   false
+  |"+next_state" -> Cl_has_next_state true
+  |"-next_state" -> Cl_has_next_state false
+  |"+reachable_state" -> Cl_has_reachable_state true
+  |"-reachable_state" -> Cl_has_reachable_state false
+  |"+conj_symb"  -> Cl_Has_Conj_Symb true
+  |"-conj_symb"  -> Cl_Has_Conj_Symb false
   |"+conj_non_prolific_symb" -> Cl_Has_Non_Prolific_Conj_Symb true
   |"-conj_non_prolific_symb" -> Cl_Has_Non_Prolific_Conj_Symb false
   |"+max_atom_input_occur" -> Cl_Max_Atom_Input_Occur true 
@@ -439,7 +456,7 @@ let str_to_cl_cmp_type str =
   |"-min_def_symb" -> Cl_min_defined_symb false
   | _           -> raise Unknown_cl_cmp_type 
 
-let cl_cmp_type_list_str = "<[((+|-)(age|num_var|num_symb|num_lits|ground|conj_dist|conj_symb|max_atom_input_occur|horn|epr|uc|has_eq|has_bound_constant|min_def_symb)^+]>"
+let cl_cmp_type_list_str = "<[((+|-)(age|num_var|num_symb|num_lits|ground|conj_dist|conj_symb|max_atom_input_occur|horn|epr|uc|has_eq|has_bound_constant|min_def_symb|next_state|reachable_state)^+]>"
 
 
 let strip_conj_clause_type_list clause_type_list = 
@@ -4507,7 +4524,10 @@ let option_verification_epr ver_epr_opt =
        inst_lit_sel                   = [Lit_Ground true;Lit_Sign false;];
 *)
        inst_lit_sel                   = 
-	  [ Lit_clock true;
+	  [
+	   Lit_clock true;
+(*	   Lit_reachable_state true; 
+	   Lit_next_state true;*)
 	    Lit_Ground true; 
 	    Lit_Sign false; ];
 
@@ -4529,8 +4549,13 @@ let option_verification_epr ver_epr_opt =
 
        inst_pass_queue1               = 
 	  ValueDefault 
-	    [Cl_in_unsat_core true; 
+	    [
+	     Cl_in_unsat_core true; 
+(*	     Cl_has_reachable_state true;*)
 	     Cl_min_defined_symb false;
+(*	     Cl_has_next_state true;
+	     Cl_has_reachable_state true;*)
+(*	     Cl_Has_Eq_Lit false;*)
 	     Cl_Age true; 
 	     Cl_Num_of_Symb false];
 
@@ -4549,11 +4574,12 @@ let option_verification_epr ver_epr_opt =
 
 	  ValueDefault
 	    [ 
-	      Cl_min_defined_symb false;
+
+	     Cl_min_defined_symb false;
 	    Cl_Conj_Dist false;
 	    Cl_Has_Conj_Symb true;
 	    Cl_has_bound_constant true; 
-	    (* Cl_Has_Eq_Lit false;*)
+(*	     Cl_Has_Eq_Lit false;*)
 	    (* Cl_Ground true;*)
 	    Cl_Num_of_Var false; 
 	    (* Cl_min_defined_symb false;*)
@@ -4565,7 +4591,8 @@ let option_verification_epr ver_epr_opt =
 
        inst_pass_queue3 = 
 	  ValueDefault
-	  [ Cl_Age true; 
+	  [
+	   Cl_Age true; 
 	    Cl_min_defined_symb false; 
 	    (*Cl_min_defined_symb false;*) 
 	    Cl_Num_of_Symb false ];

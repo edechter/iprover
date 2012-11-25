@@ -72,21 +72,23 @@ let has_eq_lit_param             = 17
 let has_conj_symb                = 18
 
 let has_bound_constant           = 19
-let has_non_prolific_conj_symb   = 20
+let has_next_state               = 20
+let has_reachable_state          = 21
+let has_non_prolific_conj_symb   = 22
 
 (* if used in simplifications then simplifying is true                            *)
 (* used in orphan elimination since we can eliminate only non-simplifying cluases *)
-let res_simplifying                  = 21
+let res_simplifying                  = 23
 
-let large_ax_considered              = 22
+let large_ax_considered              = 24
 
-let ground                           = 23 
+let ground                           = 25 
 
-let horn                             = 24
+let horn                             = 26
 
-let epr                              = 25
+let epr                              = 27
 
-let in_unsat_core                    = 26
+let in_unsat_core                    = 28
 
 (*---------End bool params-------------*)
 
@@ -786,6 +788,14 @@ let assign_has_non_prolific_conj_symb clause =
 let assign_has_bound_constant clause = 
   assign_term_bool_param_clause_param Term.has_bound_constant has_bound_constant clause
 
+let assign_has_next_state clause = 
+  set_bool_param (List.exists Term.is_next_state_lit clause.literals) has_next_state
+    clause
+
+let assign_has_reachable_state clause = 
+  set_bool_param (List.exists Term.is_reachable_state_lit clause.literals) has_reachable_state clause
+
+
 (*
 let assign_has_conj_symb clause = 
   set_bool_param 
@@ -907,6 +917,8 @@ let assign_all_for_clause_db clause =
   assign_has_conj_symb clause;
   assign_has_non_prolific_conj_symb clause;
   assign_has_bound_constant clause;
+  assign_has_next_state clause;
+  assign_has_reachable_state clause;
   assign_max_atom_input_occur clause;
   assign_ground clause; 
   assign_epr clause;
@@ -1444,47 +1456,38 @@ let cmp_age c1 c2 =
   -(Pervasives.compare (when_born c1) (when_born c2))
 
 let cmp_ground c1 c2 =
-  let gc1 = if (is_ground c1) then 1 else 0 in
-  let gc2 = if (is_ground c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  Pervasives.compare (is_ground c1) (is_ground c2) 
 
 let cmp_horn c1 c2 =
-  let gc1 = if (is_horn c1) then 1 else 0 in
-  let gc2 = if (is_horn c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  Pervasives.compare (is_horn c1) (is_horn c2) 
 
 let cmp_epr c1 c2 =
-  let gc1 = if (is_epr c1) then 1 else 0 in
-  let gc2 = if (is_epr c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  Pervasives.compare  (is_epr c1) (is_epr c2) 
+
+let cmp_bool_param param c1 c2 = 
+  Pervasives.compare (get_bool_param param c1) (get_bool_param param c2) 
 
 let cmp_in_unsat_core c1 c2 =
-  let gc1 = if (get_bool_param in_unsat_core c1) then 1 else 0 in
-  let gc2 = if (get_bool_param in_unsat_core c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  cmp_bool_param in_unsat_core c1 c2
 
 let cmp_has_eq_lit c1 c2 =
-  let gc1 = if (has_eq_lit c1) then 1 else 0 in
-  let gc2 = if (has_eq_lit c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  Pervasives.compare (has_eq_lit c1) (has_eq_lit c2) 
 
 
 let cmp_has_conj_symb c1 c2 = 
-  let gc1 = if (get_bool_param has_conj_symb c1) then 1 else 0 in
-  let gc2 = if (get_bool_param has_conj_symb c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  cmp_bool_param has_conj_symb c1 c2
 
 let cmp_has_bound_constant c1 c2 = 
-  let gc1 = if (get_bool_param has_bound_constant c1) then 1 else 0 in
-  let gc2 = if (get_bool_param has_bound_constant c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  cmp_bool_param has_bound_constant c1 c2
 
-  
+let cmp_has_next_state c1 c2 = 
+   cmp_bool_param has_next_state c1 c2
+
+let cmp_has_reachable_state c1 c2 = 
+   cmp_bool_param has_reachable_state c1 c2
 
 let cmp_has_non_prolific_conj_symb c1 c2 =
-  let gc1 = if (get_bool_param has_non_prolific_conj_symb c1) then 1 else 0 in
-  let gc2 = if (get_bool_param has_non_prolific_conj_symb c2) then 1 else 0 in
-  Pervasives.compare gc1 gc2
+  cmp_bool_param has_non_prolific_conj_symb c1 c2
 
 let cmp_max_atom_input_occur c1 c2 = 
   Pervasives.compare c1.max_atom_input_occur c2.max_atom_input_occur  
@@ -1510,6 +1513,8 @@ let cl_cmp_type_to_fun t =
   |Options.Cl_Conj_Dist        b -> compose_sign b cmp_conjecture_distance 
   |Options.Cl_Has_Conj_Symb    b -> compose_sign b cmp_has_conj_symb
   |Options.Cl_has_bound_constant b -> compose_sign b cmp_has_bound_constant
+  |Options.Cl_has_next_state     b -> compose_sign b cmp_has_next_state
+  |Options.Cl_has_reachable_state     b -> compose_sign b cmp_has_reachable_state
   |Options.Cl_Has_Non_Prolific_Conj_Symb b -> compose_sign b cmp_has_non_prolific_conj_symb
   |Options.Cl_Max_Atom_Input_Occur b -> compose_sign b cmp_max_atom_input_occur
   |Options.Cl_Horn             b -> compose_sign b cmp_horn

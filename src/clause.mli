@@ -112,9 +112,13 @@ val eq_axiom                     : clause_bool_param
 val input_under_eq               : clause_bool_param 
 val has_conj_symb                : clause_bool_param 
 val has_bound_constant           : clause_bool_param  
+val has_next_state               : clause_bool_param  
+val has_reachable_state          : clause_bool_param  
 val has_non_prolific_conj_symb   : clause_bool_param 
 val in_unsat_core                : clause_bool_param 
 val large_ax_considered          : clause_bool_param  
+
+
 
  (* if used in simplifications then simplifying is true *)
 (* used in orphan elimination since we can eliminate only non-simplifying cluases *)

@@ -902,9 +902,8 @@ let apply_to_atom f lit =
 let is_eq_atom atom = 
   match atom with
   | Fun(sym,_,_) -> 
-      if ((*(sym == Symbol.symb_equality) ||*) (sym == Symbol.symb_typed_equality))  
-      then true else false
-   |_-> false
+      (sym == Symbol.symb_typed_equality)
+  |_-> false
 
 	
 let is_eq_lit lit = 
@@ -933,6 +932,17 @@ let is_range_lit lit =
     | _ -> false
 
 
+let is_next_state_lit lit = 
+  match get_atom lit with 
+  | Fun(symb, _, _) -> 
+      symb == Symbol.symb_ver_next_state
+  |_-> false
+
+let is_reachable_state_lit lit = 
+  match get_atom lit with 
+  | Fun(symb, _, _) -> 
+      symb == Symbol.symb_ver_reachable_state
+  |_-> false
 
 	
 let is_var term = 
@@ -975,14 +985,13 @@ let is_epr_lit l =
   |_ -> true 
 
 
+(* in OCaml true >= false and (compare true false) = 1 *)
 
 (* compare two terms: *)
 
  
 let cmp_ground t1 t2 =
-  let gt1 = if (is_ground t1) then 1 else 0 in
-  let gt2 = if (is_ground t2) then 1 else 0 in
-  Pervasives.compare gt1 gt2
+  Pervasives.compare (is_ground t1) (is_ground t2) 
 
 let cmp_num_symb t1 t2 =
   Pervasives.compare (get_num_of_symb t1) (get_num_of_symb t2)
@@ -992,14 +1001,10 @@ let cmp_num_var t1 t2 =
 
 (*pos bigger than neg*)
 let cmp_sign t1 t2 =
-  let nt1 = if (is_neg_lit t1) then 1 else 0 in
-  let nt2 = if (is_neg_lit t2) then 1 else 0 in
-  -(Pervasives.compare nt1 nt2)
+  -(Pervasives.compare  (is_neg_lit t1) (is_neg_lit t2))
 
 let cmp_bool_param param t1 t2 = 
-  let nt1 = if (get_fun_bool_param param t1) then 1 else 0 in  
-  let nt2 = if (get_fun_bool_param param t2) then 1 else 0 in  
-  Pervasives.compare nt1 nt2
+  Pervasives.compare (get_fun_bool_param param t1) (get_fun_bool_param param t2) 
 
 let cmp_has_conj_symb t1 t2 = 
   cmp_bool_param has_conj_symb t1 t2   
@@ -1011,41 +1016,35 @@ let cmp_has_non_prolific_conj_symb t1 t2 =
   cmp_bool_param has_non_prolific_conj_symb t1 t2   
 
 
-let is_split t = 
-  let atom1 = get_atom t in
-  match atom1 with 
+let is_split_lit t = 
+  let atom = get_atom t in
+  match atom with 
   | Fun(symb,_,_)-> 
-      if (Symbol.get_property symb) = Symbol.Split
-      then 1
-      else -1
-  |_-> -1
+      (Symbol.get_property symb) = Symbol.Split
+  |_-> false
 
+	
 let cmp_split t1 t2 = 
-  Pervasives.compare (is_split t1) (is_split t2)
+  Pervasives.compare (is_split_lit t1) (is_split_lit t2)
  
-let is_eq_lit_int t = 
-  if (is_eq_lit t) then 1 else -1
-
 let cmp_is_eq_lit t1 t2 = 
-  Pervasives.compare (is_eq_lit_int t1) (is_eq_lit_int t2)
-
-let is_clock_lit_int t = 
-  if (is_clock_lit t) then 1 else -1
+  Pervasives.compare (is_eq_lit t1) (is_eq_lit t2)
 
 let cmp_is_clock_lit t1 t2 = 
-  Pervasives.compare (is_clock_lit_int t1) (is_clock_lit_int t2)
+  Pervasives.compare (is_clock_lit t1) (is_clock_lit t2)
 
-let is_less_lit_int t = 
-  if (is_less_lit t) then 1 else -1
 
 let cmp_is_less_lit t1 t2 = 
-  Pervasives.compare (is_less_lit_int t1) (is_less_lit_int t2)
-
-let is_range_lit_int t = 
-  if (is_range_lit t) then 1 else -1
+  Pervasives.compare (is_less_lit t1) (is_less_lit t2)
 
 let cmp_is_range_lit t1 t2 = 
-  Pervasives.compare (is_range_lit_int t1) (is_range_lit_int t2)
+  Pervasives.compare (is_range_lit t1) (is_range_lit t2)
+
+let cmp_is_next_state_lit t1 t2 = 
+  Pervasives.compare (is_next_state_lit t1) (is_next_state_lit t2)
+
+let cmp_is_reachable_state_lit t1 t2 = 
+  Pervasives.compare (is_reachable_state_lit t1) (is_reachable_state_lit t2)
 
 
 let lit_cmp_type_to_fun t = 
@@ -1057,6 +1056,8 @@ let lit_cmp_type_to_fun t =
   |Options.Lit_Split       b -> compose_sign b cmp_split
   |Options.Lit_has_conj_symb b -> compose_sign b cmp_has_conj_symb
   |Options.Lit_has_bound_constant b -> compose_sign b cmp_has_bound_constant
+  |Options.Lit_next_state b -> compose_sign b cmp_is_next_state_lit
+  |Options.Lit_reachable_state b -> compose_sign b cmp_is_reachable_state_lit
   |Options.Lit_has_non_prolific_conj_symb b -> 
       compose_sign b cmp_has_non_prolific_conj_symb
   |Options.Lit_eq          b -> compose_sign b cmp_is_eq_lit 

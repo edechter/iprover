@@ -409,6 +409,9 @@ let propagate_binding_to_list blist =
 
 (* bool operations *)
 let bool_plus x y = ((x&& (not y)) || ((not x)&& y))
+
+let bool_to_int b = if b then 1 else 0
+
 (*    let out_str s = Printf.fprintf stdout " %s \n" s *)
 
     

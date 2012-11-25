@@ -94,6 +94,8 @@ type lit_cmp_type =
   | Lit_Split       of bool 
   | Lit_has_conj_symb of bool 
   | Lit_has_bound_constant of bool
+  | Lit_next_state of bool  
+  | Lit_reachable_state of bool
   | Lit_has_non_prolific_conj_symb of bool  
   | Lit_eq                         of bool 
   | Lit_clock                      of bool 
@@ -110,6 +112,8 @@ type cl_cmp_type =
   |Cl_Conj_Dist   of bool
   |Cl_Has_Conj_Symb of bool
   |Cl_has_bound_constant of bool
+  |Cl_has_next_state of bool
+  |Cl_has_reachable_state of bool
   |Cl_Has_Non_Prolific_Conj_Symb of bool
   |Cl_Max_Atom_Input_Occur of bool
   |Cl_Horn         of bool

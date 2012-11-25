@@ -2036,7 +2036,7 @@ let run_iprover () =
     *) 
     (* end debug *)	
 
-    (*-------------------------------*)
+  (*-------------------------------*)
     let current_clauses = Parser_types.all_current_clauses in 
   (*-------------------------------*)
   (* At the moment Parsed_input_to_db.input_clauses_ref are not memory released! *)
@@ -2047,7 +2047,7 @@ let run_iprover () =
 
   (*-------------------------------*)
     Prop_solver_exchange.init_solver_exchange ();
-    (*-------------------------------*)
+  (*-------------------------------*)
 
     (* with sat_mode one should be careful with options!*)
     (* switch off resolution! *)
@@ -2401,11 +2401,12 @@ let run_iprover () =
   input_problem_props:=get_problem_props !current_clauses;
   out_str (pref_str^"Problem Properties \n");
   out_str ("\n"^(problem_props_to_string !input_problem_props)^"\n");      
-	  (*debug *)
-	  (*
-	    out_str "\n\nInput_Preproccessed clauses\n\n";
+	
+  (*debug *)
+(*	  
+	    out_str "\n\n Clauses before proving\n\n";
 	    out_str (Clause.clause_list_to_tptp !current_clauses);
-	  *)
+*)	  
 
 
 
