@@ -221,6 +221,13 @@ val get_fast_key          : symbol -> int
 
 val hash                  : symbol -> int
 
+val is_state_type_symb     : symbol -> bool
+val is_address_type_symb   : symbol -> bool
+val is_bitindex_type_symb  : symbol -> bool
+val is_address_const_symb  : symbol -> bool
+val is_a_state_pred_symb   : symbol -> bool
+val is_a_memory_pred_symb  : symbol -> bool
+val is_a_bitvec_pred_symb  : symbol -> bool
 (*module type TMap = SMap*)
 
 module SymbKey :

@@ -165,6 +165,14 @@ val arg_for_all2 : (term -> term -> bool) -> args -> args -> bool
 val arg_iter  : (term -> unit) -> args -> unit 
 val arg_iter2 : (term -> term -> unit) -> args -> args -> unit
 
+(* folds over all subterems of the term including term itself *)
+val fold_left : ('a -> term -> 'a) -> 'a -> term -> 'a
+
+(* creates a new term by applying f to all its subterms bottom up including term itsef *)
+val map  : (term -> term) -> term -> term
+
+(*  is_subterm s t = true if  s is a subterm of t using == *)
+val is_subterm : term -> term -> bool 
 
 val is_constant : term -> bool
 val is_ground   : term -> bool
@@ -205,6 +213,12 @@ val cmp_split    : term -> term -> int
 val lit_cmp_type_list_to_lex_fun :  
     Options.lit_cmp_type list -> (literal -> literal -> int) 
  
+(* replace all occurrences of subterm by byterm in t *)
+(* we assume that t, p, and q are in the term db and therefore we are using == *)
+(* the resulting term will need to be  added in term db separately *)
+
+val replace : subterm:term -> byterm:term -> term -> term
+
 
 val to_stream           : 'a string_stream -> term -> unit
 val out                 : term -> unit
@@ -226,3 +240,9 @@ val term_list_to_string : (term list) -> string
 val apply_to_atom : (term -> term) -> term -> term 
 
 val get_fast_key : term -> int
+
+(*---------*)
+
+val is_skolem_const : term -> bool 
+val is_addr_const   : term -> bool 
+val is_addr_const   : term -> bool 

@@ -924,6 +924,51 @@ let  compare (s1:t) (s2:t) =
     Fast_key_undef -> (compare_key s1 s2)
 *)
 
+(*-----------verification related test-------------------*)
+let is_state_type_symb symb = 
+ (symb_ver_state_type == symb)
+  
+let is_address_type_symb symb = 
+  (symb_ver_address_type == symb) 
+
+let is_bitindex_type_symb symb = 
+  (symb_ver_bit_index_type == symb)
+
+let is_address_const_symb symb = 
+   match (get_stype_args_val symb) with 
+   | Def([], val_type) -> 
+            (is_address_type_symb val_type) 
+  | _-> false
+
+let is_a_state_pred_symb symb = 
+  match (get_stype_args_val symb) with 
+  | Def([arg_symb], val_type) -> 
+      ((val_type == symb_bool_type) &&
+       (is_state_type_symb arg_symb))
+  | _-> false
+
+  
+let is_a_memory_pred_symb symb = 
+  match (get_stype_args_val symb) with 
+  | Def([state_type;address_type;bitindex_type], val_type) -> 
+      ((val_type == symb_bool_type) &&
+       (is_state_type_symb state_type) &&
+       (is_address_type_symb address_type) &&
+       (is_bitindex_type_symb bitindex_type)
+      )
+  | _-> false
+
+let is_a_bitvec_pred_symb symb = 	
+  match (get_stype_args_val symb) with 
+  | Def([state_type;bitindex_type], val_type) -> 
+      ((val_type == symb_bool_type) &&    
+       (is_state_type_symb state_type) &&
+       (is_bitindex_type_symb bitindex_type)
+      )      
+  | _-> false
+
+
+(*-----------------------------------------------------*)
 
 module SymbKey = 
   struct

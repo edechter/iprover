@@ -1936,6 +1936,30 @@ let rec get_orphans clause =
 	(clause::parent_result)
       else []
 
+(*-----assume clause is of the from [pred(sK)] where sK is a state skolem fun---*)
+let get_skolem_bound_clause clause = 
+  match (get_literals clause) with 
+  |[Term.Fun(symb,args,_)] -> 
+      if (Symbol.is_a_state_pred_symb symb) 
+      then 
+	(match (Term.arg_to_list args) 
+	with 
+	|[term] -> 
+	    if (Term.is_skolem_const term) 
+	    then  Some term
+	    else None
+	|_-> None
+	)
+      else None 
+  |_-> None
+
+let replace_subterm termdb_ref ~subterm ~byterm cluase = 
+  normalise
+    termdb_ref
+    (create 
+       
+       (List.map (Term.replace ~subterm:subterm ~byterm:byterm) (get_literals cluase)))
+ 
 
 (*
 

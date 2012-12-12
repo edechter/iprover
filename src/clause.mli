@@ -20,6 +20,7 @@ open Lib
 
 
 type literal       = Term.literal
+type term          = Term.term
 type symbol        = Symbol.symbol
 type literal_list  = literal list
 type term_db       = TermDB.termDB
@@ -121,7 +122,7 @@ val large_ax_considered          : clause_bool_param
 
 
  (* if used in simplifications then simplifying is true *)
-(* used in orphan elimination since we can eliminate only non-simplifying cluases *)
+(* used in orphan elimination since we can eliminate only non-simplifying clauses *)
 val res_simplifying                  : clause_bool_param 
 
 (* creates a new copy of the clause with the same parameters,*) 
@@ -500,3 +501,10 @@ val extend_clause_sig_term : clause_signature -> Term.term -> unit
 val extend_clause_sig_lit  : clause_signature -> Term.term -> unit
 val extend_clause_sig_cl   : clause_signature -> clause -> unit
 val extend_clause_list_signature : clause_signature -> clause list -> unit
+
+
+(*-----assume clause is of the from [pred(sK)] where sK is a state skolem fun---*)
+val get_skolem_bound_clause : clause -> Term.term option
+
+
+val replace_subterm : term_db ref -> subterm:term ->  byterm:term -> clause -> clause

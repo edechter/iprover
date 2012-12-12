@@ -599,20 +599,6 @@ and get_hash_term_list_full symb_hash args =
   
 *)  
 
-(* fold_sym folds f for all symbols in the term *)
-let rec fold_sym f a term = 
-  match term with 
-  |Fun(sym,args,_) ->
-      List.fold_left (fold_sym f) (f a sym) args 
-  |_-> a 
-
-let rec iter_sym f term = 
-  match term with 
-  |Fun(sym,args,_) ->
-      (f sym;
-       List.iter (iter_sym f) args
-      )
-  |_-> ()
 
 
 (* f: first arg  is depth and second is sym, f is applied from top to bottom*)
@@ -787,6 +773,72 @@ let  get_fast_key (t:term) =
   |_  -> raise Term_fast_key_undef
 
 
+
+let rec fold_left f v t = 
+   match t with 
+   |Fun(_sym,args,_) -> 
+       let res_arg = List.fold_left (fold_left f) v args in
+       f res_arg t
+   |_ -> f v t
+
+let rec map f t = 
+       match t with 
+      |Fun(sym,args,_) -> 
+	  let new_args = 
+	    List.map f args in
+	  f (create_fun_term sym new_args)
+      |v -> f v
+   
+
+(* true is s is a subterm of t *)
+let is_subterm s t = 
+  fold_left 
+    (fun v t -> (v || t == s)) false t
+
+
+(* fold_sym folds f for all symbols in the term *)
+let rec fold_sym f a term = 
+  match term with 
+  |Fun(sym,args,_) ->
+      List.fold_left (fold_sym f) (f a sym) args 
+  |_-> a 
+
+let rec iter_sym f term = 
+  match term with 
+  |Fun(sym,args,_) ->
+      (f sym;
+       List.iter (iter_sym f) args
+      )
+  |_-> ()
+
+
+(* replace all occurrences of subterm by byterm in t *)
+(* we assume that t, p, and q are in the term db and therefore we are using == *)
+(* the resulting term will need to be  added in term db separately *)
+
+let rec replace ~subterm ~byterm t =
+  let f xt = 
+    if xt == subterm 
+    then byterm 
+    else xt 
+  in
+  map f t
+(*
+  map (subterm == t)
+
+  if (subterm == t)
+  then 
+    byterm
+  else
+    begin
+      match t with 
+      |Fun(sym,args,_) -> 
+	  let new_args = 
+	    arg_map  (replace ~subterm:subterm ~byterm:byterm) args in
+	  create_fun_term sym new_args 
+      |v -> v
+    end
+*)
 (*-----------------complementary literal ---------------*)
 let compl_lit literal = 
   match literal with 
@@ -1068,6 +1120,35 @@ let lit_cmp_type_to_fun t =
 
 let lit_cmp_type_list_to_lex_fun l = 
   lex_combination (List.map lit_cmp_type_to_fun l) 
+
+
+(*--------------------------*)     
+
+	
+
+
+
+let is_skolem_name str = 
+  try 
+    match (Str.first_chars str 2) with 
+    |"sK" -> true 
+    |_    -> false
+  with    
+    Invalid_argument _-> false
+
+let is_skolem_const term = 
+  try 
+    let symb = get_top_symb term in
+    is_skolem_name (Symbol.get_name symb)
+  with 
+    Var_term -> false
+
+let is_addr_const t = 
+  match t with 
+  |Fun (symb,args,_)-> 
+      ((arg_to_list args) = []) &&
+      (Symbol.is_address_const_symb symb)
+  |_-> false
 
 
 (* use prop_key!

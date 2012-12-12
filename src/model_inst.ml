@@ -1234,43 +1234,9 @@ let is_bitindex_type_symb symb =
 *)
 
 
-let is_state_type_symb symb = 
- (Symbol.symb_ver_state_type == symb)
-  
-let is_address_type_symb symb = 
-  (Symbol.symb_ver_address_type == symb) 
 
-let is_bitindex_type_symb symb = 
-  (Symbol.symb_ver_bit_index_type == symb)
-  
 
-    
-let is_a_memory_pred symb = 
-  match (Symbol.get_stype_args_val symb) with 
-  | Def([state_type;address_type;bitindex_type], val_type) -> 
-      ((val_type == Symbol.symb_bool_type) &&
-       (is_state_type_symb state_type) &&
-       (is_address_type_symb address_type) &&
-       (is_bitindex_type_symb bitindex_type)
-      )
-  | _-> false
-
-let is_a_bitvec_pred symb = 	
-  match (Symbol.get_stype_args_val symb) with 
-  | Def([state_type;bitindex_type], val_type) -> 
-      ((val_type == Symbol.symb_bool_type) &&    
-       (is_state_type_symb state_type) &&
-       (is_bitindex_type_symb bitindex_type)
-      )      
-  | _-> false
-
-let is_address_const_symb symb = 
-   match (Symbol.get_stype_args_val symb) with 
-   | Def([], val_type) -> 
-            (is_address_type_symb val_type) 
-  | _-> false
-
-	
+  	
 (* get a value of predicate in the model with ground arguments *)
 let get_ground_pred_value model pred_term =
   let var_table_ref = ref VarMap.empty  in
@@ -1483,56 +1449,6 @@ let out_msb_with_split slpit_size msb_list =
     print_splits rest_msb
       
 
-let is_a_state_pred symb = 
-  match (Symbol.get_stype_args_val symb) with 
-  | Def([arg_symb], val_type) -> 
-      ((val_type == Symbol.symb_bool_type) &&
-       (is_state_type_symb arg_symb))
-  | _-> false
-	
-
-
-let is_skolem_name str = 
-  try 
-    match (Str.first_chars str 2) with 
-    |"sK" -> true 
-    |_    -> false
-  with    
-    Invalid_argument _-> false
-
-let is_skolem_const term = 
-  try 
-    let symb = Term.get_top_symb term in
-    is_skolem_name (Symbol.get_name symb)
-  with 
-    Term.Var_term -> false
-
-
-  
-let is_addr_const t = 
-  match t with 
-  |Term.Fun (symb,args,_)-> 
-      ((Term.arg_to_list args) = []) &&
-      (is_address_const_symb symb)
-  |_-> false
-
-let get_skolem_bound_clause clause = 
-  match (Clause.get_literals clause) with 
-  |[Term.Fun(symb,args,_)] -> 
-      if (is_a_state_pred symb) 
-      then 
-	(match (Term.arg_to_list args) 
-	with 
-	|[term] -> 
-	    if (is_skolem_const term) 
-	    then  Some term
-	    else None
-	|_-> None
-	)
-      else None 
-  |_-> None
-
-
 (* eq_proper_val t_type t flat_subst: *)
 (* we have typed_equality(eq_type, u,v) *)
 (* the corresponding flat substitution is [(x_0,eq_type), (x_1,u), (x_2,v)] *)
@@ -1594,7 +1510,7 @@ let constant_val model const_term =
 let get_counter_ex_bound model = 
   let counter_ex_bound = ref None in
   let f clause = 
-    match (get_skolem_bound_clause clause)
+    match (Clause.get_skolem_bound_clause clause)
     with 
     |Some(sk_bound) -> 
 	(match (constant_val model sk_bound) with 
@@ -1629,11 +1545,11 @@ let get_conj_ground_mem_bitvec_preds () =
       then 
 	let atom = Term.get_atom lit in 
 	let top_symb = (Term.get_top_symb atom) in
-	if (is_a_memory_pred top_symb)
+	if (Symbol.is_a_memory_pred_symb top_symb)
 	then 
 	  (mem_list_ref:=list_add_new (!mem_list_ref) atom)
 	else
-	  if (is_a_bitvec_pred top_symb)
+	  if (Symbol.is_a_bitvec_pred_symb top_symb)
 	  then
 	    (bitvec_pred_ref:= list_add_new (!bitvec_pred_ref) atom)
 	  else ()
@@ -1660,17 +1576,17 @@ let get_from_states_addr_bitindex_sk_lists mem_pred_list bitvec_pred_list =
      |Term.Fun (_symb,args,_) -> 
 	 (match (Term.arg_to_list args) with 
 	 |[state;addr;bitindex] -> 
-	     (if (is_skolem_const state) 
+	     (if (Term.is_skolem_const state) 
 	     then 
 	       state_list_ref := list_add_new !state_list_ref state
 	     else ()
 	     );
-	     (if (is_skolem_const addr) 
+	     (if (Term.is_skolem_const addr) 
 	     then 
 	       addr_list_ref := list_add_new !addr_list_ref addr
 	     else ()
 	     );
-	     (if (is_skolem_const bitindex) 
+	     (if (Term.is_skolem_const bitindex) 
 	     then 
 	       bitindex_list_ref := list_add_new !bitindex_list_ref bitindex
 	     else ()
@@ -1686,12 +1602,12 @@ let get_from_states_addr_bitindex_sk_lists mem_pred_list bitvec_pred_list =
      |Term.Fun (_symb,args,_) -> 
 	 (match (Term.arg_to_list args) with 
 	 |[state;bitindex] -> 
-	     (if (is_skolem_const state) 
+	     (if (Term.is_skolem_const state) 
 	     then 
 	       state_list_ref := list_add_new !state_list_ref state
 	     else ()
 	     );
-	     (if (is_skolem_const bitindex) 
+	     (if (Term.is_skolem_const bitindex) 
 	     then 
 	       bitindex_list_ref := list_add_new !bitindex_list_ref bitindex
 	     else ()
@@ -1778,7 +1694,7 @@ module PTMap = Map.Make(PTKey)
 type ptv_map = ((int list) ref) PTMap.t
 
 let get_pre_term_pos_bit_ind symb flat_subst = 
-  if (is_a_memory_pred symb) 
+  if (Symbol.is_a_memory_pred_symb symb) 
   then 
     (
      match flat_subst with 
@@ -1790,7 +1706,7 @@ let get_pre_term_pos_bit_ind symb flat_subst =
      |_-> Undef 
     )
   else 
-    if (is_a_bitvec_pred symb) 
+    if (Symbol.is_a_bitvec_pred_symb symb) 
     then
       match flat_subst with 
       |[(_,state);(_,bit_ind)] ->
@@ -1805,7 +1721,7 @@ let get_pre_term_pos_bit_ind symb flat_subst =
 (* returns ptv_map *)
 let fill_ptv_map model =
   let f_model symb model_node model_ptv_map = 
-    if ((is_a_memory_pred symb) ||(is_a_bitvec_pred symb))
+    if ((Symbol.is_a_memory_pred_symb symb) ||(Symbol.is_a_bitvec_pred_symb symb))
     then
       begin 
 	let pos_lit_def = model_node.pos_lit_def in
@@ -1946,7 +1862,7 @@ let out_memory_ver model =
 (*------------------*)
   let get_all_addresses () =    
     let f_addr addr addr_map = 
-      if (is_addr_const addr) 
+      if (Term.is_addr_const addr) 
       then 
 	let addr_val = address_pos_val model addr in 
 	add_address_to_map addr_map addr_val addr 
@@ -2014,7 +1930,7 @@ let out_memory_ver model =
     
 (*
  let f_addr_eq addr_val addr_list_ref = 
-    if (is_addr_const addr) 
+    if (Term.is_addr_const addr) 
       then 
       (out_str ((Term.to_string addr)^":");
        out_str  (address_val_to_string  (address_val model addr));

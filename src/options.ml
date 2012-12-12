@@ -664,7 +664,8 @@ type options = {
     mutable bmc1_add_unsat_core   : bmc1_add_unsat_core_type override; 
     mutable bmc1_unsat_core_children : bool override; 
     mutable bmc1_unsat_core_extrapolate_axioms : bool override; 
-
+    mutable bmc1_pre_inst_next_state : bool;
+    mutable bmc1_pre_inst_reach_state : bool;
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_out_unsat_core   : bool override;
     mutable bmc1_verbose          : bool override;
@@ -782,6 +783,8 @@ let default_options () = {
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -1562,6 +1565,26 @@ let bmc1_out_stat_inf  =
     inf_pref^"output no statistics, after the last bound only or after each bound (full)\n"
 
 (*--------*)
+let bmc1_pre_inst_next_state_str = "--bmc1_pre_inst_next_state"
+
+let bmc1_pre_inst_next_state_fun b = 
+  !current_options.bmc1_pre_inst_next_state <- b
+    
+let bmc1_pre_inst_next_state_inf = 
+  bool_str^
+  inf_pref^"pre-instantiate $$nextState(x,y) -> phi(x,y) axioms"
+
+(*--------*)
+let bmc1_pre_inst_reach_state_str = "--bmc1_pre_inst_reach_state"
+
+let bmc1_pre_inst_reach_state_fun b = 
+  !current_options.bmc1_pre_inst_reach_state <- b
+    
+let bmc1_pre_inst_reach_state_inf = 
+  bool_str^
+  inf_pref^"pre-instantiate $$reachableState(X) -> X = $$constB0 \\/...\\/X=$$constBn axioms"
+
+(*--------*)
 
 let bmc1_out_unsat_core_str = "--bmc1_out_unsat_core" 
 
@@ -2305,6 +2328,14 @@ let spec_list =
     Arg.String(bmc1_out_stat_fun),
     bmc1_out_stat_inf);
 
+   (bmc1_pre_inst_next_state_str,
+    Arg.Bool(bmc1_pre_inst_next_state_fun),
+    bmc1_pre_inst_next_state_inf);
+
+   (bmc1_pre_inst_reach_state_str,
+    Arg.Bool(bmc1_pre_inst_reach_state_fun),
+    bmc1_pre_inst_reach_state_inf);
+
    (bmc1_out_unsat_core_str, 
     Arg.Bool(bmc1_out_unsat_core_fun),
     bmc1_out_unsat_core_inf);
@@ -2485,6 +2516,8 @@ let bmc1_options_str_list opt =
     (string_of_bool (val_of_override opt.bmc1_unsat_core_extrapolate_axioms)));
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
+   (bmc1_pre_inst_next_state_str, (string_of_bool opt.bmc1_pre_inst_next_state));
+   (bmc1_pre_inst_reach_state_str, (string_of_bool opt.bmc1_pre_inst_reach_state));
    (bmc1_out_unsat_core_str,
     (string_of_bool (val_of_override opt.bmc1_out_unsat_core)));
    (bmc1_verbose_str,(string_of_bool (val_of_override opt.bmc1_verbose)));
@@ -2922,6 +2955,8 @@ let option_1 () = {
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3105,6 +3140,8 @@ let option_2 () = {
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3248,6 +3285,8 @@ let option_3 () = {
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3387,6 +3426,8 @@ let option_4 () = {
   bmc1_add_unsat_core     = ValueDefault BMC1_Add_Unsat_Core_None;
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
@@ -3534,6 +3575,8 @@ let option_finite_models () = {
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3676,6 +3719,8 @@ let option_epr_non_horn () = {
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -3938,6 +3983,8 @@ let option_epr_horn () = {
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault false;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -4202,6 +4249,8 @@ let option_verification_epr ver_epr_opt =
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -4351,6 +4400,8 @@ let option_verification_epr ver_epr_opt =
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+  bmc1_pre_inst_next_state = false;
+  bmc1_pre_inst_reach_state = false;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;
@@ -4451,7 +4502,9 @@ let option_verification_epr ver_epr_opt =
   |Ver_EPR_DCU -> 
       {
 (*------------------------------------*) 
-
+(* all general options are take from  !current_options anyway since *)
+(* schedule becomes effective only during proof search not during preprocessing  *)
+(* in particular sub_typing false should be added to the input option for bmc1 *)
        out_options             = !current_options.out_options;   
        tptp_safe_out           = !current_options.tptp_safe_out;  
        
@@ -4511,6 +4564,11 @@ let option_verification_epr ver_epr_opt =
   bmc1_unsat_core_children = ValueDefault false;
   bmc1_unsat_core_extrapolate_axioms = ValueDefault true;
   bmc1_out_stat           = ValueDefault BMC1_Out_Stat_Full;
+(* these should always be assigned to the input options *)
+(* since initial partial instantiation is done based on current_options,*)
+(* before schedule options take effect *)
+  bmc1_pre_inst_next_state  = !current_options.bmc1_pre_inst_next_state;
+  bmc1_pre_inst_reach_state = !current_options.bmc1_pre_inst_reach_state;
   bmc1_out_unsat_core     = ValueDefault false;
   bmc1_verbose            = ValueDefault false;
   bmc1_dump_clauses_tptp  = ValueDefault false;

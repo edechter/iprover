@@ -19,7 +19,7 @@
 open Lib
 open Options
 open Statistics
-
+type clause = Clause.clause
 
 (* The symbol database *)
 let symbol_db  = Parser_types.symbol_db_ref
@@ -37,6 +37,12 @@ let bound_instantiate_axioms = ref []
   
 (* in state preinstantiation strategy separated next state clauses *)
 let next_state_clauses = ref []
+
+(* Skolem constants occurring in  [$$reachableState(sK)] clauses *)
+let reach_bound_skolem_constants = ref []
+
+(* clauses which contain reach_bound_skolem_constants/ used in state pre-inst *)
+let has_reach_bound_skolem_constants = ref []
 
 (********** Symbol names and name patterns **********)  
 
@@ -325,6 +331,10 @@ let create_path_axiom b =
       term_db
       (Clause.create [ path_atom_b ])
   in
+ (* Assign clause history as path axiom for bound *)
+  Clause.assign_tstp_source_axiom_bmc1 
+    (Clause.TSTP_bmc1_path_axiom b) 
+    path_axiom_b;
 
   (* Return path axiom for bound *)
   path_axiom_b
@@ -336,16 +346,10 @@ let rec create_path_axioms accum lbound = function
   (* No more axioms if state is less than lower bound *)
   | b when b <= lbound -> accum 
 
-  | b -> 
-    
+  | b ->     
     (* Create path axiom for bound *)
     let path_axiom_b = create_path_axiom b in
-
-    (* Assign clause history as path axiom for bound *)
-    Clause.assign_tstp_source_axiom_bmc1 
-      (Clause.TSTP_bmc1_path_axiom b) 
-      path_axiom_b;
-
+   
     (* Add path axioms for lesser states *)
     create_path_axioms (path_axiom_b :: accum) lbound (pred b)
 
@@ -373,8 +377,12 @@ let pre_instantiate_next_state_clause state_p state_q clause =
   let next_gr_atom = create_path_atom state_term_p state_term_q in
   let next_gr_cl =
     Clause.normalise term_db
-      (Clause.create [next_gr_atom ])
+      (Clause.create [next_gr_atom ])  
   in
+ (* Assign clause history as path axiom for bound *)
+  Clause.assign_tstp_source_axiom_bmc1 
+    (Clause.TSTP_bmc1_path_axiom state_q) 
+    next_gr_cl;
   try 
     let mgu = Unif.unify_bterms (1,next_gr_atom) (2,next_cl_atom) in
     let resolved = 
@@ -424,7 +432,12 @@ let create_reachable_state_axiom b =
       term_db
       (Clause.create [ reachable_state_atom_b ])
   in
-  
+
+  (* Assign clause history as reachable state axiom for bound *)
+  Clause.assign_tstp_source_axiom_bmc1 
+    (Clause.TSTP_bmc1_reachable_state_axiom b) 
+    reachable_state_axiom_b; 
+    
   (* Return reachable state axiom for bound *)
   reachable_state_axiom_b
   
@@ -439,11 +452,6 @@ let rec create_reachable_state_axioms accum lbound = function
 
     (* Create reachable state axiom $$reachableState(b) *)
     let reachable_state_axiom_b = create_reachable_state_axiom b in
-
-    (* Assign clause history as reachable state axiom for bound *)
-    Clause.assign_tstp_source_axiom_bmc1 
-      (Clause.TSTP_bmc1_reachable_state_axiom b) 
-      reachable_state_axiom_b; 
         
     (* Add reachable state axioms for lesser states *)
     create_reachable_state_axioms
@@ -511,7 +519,7 @@ let create_reachable_state_conj_axiom bound =
   reachable_state_conj_axiom
 
 
-(********** Reachable state axioms (last state only) **********)
+(***** Reachable state axioms (last state only) **********)
 
 
 (* Create reachable state axiom ~$$iProver_bound{b} | $$reachableState(b) *)
@@ -534,6 +542,12 @@ let create_reachable_state_on_bound_axiom b =
 	term_db
 	(Clause.create [ bound_literal; reachable_state_atom_b ])
     in
+
+(* Assign clause history as axiom *)
+    (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
+    Clause.assign_tstp_source_axiom_bmc1 
+      (Clause.TSTP_bmc1_reachable_state_on_bound_axiom b) 
+      reachable_state_axiom_b;    
     
     (* Return reachable state axiom for bound *)
     reachable_state_axiom_b
@@ -549,12 +563,6 @@ let rec create_reachable_state_on_bound_axioms accum lbound = function
 
     (* Create reachable state axiom ~$$iProver_bound{b} | $$reachableState(b) *)
     let reachable_state_axiom_b = create_reachable_state_on_bound_axiom b in
-
-    (* Assign clause history as axiom *)
-    (* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
-    Clause.assign_tstp_source_axiom_bmc1 
-      (Clause.TSTP_bmc1_reachable_state_on_bound_axiom b) 
-      reachable_state_axiom_b;
     
     (* Add reachable state axioms for lesser states *)
     create_reachable_state_on_bound_axioms
@@ -596,6 +604,12 @@ let create_only_bound_reachable_axiom b =
 	   reachable_state_x0_literal;
 	   reachable_state_literal_b ])
   in
+ 
+   
+    (* Assign clause history as axiom *)
+  Clause.assign_tstp_source_axiom_bmc1 
+    (Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
+    reachable_state_axiom_b;
   
   (* Return created clause *)
   reachable_state_axiom_b
@@ -613,17 +627,162 @@ let rec create_only_bound_reachable_axioms accum lbound = function
        ~$$iProver_bound{b} | ~$$reachableState(X0) | X0 = constB{b} *)
     let reachable_state_axiom_b = create_only_bound_reachable_axiom b in
     
-    (* Assign clause history as axiom *)
-    Clause.assign_tstp_source_axiom_bmc1 
-      (Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
-      reachable_state_axiom_b;
-    
     (* Add clauses for lesser states *)
     create_only_bound_reachable_axioms
       (reachable_state_axiom_b :: accum)
       lbound
       (pred b)
 	     
+(*------- reachable state pre-instantiation vesion -----------*)
+
+(* separte clauses containing $$reachableState *)
+(* we assume that all such occurrrences are of the form $$reachableState(sK) *)
+(* then sparate clauses containing sK constants; these will be replaced by bounds at each iteration *)
+
+exception Reach_Not_Supported
+
+(* also removes $$reachableState *)
+
+let separate_reach_constants clauses = 
+ let has_reachable_state clause = 
+    (List.exists Term.is_reachable_state_lit (Clause.get_literals clause)) in
+
+ let (reach_clauses, no_reach_cl) = List.partition has_reachable_state clauses in
+ try
+   let extract_reach_sk cl = 
+     (match (Clause.get_skolem_bound_clause cl)
+     with 
+     |Some sK -> sK 
+     |None -> raise Reach_Not_Supported
+     )
+   in
+   let reach_sk_constants = List.map extract_reach_sk reach_clauses in
+   reach_bound_skolem_constants := reach_sk_constants;
+   (reach_clauses, no_reach_cl)
+ with 
+   Reach_Not_Supported ->
+    failwith 
+       "bmc1Axioms: reachable clauses are supported only of 
+       the form $$reachableState(sK)"
+
+(*-------------------------*)
+let rec pre_inst_reachable_state_axioms accum lbound = function 
+  | b when b < lbound -> accum       
+  | b -> 
+      
+(* Create state term for state constB{b} *)
+      let state_term_b = create_state_term b in
+      
+(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+      let bound_literal = create_compl_lit (create_bound_atom b) in
+      
+      (* Create equation sK = constB{b} *)
+	  let reachable_state_literal_b sK =
+	    create_typed_equation 
+	      state_type
+	      sK
+	      state_term_b
+
+	  in
+(* Create clause [sK = constB{b}] *)
+	  let reachable_state_axiom_b sK = 
+	    let reach_ax = 
+	      Clause.normalise
+		term_db
+		(Clause.create 
+		   [bound_literal;(reachable_state_literal_b sK)])
+	    in
+	  (* Assign clause history as axiom *)
+	    Clause.assign_tstp_source_axiom_bmc1 
+	      (Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
+	      reach_ax;
+	    reach_ax
+	  in
+	  let reach_axioms = 
+	    List.fold_left 
+	      (
+	       fun rest sK -> 
+		 (reachable_state_axiom_b sK)::rest
+	      )
+	      [] !reach_bound_skolem_constants
+	  in
+	  pre_inst_reachable_state_axioms 
+	    (reach_axioms@accum) lbound  (pred b)
+  
+
+(*------this extra is not used yet---------------------*)       
+       
+let separate_reachable_state_clauses clauses = 
+  (* Clause.has_next_state is not assigned at this point so need to explicitely search for next state *)
+
+  let (_reach_clauses, no_reach_cl) = separate_reach_constants clauses in
+
+(* assume the size of reach_bound_skolem_constants is small, usually 1 *)
+  let has_bound_sk_constant_lit lit = 
+    (List.exists 
+       (fun sk -> Term.is_subterm sk lit)  !reach_bound_skolem_constants) 
+  in
+   let has_bound_sk_constant_cl cl = 
+     Clause.exists has_bound_sk_constant_lit cl 
+   in
+   let (has_bound_sk_constant, no_bound_sk_no_reach) = 
+     List.partition has_bound_sk_constant_cl no_reach_cl
+   in
+   has_reach_bound_skolem_constants:=has_bound_sk_constant;
+(* debug *)
+(*
+   out_str "\n\n----- separated has_bound_sk_constant ---------------\n";
+   out_str ((Clause.clause_list_to_tptp has_bound_sk_constant)^"\n\n");
+   out_str "\n--------------------\n";
+*)
+(* debug *)
+   no_reach_cl
+
+
+let rec pre_inst_reachable_state_clauses accum lbound = function 
+      | b when b < lbound -> accum       
+      | b -> 
+	  (* $$constBb *)
+	  let state_term_b = create_state_term b in
+
+(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+	  let bound_literal = create_compl_lit (create_bound_atom b) 
+	  in
+	  let pre_inst_reachable_cl cl sk_term = 
+	    let repl_cl = 
+	      Clause.replace_subterm term_db ~subterm:sk_term ~byterm:state_term_b cl
+	    in
+	    let pre_inst_cl = 
+	      Clause.normalise
+		term_db
+		(Clause.create (bound_literal::(Clause.get_literals repl_cl))) 
+	    in
+	    Clause.assign_tstp_source_axiom_bmc1 
+	      (Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
+	      pre_inst_cl;
+	    pre_inst_cl
+	  in
+	  let pre_inst_all_sk_consts_cl cl = 	    
+	    List.fold_left 
+	      (fun rest sk ->
+		(
+		 (pre_inst_reachable_cl cl sk)::rest
+		)
+	      )
+	      [] !reach_bound_skolem_constants 
+	  in
+	  let pre_instantiated_all_cl = 
+	    List.fold_left 
+	    (fun rest cl  ->
+	      (
+	       (pre_inst_all_sk_consts_cl cl)@rest
+	      )
+	    )
+		[] !has_reach_bound_skolem_constants
+	  in	  
+	  pre_inst_reachable_state_clauses (pre_instantiated_all_cl@accum) lbound  (pred b)
+
+
 
 (********** Clock pattern **********)
 
@@ -1190,20 +1349,41 @@ let get_bound_assumptions bound =
   (* Return unit clause containing positive bound atom *)
   [ Clause.normalise term_db (Clause.create [ bound_literal ]) ]
     
-(* change to an option *)
-let pre_instantiate_next_state_flag = true
 
-let _= out_str "\n!!!pre_instantiate_next_state_flag add to options!!!\n"
+(* reachable state pre-instantiation *)
 
-(* Axioms for bound 0 *)
+(* First version (currently implemented) *)
+(* replace *)
+(*  $$reachableState(sK)                                             *)
+(* ~$$reachableState(X) -> X = $$constB0 \/..\/X = $$constBn         *)
+(* by  replace sK = $$constB0 \/..\/ sK = $$constBn                  *)
+
+(*Second version (not fully implemented)*)
+
+(* 1) find clauses of the type [$$reachbleState(sK)], *)
+(*    and collect all such sK constants (usually 1)  *)
+(* 2) separate all clauses containing these sK constants *)
+(* 3) with each bound replace sK in 2) with the bound term and add to the clauses set *)
+(* !!! reachable state pre-instantiation  
+      Does not work at the moment because transitional addresses can occur in 
+   2) then they are not unrolled since the clauses are separated  *)
+
+
+
+(*let _= out_str "\n!!! Warning: pre_instantiate_next_state_flag add to options!!!\n"*)
+
+
+(*-----------------------------------------*)
+          (* Axioms for bound 0 *)
+(*-----------------------------------------*)
 let init_bound all_clauses = 
 
   (* Separate axioms to be instantiated for each bound *)
   let bound_instantiate_axioms_of_clauses, clauses' = 
     separate_bound_axioms all_clauses 
   in
-  let clauses = 
-    if pre_instantiate_next_state_flag 
+  let clauses'' = 
+    if !current_options.bmc1_pre_inst_next_state
     then 
      (let cl_next_state,cl_rest = separate_next_state_clauses clauses' in
      next_state_clauses:=cl_next_state;
@@ -1212,16 +1392,45 @@ let init_bound all_clauses =
     else
       clauses'
   in
+  let clauses = 
+    if !current_options.bmc1_pre_inst_reach_state 
+    then
+     let (reach,no_reach) =  separate_reach_constants clauses'' 
+     in
+(*
+	out_str "\n\n----- Reach clauses  ---------------\n";
+	out_str ((Clause.clause_list_to_tptp reach)^"\n\n");
+	out_str "\n--------------------\n";
+*)
+     no_reach
+(*      separate_reachable_state_clauses clauses'' *)
+    else
+      clauses''
+  in
   (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
-    
-    match val_of_override !current_options.bmc1_axioms with 
+    if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
+    then
+      begin
+	let reach_axs = pre_inst_reachable_state_axioms [] 0 0 in
+(*	pre_inst_reachable_state_clauses [] 0 0 *)
+(*
+	out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
+	out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
+	out_str "\n--------------------\n";
+*)  
+	reach_axs
+    end
 
-      (* All states are reachable *)
+    else 
+      begin
+	match val_of_override !current_options.bmc1_axioms with 
+	  
+	  (* All states are reachable *)
       | BMC1_Axioms_Reachable_All -> 
-
-	(* Axiom for conjunction of reachable states *)
-	(create_reachable_state_conj_axiom 0) :: 
+	  
+	  (* Axiom for conjunction of reachable states *)
+	  (create_reachable_state_conj_axiom 0) :: 
 	  
 	  (* Axioms for individual reachable states *)
 	  (create_reachable_state_axioms 
@@ -1229,17 +1438,17 @@ let init_bound all_clauses =
 	     0
 	     0)
 
-      (* Only last state is reachable *)
+	    (* Only last state is reachable *)
       | BMC1_Axioms_Reachable_Last -> 
 
 	(* Only final state is reachable in each bound *)
-	(create_reachable_state_on_bound_axioms [] 0 0) @
-
+	  (create_reachable_state_on_bound_axioms [] 0 0) @
+	  
 	  (* Final state is reachable in next bound *)
 	  (create_only_bound_reachable_axioms [] 0 0)
-
+      end
   in
-
+  
   (* Create clock axiom *)
   let clock_axioms =
     create_all_clock_axioms_for_states 
@@ -1291,8 +1500,9 @@ let init_bound all_clauses =
   (* Return created axioms for bound *)
   bound_axioms, clauses
 
-
+(*-------------------------------------------------*)
 (* Increment bound from given bound *)
+(*-------------------------------------------------*)
 let increment_bound cur_bound next_bound simulate =
 
 (*currently only next_bound should be cur_bound + 1 *)
@@ -1312,7 +1522,7 @@ let increment_bound cur_bound next_bound simulate =
   (* Create path axioms for all states between next bound and current
      bound *)
   let path_axioms =
-  if pre_instantiate_next_state_flag
+  if !current_options.bmc1_pre_inst_next_state 
   then
     pre_instantiate_all_next_state_clauses cur_bound next_bound 
   else
@@ -1321,7 +1531,20 @@ let increment_bound cur_bound next_bound simulate =
 
   (* Create reachable states axiom for next bound *)
   let reachable_state_axioms = 
-    
+    if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
+    then
+      begin
+	let reach_axs = pre_inst_reachable_state_axioms []  (succ cur_bound) next_bound in
+(*
+	out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
+	out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
+	out_str "\n--------------------\n";
+*)
+	reach_axs
+(*	pre_inst_reachable_state_clauses []  (succ cur_bound) next_bound*)
+      end
+    else 
+      begin
     match val_of_override !current_options.bmc1_axioms with 
 
       (* All states are reachable *)
@@ -1350,7 +1573,7 @@ let increment_bound cur_bound next_bound simulate =
 	     [] 
 	     (succ cur_bound)
 	     next_bound)
-
+      end
   in
   
   (* Create clock axioms up to next bound *)

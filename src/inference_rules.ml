@@ -65,6 +65,9 @@ let strict_subset_subsume by_clause to_clause =
 
 exception Main_subsumed_by of clause
 
+(* resolution, factoring can raise  Unif.Unification_failed *)
+(* resolution can raise Main_subsumed_by*)
+
 (* literals l1 l2 are in c1 and c2 *)
 let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref = 
 (*  let compl_l1 = Term.compl_lit l1 in*)
@@ -105,8 +108,9 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
   List.fold_left f [] c_list2     
 
 
-(* --------As resolution only in the conclusion we put only clauses which subsume*)
-(* -----side clauses ---------*)
+(* the result of subs_resolution is the list of resolvents subsuming 
+  one of the side premises; subsumed side premises are assigned Clause.is_dead *)
+
 let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref = 
 (*  let compl_l1 = Term.compl_lit l1 in*)
   let mgu = Unif.unify_bterms (1,compl_l1) (2,l2) in
@@ -193,6 +197,7 @@ let factoring c l1 l2 term_db_ref =
 
 *)
 
+(*--------------------------Instantiation-------------------------*)
 
 (*----------VERSION WITHOUT DISM VEC INDEX ---------*)
 (*--new version: constr checked on normalized substitutions****)

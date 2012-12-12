@@ -15,9 +15,6 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
-
-
-
 open Lib
 open Options
 open Statistics
@@ -105,6 +102,8 @@ let set_time_out () =
       else () (* if negative then unlimited *)
   )
     
+
+
 
 (*---------------Probelm Properties---------------------*)
 
@@ -771,7 +770,6 @@ let omit_eq_axioms () =
 	    Clause.has_eq_lit !Parser_types.neg_conjectures))&&
     (not !current_options.sat_mode) 
     
-
     
 let schedule_to_many_axioms_schedule schedule = 
   if (is_large_theory ())
@@ -1195,6 +1193,14 @@ let satisfiable_str () =
 
 let unknown_str  ()   = szs_pref^"Unknown\n"
 
+let out_bmc1_unsat_result bmc1_cur_bound =
+  Format.printf 
+    "@\n%s BMC1 bound %d %s after %.3fs@\n@."
+    pref_str
+    bmc1_cur_bound
+    ("UNSAT")
+    (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time))
+
 (* these clauses are used for *)
 (*let clauses_for_sat_ref = ref [] *)
 
@@ -1368,13 +1374,8 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 	  out_str (proved_str ());
 	  
 	  (* Output status for current bound *)
-	  Format.printf 
-	    "@\n%s BMC1 bound %d %s after %.3fs@\n@."
-	    pref_str
-	    !bmc1_cur_bound
-	    ("UNSAT")
-	    (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time));
-	  
+
+	 out_bmc1_unsat_result !bmc1_cur_bound;
 	  (* Assign last solved bound in statistics *)
 	  assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
 	  
@@ -2181,6 +2182,17 @@ let run_iprover () =
 	      (* Clauses are input clauses *)
 	    assign_is_essential_input_symb bmc1_axioms';
 	    
+(* DEBUG *)
+(*	    
+	    out_str "\n-----------BMC1 init axioms:---------\n";
+	    out_str ((Clause.clause_list_to_tptp bmc1_axioms')^"\n\n");
+	    out_str "\n--------------------\n";
+            out_str "\n-----------BMC1 init clauses:---------\n";
+	    out_str ((Clause.clause_list_to_tptp current_clauses')^"\n\n");
+	    out_str "\n--------------------\n";          
+*)
+(* DEBUG *)
+
 	      (* Add clauses for initial bound *)
 	    current_clauses := 
 	      bmc1_axioms' @ current_clauses'
@@ -2234,10 +2246,25 @@ let run_iprover () =
    (* debug! *)
 
 (* sub_type_inf should be before adding eq axioms*)
-	(if !current_options.sub_typing 
-	then
-	  (current_clauses := Type_inf.sub_type_inf !current_clauses;)
-	else ());
+
+(* sub_typing  *)
+(* sub_typing swtich inside the schedule options does not get effect until proving *)
+      let sub_type_is_on () = 
+	!current_options.sub_typing
+	  &&
+	(match !current_options.schedule with 
+	|Schedule_verification_epr
+	|Schedule_verification_epr_tables
+	  -> false
+	|_-> true
+	)
+      in 
+	      
+      (if (sub_type_is_on ()) 
+      then
+	((*out_str "\n\n Subtypng\n\n";*)
+	 current_clauses := Type_inf.sub_type_inf !current_clauses;)
+      else ());
 
 	let current_clauses_no_eq = ref (!current_clauses) in 
 
@@ -2403,16 +2430,16 @@ let run_iprover () =
   out_str ("\n"^(problem_props_to_string !input_problem_props)^"\n");      
 	
   (*debug *)
-(*	  
+	(*
 	    out_str "\n\n Clauses before proving\n\n";
 	    out_str (Clause.clause_list_to_tptp !current_clauses);
-*)	  
+         *)
 
 
 
 
-	  (*-------------------------------------------------*)
-  out_str (pref_str^"Proving...\n");
+      (*-------------------------------------------------*)
+            out_str (pref_str^"Proving...\n");
       (*-------------------------------------------------*)
   
       (*	(if !current_options.instantiation_flag then *)
@@ -2512,6 +2539,8 @@ let run_iprover () =
 	  
 	  (
 
+	   out_bmc1_unsat_result !bmc1_cur_bound;       
+	
 	    Format.printf 
 	      "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
 	      pref_str
@@ -2529,49 +2558,33 @@ let run_iprover () =
 	      (* Next bound *)
 	      let next_bound = succ !bmc1_cur_bound in
 
+(*
 	      (* Output current bound *)
 	      Format.printf 
 		"@.@\n%s BMC1 bound %d UNSAT@\n@."
 		pref_str
 		!bmc1_cur_bound;
-	      
+*)
+	      out_bmc1_unsat_result !bmc1_cur_bound;       
+	
 	      (* Output unsatisfiable result *)
 	      out_str (proved_str ());
 	    
 	      (* Assign last solved bound in statistics *)
 	      assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
 	    
-	      (
-	      
-		(* When to output statistics? *)
-		match val_of_override !current_options.bmc1_out_stat with
-		  
-		  (* Output statistics after each bound *)
-		  | BMC1_Out_Stat_Full -> out_stat ()
-
-		  (* Output statistics after last bound *)
-		  | BMC1_Out_Stat_Last 
-		      when next_bound > max_bound -> out_stat ()
-
-		  (* Do not output statistics for bounds before last *)
-		  | BMC1_Out_Stat_Last -> ()
-
-		  (* Never output statistics *)
-		  | BMC1_Out_Stat_None -> ()
-
-	      );
+	 
 	      if 
-	      
+		
 		(* Next bound less than or equal maximal bound? *)
 		next_bound <= max_bound &&
 		
-		  (* No maximal bound for -1 *)
-		  max_bound >= 0 
+		(* No maximal bound for -1 *)
+		max_bound >= 0 
 		
 	      then
-	 
+		
 		(
-
 		  (* Increment bound *)
 		  bmc1_cur_bound := next_bound;
 		
@@ -2586,8 +2599,28 @@ let run_iprover () =
 	    bmc1_cur_bound := succ !bmc1_cur_bound;
 		
 	    (* Output results for all bounds up to maximum *)
-	    skip_all_bounds ()
+	    skip_all_bounds ();
 	    
+	      (	      
+		(* When to output statistics? *)
+		match val_of_override !current_options.bmc1_out_stat with
+		  
+		  (* Output statistics after each bound *)
+		  | BMC1_Out_Stat_Full -> out_stat ()
+
+		  (* Output statistics after last bound *)
+		  | BMC1_Out_Stat_Last 
+		     (* when next_bound > max_bound*) -> out_stat ()
+
+		  (* Do not output statistics for bounds before last *)
+(*		  | BMC1_Out_Stat_Last -> ()*)
+
+		  (* Never output statistics *)
+		  | BMC1_Out_Stat_None -> ()
+
+
+		     );
+
 	  );
      end;
 

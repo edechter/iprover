@@ -497,7 +497,7 @@ let sub_type_inf clause_list =
 	       clause::rest 
 	     else
 	       (
-		let new_clause = Clause.create new_lits in
+       		let new_clause = Clause.create new_lits in
 		Clause.inherit_param_modif clause new_clause;	     
 		Clause.assign_tstp_source_subtyping new_clause clause;
 		Prop_solver_exchange.add_clause_to_solver new_clause;

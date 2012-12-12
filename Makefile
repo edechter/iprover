@@ -249,7 +249,7 @@ docs: $(INTERFACE)
 	ocamldoc -dot -I obj/ -I util/lib -d docs $(BASE_NAMES_WITHOUT_LEXER:%=src/%.mli) $(BASE_NAMES_WITHOUT_LEXER:%=src/%.ml) src/$(IPROVER_BASE_NAME).ml
 
 clean: clean-util
-	rm -f $(IPROVER_NAME) $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp $(LEXER:%=src/%.ml) src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o
+	rm -f $(IPROVER_NAME) $(IPROVER_NAME)_picosat $(IPROVER_NAME)_lgl $(IPROVER_NAME)_cpp $(IPROVER_BASE_NAME)prof $(IPROVER_NAME)_cpp $(LEXER:%=src/%.ml) src/$(PARSER).ml src/$(PARSER).mli obj/*.cmo obj/*.cmx obj/*.cmi obj/*.o
 
 clean-util:
 	cd util && $(MAKE) -f Makefile clean
@@ -259,7 +259,7 @@ clean_all: clean
 	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi; if [ -d $(VCLAUSIFIER_PATH) ]; then cd $(VCLAUSIFIER_PATH); make clean; rm -f vclausify_rel; cd ../; fi
 
 
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./LICSNSE_PicoSAT ./COPYING_Lingeling ./LICENSE_MiniSAT  ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB.batch ./README.CASC-J6
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./LICENSE_PicoSAT ./COPYING_Lingeling ./LICENSE_MiniSAT  ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB.batch ./README.CASC-J6
 
 ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/iprover_sine_turing.sh ./LTB/iprover_sine_reduced_cores.sh ./LTB/create_ltb_batch.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c ./LTB/MZR.header ./LTB/MZR_turing.header ./LTB/SMO.header ./LTB/ISA.header ./LTB/MZR_bushy_rand_100.list ./LTB/MZR_chainy_rand_100.list ./LTB/SMO_2011.list ./LTB/ISA_2011.list ./LTB/MZR_bushy.list ./LTB/MZR_chainy.list
 

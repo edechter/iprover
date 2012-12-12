@@ -210,7 +210,8 @@ type options = {
     mutable bmc1_add_unsat_core   : bmc1_add_unsat_core_type override; 
     mutable bmc1_unsat_core_children : bool override; 
     mutable bmc1_unsat_core_extrapolate_axioms : bool override; 
-
+    mutable bmc1_pre_inst_next_state  : bool;
+    mutable bmc1_pre_inst_reach_state : bool;            
     mutable bmc1_out_stat         : bmc1_out_stat_type override;
     mutable bmc1_out_unsat_core   : bool override;
     mutable bmc1_verbose          : bool override;
