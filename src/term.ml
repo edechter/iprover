@@ -498,7 +498,7 @@ let get_grounding term =
 let assign_num_of_symb term = 
   match term with 
   |Fun(_,args,fun_info) ->
-      (*out_str("Num Symb: "^(string_of_int ((get_num_of_symb_term_list args)+1))^"\n");*)
+      (* out_str("Num Symb: "^(string_of_int ((get_num_of_symb_term_list args)+1))^"\n"); *)
       fun_info.num_of_symb <- Def((get_num_of_symb_term_list args)+1)
   |_-> ()
 
@@ -823,6 +823,12 @@ let rec replace ~subterm ~byterm t =
     else xt 
   in
   map f t
+
+
+
+(* if the type of the term is the same as type of the argument then replace it *)
+let inst_all_vars_by_term_typed 
+
 (*
   map (subterm == t)
 
@@ -839,7 +845,9 @@ let rec replace ~subterm ~byterm t =
       |v -> v
     end
 *)
+
 (*-----------------complementary literal ---------------*)
+
 let compl_lit literal = 
   match literal with 
   | Fun(sym,args,_) -> 
@@ -852,9 +860,7 @@ let is_neg_lit lit =
   match lit with 
   | Fun(s,_,_) -> (s == Symbol.symb_neg)
   |_-> false
-
  
-
 let is_complementary l1 l2 =
   match l1 with 
   | Fun(sym1,args1,_) -> 
@@ -920,9 +926,6 @@ let rec  compare_key  (t1:term)(t2:term)  =
 let  compare_fast_key (t1:term)(t2:term) = 
  (compare (get_fast_key t1) (get_fast_key t2)) 
  
-
-
-
     
 let compare = compare_fast_key
 
