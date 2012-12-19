@@ -2453,4 +2453,3 @@ let to_string clause =
   ^"-num of sym-"^(string_of_int (get_num_of_sym clause))
 *)
     
-    

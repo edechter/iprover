@@ -796,13 +796,15 @@ let is_subterm s t =
     (fun v t -> (v || t == s)) false t
 
 
+
+
 (* fold_sym folds f for all symbols in the term *)
 let rec fold_sym f a term = 
   match term with 
   |Fun(sym,args,_) ->
       List.fold_left (fold_sym f) (f a sym) args 
   |_-> a 
-
+	
 let rec iter_sym f term = 
   match term with 
   |Fun(sym,args,_) ->
@@ -810,12 +812,13 @@ let rec iter_sym f term =
        List.iter (iter_sym f) args
       )
   |_-> ()
+	
 
-
+	
 (* replace all occurrences of subterm by byterm in t *)
 (* we assume that t, p, and q are in the term db and therefore we are using == *)
 (* the resulting term will need to be  added in term db separately *)
-
+	
 let rec replace ~subterm ~byterm t =
   let f xt = 
     if xt == subterm 
@@ -823,11 +826,12 @@ let rec replace ~subterm ~byterm t =
     else xt 
   in
   map f t
-
+    
 
 
 (* if the type of the term is the same as type of the argument then replace it *)
-let inst_all_vars_by_term_typed 
+
+(*let inst_all_vars_by_term_typed *)
 
 (*
   map (subterm == t)
@@ -846,6 +850,7 @@ let inst_all_vars_by_term_typed
     end
 *)
 
+
 (*-----------------complementary literal ---------------*)
 
 let compl_lit literal = 
@@ -855,7 +860,7 @@ let compl_lit literal =
       then List.hd args 
       else create_fun_term Symbol.symb_neg [literal]
   |_-> failwith "term: compl_lit it is not a literal" 
-
+	
 let is_neg_lit lit = 
   match lit with 
   | Fun(s,_,_) -> (s == Symbol.symb_neg)
