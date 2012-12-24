@@ -428,10 +428,10 @@ val normalise :  term_db ref -> clause -> clause
 type b_litlist = literal_list Lib.bind
 
 val normalise_b_litlist : 
-    term_db ref -> bound_subst -> b_litlist -> clause 
+    term_db ref -> bound_subst -> b_litlist -> literal_list 
 
 val normalise_blitlist_list :
-    term_db ref -> bound_subst -> (b_litlist list) -> clause 
+    term_db ref -> bound_subst -> (b_litlist list) -> literal_list 
 
  
 

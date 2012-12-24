@@ -1153,14 +1153,15 @@ let term_var var = TermDB.add_ref (Term.create_var_term var) term_db_ref
 
 	
 let bot_to_var term =
-  let x0 =  term_var (Var.get_first_var ()) in
   let rec f t = 
     match t with 
     |Term.Fun(symb,args,_) ->
-	if (symb == Symbol.symb_bot) 
-	then 
-	  x0
-	else
+			let symb_type = Symbol.get_val_type_def symb in
+	    if (symb == Symbol.symb_bot) 
+	    then 
+				(* replace bot by fist var of bot type *)
+	     term_var (Var.get_first_var symb_type)
+	   else
 	  (let new_args = Term.arg_map f args in
 	  add_fun_term symb (Term.arg_to_list new_args)
 	  )

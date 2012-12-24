@@ -33,7 +33,7 @@ let get_hash term =
 	Term.arg_fold_left 
 	  (fun rest term -> hash_sum rest (Term.get_fast_key term)) 0 args
       in hash_sum arg_hash (Symbol.get_fast_key symb)
-  | Term.Var(var,_) -> Var.index var
+  | Term.Var(var,_) -> Var.hash var
 	
 	
 module  TermKey = 

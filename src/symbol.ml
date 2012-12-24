@@ -298,6 +298,7 @@ let create_less_symb (stype:stype) i    =
 
 
 (* type for all types *)
+(* variables of this type unifiable with any other type *)
 let symb_type_types = 
   {empty_symb  with
    name          = "$tType"; 
@@ -970,7 +971,7 @@ let is_a_bitvec_pred_symb symb =
 
 (*-----------------------------------------------------*)
 
-module SymbKey = 
+module Key = 
   struct
     type t      = symbol
     let equal   = (==)  
@@ -978,13 +979,14 @@ module SymbKey =
     let compare = compare_fast_key
   end
 
-module Map = Map.Make(SymbKey)
-(*module type TMap = SMap*)
+module Map = Map.Make(Key)
     
+module Set = Set.Make(Key)
 
-module SymSet = Set.Make(SymbKey)
+module Hashtbl = Hashtbl.Make(Key)
 
-type sym_set = SymSet.t
+
+type sym_set = Set.t
 
 (*-----------------------------------*)
 let to_stream stream s = 

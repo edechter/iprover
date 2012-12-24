@@ -1,20 +1,3 @@
-(*----------------------------------------------------------------------(C)-*)
-(* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
-   This file is part of iProver - a theorem prover for first-order logic.
-
-   iProver is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-   iProver is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-   See the GNU General Public License for more details.
-   You should have received a copy of the GNU General Public License
-   along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
-(*----------------------------------------------------------------------[C]-*)
-
-
 exception Parsing_fails
 exception FOF_format
 exception TFF_format
@@ -24,8 +7,8 @@ type term = Term.term
 type clause = Clause.clause
 module SymbMap :
   sig
-    type key = Symbol.SymbKey.t
-    type 'a t = 'a Map.Make(Symbol.SymbKey).t
+    type key = Symbol.Key.t
+    type 'a t = 'a Map.Make(Symbol.Key).t
     val empty : 'a t
     val is_empty : 'a t -> bool
     val add : key -> 'a -> 'a t -> 'a t
@@ -66,6 +49,7 @@ val is_less_symb : SymbMap.key -> bool
 val is_range_symb : SymbMap.key -> bool
 val is_clock_symb : SymbMap.key -> bool
 val is_less_or_range_symb : SymbMap.key -> bool
+val default_var_type : Symbol.symbol
 val max_var_ref : var ref
 val var_table_ref : (string, var) Hashtbl.t ref
 val init : unit -> unit
@@ -77,14 +61,18 @@ val comment_E_prover_fun : 'a -> unit
 val annotation_fun : 'a -> unit
 val contains_distinct : bool ref
 val analyse_distinct : Term.term list -> unit
-val cnf_formula_fun : string -> string -> Clause.literal_list -> 'b -> unit
+val retype_var_term : Var.symbol -> Term.term -> Term.term
+val retype_var_term_list :
+  Var.symbol list -> Term.term list -> Term.term list
+val cnf_formula_fun : string -> string -> Clause.literal_list -> 'a -> unit
 val is_false_lit : Term.literal -> bool
 val disjunction_fun : Term.literal list -> Term.literal -> Term.literal list
 val equality_fun : TermDB.term list -> TermDB.term
 val inequality_fun : TermDB.term list -> TermDB.term
 val neg_fun : Term.term -> TermDB.term
-val assign_param_input_symb : SymbMap.key -> unit
+val assign_param_input_symb : Symbol.symbol -> unit
 val plain_term_fun : string -> Symbol.stype -> Term.term list -> Term.term
+val overriding_arities_warning_was_shown_ref : bool ref
 val plain_term_fun_typed :
   is_top:bool -> string -> Term.term list -> Term.term
 val defined_term_fun : string -> Term.term list -> TermDB.term

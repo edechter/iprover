@@ -448,7 +448,11 @@ let get_num_of_var_term_list term_list =
   let f rest term = rest + (get_num_of_var term) in
   List.fold_left f 0 term_list
 
-
+let get_term_type t = 
+	match t with 
+	|Fun(symb,_args,_inf) -> Symbol.get_val_type_def symb
+	|Var(v,_) ->	Var.get_type v
+		
 (* 
 let get_has_conj_symb_term_list term_list =  
   List.exists has_conj_symb_fun term_list
@@ -1158,6 +1162,26 @@ let is_addr_const t =
       (Symbol.is_address_const_symb symb)
   |_-> false
 
+
+
+(*----------------------*)
+
+
+module Key = 
+  struct
+    type t      = term
+    let equal   = (==)  
+    let hash    = get_fast_key 
+    let compare = compare_fast_key
+  end
+
+module Map = Map.Make(Key)
+    
+module Set = Set.Make(Key)
+
+module Hashtbl = Hashtbl.Make(Key)
+
+type term_set = Set.t
 
 (* use prop_key!
 exception Term_porpos_id_not_positive 

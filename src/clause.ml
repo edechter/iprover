@@ -32,7 +32,7 @@ type symbol       = Symbol.symbol
 (*type dismatching = Dismatching.constr_list_feature *)
 type dismatching = Dismatching.constr_set
 
-module SymSet = Symbol.SymSet
+module SymSet = Symbol.Set
 type sym_set = Symbol.sym_set
 
 type literal   = Term.literal
@@ -1655,6 +1655,7 @@ let rec normalise_term_var' var_table (max_var_ref : var ref) term =
 	  Term.create_var_term old_max_var
 
 
+(*
 let normalise_lit_list term_db_ref lit_list = 
   let sorted_list = List.sort term_compare lit_list in
   let var_ref = ref (Var.get_first_var ()) in
@@ -1667,7 +1668,7 @@ let normalise_lit_list term_db_ref lit_list =
       sorted_list in
   let removed_duplicates = list_remove_duplicates new_list in
   removed_duplicates
-
+*)
 
 
 (* works but slow*)
@@ -1718,11 +1719,12 @@ let normalise_lit_list term_db_ref lit_list =
 
 *)
 
+(*
 let normalise term_db_ref clause  = 
   create (normalise_lit_list term_db_ref clause.literals)
-
+*)
     
-    
+   (* 
     
 type bvar_list = bound_var list
 type bvar_eq = bound_var * var 
@@ -1732,6 +1734,7 @@ type bvar_eq_list = bvar_eq list
    from bvar (-- the leafs of the subst.) to new_vars; 
  max_var is the maximal used variable*)
       
+	(* futuer: reoreder lits: max num of vars first, then system preds ?*)		
 let rec rename_bterm_var'  (renaming_ref : bvar_eq_list ref)
     (mapped_bvars_ref : bvar_list ref)
     (max_var_ref : var ref) bsubst bterm =
@@ -1808,9 +1811,9 @@ let rec apply_sub_and_normalise_var'  bound_term_list  term_db =
 let normalise_bterm_list term_db_ref bsubst bterm_list   =
   let bterm_compare bt bs = bterm_subst_compare bt bs  bsubst in
   let sorted_list = List.sort bterm_compare bterm_list in
-  let start_var_ref    = ref (Var.get_first_var ()) and
-      renaming_ref     = ref [] and	
-      mapped_bvars_ref = ref [] in
+	 let start_var_ref    = ref (Var.get_first_var ()) and
+      renaming_ref      = ref [] and	
+      mapped_bvars_ref  = ref [] in
   let rename_bterm_var bterm = 
     rename_bterm_var' renaming_ref mapped_bvars_ref start_var_ref bsubst bterm in
 (*change to iter*)
@@ -1818,10 +1821,19 @@ let normalise_bterm_list term_db_ref bsubst bterm_list   =
   let add_bterm_to_db' bterm'  =  
     add_bterm_to_db term_db_ref !renaming_ref bsubst bterm' in
     list_map_left add_bterm_to_db' sorted_list  
+*)
 
-
-(* normilse v1 is with reordering for better renaming of vars, *)
-(* normalise v2 is simply removes duplicate lits  *)
+let normalise_bterm_list term_db_ref bsubst bterm_list   =
+	let bterm_compare bt bs = bterm_subst_compare bt bs  bsubst in
+  let sorted_list = List.sort bterm_compare bterm_list in
+	let renaming_env = SubstBound.init_renaming_env term_db_ref in
+  let rename_bterm_var rest bterm = 
+		(SubstBound.apply_bsubst_bterm' renaming_env bsubst bterm)::rest in
+	let rev_new_term_list = List.fold_left rename_bterm_var [] sorted_list in
+  List.rev rev_new_term_list
+	
+(* normilse v1 with reordering for better renaming of vars, *)
+(* normalise v2  simply removes duplicate lits  *)
 
 
 let normalise_b_litlist_v1  term_db_ref bsubst b_litlist = 
@@ -1830,7 +1842,8 @@ let normalise_b_litlist_v1  term_db_ref bsubst b_litlist =
   (* removes duplicates fast but not perfect based on the fact 
      that literals are    preordered*)
   let removed_duplicates = list_remove_duplicates new_lit_list in
-  create removed_duplicates
+ (* create removed_duplicates*)
+   removed_duplicates
 
 (* blitlist_list -- list of bound list of literals e.g. [(1,[l1;l2]);(2,[l2])]*)    
 let normalise_blitlist_list_v1 term_db_ref bsubst blitlist_list   = 
@@ -1841,7 +1854,8 @@ let normalise_blitlist_list_v1 term_db_ref bsubst blitlist_list   =
  (* removes duplicates fast but not perfect based on the fact 
      that literals are    preordered*)
   let removed_duplicates = list_remove_duplicates new_lit_list in
-  create removed_duplicates
+ (* create removed_duplicates *)
+  removed_duplicates
 
 (* complicated version *)
 let normalise_bclause_v1  term_db_ref bsubst (b,clause)   =
@@ -1864,7 +1878,9 @@ let normalise_b_litlist_v2' term_db_ref bsubst blit_list =
   list_remove_duplicates (SubstBound.apply_bsubst_btlist term_db_ref bsubst blits)
     
 let normalise_b_litlist_v2 term_db_ref bsubst blit_list  = 
-  create (normalise_b_litlist_v2' term_db_ref bsubst blit_list)
+ (* create (normalise_b_litlist_v2' term_db_ref bsubst blit_list)*)
+   (normalise_b_litlist_v2' term_db_ref bsubst blit_list)
+
   
 
 (* blitlist_list -- list of bound list of literals e.g. [(1,[l1;l2]);(2,[l2])]*)    
@@ -1894,7 +1910,8 @@ let normalise_bclause  term_db_ref bsubst bclause =
   let bterm_list = propagate_binding_to_list (b_c,clause.literals) in 
   let new_term_list = normalise_bterm_list term_db_ref bsubst bterm_list in
   create new_term_list
-    
+
+		    
 let normalise_bclause_list term_db_ref bsubst bclause_list = 
   let bterm_list_list =  
     List.map  
@@ -1905,6 +1922,15 @@ let normalise_bclause_list term_db_ref bsubst bclause_list =
   create new_term_list
 
 
+	(* for uniformity ise normalise_bclause with empty substitution *)
+
+let normalise_lit_list term_db_ref lit_list = 
+	 normalise_blitlist_list term_db_ref (SubstBound.create ()) [(1,lit_list)] 
+ 	
+
+let normalise term_db_ref clause  = 
+ normalise_bclause term_db_ref (SubstBound.create ()) (1,clause)
+	
 
 (*----Orphan Search Not Finished--------------*)
 

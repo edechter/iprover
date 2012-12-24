@@ -79,8 +79,9 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
     check_disc_time_limit ();
     let new_litlist2 = 
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
-    let conclusion = Clause.normalise_blitlist_list 
-	term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)] in
+    let conclusion = 
+		Clause.create (Clause.normalise_blitlist_list 
+	      term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)]) in
     (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
     Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
     Clause.assign_when_born [c1] [c2] conclusion;
@@ -120,8 +121,11 @@ let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
   let f rest c2 = 
     let new_litlist2 = 
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
-    let conclusion = Clause.normalise_blitlist_list 
-	term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)] in
+    let conclusion = 
+			Clause.create 
+			 (Clause.normalise_blitlist_list 
+	     term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)])
+		in
     (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
     Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
     Clause.assign_when_born [c1] [c2] conclusion;
@@ -170,7 +174,7 @@ let factoring c l1 l2 term_db_ref =
     let new_litlist = 
       Clause.find_all (fun lit -> not(l1 == lit)) c
     in 
-    let conclusion = Clause.normalise_b_litlist term_db_ref mgu (1,new_litlist) in
+    let conclusion = Clause.create ( Clause.normalise_b_litlist term_db_ref mgu (1,new_litlist)	) in
     Clause.inherit_conj_dist c conclusion;
     Clause.assign_when_born [c] [] conclusion;
     (* Clause.assign_factoring_history conclusion c [l1;l2]; *)
@@ -716,8 +720,10 @@ let resolution_dismatch
 	  begin
 	    let new_litlist2 = 
 	      Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
-	    let conclusion = Clause.normalise_blitlist_list 
-		term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)] in
+	    let conclusion = 
+				Clause.create ( Clause.normalise_blitlist_list 
+		    term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)])
+		 in
 	    (if forward_subs_resolution_flag 
 	    then
 	      if (strict_subset_subsume conclusion c1)

@@ -23,6 +23,8 @@ type var = Var.var
 type bound_var = Var.bound_var
 module SMap = Symbol.Map
 module VBMap = Var.BMap
+type symbol      = Symbol.symbol
+
 
 (* type assignment = var*term *)
 exception Subst_bound_var_already_def
@@ -100,32 +102,22 @@ type term_db_ref = TermDB.termDB ref
 type renaming_env =
 	{
 		(* map from types to next un-used variable of this type *)
-		mutable ren_max_used_vars : (var SMap.t);
-		(* map from bvars -> term *)
+		mutable ren_max_used_vars : Var.fresh_vars_env;
+		(* map from bvars -> var terms *)
 		mutable ren_map : (term VBMap.t);
 		mutable ren_term_db_ref : TermDB.termDB ref;
 	}
 
 let init_renaming_env term_db_ref =
 	{
-		ren_max_used_vars = SMap.empty;
+		ren_max_used_vars = Var.init_fresh_vars_env ();
 		ren_map = VBMap.empty;
 		ren_term_db_ref = term_db_ref
 	}
 
 (* changes ren_env adding next_unused var to used *)
-let get_next_unused_var ren_env vtype =
-	let next_unused_var =
-		try
-			let max_used_var = SMap.find vtype ren_env.ren_max_used_vars in
-			Var.get_next_var max_used_var
-		with
-		| Not_found ->
-				Var.get_first_var vtype
-	in
-	ren_env.ren_max_used_vars <- SMap.add vtype next_unused_var ren_env.ren_max_used_vars;
-	next_unused_var
-
+let get_next_unused_var ren_env vtype = Var.get_next_fresh_var ren_env.ren_max_used_vars vtype
+	
 let find_renaming renaming_env b_v =
 	try
 		VBMap.find b_v renaming_env.ren_map
@@ -139,10 +131,8 @@ let find_renaming renaming_env b_v =
 				new_var_term
 			)
 
-(* type renaming_list = (bound_var * term) list primed is a version with   *)
-(* needed env. which is changed globally therefore references used         *)
-(* renaming_list_ref for current renamings of bvars with real vars         *)
-(* next_var_ref is next unsed var                                          *)
+let in_renaming renaming_env bv =
+    VBMap.mem bv renaming_env.ren_map 
 
 let rec apply_bsubst_bterm'
 		renaming_env bsubst bterm =

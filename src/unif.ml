@@ -78,7 +78,17 @@ let compare_types tv sv =
 	then 1
 	else -1
 
+let check_types (_b,t) (_b,s) = 
+	let t_type = Term.get_term_type t in 
+	let s_type = Term.get_term_type s in
+	(* variables of Symbol.symb_type_types can unify with anything *)
+	if (t_type == s_type) || (t_type == Symbol.symb_type_types) || (s_type == Symbol.symb_type_types)  
+  then ()
+  else
+	raise Unification_failed
+	
 let orient_eq bt bs =
+	check_types bt bs;
 	match bt with
 	| (b_t, Term.Var(tv, _)) ->
 			let btv = (b_t, tv) in

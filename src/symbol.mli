@@ -230,18 +230,19 @@ val is_a_memory_pred_symb  : symbol -> bool
 val is_a_bitvec_pred_symb  : symbol -> bool
 (*module type TMap = SMap*)
 
-module SymbKey :
+module Key :
   sig
     type t = symbol
-    val equal : 'a -> 'a -> bool
+    val equal : t -> t -> bool
     val hash : symbol -> int
     val compare : symbol -> symbol -> int
   end
 
+
 module Map :
   sig
-    type key = SymbKey.t
-    type 'a t = 'a Map.Make(SymbKey).t
+    type key = Key.t
+    type 'a t = 'a Map.Make(Key).t
     val empty : 'a t
     val is_empty : 'a t -> bool
     val add : key -> 'a -> 'a t -> 'a t
@@ -256,10 +257,32 @@ module Map :
     val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
   end
 
-module SymSet :
+module Hashtbl :
   sig
-    type elt = SymbKey.t
-    type t = Set.Make(SymbKey).t
+    type key = Key.t
+    type 'a t = 'a Hashtbl.Make(Key).t
+    val create : int -> 'a t
+    val clear : 'a t -> unit
+    val reset : 'a t -> unit
+    val copy : 'a t -> 'a t
+    val add : 'a t -> key -> 'a -> unit
+    val remove : 'a t -> key -> unit
+    val find : 'a t -> key -> 'a
+    val find_all : 'a t -> key -> 'a list
+    val replace : 'a t -> key -> 'a -> unit
+    val mem : 'a t -> key -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val length : 'a t -> int
+    val stats : 'a t -> Hashtbl.statistics
+  end
+
+
+
+module Set :
+  sig
+    type elt = Key.t
+    type t = Set.Make(Key).t
     val empty : t
     val is_empty : t -> bool
     val mem : elt -> t -> bool
@@ -286,4 +309,4 @@ module SymSet :
     val split : elt -> t -> t * bool * t
   end
 
-type sym_set = SymSet.t
+type sym_set = Set.t

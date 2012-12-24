@@ -86,7 +86,7 @@ module UF_ST = Union_find.Make(SubTypeE)
 
 module VarTable = Hashtbl.Make (Var)
 
-module SymSet = Symbol.SymSet
+module SymSet = Symbol.Set
 
 type context = 
     {

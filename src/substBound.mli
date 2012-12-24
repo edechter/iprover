@@ -25,6 +25,8 @@ type bound_term  = Term.bound_term
 type var         = Var.var
 type bound_var   = Var.bound_var
 type term        = Term.term
+type symbol      = Symbol.symbol
+
 exception Subst_bound_var_already_def
 (* creates the empty subst. (identity) *)
 val create : unit -> bound_subst
@@ -47,14 +49,27 @@ val apply_bsubst_btlist_norm_subst :
     term_db_ref -> bound_subst -> bound -> bound_term list -> (term list) * subst
 
 (* primed is a version with needed env. which is changed globally *)
-(* therefore references used: *)
-(* renaming_list_ref for current renamings of bvars with real vars*)
-(* next_var_ref is next unsed var *)
 
-type renaming_list = (bound_var * term) list   
+type renaming_env =
+	{
+		(* map from types to next un-used variable of this type *)
+			mutable ren_max_used_vars : Var.fresh_vars_env;
+		(* map from bvars -> var terms *)
+		mutable ren_map : (term Var.BMap.t);
+		mutable ren_term_db_ref : TermDB.termDB ref;
+	}
+
+
+val init_renaming_env :  TermDB.termDB ref -> renaming_env 
+val get_next_unused_var: renaming_env -> symbol -> var 
+val find_renaming : renaming_env -> bound_var -> term 
+
+val in_renaming : renaming_env -> bound_var -> bool
+(*type renaming_list = (bound_var * term) list   *)
+
 val apply_bsubst_bterm' : 
     (* var ref -- next var*)    
-    renaming_list ref -> var ref  -> term_db_ref -> bound_subst -> bound_term->term
+    renaming_env -> bound_subst -> bound_term->term
 	
 
 val apply_bsubst_btlist : term_db_ref -> bound_subst -> bound_term list -> term list 
