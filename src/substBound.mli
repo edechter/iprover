@@ -55,19 +55,20 @@ type renaming_env =
 		(* map from types to next un-used variable of this type *)
 			mutable ren_max_used_vars : Var.fresh_vars_env;
 		(* map from bvars -> var terms *)
-		mutable ren_map : (term Var.BMap.t);
-		mutable ren_term_db_ref : TermDB.termDB ref;
+		mutable ren_map : (var Var.BMap.t);
+	(*	mutable ren_term_db_ref : TermDB.termDB ref;*)
 	}
 
 
-val init_renaming_env :  TermDB.termDB ref -> renaming_env 
+val init_renaming_env :  unit -> renaming_env 
 val get_next_unused_var: renaming_env -> symbol -> var 
-val find_renaming : renaming_env -> bound_var -> term 
+val find_renaming : renaming_env -> bound_var -> var 
 
 val in_renaming : renaming_env -> bound_var -> bool
 (*type renaming_list = (bound_var * term) list   *)
 
 val apply_bsubst_bterm' : 
+  TermDB.termDB ref ->
     (* var ref -- next var*)    
     renaming_env -> bound_subst -> bound_term->term
 	

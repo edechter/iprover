@@ -16,6 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
+open Simple_interface
 
 let addr_split_size = 10
 
@@ -337,13 +338,13 @@ let rec normalise_term_var' renaming_env bound var_list_ref term =
 	| Term.Var(v, _) ->
 			let bv = (bound, v) in
 			let was_in_renaming = SubstBound.in_renaming renaming_env bv in
-			let new_var_term = SubstBound.find_renaming renaming_env bv in
+			let new_var = (SubstBound.find_renaming renaming_env bv) in
 			(if (not was_in_renaming)
 				then
-					var_list_ref := (new_var_term)::(!var_list_ref)
+					var_list_ref := (new_var)::(!var_list_ref)
 				else ()
 			);
-			new_var_term
+			add_var_term term_db_ref new_var
 
 (* takes an atom A(t0,..,tn) and makes  A(x_0,x_1,..,x_n)                     *)
 (* renaming_env is a renaming from old varibles into new                      *)
@@ -442,7 +443,7 @@ let extend_model clause model =
 	let x_var_list_ref = ref [] in
 	let y_var_list_ref = ref [] in
 	let flat_subst_ref = ref [] in
-	let renaming_env = SubstBound.init_renaming_env term_db_ref in 
+	let renaming_env = SubstBound.init_renaming_env () in 
 	match sel_atom with
 	| Term.Var _ -> failwith "model_inst: extend_model atom should not be a var"
 	| Term.Fun(sym, args, _) ->
@@ -506,13 +507,13 @@ let extend_model clause model =
 			in
 			let lits = Clause.get_literals clause in
 			let rest_lits = List.filter (fun l -> not (l == sel_lit)) lits in
-			let max_var_clause_ref = ref !max_var_ref in
+
 			let norm_rest_lits =
 				let dummy_y_var_list_ref = ref [] in
 				List.map
 					(fun t ->
 								TermDB.add_ref
-									(normalise_term_var' var_table_ref max_var_clause_ref dummy_y_var_list_ref t)
+									(normalise_term_var' renaming_env b_flat  dummy_y_var_list_ref t)
 									term_db_ref
 					) rest_lits in
 			let norm_lits = norm_lit:: norm_rest_lits in
@@ -522,13 +523,15 @@ let extend_model clause model =
 			(*-------------------Normalising dism. constraints---------------------*)
 			let nomr_dism_constr dism_constr =
 				(* first we need to normalise free vars: i.e t/x1, ..t_n/x_n we need to normalise x_i                                 *)
-				(* then order subst according the new varible order, then normalise varibles in t_i (independantly of var_table_ref)  *)
+				(* then order subst according the new varible order, then normalise varibles in t_i (independently of var_table_ref)  *)
 				let dc_norm_top_vars =
-					List.map (fun (v, t) ->
-									try
-										((VarMap.find v !var_table_ref), t)
-									with
-										Not_found -> failwith "model_inst: all vars should have been defined in var_table_ref"
+					List.map 
+					(fun (v, t) ->
+             if (SubstBound.in_renaming renaming_env (b_flat, v))
+             then
+							((SubstBound.find_renaming renaming_env (b_flat,v)),t)
+						else																						
+							failwith "model_inst: all vars should have been defined in var_table_ref"
 						) dism_constr
 				in
 				let dc_ordered_top_vars =
@@ -585,14 +588,14 @@ let extend_model clause model =
 						dc_removed_renamings
 				in
 				(* no we rename defined varibles in dc (vars in t_i) *)
-				let max_var_bound_dc_ref = ref !max_var_ref in
+				(*let max_var_bound_dc_ref = ref !max_var_ref in*)
 				let dc_y_var_list_ref = ref [] in
 				let dc_model_rep =
 					List.map
 						(fun (v, t) ->
 									(v,
 										TermDB.add_ref
-											(normalise_term_var' var_table_ref max_var_bound_dc_ref dc_y_var_list_ref t)
+											(normalise_term_var' renaming_env b_flat dc_y_var_list_ref t)
 											term_db_ref
 									)
 						) dc_checked
@@ -1222,16 +1225,16 @@ match (Symbol.get_name symb) with
 
 (* get a value of predicate in the model with ground arguments *)
 let get_ground_pred_value model pred_term =
-	let var_table_ref = ref VarMap.empty in
+(*	let var_table_ref = ref VarMap.empty in*)
 	let x_var_list_ref = ref [] in
 	let y_var_list_ref = ref [] in
 	let flat_subst_ref = ref [] in
-	let max_var_ref = ref (Var.get_first_var ()) in
-	match pred_term with
+	(*let max_var_ref = ref (Var.get_first_var ()) in*)
+ let renaming_env = SubstBound.init_renaming_env () in
+		match pred_term with
 	| Term.Fun(symb, args, _) ->
 			norm_and_flatten_args
-				var_table_ref
-				max_var_ref
+				renaming_env
 				x_var_list_ref
 				y_var_list_ref
 				flat_subst_ref

@@ -15,6 +15,8 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 (*----------------------------------------------------------------------[C]-*)
 
 open Lib
+open Simple_interface
+
 type clause = Clause.clause
 type lit = Term.literal
 type term = Term.term
@@ -637,7 +639,8 @@ let rec term_flattening_env renaming_env var_env term =
 					*)
 					(
 						let t_type = Symbol.get_val_type_def symb in 						
-						let ren_var_term = SubstBound.find_renaming renaming_env (b_fresh, (SubstBound.get_next_unused_var renaming_env t_type)) in 
+						let ren_var = SubstBound.find_renaming renaming_env (b_fresh, (SubstBound.get_next_unused_var renaming_env t_type)) in
+						let ren_var_term = add_var_term term_db_ref ren_var in 
 						TermHash.add var_env term ren_var_term					
 					)
 					(*	 else ()*)
@@ -647,8 +650,8 @@ let flat_term_to_var renaming_env var_env t =
 	match t with 
 	| Term.Var(v,_) -> 
 			let t_type = Var.get_type v in 						
-	    let ren_var_term = SubstBound.find_renaming renaming_env (b_orig, (SubstBound.get_next_unused_var renaming_env t_type)) in
-			ren_var_term
+	    let ren_var = SubstBound.find_renaming renaming_env (b_orig, (SubstBound.get_next_unused_var renaming_env t_type)) in
+			add_var_term term_db_ref ren_var
 	| Term.Fun (_,_,_) ->
 		(			try
 			(*     term_flattening_env var_env max_var_ref t;*)
@@ -686,7 +689,7 @@ let flat_lit_env renaming_env var_env lit =
 
 (*---------------------------------*)
 let flat_clause clause =
-  let renaming_env = SubstBound.init_renaming_env term_db_ref in
+  let renaming_env = SubstBound.init_renaming_env () in
 	let var_env = TermHash.create 19 in
 	let lit_list = Clause.get_literals clause in
 	let flat_lits_without_neg_def =

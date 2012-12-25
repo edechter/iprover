@@ -13,6 +13,7 @@
 (* ----------------------------------------------------------------------[C]- *)
 
 open Lib
+open TermDB.Common
 
 (* subst.ml *)
 type bound = int
@@ -104,15 +105,15 @@ type renaming_env =
 		(* map from types to next un-used variable of this type *)
 		mutable ren_max_used_vars : Var.fresh_vars_env;
 		(* map from bvars -> var terms *)
-		mutable ren_map : (term VBMap.t);
-		mutable ren_term_db_ref : TermDB.termDB ref;
+		mutable ren_map : (var VBMap.t);
+		(*mutable ren_term_db_ref : TermDB.termDB ref;*)
 	}
 
 let init_renaming_env term_db_ref =
 	{
 		ren_max_used_vars = Var.init_fresh_vars_env ();
 		ren_map = VBMap.empty;
-		ren_term_db_ref = term_db_ref
+		(*ren_term_db_ref = term_db_ref*)
 	}
 
 (* changes ren_env adding next_unused var to used *)
@@ -123,19 +124,24 @@ let find_renaming renaming_env b_v =
 		VBMap.find b_v renaming_env.ren_map
 	with
 		Not_found ->
-			(let bv_type = Var.get_bv_type b_v in
-				let next_var = get_next_unused_var renaming_env bv_type in
-				let new_var_term =
+			(
+				let bv_type = Var.get_bv_type b_v in
+		 	  let next_var = get_next_unused_var renaming_env bv_type in
+		(*
+						let new_var_term =
 					TermDB.add_ref (Term.create_var_term next_var) renaming_env.ren_term_db_ref in
 				renaming_env.ren_map <- (VBMap.add b_v new_var_term renaming_env.ren_map);
 				new_var_term
-			)
+	*)
+	   renaming_env.ren_map <- (VBMap.add b_v next_var renaming_env.ren_map);
+		 next_var
+		)
 
 let in_renaming renaming_env bv =
     VBMap.mem bv renaming_env.ren_map 
 
 let rec apply_bsubst_bterm'
-		renaming_env bsubst bterm =
+		term_db_ref renaming_env bsubst bterm =
 	let (b_t, term) = bterm in
 	match term with
 	| Term.Fun(sym, args, _) ->
@@ -143,42 +149,42 @@ let rec apply_bsubst_bterm'
 				Term.arg_map_left
 					(fun term' ->
 								apply_bsubst_bterm'
-									renaming_env bsubst (b_t, term')
+								term_db_ref renaming_env bsubst (b_t, term')
 					) args in
 			let new_term = Term.create_fun_term_args sym new_args in
-			TermDB.add_ref new_term renaming_env.ren_term_db_ref
+			TermDB.add_ref new_term term_db_ref
 	| Term.Var(v, _) ->
 			let b_v = (b_t, v) in
 			try
 				let new_bterm = find b_v bsubst in
 				apply_bsubst_bterm'
-					renaming_env bsubst new_bterm
+				term_db_ref	renaming_env bsubst new_bterm
 			with
 				Not_found ->
-					find_renaming renaming_env b_v
+				add_var_term term_db_ref (find_renaming renaming_env b_v)
 
 let apply_bsubst_btlist'
-		renaming_env bsubst bterm_list =
+		term_db_ref renaming_env bsubst bterm_list =
 	List.map
-		(apply_bsubst_bterm' renaming_env bsubst)
+		(apply_bsubst_bterm' term_db_ref renaming_env bsubst)
 		bterm_list
 
 let apply_bsubst_bterm term_db_ref bsubst bterm =
-	let renaming_env = init_renaming_env term_db_ref in
-	apply_bsubst_bterm'
+	let renaming_env = init_renaming_env () in
+	apply_bsubst_bterm' term_db_ref
 		renaming_env bsubst bterm
 
 let apply_bsubst_btlist term_db_ref bsubst bterm_list =
-	let renaming_env = init_renaming_env term_db_ref in
+	let renaming_env = init_renaming_env () in
 	apply_bsubst_btlist'
-		renaming_env bsubst bterm_list
+		term_db_ref renaming_env bsubst bterm_list
 
 (**********apply subst and return both new clause *******)
 (********and normalised subst restricted to bound********)
 (***************************                    *********)
 
 let rec apply_bsubst_bterm_norm_subst'
-		renaming_env bsubst bound norm_subst_ref bterm =
+		term_db_ref renaming_env bsubst bound norm_subst_ref bterm =
 	let (b_t, term) = bterm in
 	match term with
 	| Term.Fun(sym, args, _) ->
@@ -186,22 +192,23 @@ let rec apply_bsubst_bterm_norm_subst'
 				Term.arg_map_left
 					(fun term' ->
 								apply_bsubst_bterm_norm_subst'
+								term_db_ref
 									renaming_env
 									bsubst bound norm_subst_ref (b_t, term')
 					) args in
-			let new_term = Term.create_fun_term_args sym new_args in
-			TermDB.add_ref new_term renaming_env.ren_term_db_ref
-	| Term.Var(v, _) ->
+				add_fun_term_args term_db_ref sym new_args
+			| Term.Var(v, _) ->
 			let b_v = (b_t, v) in
 			let normalize bound_var =
 				try
 					let new_bterm = find bound_var bsubst in
 					apply_bsubst_bterm_norm_subst'
-						renaming_env
+	       	term_db_ref
+										renaming_env
 						bsubst bound norm_subst_ref new_bterm
 				with
 					Not_found ->
-						find_renaming renaming_env bound_var						
+					add_var_term term_db_ref (find_renaming renaming_env bound_var)						
 			in
 			if b_t = bound
 			then
@@ -216,22 +223,22 @@ let rec apply_bsubst_bterm_norm_subst'
 				normalize b_v
 
 let apply_bsubst_btlist_norm_subst'
-		renaming_env
+		term_db_ref renaming_env
 		bsubst bound norm_subst_ref bterm_list =
 	List.map
 		(apply_bsubst_bterm_norm_subst'
-				renaming_env
+				term_db_ref renaming_env
 				bsubst bound norm_subst_ref)
 		bterm_list
 
 let apply_bsubst_btlist_norm_subst
 		term_db_ref bsubst bound bterm_list =
-	let renaming_env = init_renaming_env term_db_ref in
+	let renaming_env = init_renaming_env () in
 	let norm_subst_ref = ref (Subst.create ())
 	in
 	let new_term_list =
 		apply_bsubst_btlist_norm_subst'
-			renaming_env
+		  term_db_ref	renaming_env
 			bsubst bound norm_subst_ref bterm_list
 	in (new_term_list,!norm_subst_ref)
 

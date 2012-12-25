@@ -1826,9 +1826,9 @@ let normalise_bterm_list term_db_ref bsubst bterm_list   =
 let normalise_bterm_list term_db_ref bsubst bterm_list   =
 	let bterm_compare bt bs = bterm_subst_compare bt bs  bsubst in
   let sorted_list = List.sort bterm_compare bterm_list in
-	let renaming_env = SubstBound.init_renaming_env term_db_ref in
+	let renaming_env = SubstBound.init_renaming_env () in
   let rename_bterm_var rest bterm = 
-		(SubstBound.apply_bsubst_bterm' renaming_env bsubst bterm)::rest in
+		(SubstBound.apply_bsubst_bterm' term_db_ref renaming_env bsubst bterm)::rest in
 	let rev_new_term_list = List.fold_left rename_bterm_var [] sorted_list in
   List.rev rev_new_term_list
 	
@@ -1836,7 +1836,7 @@ let normalise_bterm_list term_db_ref bsubst bterm_list   =
 (* normalise v2  simply removes duplicate lits  *)
 
 
-let normalise_b_litlist_v1  term_db_ref bsubst b_litlist = 
+let normalise_b_litlist_v1 term_db_ref bsubst b_litlist = 
   let list_blit = propagate_binding_to_list b_litlist in 
   let new_lit_list = normalise_bterm_list term_db_ref bsubst  list_blit  in
   (* removes duplicates fast but not perfect based on the fact 

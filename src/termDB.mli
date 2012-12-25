@@ -48,3 +48,15 @@ val to_string           : termDB ->string
 
 (*debug*)
 val get_greatest_key : termDB -> int
+
+
+(*common interface*)
+module Common :
+  sig
+    val add_fun_term :
+      termDB ref ->
+      Symbol.symbol -> term list -> term
+    val add_fun_term_args :
+      termDB ref -> Symbol.symbol -> Term.args -> term
+    val add_var_term : termDB ref -> Var.var -> term
+  end

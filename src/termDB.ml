@@ -252,6 +252,19 @@ let add t db =
  let get_greatest_key term_db = !size_ref
 
 
+(*common interface*)
+module Common =
+	struct 
+	 let add_fun_term term_db_ref symb lits = 
+    add_ref (Term.create_fun_term symb lits) term_db_ref
+
+   let add_fun_term_args  term_db_ref symb lits = 
+   add_ref (Term.create_fun_term_args symb lits) term_db_ref
+
+   let add_var_term term_db_ref var = 
+    add_ref (Term.create_var_term var) term_db_ref
+end
+
 (*---------------end HashTbl impl.-------------------------*)
 
 
