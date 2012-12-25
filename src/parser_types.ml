@@ -220,7 +220,8 @@ let analyse_distinct lit_list =
 	| _ -> failwith "analyse_distinct: distinct is only supported as a unit clause"
 
 (* we do not rename vars at this point just change type *)
-let rec retype_var_term ttype t =
+(* ttype val type of t; need this since vars are not yet typed and types are propagated from arguments *)
+let rec retype_term ttype t =
 	match t with
 	| Term.Fun (sym, args, _) ->
 	(* for typed equality eq(type_term_eq, t, s) types of t, s equal to  *)
@@ -228,7 +229,7 @@ let rec retype_var_term ttype t =
 			let arg_list = (Term.arg_to_list args) in
 			let new_args =
 				begin
-					if sym == Symbol.symb_typed_equality
+					if (sym == Symbol.symb_typed_equality)
 					then
 						let (type_term_eq, t, s) = get_triple_from_list arg_list in
 						let eq_v_type =
@@ -237,13 +238,13 @@ let rec retype_var_term ttype t =
 							with Term.Var_term ->
 									failwith "equality should not have var as the type argument"
 						in
-						let new_eq_terms = retype_var_term_list [eq_v_type; eq_v_type] [t; s]
+						let new_eq_terms = retype_term_list [eq_v_type; eq_v_type] [t; s]
 						in
 						type_term_eq:: new_eq_terms
 					else
 						let (arg_types, _val_type) = Symbol.get_stype_args_val_def sym
 						in
-						retype_var_term_list
+						retype_term_list
 							arg_types
 							arg_list
 					
@@ -257,21 +258,28 @@ let rec retype_var_term ttype t =
 			in
 			(Term.create_var_term new_var)
 and
-retype_var_term_list type_list term_list =
+retype_term_list type_list term_list =
 	let f rest ttype t =
-		(retype_var_term ttype t):: rest in
+		(retype_term ttype t):: rest in
 	let rev_new_list = List.fold_left2 f [] type_list term_list in
 	List.rev rev_new_list
 
-
+let retype_lit lit = 
+		retype_term Symbol.symb_bool_type lit
+		
+		
+let retype_lits lits =
+	  List.map retype_lit lits
+	
 let cnf_formula_fun name role formula annotations =
 	if !contains_distinct
 	then
 		analyse_distinct formula
 	else
 		begin
-			let new_clause =
-				Clause.create (Clause.normalise_lit_list term_db_ref formula) in
+			let retyped_lits = retype_lits formula in
+			let new_clause = 
+				Clause.create (Clause.normalise_lit_list term_db_ref retyped_lits) in
 			(* Clause.assign_input_history new_clause; *)
 			Clause.assign_tstp_source_input new_clause "" name;
 			incr_int_stat 1 num_of_input_clauses;

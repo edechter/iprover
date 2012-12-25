@@ -61,10 +61,11 @@ val comment_E_prover_fun : 'a -> unit
 val annotation_fun : 'a -> unit
 val contains_distinct : bool ref
 val analyse_distinct : Term.term list -> unit
-val retype_var_term : Var.symbol -> Term.term -> Term.term
-val retype_var_term_list :
-  Var.symbol list -> Term.term list -> Term.term list
-val cnf_formula_fun : string -> string -> Clause.literal_list -> 'a -> unit
+val retype_term : Var.symbol -> Term.term -> Term.term
+val retype_term_list : Var.symbol list -> Term.term list -> Term.term list
+val retype_lit : Term.term -> Term.term
+val retype_lits : Term.term list -> Term.term list
+val cnf_formula_fun : string -> string -> Term.term list -> 'a -> unit
 val is_false_lit : Term.literal -> bool
 val disjunction_fun : Term.literal list -> Term.literal -> Term.literal list
 val equality_fun : TermDB.term list -> TermDB.term

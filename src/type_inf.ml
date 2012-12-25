@@ -491,13 +491,14 @@ let sub_type_inf clause_list =
 	 let f rest clause = 
 	   try 
 	     let lits = Clause.get_literals clause  in
-	     let new_lits = List.map (type_equality_lit context) lits in
-	     if (new_lits == lits)
+	     let typed_lits = List.map (type_equality_lit context) lits in
+			let typed_var_lits = Parser_types.retype_lits typed_lits in
+	     if (typed_var_lits == lits)
 	     then
 	       clause::rest 
 	     else
 	       (
-       		let new_clause = Clause.create new_lits in
+       		let new_clause = Clause.create typed_var_lits in
 		Clause.inherit_param_modif clause new_clause;	     
 		Clause.assign_tstp_source_subtyping new_clause clause;
 		Prop_solver_exchange.add_clause_to_solver new_clause;
