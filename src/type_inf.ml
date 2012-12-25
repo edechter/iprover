@@ -23,7 +23,7 @@ type stype  = Symbol.stype
 type clause = Clause.clause 
 
 let symbol_db_ref  = Parser_types.symbol_db_ref
-
+let term_db_ref = Parser_types.term_db_ref
 
 (* we assume all symbols we are dealing with are put to symbol_db_ref *)
 
@@ -485,33 +485,34 @@ let sub_type_inf clause_list =
 (* 1) type equalities, 2) merge history with christoph, 3) C\/t!=s and s has differen type from t then the clause is a tautology ! *)
 
    let typed_clause_list = 
-     begin
-       if (Symbol.is_essential_input Symbol.symb_typed_equality) 
-       then
-	 let f rest clause = 
+    let f rest clause = 
 	   try 
 	     let lits = Clause.get_literals clause  in
-	     let typed_lits = List.map (type_equality_lit context) lits in
+	     let typed_lits = 
+							  if (Symbol.is_essential_input Symbol.symb_typed_equality) 
+       then
+					 List.map (type_equality_lit context) lits 
+          else 
+			    lits
+       in
 			let typed_var_lits = Parser_types.retype_lits typed_lits in
 	     if (typed_var_lits == lits)
 	     then
 	       clause::rest 
 	     else
 	       (
-       		let new_clause = Clause.create typed_var_lits in
+       		let new_clause = Clause.create (Clause.normalise_lit_list term_db_ref typed_var_lits) in
 		Clause.inherit_param_modif clause new_clause;	     
 		Clause.assign_tstp_source_subtyping new_clause clause;
 		Prop_solver_exchange.add_clause_to_solver new_clause;
+	(*	out_str ("Typed: "^(Clause.to_string  new_clause)^"\n");*)
 		new_clause::rest
 	       )
 	   with 
 	     Neg_eq_different_types -> rest  
 	 in    
 	 List.fold_left f [] clause_list
-       else 
-	 clause_list
-     end
-   in  
+   in   
    typed_clause_list    
 
 
