@@ -122,9 +122,12 @@ let get_term_for_grounding () =
 (* first try the  constant with max occurrence, which is in the conjecture*)
       let gr_symb = 
 	let f_max_sym s max_sym = 
-	  if ((Symbol.is_fun s) &&  
+	  if (
+		(*	(Symbol.is_fun s) &&  
 	      (Symbol.is_arity_def s)&&
 	      ((Symbol.get_arity s) = 0) &&
+				*)
+				(Symbol.is_constant s) &&
 	      (Symbol.get_num_input_occur s) > (Symbol.get_num_input_occur max_sym)) 
 	  then s 
 	  else max_sym
@@ -139,14 +142,14 @@ let get_term_for_grounding () =
     end    
 
 let init_solver_exchange () = 
-  gr_by := (get_term_for_grounding ())
+  gr_by := (get_term_for_grounding ());
   (* debug*)
-(* out_str ("Term for grounding_new: "^(Term.to_string gr_by_new)^"\n");
-  match gr_by_new with 
+ out_str ("Term for grounding_new: "^(Term.to_string !gr_by)^"\n");
+  match !gr_by with 
   |Term.Fun(symb,_,_) ->
       out_str ("Number of occ_new: "^( string_of_int (Symbol.get_num_input_occur symb))^"\n")
   |_->()
-*)
+
 
 
 

@@ -580,7 +580,7 @@ let symb_bot =
   {theory_symbol_template with 
    name      = "$$iProver_bot"; 
    arity     = Def(0); 
-   stype     = create_stype [] symb_bool_type;
+   stype     = create_stype [] symb_type_types;
 }
 
 
@@ -823,7 +823,7 @@ let is_pred s =
     false
 
 let is_fun s = 
-  (is_signature_symb s) && (not (is_pred s))
+  (is_signature_symb s) && (not (is_pred s)) && (not (s.sproperty = Type))
 
 
 let is_constant s = 

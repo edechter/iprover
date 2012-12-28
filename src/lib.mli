@@ -121,6 +121,10 @@ type 'a bind = int * 'a
 
 val  propagate_binding_to_list :  ('a list) bind -> ('a bind) list
 
+
+val apply_to_bounded : ('a -> 'b) -> 'a bind -> 'b bind
+
+
 (* lexicographic comparison of pairs*)
 val pair_compare_lex : ('a -> 'a -> int)-> ('b -> 'b -> int) -> 'a*'b ->'a*'b -> int
 

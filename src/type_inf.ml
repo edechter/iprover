@@ -505,7 +505,7 @@ let sub_type_inf clause_list =
 		Clause.inherit_param_modif clause new_clause;	     
 		Clause.assign_tstp_source_subtyping new_clause clause;
 		Prop_solver_exchange.add_clause_to_solver new_clause;
-	(*	out_str ("Typed: "^(Clause.to_string  new_clause)^"\n");*)
+	(*	out_str ("Typed: "^(Clause.to_string new_clause)^"\n"); *)
 		new_clause::rest
 	       )
 	   with 

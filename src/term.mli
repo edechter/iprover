@@ -212,6 +212,8 @@ val cmp_num_symb : term -> term -> int
 val cmp_num_var  : term -> term -> int 
 val cmp_sign     : term -> term -> int 
 val cmp_split    : term -> term -> int 
+
+val lit_cmp_type_to_fun : Options.lit_cmp_type -> (literal -> literal -> int)
 val lit_cmp_type_list_to_lex_fun :  
     Options.lit_cmp_type list -> (literal -> literal -> int) 
  

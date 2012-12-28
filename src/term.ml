@@ -953,7 +953,6 @@ let get_atom literal =
       else literal  
   |_ -> literal
 
-
 let apply_to_atom f lit = 
   match lit with 
   |Fun(sym,[t],_) -> 

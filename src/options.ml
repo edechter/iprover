@@ -4581,13 +4581,26 @@ let option_verification_epr ver_epr_opt =
 (*
        inst_lit_sel                   = [Lit_Ground true;Lit_Sign false;];
 *)
+(* usual *)
        inst_lit_sel                   = 
 	  [
-	   Lit_clock true;
+
+			   Lit_clock true;
 (*	   Lit_reachable_state true; 
 	   Lit_next_state true;*)
 	    Lit_Ground true; 
 	    Lit_Sign false; ];
+
+(*
+       inst_lit_sel                   = 
+	  [
+  Lit_next_state false;
+			   Lit_clock true;
+(*	   Lit_reachable_state true; 
+	   Lit_next_state true;*)
+	    Lit_Ground true; 
+	    Lit_Sign false; ];
+*)
 
   (*     inst_lit_sel                   = [Lit_Sign false;];*)
 (* before Intel example bpbimodalm_miter_full.focnf.bit_blast.Mclk1 *)
@@ -4670,8 +4683,10 @@ let option_verification_epr ver_epr_opt =
 (*  inst_dismatching               =  !current_options.inst_dismatching;*)
 
        inst_eager_unprocessed_to_passive = true;
-       inst_prop_sim_given               = false;
-   (*    inst_prop_sim_given               = !current_options.inst_prop_sim_given;*)
+   
+   (*    inst_prop_sim_given               = !current_options.inst_prop_sim_given; (*change to false*)*)
+		   inst_prop_sim_given               = false; 
+		
        inst_prop_sim_new                 = false;
   (*     inst_prop_sim_new                 = true;*)
        inst_learning_loop_flag           = true; 

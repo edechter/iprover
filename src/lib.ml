@@ -406,6 +406,8 @@ type 'a bind = int * 'a
 let propagate_binding_to_list blist =
   let (b_l,list) = blist in  
   List.map (fun el -> (b_l,el)) list
+	
+let apply_to_bounded f (b,e) = (b,f e)
 
 (* bool operations *)
 let bool_plus x y = ((x&& (not y)) || ((not x)&& y))
