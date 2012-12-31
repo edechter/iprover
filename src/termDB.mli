@@ -50,8 +50,8 @@ val to_string           : termDB ->string
 val get_greatest_key : termDB -> int
 
 
-(*common interface*)
-module Common :
+(* interface that can be opend in other modules *)
+module Open :
   sig
     val add_fun_term :
       termDB ref ->

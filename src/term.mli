@@ -103,6 +103,8 @@ val is_epr_lit  : term -> bool
 
 exception Term_grounding_undef
 val get_grounding         : term -> term
+(* only atoms get assigned groundings *)
+val get_grounding_lit: term -> term
 
 val get_args : term -> args
 

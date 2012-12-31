@@ -44,9 +44,17 @@ val set_lit_activity_flag : bool -> unit
 (* should be run before first use of prop_solver_exchange! *)
 val init_solver_exchange : unit -> unit
 
+(* assign_new_grounding vtype gr_term  does not work since all terms are associated with a gronding and reasssigning breaks things...*)
+
+(*
+val assign_new_grounding : symbol ->  term -> unit
+*)
+
+
 (*val solver_assumptions_ref : (PropSolver.lit list) ref*)
 
 (* solver assumptions are used for finite models *)
+
 
 val assign_solver_assumptions : term list -> unit
 val assign_only_sim_solver_assumptions : term list -> unit

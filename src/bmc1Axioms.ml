@@ -1437,9 +1437,16 @@ let increment_bound cur_bound next_bound simulate =
 	
 	(*currently only next_bound should be cur_bound + 1 *)
 	assert (next_bound - cur_bound = 1);
+	(* change grounding of state type to next_bound *)
+	
+	(*
+	let next_bound_state_term = create_state_term next_bound in
+	out_str ("state term: "^(Term.to_string next_bound_state_term)^("\n"));
+	Prop_solver_exchange.assign_new_grounding Symbol.symb_ver_state_type next_bound_state_term;
+	*)
 	
 	(* Create literals for current bound up to next bound,
-	i.e. $$iProver_bound { b_cur }, ..., $$iProver_bound { b_next - 1 } *)
+	i.e. $$iProver_bound {b_cur },...,$$iProver_bound { b_next - 1 } *)
 	let bound_literals_cur_to_next =
 		List.map
 			create_compl_lit

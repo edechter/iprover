@@ -125,8 +125,11 @@ let all_current_clauses : ((clause list) ref) = ref []
 
 let get_clauses_without_extra_axioms () = (!neg_conjectures)@(!parsed_clauses)
 
+
 let bot_term = TermDB.add_ref (Term.create_fun_term Symbol.symb_bot []) term_db_ref
 let top_term = TermDB.add_ref (Term.create_fun_term Symbol.symb_top []) term_db_ref
+
+
 
 let is_less_symb symb =
 	SymbMap.mem symb !less_map

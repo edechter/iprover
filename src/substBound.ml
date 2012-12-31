@@ -13,7 +13,7 @@
 (* ----------------------------------------------------------------------[C]- *)
 
 open Lib
-open TermDB.Common
+open TermDB.Open
 
 (* subst.ml *)
 type bound = int

@@ -21,6 +21,7 @@
 open Lib 
 open Statistics
 open Options
+open TermDB.Open
 
 (* Separate exception, different from PropSolver.Unsatisfiable. In
    BMC1 we must not continue after PropSolver.Unsatisfiable, since
@@ -85,19 +86,44 @@ type term       = Term.term
 type lit        = Term.literal
 type symbol     = Symbol.symbol  
 type clause     = Clause.clause
-
+module SMap     = Symbol.Map
 
 let bot_symb       = Symbol.symb_bot
 let bot_term       = Parser_types.bot_term      
-
-(* gr_by can be changed by  init_solver_exchange *)
-
-let gr_by          = ref bot_term
 
 let symbol_db_ref  = Parser_types.symbol_db_ref  
 let term_db_ref    = Parser_types.term_db_ref
 
 let init_clause_list_ref = Parser_types.all_current_clauses
+
+(* gr_by can be changed by  init_solver_exchange *)
+
+(* gr_by_map is a map from types -> grounding term of this type *)
+(* if a type is not in the gr_by_map then use default bot_term (which is of type type_types) *)
+let gr_by_map = ref SMap.empty
+
+let get_gr_by vtype = 
+	try
+	SMap.find vtype !gr_by_map
+	with 
+	| Not_found -> bot_term
+
+let get_gr_by_var var = 
+	let vtype = Var.get_type var in 
+	get_gr_by vtype
+	
+	(* terms are assigned with groundings and simple reassigning breaks things*)
+
+		(*
+let assign_new_grounding vtype gr_term = 
+	assert (vtype == Term.get_term_type gr_term);
+	gr_by_map := SMap.add vtype gr_term !gr_by_map
+
+	*)
+			
+		
+(*let gr_by          = ref bot_term*)
+
 
 (*------------Parameters that can be changed by other modules-----------*)
 
@@ -112,8 +138,11 @@ let set_lit_activity_flag  b  =
    lit_activity_threshold:= 200000000
   )
 *)
-(*--------------------get term for grounding-----------------------*)  
 
+
+(*--------------------get term for grounding-----------------------*)  
+(* before typed version *)
+(*
 let get_term_for_grounding () = 
   if !answer_mode_ref then 
     bot_term
@@ -123,10 +152,6 @@ let get_term_for_grounding () =
       let gr_symb = 
 	let f_max_sym s max_sym = 
 	  if (
-		(*	(Symbol.is_fun s) &&  
-	      (Symbol.is_arity_def s)&&
-	      ((Symbol.get_arity s) = 0) &&
-				*)
 				(Symbol.is_constant s) &&
 	      (Symbol.get_num_input_occur s) > (Symbol.get_num_input_occur max_sym)) 
 	  then s 
@@ -140,16 +165,73 @@ let get_term_for_grounding () =
       let gr_by_term = TermDB.add_ref (Term.create_fun_term gr_symb []) term_db_ref in
       gr_by_term
     end    
+*)
+
+
+let init_gr_by () = 
+if !answer_mode_ref then 
+  ()
+else	
+		(* max_occ_map maps symbol type into symbol with max occurences in input*)
+  let f_max_sym s max_occ_map = 
+	  if (Symbol.is_constant s)
+		then 
+				match (Symbol.get_stype_args_val s) 
+				with
+				| Def((_arg,stype)) ->
+					begin			
+			try 
+				let max_sym = SMap.find stype max_occ_map in
+				if (Symbol.get_num_input_occur s) > (Symbol.get_num_input_occur max_sym) 
+	        then
+		     let moc_map_rem = SMap.remove stype max_occ_map in 
+				 SMap.add stype s moc_map_rem   
+				else   
+					max_occ_map
+		 with 
+		|  Not_found ->  
+			  SMap.add stype s max_occ_map
+   end
+		 |Undef -> 
+			   (*out_str ("Warning: a constant symbol "^(Symbol.to_string s)^(" does not have a type \n")); *)
+		      max_occ_map
+		else 
+		 max_occ_map
+			in
+    let max_sym_map = SymbolDB.fold f_max_sym !symbol_db_ref SMap.empty in
+    
+  (* from type -> symb to type -> const_term *)
+			
+		let f stype s gr_term_map_curr =
+			let gr_by_term = 
+				  add_fun_term term_db_ref s [] in 
+			 SMap.add stype gr_by_term gr_term_map_curr
+	 in
+	 let gr_term_map = 
+		SMap.fold f max_sym_map SMap.empty in
+    gr_by_map := gr_term_map
+      
+  
 
 let init_solver_exchange () = 
-  gr_by := (get_term_for_grounding ());
-  (* debug*)
- out_str ("Term for grounding_new: "^(Term.to_string !gr_by)^"\n");
-  match !gr_by with 
+  (*gr_by := (get_term_for_grounding ());*)
+	init_gr_by ()
+  (* *)
+	(* debug*)
+	(*
+	let f stype gr_term = 
+		let num_of_occ = 
+			Symbol.get_num_input_occur (Term.get_top_symb gr_term) 
+	 in
+	  out_str ("Term for grounding type"^(Symbol.to_string stype)^" term: "^(Term.to_string gr_term)^" num of occ: "^(string_of_int num_of_occ)^"\n")
+  in
+	 SMap.iter f !gr_by_map
+	*)
+(*  match !gr_by with 
   |Term.Fun(symb,_,_) ->
       out_str ("Number of occ_new: "^( string_of_int (Symbol.get_num_input_occur symb))^"\n")
   |_->()
-
+*)
 
 
 
@@ -503,6 +585,7 @@ let get_prop_key_assign  atom =
     new_key)
     
 
+
 (*  a*)
 let get_prop_gr_key_assign term = 
   try Term.get_prop_gr_key term
@@ -511,11 +594,12 @@ let get_prop_gr_key_assign term =
       try Term.get_grounding term      
       with
 	Term.Term_grounding_undef ->
-	  let new_gr_t = Subst.grounding term_db_ref !gr_by term in 
+	  let new_gr_t = Subst.grounding term_db_ref !gr_by_map term in 
 	  Term.assign_grounding new_gr_t term;
 	  new_gr_t
     in
-    try 
+(*		out_str ("T: "^(Term.to_string term)^(" G ")^(Term.to_string gr_term)^"\n");*)
+		  try 
       let new_key = Term.get_prop_gr_key gr_term in
       Term.assign_prop_gr_key new_key term;
       new_key
@@ -1162,7 +1246,7 @@ let bot_to_var term =
 			let symb_type = Symbol.get_val_type_def symb in
 	    if (symb == Symbol.symb_bot) 
 	    then 
-				(* replace bot by fist var of bot type *)
+				(* replace bot by first var of bot type *)
 	     term_var (Var.get_first_var symb_type)
 	   else
 	  (let new_args = Term.arg_map f args in
@@ -1178,7 +1262,7 @@ let bot_to_var term =
 
 (*  let bound_a_list = List.map (fun a -> (1,a)) a_list in*)
 
-let bound_list b list =  List.map (fun a -> (b,a)) list
+let bound_list b list = List.map (fun a -> (b,a)) list
 let unbound_list list = List.map (fun (_,a) -> a) list
 
 let reduce_answer_bl_list bl bound_a_list =
@@ -1365,6 +1449,10 @@ let rec pp_prop_lit_pair_list ppf = function
       (PropSolver.pp_lit solver) p 
       (PropSolver.pp_lit solver) q; 
     pp_prop_lit_pair_list ppf tl
+
+
+(*--------------------------------------------------------------*)
+
 
 (* adds both versions of the clauses before and after grounding *)
 (* first version is used for simplifications *)
@@ -2693,7 +2781,7 @@ let rec add_var_grounding accum = function
   | v :: tl when List.mem_assoc v accum -> 
     add_var_grounding accum tl 
   | v :: tl -> 
-    add_var_grounding ((v, !gr_by) :: accum) tl 
+    add_var_grounding ((v, (get_gr_by_var v)) :: accum) tl 
       
 
 (* Return list of grounded literals and an association list
@@ -2703,9 +2791,13 @@ let rec ground_literals (gnd_literals, grounding) = function
   | lit :: tl -> 
 
     let grounding' = add_var_grounding grounding (Term.get_vars lit) in
-    
+   (* 
     ground_literals 
-      (Subst.grounding term_db_ref !gr_by lit :: gnd_literals, 
+      ((Subst.grounding term_db_ref !gr_by_map lit) :: gnd_literals, 
+       grounding') 
+			*)
+	ground_literals 
+      ( (TermDB.add_ref (Term.get_grounding_lit lit) term_db_ref) :: gnd_literals, 
        grounding') 
       tl
 

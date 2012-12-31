@@ -358,6 +358,24 @@ let term_list_to_string t_list =
 
 (*-----------------------end to_strings------------------------*)
 
+   
+let create_fun_term symbol term_list = 
+  let fun_info = (empty_fun_info ()) in
+  Fun(symbol,term_list,fun_info)
+
+let create_fun_term_args  =  create_fun_term
+
+
+let create_fun_term_info  symbol term_list fun_info = Fun(symbol,term_list,fun_info)
+
+let is_constant t = 
+  match t with 
+  | Fun(symb,[],_) -> (Symbol.is_constant symb)
+  | _ -> false
+
+
+
+
 let assign_prop_gr_key key term = 
   match term with 
   |Fun(_,_,info) -> info.prop_gr_key <- Def(key)
@@ -368,6 +386,53 @@ let assign_prop_key key term =
   |Fun(_,_,info) -> info.prop_key <- Def(key)
   |_-> failwith "Prop_key can not be assigned to vars" 
 	
+
+
+(*-----------------complementary literal ---------------*)
+
+let get_atom literal =
+  match literal with 
+  | Fun(sym,[t],_) -> 
+      if (sym == Symbol.symb_neg) then t
+      else literal  
+  |_ -> literal
+
+
+let compl_lit literal = 
+  match literal with 
+  | Fun(sym,args,_) -> 
+      if sym == Symbol.symb_neg 
+      then List.hd args 
+      else create_fun_term Symbol.symb_neg [literal]
+  |_-> failwith "term: compl_lit it is not a literal" 
+	
+let is_neg_lit lit = 
+  match lit with 
+  | Fun(s,_,_) -> (s == Symbol.symb_neg)
+  |_-> false
+ 
+let is_complementary l1 l2 =
+  match l1 with 
+  | Fun(sym1,args1,_) -> 
+      if  sym1 == Symbol.symb_neg
+      then 
+	if l2 == (List.hd args1)  
+	then true 
+	else false	    
+      else (*l1 is positive*)
+	(match l2 with 
+	|Fun(sym2,args2,_) -> 
+	    if sym2 == Symbol.symb_neg
+	    then 
+	      if l1 == (List.hd args2)  
+	      then true 
+	      else false	
+	    else false
+	|_ ->  failwith "term: is_compl it is not a literal" 
+	)
+  |_-> failwith "term: is_compl it is not a literal" 
+
+
 
 (*  works but got rid of var_list
 exception Var_list_is_undef
@@ -495,7 +560,18 @@ let get_grounding term =
   |Fun(_,_,{fun_grounded=Def(grounding)}) -> grounding
   |Var(_,{var_grounded=Def(grounding)}) -> grounding
   |_-> raise Term_grounding_undef
-
+	
+(* only atoms get assigned groundings *)
+let get_grounding_lit lit = 
+ if (is_neg_lit lit) 
+  then
+	 let atom = get_atom lit in
+	 let atom_gr = get_grounding atom in
+	  compl_lit atom_gr 
+	else 
+		get_grounding lit
+		
+	 
 (* we assume that all subterms of the term for assingments *)
 (* have everything defined and parameters of the term itself are not!*)
 
@@ -637,21 +713,6 @@ let create_fun_term symbol term_list =
   let ()=fun_info.var_list <- Def(var_list) in  
   Fun(symbol,term_list,fun_info)
  *)
-
-   
-let create_fun_term symbol term_list = 
-  let fun_info = (empty_fun_info ()) in
-  Fun(symbol,term_list,fun_info)
-
-let create_fun_term_args  =  create_fun_term
-
-
-let create_fun_term_info  symbol term_list fun_info = Fun(symbol,term_list,fun_info)
-
-let is_constant t = 
-  match t with 
-  | Fun(symb,[],_) -> (Symbol.is_constant symb)
-  | _ -> false
 
 
 
@@ -831,6 +892,7 @@ let rec replace ~subterm ~byterm t =
   in
   map f t
     
+		
 
 
 (* if the type of the term is the same as type of the argument then replace it *)
@@ -854,42 +916,6 @@ let rec replace ~subterm ~byterm t =
     end
 *)
 
-
-(*-----------------complementary literal ---------------*)
-
-let compl_lit literal = 
-  match literal with 
-  | Fun(sym,args,_) -> 
-      if sym == Symbol.symb_neg 
-      then List.hd args 
-      else create_fun_term Symbol.symb_neg [literal]
-  |_-> failwith "term: compl_lit it is not a literal" 
-	
-let is_neg_lit lit = 
-  match lit with 
-  | Fun(s,_,_) -> (s == Symbol.symb_neg)
-  |_-> false
- 
-let is_complementary l1 l2 =
-  match l1 with 
-  | Fun(sym1,args1,_) -> 
-      if  sym1 == Symbol.symb_neg
-      then 
-	if l2 == (List.hd args1)  
-	then true 
-	else false	    
-      else (*l1 is positive*)
-	(match l2 with 
-	|Fun(sym2,args2,_) -> 
-	    if sym2 == Symbol.symb_neg
-	    then 
-	      if l1 == (List.hd args2)  
-	      then true 
-	      else false	
-	    else false
-	|_ ->  failwith "term: is_compl it is not a literal" 
-	)
-  |_-> failwith "term: is_compl it is not a literal" 
 
 
 (* used in compare_key we assume that var alwyas greater than fun term*)
@@ -939,19 +965,6 @@ let  compare_fast_key (t1:term)(t2:term) =
 let compare = compare_fast_key
 
 
-let is_neg_lit literal = 
-  match literal with 
-  | Fun(sym,_,_) -> 
-      if sym == Symbol.symb_neg then true 
-      else false
-  |_-> false
-	
-let get_atom literal =
-  match literal with 
-  | Fun(sym,[t],_) -> 
-      if (sym == Symbol.symb_neg) then t
-      else literal  
-  |_ -> literal
 
 let apply_to_atom f lit = 
   match lit with 

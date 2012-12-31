@@ -252,8 +252,8 @@ let add t db =
  let get_greatest_key term_db = !size_ref
 
 
-(*common interface*)
-module Common =
+(* interface that can be opend in other modules *)
+module Open =
 	struct 
 	 let add_fun_term term_db_ref symb lits = 
     add_ref (Term.create_fun_term symb lits) term_db_ref

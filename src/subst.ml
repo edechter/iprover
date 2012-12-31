@@ -18,11 +18,16 @@
 
 
 open Lib
+open TermDB.Open
 
 (*  subst.ml *)
-type term  = Term.term
-type var   = Var.var
-
+type term   = Term.term
+type var    = Var.var
+module SMap = Symbol.Map
+(*
+let bot_term = Parser_types.bot_term 
+*)
+	
 type flat_subst = (var*term) list
 
 
@@ -78,7 +83,8 @@ type termDBref = TermDB.termDB ref
 (* returns term in which all varibles in_term are replaced by by_term *)
 (* and adds this term to termDB *)
 (* we assume that  by_term and in_term are in term_db*)
-
+(* non typed version *)
+(*
 let rec replace_vars term_db_ref by_term in_term = 
   if (Term.is_ground in_term) then  in_term
   else
@@ -92,11 +98,36 @@ let rec replace_vars term_db_ref by_term in_term =
 	let new_term = Term.create_fun_term_args sym new_args in
 	TermDB.add_ref new_term term_db_ref 
     |_ -> by_term
+*)
 
 
-let grounding term_db_ref by_term of_term = 
-  let grounded = replace_vars term_db_ref by_term of_term in
-  Term.assign_grounding grounded of_term;
+(*by_term_map maps vtypes -> terms ) *)
+let replace_vars bot_term by_term_map in_term =
+	let f t = 
+   if (Term.is_ground in_term) 
+     then in_term 
+   else
+   begin	
+								match t with 
+		| Term.Var(v,_) -> 
+			let vtype = Var.get_type v in
+			(try  
+			SMap.find vtype by_term_map
+			with Not_found -> 
+				bot_term
+				(* raise Type_of_var_is_not_in_map *)
+			)			 
+		| _-> t 
+  end
+	in	
+		Term.map f in_term		
+
+
+let grounding term_db_ref by_term_map in_term = 
+	let bot_term = add_fun_term term_db_ref Symbol.symb_bot [] in
+  let grounded = 
+		TermDB.add_ref (replace_vars bot_term by_term_map in_term) term_db_ref in	
+  Term.assign_grounding grounded in_term;
   grounded
 
 
