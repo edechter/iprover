@@ -264,7 +264,7 @@ module Hashtbl :
     type 'a t = 'a Hashtbl.Make(Key).t
     val create : int -> 'a t
     val clear : 'a t -> unit
-    val reset : 'a t -> unit
+ (*   val reset : 'a t -> unit *)
     val copy : 'a t -> 'a t
     val add : 'a t -> key -> 'a -> unit
     val remove : 'a t -> key -> unit
@@ -275,7 +275,7 @@ module Hashtbl :
     val iter : (key -> 'a -> unit) -> 'a t -> unit
     val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
     val length : 'a t -> int
-    val stats : 'a t -> Hashtbl.statistics
+(*    val stats : 'a t -> Hashtbl.statistics*)
   end
 
 
