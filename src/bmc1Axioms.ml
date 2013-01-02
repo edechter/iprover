@@ -31,8 +31,13 @@ let invalid_bound_assumptions = ref []
 (* Clauses to be instantiated for each bound *)
 let bound_instantiate_axioms = ref []
 
-(* in state preinstantiation strategy separated next state clauses *)
+(* in next state pre-instantiation strategy separated next state clauses *)
 let next_state_clauses = ref []
+
+(*
+(* in state  pre-instantiation strategy separated state clauses *)
+let state_clauses = ref []
+*)
 
 (* Skolem constants occurring in  [$$reachableState(sK)] clauses *)
 let reach_bound_skolem_constants = ref []

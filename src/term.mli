@@ -173,6 +173,13 @@ val fold_left : ('a -> term -> 'a) -> 'a -> term -> 'a
 (* creates a new term by applying f to all its subterms bottom up including term itsef *)
 val map  : (term -> term) -> term -> term
 
+(* iterates f over term bottom up *)
+val iter : (term -> unit) -> term -> unit
+
+(* check whether there extists a subterm (including term itself) satisfying f *)
+val exists : (term -> bool) -> term -> bool 
+
+
 (*  is_subterm s t = true if  s is a subterm of t using == *)
 val is_subterm : term -> term -> bool 
 

@@ -854,13 +854,34 @@ let rec map f t =
 	  f (create_fun_term sym new_args)
       |v -> f v
    
+	
 
 (* true is s is a subterm of t *)
 let is_subterm s t = 
   fold_left 
     (fun v t -> (v || t == s)) false t
 
-
+let iter f t = 
+	 match t with 
+   |Fun(sym,args,_) -> 
+	    List.iter f args;
+	    f t
+   |v -> f v
+   
+exception Exists
+	
+let exists f t = 
+	let f' s = 
+		if (f s) 
+		 then 
+			 raise Exists
+		else  ()
+  in
+	try
+   iter f' t;
+	 false 
+  with 
+	| Exists -> true 
 
 
 (* fold_sym folds f for all symbols in the term *)
