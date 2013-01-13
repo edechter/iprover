@@ -46,8 +46,8 @@ type termDBref = TermDB.termDB ref
 
 (* replace_vars does not put in new terms in termDB *)
                              (*by_term*) (*in_term*)
-(*replace_vars bot_term by_term_map in_term *)														
-val replace_vars : term -> term Symbol.Map.t -> term -> term 
+(*replace_vars Some(bot_term) by_term_map in_term *)														
+val replace_vars : term option -> term Symbol.Map.t -> term -> term 
 
                              (*by_term*) (*in_term*)
 val grounding    : termDBref -> term Symbol.Map.t -> term -> term 

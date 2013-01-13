@@ -18,6 +18,7 @@ open Lib
 open Options
 open Statistics
 type clause = Clause.clause
+module SMap = Symbol.Map
 
 (* The symbol database *)
 let symbol_db = Parser_types.symbol_db_ref
@@ -34,10 +35,8 @@ let bound_instantiate_axioms = ref []
 (* in next state pre-instantiation strategy separated next state clauses *)
 let next_state_clauses = ref []
 
-(*
 (* in state  pre-instantiation strategy separated state clauses *)
 let state_clauses = ref []
-*)
 
 (* Skolem constants occurring in  [$$reachableState(sK)] clauses *)
 let reach_bound_skolem_constants = ref []
@@ -1211,7 +1210,7 @@ bound *)
 let separate_bound_axioms clauses =
 	List.partition is_bound_clause clauses
 
-(* separte clauses containing $$nextState, used in preinstantiation strategy *)
+(* separte clauses containing $$nextState, used in next state preinstantiation strategy *)
 (* first are the nextState clauses *)
 let separate_next_state_clauses clauses =
 	(* Clause.has_next_state is not assigned at this point so need to explicitely search for next state *)
@@ -1219,6 +1218,30 @@ let separate_next_state_clauses clauses =
 	let has_next_state clause =
 		(List.exists Term.is_next_state_lit (Clause.get_literals clause)) in
 	List.partition has_next_state clauses
+
+(*--------- state pre-instantiation --------------------*)
+(* separate clauses containing state vars for state pre-instantiation *)
+let separate_state_clauses clauses =
+	let is_next_state_var t =
+		match t with
+		| Term.Fun _ -> false
+		| Term.Var (v, _) -> ((Var.get_type v) == Symbol.symb_ver_state_type)
+	in
+	let has_state_var clause =
+		(List.exists (Term.exists is_next_state_var) (Clause.get_literals clause)) in
+	List.partition has_state_var clauses
+
+let pre_instantiate_state_var_clauses bound clauses =
+	let state_term = create_state_term bound in
+	let var_map = SMap.add Symbol.symb_ver_state_type state_term SMap.empty in
+	let f c =
+		let lits = Clause.get_literals c in
+		let new_lits = List.map (Subst.replace_vars None var_map) lits in
+		let new_clause = Clause.create (Clause.normalise_lit_list term_db new_lits) in
+		Clause.assign_tstp_source_instantiation new_clause c [];
+		new_clause
+	in
+	List.map f clauses
 
 (********** Utility functions **********)
 
@@ -1308,6 +1331,8 @@ Does not work at the moment because transitional addresses can occur in
 
 (*let _= out_str "\n!!! Warning: pre_instantiate_next_state_flag add to options!!!\n"*)
 
+
+
 (*-----------------------------------------*)
 (* Axioms for bound 0 *)
 (*-----------------------------------------*)
@@ -1325,6 +1350,14 @@ let init_bound all_clauses =
 				cl_rest
 			)
 		else
+		if !current_options.bmc1_pre_inst_state (* !current_options.bmc1_pre_inst_state *)
+		then
+			(
+				let cl_next_state, cl_rest = separate_state_clauses clauses' in
+				state_clauses:= cl_next_state;
+				(pre_instantiate_state_var_clauses 0 !state_clauses) @ cl_rest
+			)
+		else
 			clauses'
 	in
 	let clauses =
@@ -1340,7 +1373,7 @@ let init_bound all_clauses =
 			no_reach
 		(*      separate_reachable_state_clauses clauses'' *)
 		else
-			clauses''
+					clauses''
 	in
 	(* Create reachable states axiom for next bound *)
 	let reachable_state_axioms =
@@ -1451,7 +1484,7 @@ let increment_bound cur_bound next_bound simulate =
 	*)
 	
 	(* Create literals for current bound up to next bound,
-	i.e. $$iProver_bound {b_cur },...,$$iProver_bound { b_next - 1 } *)
+	i.e. $$iProver_bound { b_cur },...,$$iProver_bound { b_next - 1 } *)
 	let bound_literals_cur_to_next =
 		List.map
 			create_compl_lit
@@ -1470,7 +1503,13 @@ let increment_bound cur_bound next_bound simulate =
 		else
 			create_path_axioms [] cur_bound next_bound
 	in
-	
+	let pre_inst_state_causes = 
+		 if !current_options.bmc1_pre_inst_state
+	  then
+		 (pre_instantiate_state_var_clauses next_bound !state_clauses)
+	else
+		 []
+		in
 	(* Create reachable states axiom for next bound *)
 	let reachable_state_axioms =
 		if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
@@ -1548,7 +1587,8 @@ let increment_bound cur_bound next_bound simulate =
 		reachable_state_axioms @
 		path_axioms @
 		clock_axioms @
-		bound_axioms_instantiated
+		bound_axioms_instantiated @
+		pre_inst_state_causes
 	in
 	
 	(* Output only in verbose mode *)

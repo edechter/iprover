@@ -101,8 +101,10 @@ let rec replace_vars term_db_ref by_term in_term =
 *)
 
 
-(*by_term_map maps vtypes -> terms ) *)
-let replace_vars bot_term by_term_map in_term =
+(* by_term_map: maps vtypes -> terms ) *)
+(* if there is no term in by_term_map then and default_term_opt = Some(default_term) then use default_term *)
+(* if default term is None then do not instantiate this var *)
+let replace_vars default_term_opt by_term_map in_term =
 	let f t = 
    if (Term.is_ground in_term) 
      then in_term 
@@ -114,7 +116,9 @@ let replace_vars bot_term by_term_map in_term =
 			(try  
 			SMap.find vtype by_term_map
 			with Not_found -> 
-				bot_term
+				match default_term_opt with 
+				| Some default_term -> default_term
+				| None -> t
 				(* raise Type_of_var_is_not_in_map *)
 			)			 
 		| _-> t 
@@ -126,7 +130,7 @@ let replace_vars bot_term by_term_map in_term =
 let grounding term_db_ref by_term_map in_term = 
 	let bot_term = add_fun_term term_db_ref Symbol.symb_bot [] in
   let grounded = 
-		TermDB.add_ref (replace_vars bot_term by_term_map in_term) term_db_ref in	
+		TermDB.add_ref (replace_vars (Some(bot_term)) by_term_map in_term) term_db_ref in	
   Term.assign_grounding grounded in_term;
   grounded
 
