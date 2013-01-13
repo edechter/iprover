@@ -974,11 +974,11 @@ let bmc1_bounds = ref []
 *)
              let simplified_given_clause 
 	       = simplify_given_clause  given_clause in
-(*
+
 	     out_str("\n--------------------------\n");
              out_str ("\n Simpl Given Clause: "
                      ^(Clause.to_string simplified_given_clause)^"\n");
-*)
+
 (*
 	     out_str ("Min def symb depth: "
 		      ^(param_to_string string_of_int 
@@ -1051,10 +1051,10 @@ let bmc1_bounds = ref []
 
 	(* out_str_debug (model_sel_to_string solver); *)
 	
-(*
+
 	   out_str ("Sel in Given: "^ 
 			  (Term.to_string (Clause.get_inst_sel_lit simplified_given_clause)^"\n"));
-*)
+
 
 (*  out_str("Clauses in DB: "^(string_of_int (ClauseAssignDB.size !clause_db_ref))^"\n");*)
 (*Debug*)

@@ -86,7 +86,7 @@ let check_types (_b,t) (_b,s) =
   then ()
   else
 		(
-		out_str ("Unif faild: term: "^(Term.to_string t)^" type: "^(Symbol.to_string t_type)^" term "^(Term.to_string s)^(" type ")^(Symbol.to_string s_type)^"\n");
+		out_str ("Warning: Unif faild for term: "^(Term.to_string t)^" type: "^(Symbol.to_string t_type)^" term "^(Term.to_string s)^(" type ")^(Symbol.to_string s_type)^"\n");
 	raise Unification_failed
 	)
 	
