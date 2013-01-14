@@ -225,7 +225,7 @@ let rec unify_eq_stack (env : bound_subst) eq_stack =
 						end
 
 let unify_bterms bt bs =
-	let eq_stack = [(bt, bs)] in
+	let eq_stack = [(bt, bs)] in	
 	unify_eq_stack (SubstBound.create ()) eq_stack
 
 (*---------Not tested-------------------------------*)

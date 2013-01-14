@@ -124,6 +124,7 @@ val  propagate_binding_to_list :  ('a list) bind -> ('a bind) list
 
 val apply_to_bounded : ('a -> 'b) -> 'a bind -> 'b bind
 
+val binded_to_string  : ('a -> string) -> 'a bind ->  string
 
 (* lexicographic comparison of pairs*)
 val pair_compare_lex : ('a -> 'a -> int)-> ('b -> 'b -> int) -> 'a*'b ->'a*'b -> int

@@ -470,10 +470,11 @@ let instantiation_norm_dc
       then    
 	let f rest clause =
 (*debug*)
-(*	out_str_debug  ("Side Clause:"^(Clause.to_string clause)^"\n"
+(*	out_str ("Side Clause:"^(Clause.to_string clause)^"\n"
 			^"Constr: "^(dismatching_string clause)^"\n" 
-   			^"Sel Lit: "^(Term.to_string l2)^"\n");*)
-	  let (inst_clause,subst_norm) = 
+   			^"Sel Lit: "^(Term.to_string l2)^"\n");
+*)
+		  let (inst_clause,subst_norm) = 
 	    Clause.apply_bsubst_norm_subst term_db_ref mgu 2 clause 
 	  in
 	  if (ClauseAssignDB.mem inst_clause !clause_db_ref)
@@ -482,8 +483,8 @@ let instantiation_norm_dc
 (* adding dism. constraint is essential for correct model representation!*)
 	     add_to_dism_constr subst_norm clause;   
 	     incr_int_stat 1 inst_num_of_duplicates;
-
-(*	     out_str_debug ("Side Clause is already In DB, prop inst: \n"
+(*
+	     out_str ("Side Clause is already In DB, prop inst: \n"
 			    ^"Old:-----------------------\n "
 			    ^(Clause.to_string clause)^"\n"
                             ^(Clause.to_string inst_clause)^"\n"
@@ -547,7 +548,7 @@ let instantiation_norm_dc
     if  (!list2_concl_redundant) 
      then
       (
-   (*    out_str "Side Conclusions are all redundant !\n "; *)
+     (*  out_str "Side Conclusions are all redundant !\n "; *)
        Clause.assign_dismatching main_old_dismatching_c1 c1;
        [])
       else 
@@ -574,15 +575,16 @@ let instantiation_norm_dc
 	)
 
     in
-(*   out_str
+ (*  out_str
       ("\n Conclusions:\n"^(Clause.clause_list_to_string concl_list)^"\n"
        ^"------------------------------------------------\n");
 *)
     concl_list
   with 
     Main_concl_redundant -> 
-(*      out_str_debug 
-	(" ---------Main_concl_redundant ----------\n");*)
+(* out_str 
+	(" ---------Main_concl_redundant ----------\n");
+*)
       []	      
 
 (*-------------------------------------------------------------------*)

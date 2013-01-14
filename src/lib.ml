@@ -409,6 +409,8 @@ let propagate_binding_to_list blist =
 	
 let apply_to_bounded f (b,e) = (b,f e)
 
+let binded_to_string  el_to_string (b,e) = ("("^(string_of_int b)^","^(el_to_string e)^")")
+
 (* bool operations *)
 let bool_plus x y = ((x&& (not y)) || ((not x)&& y))
 
