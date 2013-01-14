@@ -2722,13 +2722,15 @@ let check_options_consistency () =
   else ()
 	);
 	(
- if (!current_options.bmc1_pre_inst_state) 
- then 
-   if (not !current_options.bmc1_pre_inst_next_state) 
+ if (!current_options.bmc1_pre_inst_state) && (not !current_options.bmc1_pre_inst_next_state) 
    then 
-		 failwith "when \"--bmc1_pre_inst_state true\" then  --bmc1_pre_inst_next_state also should be true"
-				else ()
-				else ()
+		 failwith "if \"--bmc1_pre_inst_state true\" then  --bmc1_pre_inst_next_state also should be true"
+	else ()	
+	);
+  (
+	if (!current_options.sat_finite_models && (not !current_options.sat_mode))
+	then 
+		failwith "if --sat_finite_model true then --sat_mode should be also true"		
 	)
 				
 let () = read_args();

@@ -1238,7 +1238,15 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
   then
     failwith "No solver is selected: see --instantiation_flag, --resolution_flag"
   else
-    try    
+    try
+	  if (!current_options.sat_mode && !current_options.sat_finite_models)
+	  then
+	    (* we use input clauses rather than clauses + eq axioms*)
+			(* schedule is ignored for pure finite_model_finder *)
+	    finite_models finite_model_clauses
+	  else
+	    (* usual mode *)
+   begin			    
       match !current_options.schedule with 
 	|Schedule_default           -> 
 	  sched_run (default_schedule ())
@@ -1247,20 +1255,14 @@ let rec main clauses finite_model_clauses filtered_out_clauses =
 	|Schedule_verification_epr_tables  -> 
 	  sched_run (verification_epr_schedule_tables ())
 	|Schedule_none              ->
-	  if (!current_options.sat_mode && !current_options.sat_finite_models)
-	  then
-	    (* we use input clauses rather than clauses + eq axioms*)
-	    finite_models finite_model_clauses
-	  else
-	    (* usual mode *)
 	    let prover_functions_ref = 
 	      ref (create_provers "Inst" "Res" clauses) in
-	    full_loop prover_functions_ref clauses
-	      
+	    full_loop prover_functions_ref clauses	      
 	| Schedule_sat -> 
 	  sched_run (sat_schedule ())
-	    
-    (*  
+	 end   
+  
+ (*  
 
 	(if !current_options.schedule then 
 	(
