@@ -517,11 +517,11 @@ let finite_models clauses =
   let model_bound = 500 in
   out_str (pref_str^"Finite Models:\n");
   let prep_clauses = Preprocess.preprocess clauses in
-(*
-  out_str ("\n\n DEBUG \n\n");
+
+(*  out_str ("\n\n DEBUG \n\n");
   out_str ("\n\n"^pref_str^"Finite Model on Clauses:\n");
   Clause.out_clause_list_tptp prep_clauses; 
-*)
+	*)
 
 (*  Finite_models.flat_signature ();*)
 
@@ -763,7 +763,7 @@ let eq_axioms_are_omitted = ref false
 
 let omit_eq_axioms () =
   !current_options.large_theory_mode &&
-    (Symbol.is_essential_input Symbol.symb_equality) &&
+    (Symbol.is_essential_input Symbol.symb_typed_equality) &&
     (is_large_theory ()) && 
     (get_val_stat num_of_input_neg_conjectures > 0) &&
     (not (List.exists 
@@ -1910,10 +1910,18 @@ let run_iprover () =
 	  mem_test test_fun 5; 
     *)
     (*--Uncomment-------*)
-    
-    assign_float_stat (get_time_fun 3 ParseFiles.parse) parsing_time;
 
-    (if !current_options.clausify_out
+		(* we need to switch off type checking during parsing since vars are retyped during parsing *)
+(* restore after parsing *)
+    let input_symbol_type_check = !current_options.symbol_type_check in
+		!current_options.symbol_type_check <- false;
+  
+ (* parsing *)			    
+    assign_float_stat (get_time_fun 3 ParseFiles.parse) parsing_time;
+	
+  	!current_options.symbol_type_check <- input_symbol_type_check;
+  			    
+		  (if !current_options.clausify_out
      then  
 	(
 	  let clause_list = Parser_types.get_clauses_without_extra_axioms () in
@@ -1931,12 +1939,13 @@ let run_iprover () =
 
     
     (*-----------check types of symbols---------------*)
-    (if !current_options.symbol_type_check 
+ (* old check
+ 		   (if !current_options.symbol_type_check 
      then 
 	symb_type_check () 
      else ()
     );
-
+*)
     (*---- We need to Calculate has_conj_symb/has_non_prolific_conj_symb ----------*)
     (* not very good but should work *)
 

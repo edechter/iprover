@@ -384,7 +384,7 @@ let get_sym_group_compressed_features clause=
     then is_neg:=true 
     else is_neg:=false);      
     let f_sym depth sym = 
-      if (Symbol.symb_neg == sym) || (Symbol.symb_equality == sym)
+      if (Symbol.symb_neg == sym) || (Symbol.symb_typed_equality == sym)
       then () (* do not take into account equality or neg symbol *)
       else 
 	(let sym_group = Symbol.get_group sym in

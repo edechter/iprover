@@ -246,6 +246,8 @@ let get_stype_args_val_def symb =
 let get_val_type_def sym =
   let _arg_types, val_type = get_stype_args_val_def sym in 
   val_type
+	
+	
 
 
 let assign_stype s stype = 
@@ -299,6 +301,7 @@ let create_less_symb (stype:stype) i    =
 
 (* type for all types *)
 (* variables of this type unifiable with any other type *)
+(* it is a supertype (other types are incomparable) *)
 let symb_type_types = 
   {empty_symb  with
    name          = "$tType"; 
@@ -306,6 +309,16 @@ let symb_type_types =
    is_skolem     = Def(false);
    sproperty     = Type;
  }
+
+(* $$tBot is a subtype of any type; bot symb is of this type  *)
+let symb_bot_type = 
+  {empty_symb  with
+   name          = "$$tBot"; 
+   arity         = Def(0);
+   is_skolem     = Def(false);
+   sproperty     = Type;
+ }
+
 
 (* can be as constants in typed equality *)
 let symb_type_template = 
@@ -327,6 +340,11 @@ let symb_default_type =
    name      = "$i"; 
  }
     
+let symb_term_algebra_type = 
+	{symb_type_template with
+	name = "$$term_algebra_type";
+	}
+			
 (*---------types used in verification at Intel------*)
 (* since these symbols are  not defined in TPTP we use $$, to be consistent with current Zurab output $$ is omitted *)
 
@@ -363,8 +381,10 @@ let create_type_symb_from_str
 let defined_types = 
 [
  symb_type_types;
+ symb_bot_type;
  symb_bool_type; 
  symb_default_type; 
+ symb_term_algebra_type;
  symb_ver_state_type;
  symb_ver_address_type;
  symb_ver_bit_index_type;
@@ -467,12 +487,15 @@ let symb_false =
    is_skolem = Def(false);
 }
 
+(* only typed equality remains; for untyped use $i type or $tType for the top type *)
+(*
 let symb_equality =
   {theory_symbol_template with 
    name      = "="; 
    arity     = Def(2); 
    stype     = create_stype [symb_type_types;symb_type_types] symb_bool_type;
 }
+*)
 
 (* typed equality:  $equality_sorted(type_name,t_1,t2) *)
 let symb_typed_equality =
@@ -532,10 +555,11 @@ let symb_unaryminus =
    stype     = create_stype [symb_type_types] symb_type_types;
  }
 
-
+(* old *)
 (* sometimes equality is defined in terms of some theory equality                      *)
 (* for example in model_inst equality can be defined in terms of term algebra equality *)
 (* in this case to avoid the clash the defined equality is renamed to iProver_=        *)
+(* now this is done via defining a type and typed equality
 let symb_iprover_eq =
   {empty_sig_symb with 
    name      = "$$iProver_="; 
@@ -544,6 +568,7 @@ let symb_iprover_eq =
    sproperty = Theory;   
    is_skolem = Def(false);
  }
+*)
 
 (*---------change later (variadic)-------------*)
 let symb_answer =
@@ -558,6 +583,7 @@ let symb_answer =
 }  
 
 
+(*
 let symb_iprover_sorted_eq =
   {empty_sig_symb with 
    name      = "$$iProver_sorted_equality"; 
@@ -566,7 +592,7 @@ let symb_iprover_sorted_eq =
    sproperty = Theory;   
    is_skolem = Def(false);
  }
-
+*)
 
 let symb_distinct =
   {theory_symbol_template with 
@@ -580,7 +606,7 @@ let symb_bot =
   {theory_symbol_template with 
    name      = "$$iProver_bot"; 
    arity     = Def(0); 
-   stype     = create_stype [] symb_type_types;
+   stype     = create_stype [] symb_bot_type;
 }
 
 
@@ -607,7 +633,7 @@ defined_types@
    symb_exists;
    symb_true;  
    symb_false; 
-   symb_equality;
+ (*  symb_equality;*)
    symb_typed_equality;
    symb_ver_next_state;
    symb_ver_reachable_state;
@@ -617,8 +643,8 @@ defined_types@
    symb_unaryminus;
    symb_distinct;
    symb_bot;
-   symb_iprover_eq; 
-   symb_iprover_sorted_eq;
+  (* symb_iprover_eq; *)
+  (* symb_iprover_sorted_eq;*)
    symb_top;       
    symb_answer
  ]
@@ -680,8 +706,9 @@ let create_from_str_type_property ?is_sig:(is_sig=true) (str:string) (stype:styp
 let get_num_input_occur s = s.num_input_occur
 let incr_num_input_occur s = s.num_input_occur <- s.num_input_occur +1
 
-
-
+(** t is a subtype of s; currently all types are incoparable except symb_type_types being a supertype of all types *)
+let is_subtype t s = 
+	t == s || s == symb_type_types || t == symb_bot_type	
 
 let assign_group s group = 
  match s.group with 

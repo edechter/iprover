@@ -17,12 +17,14 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 open Lib
 open Options
 
+module VSet = Var.VSet
+
 type var = Var.var
 type symbol = Symbol.symbol
 type fast_key = int param
 type prop_key = TableArray.key
 (*association list for counting the number of occurences of vars in a term*)
-type var_list = var num_ass_list
+type var_ass_list = var num_ass_list
 
 type fun_term_bool_param = int
 
@@ -221,9 +223,9 @@ let rec pp_term_tptp ppf = function
 				"%a != %a"
 				pp_term_tptp l
 				pp_term_tptp r
-	
+	(*
 	(* Negated untyped equation as != *)
-	| Fun (s, [Fun(t, [l; r], _)], _)
+	| Fun (s, [Fun(t, [eq_type;l; r], _)], _)
 	when s == Symbol.symb_neg &&
 	t == Symbol.symb_equality ->
 			Format.fprintf
@@ -231,6 +233,7 @@ let rec pp_term_tptp ppf = function
 				"%a != %a"
 				pp_term_tptp l
 				pp_term_tptp r
+	*)
 	
 	(* Negation as ~P without parentheses *)
 	| Fun (s, [arg], _) when s == Symbol.symb_neg ->
@@ -337,9 +340,47 @@ list_to_string to_string t_list ";"
 *)
 
 (*-----------------------end to_strings------------------------*)
+(* type_check checks that val types of termlist respects types of symb *)
+(* type_check is used for debugging *)
+
+
+let get_term_type t =
+	match t with
+	| Fun(symb, _args, _inf) -> Symbol.get_val_type_def symb
+	| Var(v, _) ->	Var.get_type v
+
+let type_check symb termlist = 
+	match (Symbol.get_stype_args_val symb) with 
+	| Def((sym_arg_types,_val_type)) -> 
+   let f symb_arg_type arg = 
+		let arg_type = get_term_type arg in  
+		if (Symbol.is_subtype arg_type symb_arg_type)
+		then ()
+		else 
+			failwith 
+			("term: type_check failed, symbol "
+			^(Symbol.to_string symb)^" has an arg with type "^(Symbol.to_string symb_arg_type)
+			^" which is not a supertype of substituted term "^(to_string arg)^" of type "^(Symbol.to_string arg_type) 
+			)
+			in 
+			(
+			try
+				List.iter2 f sym_arg_types termlist
+			with  
+			|Invalid_argument _ ->
+				failwith ("term: type_check failed, symbol "^(Symbol.to_string symb)
+				^" has arity "^(string_of_int (List.length sym_arg_types))
+				^" but the list of substituted arguments "^(term_list_to_string termlist)^" has length "^(string_of_int (List.length termlist)))
+				)
+	| Undef -> ()
+
+
 
 let create_fun_term symbol term_list =
 	let fun_info = (empty_fun_info ()) in
+	(if !current_options.symbol_type_check 
+	then type_check symbol term_list
+   );
 	Fun(symbol, term_list, fun_info)
 
 let create_fun_term_args = create_fun_term
@@ -424,6 +465,7 @@ let get_var var_term =
 	| Var(v, _) -> v
 	| _ -> failwith "term: get_var not a Var term"
 
+(*
 (* Get variables in term recursively *)
 let rec get_vars' accum = function
 	
@@ -441,14 +483,28 @@ let rec get_vars' accum = function
 
 (* Get all variables occurring in term *)
 let get_vars term = get_vars' [] [term]
+*)
 
 (* not efficient*)
-let rec get_var_list term =
+let rec get_var_ass_list term =
 	match term with
 	| Fun(_, args, _) ->
-			let f rest term = append_ass_list (+) (get_var_list term) rest in
+			let f rest term = append_ass_list (+) (get_var_ass_list term) rest in
 			List.fold_left f [] args
 	| Var(v, _) -> [(v,1)]
+
+
+let rec add_var_set vset term = 
+	match term with
+	| Fun(_, args, _) ->
+		List.fold_left add_var_set vset args
+	| Var (v, _) -> 			
+			VSet.add v vset
+  
+let get_vars t = 
+	let vset = add_var_set (VSet.empty) t in
+	VSet.elements vset
+
 
 (*e.g. has_conj_symb, has_bound_constant *)
 let get_fun_term_bool_param bool_param t =
@@ -477,11 +533,6 @@ let get_num_of_symb_term_list term_list =
 let get_num_of_var_term_list term_list =
 	let f rest term = rest + (get_num_of_var term) in
 	List.fold_left f 0 term_list
-
-let get_term_type t =
-	match t with
-	| Fun(symb, _args, _inf) -> Symbol.get_val_type_def symb
-	| Var(v, _) ->	Var.get_type v
 
 (*
 let get_has_conj_symb_term_list term_list =

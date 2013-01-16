@@ -598,7 +598,7 @@ let get_prop_gr_key_assign term =
 	  Term.assign_grounding new_gr_t term;
 	  new_gr_t
     in
-		(*out_str ("T: "^(Term.to_string term)^(" G ")^(Term.to_string gr_term)^"\n");*)
+(*		out_str ("T: "^(Term.to_string term)^(" G ")^(Term.to_string gr_term)^"\n");*)
 		  try 
       let new_key = Term.get_prop_gr_key gr_term in
       Term.assign_prop_gr_key new_key term;

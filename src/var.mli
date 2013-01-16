@@ -44,6 +44,24 @@ val hash           : var -> int
 (* val index          : var -> int *)
 
 
+(*--------------------------*)
+
+(* map from types to the max used variable of this type *)	
+
+type fresh_vars_env
+
+val init_fresh_vars_env : unit -> fresh_vars_env
+
+(* initialises fresh vars away from variables in var_list, so next vars will be always away from the list *)
+
+val init_fresh_vars_env_away : var list -> fresh_vars_env
+
+(* creates new var of vtype in the fresh_vars_env, and declares it as used : by exteding the env with it *)	
+				
+val get_next_fresh_var : fresh_vars_env -> symbol -> var
+
+(*---------------*)
+
 val to_stream      : 'a string_stream -> var -> unit
 val out            : var -> unit
 
@@ -215,16 +233,5 @@ module BSet :
   end
 
 
-(*--------------------------*)
-
-(* map from types to next un-used variable of this type *)	
-
-type fresh_vars_env
-
-val init_fresh_vars_env : unit -> fresh_vars_env
-
-(* creates new var of vtype in the fresh_vars_env, and declares it as used : by exteding the env with it *)	
-		
-val get_next_fresh_var : fresh_vars_env -> symbol -> var
 
 

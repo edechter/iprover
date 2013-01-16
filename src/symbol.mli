@@ -54,6 +54,8 @@ type sproperty =
 val symb_bool_type         : symbol
 val symb_default_type      : symbol
 val symb_type_types        : symbol
+val symb_bot_type          : symbol
+val symb_term_algebra_type : symbol
 val symb_ver_state_type     : symbol
 val symb_ver_address_type   : symbol
 val symb_ver_bit_index_type : symbol
@@ -66,7 +68,7 @@ val symb_exists            : symbol
 val symb_neg               : symbol
 val symb_true              : symbol
 val symb_false             : symbol
-val symb_equality          : symbol
+(*val symb_equality          : symbol*)
 val symb_typed_equality    : symbol
 val symb_ver_next_state    : symbol
 val symb_ver_reachable_state : symbol
@@ -75,8 +77,7 @@ val symb_plus              : symbol
 val symb_product           : symbol
 val symb_minus             : symbol
 val symb_unaryminus        : symbol
-val symb_iprover_eq        : symbol
-val symb_iprover_sorted_eq : symbol
+(*val symb_iprover_eq        : symbol*)
 val symb_distinct          : symbol
 val symb_bot               : symbol
 val symb_top               : symbol
@@ -230,6 +231,10 @@ val is_a_state_pred_symb   : symbol -> bool
 val is_a_memory_pred_symb  : symbol -> bool
 val is_a_bitvec_pred_symb  : symbol -> bool
 (*module type TMap = SMap*)
+
+(** t is a subtype of s; currently all types are incoparable except symb_type_types being a supertype of all types *)
+
+val is_subtype : symbol -> symbol -> bool
 
 module Key :
   sig

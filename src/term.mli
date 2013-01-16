@@ -27,7 +27,7 @@ type var_info
 
 
 (*association list for counting the number of occurences of vars in a term*)
-type var_list = var num_ass_list
+type var_ass_list = var num_ass_list
 
 type term =
    Fun of symbol * args * fun_info
@@ -55,10 +55,16 @@ val get_num_of_var        : term -> int
 (* assume that term is a Var term*)
 val get_var               : term -> var
 
+
+(* association list of (vars, num_of_occ) *)
+val get_var_ass_list          : term -> var_ass_list  
+
+(* adds all vars of the term to the set *)
+val add_var_set : Var.VSet.t -> term -> Var.VSet.t
+
 (** Return the list of variables occurring in the term *)
 val get_vars : term -> var list 
 
-val get_var_list          : term -> var_list  
 
 (* bool params *)
 type fun_term_bool_param 

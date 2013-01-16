@@ -16,7 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
-open Simple_interface
+open Logic_interface
 
 let addr_split_size = 10
 
@@ -32,6 +32,10 @@ let term_db_ref = Parser_types.term_db_ref
 let symbol_db_ref = Parser_types.symbol_db_ref
 
 type raw_model = all_clauses
+
+let add_fun_term symb args = 
+    TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
+
 
 (* model node consists of a normalised literal, list of clauses  *)
 (* where this literal is selected normalised w.r.t. the literal  *)
@@ -344,7 +348,7 @@ let rec normalise_term_var' renaming_env bound var_list_ref term =
 					var_list_ref := (new_var)::(!var_list_ref)
 				else ()
 			);
-			add_var_term term_db_ref new_var
+			add_var_term new_var
 
 (* takes an atom A(t0,..,tn) and makes  A(x_0,x_1,..,x_n)                     *)
 (* renaming_env is a renaming from old varibles into new                      *)
@@ -374,7 +378,8 @@ let rec flatten_args
 						)
 						else
 						(
-					ignore (SubstBound.find_renaming renaming_env (b_flat,v));						
+					 let next_var = (SubstBound.find_renaming renaming_env (b_flat,v)) in
+				   x_var_list_ref := next_var:: (!x_var_list_ref)				
 						)
 				| Term.Fun _ ->
             (
@@ -456,19 +461,22 @@ let extend_model clause model =
 				
 			let var_term_list = List.map Term.create_var_term !x_var_list_ref in
 		(*  let var_term_list = !x_var_list_ref in *)
-			let new_flat_atom =
+	(*
+					let new_flat_atom =
 				(* if the symbol is equality it is replaced by symb_iprover_eq in order to avoid clash *)
 				(* with "=" in formulas which is interpreted over the term algebra                     *)
 				(* we do not change the symbol in normalised clauses since they do not participate in the definition *)
-				let new_flat_sym =
-					if (sym == Symbol.symb_equality)
+					if (sym == Symbol.symb_typed_equality)
 					then
-						Symbol.symb_iprover_eq
+					( 
+						add_fun_term sym var_term_list			
+						)		
 					else
-						sym
-				in
-				TermDB.add_ref (Term.create_fun_term new_flat_sym var_term_list) term_db_ref in
-			let new_compl_flat_atom = TermDB.add_ref (Term.compl_lit new_flat_atom) term_db_ref in
+						add_fun_term sym var_term_list 
+					in
+					*)
+		  let new_flat_atom = add_fun_term sym var_term_list in
+			let new_compl_flat_atom = add_compl_lit new_flat_atom in
 			let (new_flat_lit, new_compl_flat_lit) =
 				if (is_neg_lit)
 				then
@@ -1150,8 +1158,8 @@ let to_stream_model s opt model =
 					model_pref_str^"Predicates are defined as (\\forall x_1,..,x_n  ((~)P(x_1,..,x_n) "^(def_type_to_con_str def_type)^" (\\phi(x_1,..,x_n)))) \n"^
 					model_pref_str^"where \\phi is a formula over the term algebra.\n"^
 					model_pref_str^"If we have equality in the problem then it is also defined as a predicate above, \n"^
-					model_pref_str^"to avoid the clash with \"=\" in the denfitions (interpreted over the term algebra) it is renamed to "
-					^(Symbol.to_string Symbol.symb_iprover_eq)^"\n"^
+					model_pref_str^"with \"=\" on the right-hand-side of the definition interpreted over the term algebra "
+					^(Symbol.to_string Symbol.symb_term_algebra_type)^"\n"^
 					model_pref_str^"See help for --sat_out_model for different model outputs.\n"^
 					model_pref_str^"equality_sorted(X0,X1,X2) can be used in the place of usual \"=\"\n"^
 					model_pref_str^"where the first argument stands for the sort ($i in the unsorted case)\n");

@@ -111,11 +111,40 @@ type bvar_set = BSet.t
 
 module SMap = Symbol.Map
  
-(* map from types to next un-used variable of this type *)	
+(* map from types to max used variable of this type *)	
 type fresh_vars_env = (var SMap.t) ref
 
-let init_fresh_vars_env () = ref Symbol.Map.empty
+let init_fresh_vars_env () = ref SMap.empty
 
+(* initialises fresh vars away from variables in var_list, so next vars will be always away from the list *)
+let init_fresh_vars_env_away var_list = 
+	let fresh_vars_env = init_fresh_vars_env () in 
+	let f v  = 
+    begin
+			let v_val = get_var_val v in 
+			let vtype = get_type v in
+		try
+			let max_used_var = SMap.find vtype !fresh_vars_env in
+			if (v_val > (get_var_val max_used_var)) 
+			then				
+				(
+				fresh_vars_env := 
+					 SMap.add 
+					vtype 
+					v 
+					!fresh_vars_env
+          )
+						else
+				() 
+	with
+		| Not_found ->
+			(	fresh_vars_env := SMap.add vtype v !fresh_vars_env)
+    end
+		in	
+	List.iter f var_list;
+	fresh_vars_env
+
+		
 
 (* creates new var of vtype in the fresh_vars_env, and declares it as used : by exteding the env with it *)	
 		

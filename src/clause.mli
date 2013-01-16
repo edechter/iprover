@@ -18,7 +18,7 @@
 
 open Lib
 
-
+type var           = Var.var
 type literal       = Term.literal
 type term          = Term.term
 type symbol        = Symbol.symbol
@@ -154,6 +154,11 @@ val length                      : clause -> int
 
 (* can be used in e.g. resolution loops for calculating age*)
 val when_born                   : clause -> int
+
+(* adds all vars of the clause to the set *)
+val add_var_set : Var.VSet.t -> clause -> Var.VSet.t
+
+val get_var_list: clause -> var list 
 
 (*-------------------assignments------------------*)
 

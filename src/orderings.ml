@@ -123,7 +123,7 @@ let rec general_kbo'
     try 
       let new_exception_vars = 
 	compare_vars exception_vars 
-	  (Term.get_var_list t) (Term.get_var_list s) in   	          
+	  (Term.get_var_ass_list t) (Term.get_var_ass_list s) in   	          
       if weight_cmp > cequal 
       then cequal+1 
       else

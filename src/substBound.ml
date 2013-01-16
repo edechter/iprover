@@ -104,7 +104,7 @@ type renaming_env =
 	{
 		(* map from types to next un-used variable of this type *)
 		mutable ren_max_used_vars : Var.fresh_vars_env;
-		(* map from bvars -> var terms *)
+		(* map from bvars -> var  *)
 		mutable ren_map : (var VBMap.t);
 		(*mutable ren_term_db_ref : TermDB.termDB ref;*)
 	}
@@ -140,6 +140,8 @@ let find_renaming renaming_env b_v =
 let in_renaming renaming_env bv =
     VBMap.mem bv renaming_env.ren_map 
 
+
+(*-----------------------*)
 let rec apply_bsubst_bterm'
 		term_db_ref renaming_env bsubst bterm =
 	let (b_t, term) = bterm in

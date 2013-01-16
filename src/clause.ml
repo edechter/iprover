@@ -16,6 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
+module VSet = Var.VSet
 
 type var = Var.var
 type bound_var = Var.bound_var
@@ -645,6 +646,15 @@ let has_eq_lit c =
 	else
 	if (exists Term.is_eq_lit c) then true
 	else false
+	
+(*----------*)
+let rec add_var_set vset cl = 
+	List.fold_left Term.add_var_set vset (get_literals cl) 
+	
+let get_var_list cl = 
+	let vset = add_var_set (VSet.empty) cl in
+	VSet.elements vset
+	
 
 (*
 let inherit_history from_c to_c =

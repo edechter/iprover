@@ -303,9 +303,9 @@ let rec add_term_def_table t =
 let b_orig = 0
 let b_fresh = 1 (* bound for making vars fresh *)
 
-let rec term_flattening_env renaming_env var_env term =
+let rec term_flattening_env fresh_vars_env var_env term =
 	match term with
-	| Term.Var _ -> ()
+	| Term.Var (v, _) -> () (*add_var_term (SubstBound.find_renaming renaming_env (b_orig,v))*)
 	| Term.Fun (symb, args, _) ->
 			if (TermHash.mem var_env term)
 			then ()
@@ -331,27 +331,28 @@ let rec term_flattening_env renaming_env var_env term =
 									else
 										args
 								in
-								Term.arg_iter (term_flattening_env renaming_env var_env) relevant_args)
+								Term.arg_iter (term_flattening_env fresh_vars_env var_env) relevant_args)
 					);
 					if (Symbol.is_fun symb)
 					&& (to_flat_symb_test symb)
 					then
 						(
 							(* max_var_ref:= Var.get_next_var !max_var_ref; *)
-							let new_var = SubstBound.get_next_unused_var renaming_env (Symbol.get_val_type_def symb) in
-							let new_var_term = add_var_term new_var in
-							TermHash.add var_env term new_var_term
+							(*let new_var = SubstBound.get_next_unused_var renaming_env (Symbol.get_val_type_def symb) in*)
+							let fresh_var = Var.get_next_fresh_var fresh_vars_env  (Symbol.get_val_type_def symb) in
+							let fresh_var_term = add_var_term fresh_var in
+							TermHash.add var_env term fresh_var_term
 						)
 					else ()
 				end
 
-let flat_term_to_var renaming_env var_env t =
+let flat_term_to_var fresh_vars_env var_env t =
 	if (Term.is_var t)
 	then t
 	else
 		(
 			try
-				term_flattening_env renaming_env var_env t;
+				term_flattening_env fresh_vars_env var_env t;
 				TermHash.find var_env t
 			with Not_found -> failwith "flat_term_to_var: Not_found"
 		)
@@ -365,7 +366,7 @@ let order_term_var tv1 tv2 =
 (* a normalised subst. corresponding to x \not = y *)
 (* subst is kept confluent *)
 (* later this substitution will be applied to all variables*)
-let flat_lit_env var_env max_var_ref neg_var_subst_ref lit =
+let flat_lit_env fresh_vars_env var_env neg_var_subst_ref lit =
 	if (not (to_flat_lit_test lit))
 	then
 		()
@@ -388,8 +389,8 @@ let flat_lit_env var_env max_var_ref neg_var_subst_ref lit =
 									(*	    let rec fl t1 t2 = *)
 									if t1 == t2 then ()
 									else
-										let var_t1 = flat_term_to_var var_env max_var_ref t1 in
-										let var_t2 = flat_term_to_var var_env max_var_ref t2 in
+										let var_t1 = flat_term_to_var fresh_vars_env var_env t1 in
+										let var_t2 = flat_term_to_var fresh_vars_env var_env t2 in
 										let norm_t1 =
 											Subst.find_normalised !neg_var_subst_ref var_t1 in
 										let norm_t2 =
@@ -405,15 +406,16 @@ let flat_lit_env var_env max_var_ref neg_var_subst_ref lit =
 								end
 							(* atom is not equality *)
 							else
-								term_flattening_env var_env max_var_ref atom
+								term_flattening_env fresh_vars_env var_env atom
 					
 					| Term.Var _ -> failwith "flat_lit_env: atom cannot be a var"
 				end
 			(* positive lit*)
 			else
-				term_flattening_env var_env max_var_ref lit
+				term_flattening_env fresh_vars_env var_env lit
 		end
 
+(*
 let rec get_max_var_term current_max_var_ref term =
 	match term with
 	| Term.Fun (_, args, _) ->
@@ -423,6 +425,7 @@ let rec get_max_var_term current_max_var_ref term =
 			then
 				(current_max_var_ref := v)
 			else ()
+*)
 
 (*
 let get_max_var clause =
@@ -434,10 +437,11 @@ Clause.iter (get_max_var_term var_ref) clause;
 (*---------------------------------*)
 let flat_clause clause =
 	let var_env = TermHash.create 19 in
-	let renaming_env = SubstBound.init_renaming_env () in
+	let clause_vars = Clause.get_var_list clause in 
+	let fresh_vars_env = Var.init_fresh_vars_env_away clause_vars in
 	(*let max_var_ref = ref (get_max_var clause) in*)
 	let neg_var_subst_ref = ref (Subst.create ()) in
-	Clause.iter (flat_lit_env renaming_env var_env neg_var_subst_ref) clause;
+	Clause.iter (flat_lit_env fresh_vars_env var_env neg_var_subst_ref) clause;
 	(* now we have the map of non-var terms  to corresponding vars in var_env *)
 	(* get var_term corresponding to the term in var_env *)
 	let term_to_var_term term =

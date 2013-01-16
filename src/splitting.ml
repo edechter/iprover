@@ -157,7 +157,7 @@ let ground_split_clause clause =
   let (ground_lits,non_ground_lits) = List.partition Term.is_ground all_lits in
   let unprocessed = 
     let f lit = {elit = lit; 
-		 evar_list = fst (List.split (Term.get_var_list lit))} in
+		 evar_list = fst (List.split (Term.get_var_ass_list lit))} in
     List.map f non_ground_lits in
   let init_partition = 
     {

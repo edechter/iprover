@@ -22,6 +22,8 @@ open Options
 open Statistics 
 open Lib
 
+open Logic_interface
+
 type clause = Clause.clause
 type symbol = Symbol.symbol
 
@@ -29,13 +31,14 @@ let symbol_db_ref  = Parser_types.symbol_db_ref
 let term_db_ref    = Parser_types.term_db_ref
 let top_term       = Parser_types.top_term
 
+(*
 let add_fun_term_list symb list = 
   TermDB.add_ref (Term.create_fun_term symb list) term_db_ref
 
 
 let add_fun_term_args symb args = 
   TermDB.add_ref (Term.create_fun_term_args symb args) term_db_ref
-
+*)
 
 let prop_simp clause_list = 
   List.iter 
@@ -72,11 +75,11 @@ let pred_to_fun_symb pred_to_fun_htbl pred =
     PredToFun.find pred_to_fun_htbl pred
   with 
     Not_found ->
-      let new_symb_name = ("iProver_FunPred_"^(Symbol.get_name pred)) in
+      let new_symb_name = ("$$iProver_FunPred_"^(Symbol.get_name pred)) in
       let new_type = 
 	match (Symbol.get_stype_args_val pred) with
 	|Def(old_args, old_val) ->
-            Symbol.create_stype old_args Symbol.symb_default_type
+            Symbol.create_stype old_args Symbol.symb_bool_type
 	|Undef -> 
 	    Symbol.create_stype [] Symbol.symb_default_type    
       in
@@ -91,12 +94,11 @@ let pred_to_fun_symb pred_to_fun_htbl pred =
 let pred_to_fun_atom pred_to_fun_htbl atom =
   match atom with 
   |Term.Fun (pred,args,_) -> 
-      if not (pred == Symbol.symb_equality)
+      if not (pred == Symbol.symb_typed_equality)
       then 
 	let fun_symb = pred_to_fun_symb pred_to_fun_htbl pred in
 	let fun_term = add_fun_term_args fun_symb args in 
-	let eq_term  = 
-	  add_fun_term_list Symbol.symb_equality [fun_term;top_term] in
+	let eq_term  = Logic_interface.add_typed_equality_term_sym Symbol.symb_bool_type fun_term top_term in
 	eq_term
       else
 	atom
