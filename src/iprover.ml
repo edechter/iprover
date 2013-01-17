@@ -762,6 +762,10 @@ let is_large_theory () =
 let eq_axioms_are_omitted = ref false
 
 let omit_eq_axioms () =
+   false
+	 (* fix omitting eq axioms; without adding them can solve 60 problems with rating 1 !*)
+	 (*  but should be careful with effect on sem_filtering and sub_typing *)
+		(*
   !current_options.large_theory_mode &&
     (Symbol.is_essential_input Symbol.symb_typed_equality) &&
     (is_large_theory ()) && 
@@ -769,7 +773,8 @@ let omit_eq_axioms () =
     (not (List.exists 
 	    Clause.has_eq_lit !Parser_types.neg_conjectures))&&
     (not !current_options.sat_mode) 
-    
+    *)
+		
     
 let schedule_to_many_axioms_schedule schedule = 
   if (is_large_theory ())
@@ -2310,11 +2315,11 @@ let run_iprover () =
 	      (
 	    gen_equality_axioms := Eq_axioms.eq_axiom_list !current_clauses; 
 	   (*debug *)
-	   (*
+	(*   
 	     out_str "\n-----------Eq Axioms:---------\n";
-	out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
+	     out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 	     out_str "\n--------------------\n";
-           *)
+    *)       
 	   
 	   (*debug *)
 	   current_clauses := (!gen_equality_axioms)@(!current_clauses)
@@ -2368,20 +2373,25 @@ let run_iprover () =
 	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in 
 	 *)
 
+     let side_clauses = (get_side_clauses ()) in
      let filtered_clauses = 
-       Prep_sem_filter_unif.sem_filter_unif (!current_clauses) (get_side_clauses ()) 
+       Prep_sem_filter_unif.sem_filter_unif (!current_clauses) side_clauses 
      in       
      let filtered_in_clauses = 
        filtered_clauses.Prep_sem_filter_unif.filtered_in in
 
-	   out_str (pref_str^"Before sem filter:\n");
+     out_str (pref_str^"Input cluases sem filter:\n");
 	   Clause.out_clause_list_tptp !Parser_types.all_current_clauses; 
 
-     
-	   out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
+      out_str ("\n\n"^pref_str^"Semantically Preprocessed Clauses:\n");
 
      Clause.out_clause_list_tptp filtered_in_clauses; 
 
+(*
+     out_str ("\n\n"^pref_str^"Filtered in clauses: \n"^(Clause.clause_list_to_string filtered_in_clauses));
+	 	out_str ("\n\n"^pref_str^"Filtered out clauses: \n"^(Clause.clause_list_to_string filtered_clauses.Prep_sem_filter_unif.filtered_out));
+	*)	
+	
 	  out_str "\n\n";
 	  out_str (unknown_str  ());
 	  out_stat ();
