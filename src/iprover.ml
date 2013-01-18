@@ -763,9 +763,9 @@ let eq_axioms_are_omitted = ref false
 
 let omit_eq_axioms () =
    false
-	 (* fix omitting eq axioms; without adding them can solve 60 problems with rating 1 !*)
-	 (*  but should be careful with effect on sem_filtering and sub_typing *)
-		(*
+	 (* fix omitting eq axioms *)
+	 (* but should be careful with effect on sem_filtering and sub_typing *)
+	(*
   !current_options.large_theory_mode &&
     (Symbol.is_essential_input Symbol.symb_typed_equality) &&
     (is_large_theory ()) && 

@@ -88,3 +88,11 @@ module type FeatureCom =
 module Make(Feature:Feature): (Index with type feature=Feature.t)
 
 module MakeCom(FeatureCom:FeatureCom): (Index with type feature=FeatureCom.t)
+
+(* concrete implementation of a subsumtion index with fixed compressed features as defined above *)
+module SCFVIndex :
+  sig
+		include Index
+		val get_feature_list : clause -> feature list
+end
+
