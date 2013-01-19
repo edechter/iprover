@@ -1584,7 +1584,8 @@ let bmc1_pre_inst_state_fun b =
     
 let bmc1_pre_inst_state_inf = 
   bool_str^
-  inf_pref^"pre-instantiate clauses with state variables by the current bound; --bmc1_pre_inst_next_state should be true \n"
+  inf_pref^"pre-instantiate clauses with state variables by the current bound; \n"^
+  inf_pref^"if \"--bmc1_pre_inst_state true\" then it  should be --bmc1_pre_inst_next_state true and --bmc1_pre_inst_reach_state true\n"
 
 (*--------*)
 let bmc1_pre_inst_reach_state_str = "--bmc1_pre_inst_reach_state"
@@ -2533,6 +2534,7 @@ let bmc1_options_str_list opt =
    (bmc1_out_stat_str,
     (bmc1_out_stat_type_to_str (val_of_override opt.bmc1_out_stat)));
    (bmc1_pre_inst_next_state_str, (string_of_bool opt.bmc1_pre_inst_next_state));
+	 (bmc1_pre_inst_state_str, (string_of_bool opt.bmc1_pre_inst_state));
    (bmc1_pre_inst_reach_state_str, (string_of_bool opt.bmc1_pre_inst_reach_state));
    (bmc1_out_unsat_core_str,
     (string_of_bool (val_of_override opt.bmc1_out_unsat_core)));
@@ -2722,9 +2724,9 @@ let check_options_consistency () =
   else ()
 	);
 	(
- if (!current_options.bmc1_pre_inst_state) && (not !current_options.bmc1_pre_inst_next_state) 
+ if (!current_options.bmc1_pre_inst_state) && ((not !current_options.bmc1_pre_inst_next_state)  || (not  !current_options.bmc1_pre_inst_reach_state))
    then 
-		 failwith "if \"--bmc1_pre_inst_state true\" then  --bmc1_pre_inst_next_state also should be true"
+		 failwith "if \"--bmc1_pre_inst_state true\" then it  should be --bmc1_pre_inst_next_state true and --bmc1_pre_inst_reach_state true"
 	else ()	
 	);
   (
@@ -4575,7 +4577,8 @@ let option_verification_epr ver_epr_opt =
        clausifier              = !current_options.clausifier;
        clausifier_options      = !current_options.clausifier_options;
        large_theory_mode       = false; 
-       prep_sem_filter         = !current_options.prep_sem_filter;
+      (* prep_sem_filter         = !current_options.prep_sem_filter;  does not work correctly with bmc*)
+			prep_sem_filter         = Sem_Filter_None;
        prep_sem_filter_out     = false;
 (*       sub_typing              = !current_options.sub_typing;*)
        sub_typing              = false;

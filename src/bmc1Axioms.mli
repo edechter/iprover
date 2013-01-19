@@ -48,3 +48,7 @@ val increment_bound : int -> int -> bool -> Clause.clause list
 (** For all axioms that are dependent on the previous bound return a
     list of clauses for the given bound. *)
 val extrapolate_to_bound : int -> Clause.clause list -> Clause.clause list 
+
+ (* pre_instantiate_state_var_clauses_range low_bound upper_bound clauses *)
+val pre_instantiate_state_var_clauses_range : int -> int -> Clause.clause list -> Clause.clause list
+

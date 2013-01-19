@@ -841,6 +841,14 @@ let rec fold_left f v t =
 			f res_arg t
 	| _ -> f v t
 
+
+let rec fold_left_var f v t =
+	match t with
+	| Fun(_sym, args, _) ->
+			let res_arg = List.fold_left (fold_left_var f) v args in
+		  res_arg
+	| Var(var,_) -> f v var 
+
 let rec map f t =
 	match t with
 	| Fun(sym, args, _) ->

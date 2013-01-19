@@ -175,6 +175,7 @@ val arg_iter2 : (term -> term -> unit) -> args -> args -> unit
 
 (* folds over all subterems of the term including term itself *)
 val fold_left : ('a -> term -> 'a) -> 'a -> term -> 'a
+val fold_left_var : ('a -> var -> 'a) -> 'a -> term -> 'a
 
 (* creates a new term by applying f to all its subterms bottom up including term itsef *)
 val map  : (term -> term) -> term -> term

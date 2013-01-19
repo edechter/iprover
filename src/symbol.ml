@@ -850,8 +850,9 @@ let is_pred s =
     false
 
 let is_fun s = 
-  (is_signature_symb s) && (not (is_pred s)) && (not (s.sproperty = Type))
-
+  (is_signature_symb s) && (not (is_pred s)) (* && (not (s.sproperty = Type)) *)
+	
+(* types can occur in typed equality as constants...*)
 
 let is_constant s = 
    (s.arity=Def(0)) && (is_fun s)

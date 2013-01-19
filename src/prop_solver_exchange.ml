@@ -174,7 +174,7 @@ if !answer_mode_ref then
 else	
 		(* max_occ_map maps symbol type into symbol with max occurences in input*)
   let f_max_sym s max_occ_map = 
-	  if (Symbol.is_constant s)
+	  if (Symbol.is_constant s) (* is_constant is true on types; should be still ok with euqality *)
 		then 
 				match (Symbol.get_stype_args_val s) 
 				with

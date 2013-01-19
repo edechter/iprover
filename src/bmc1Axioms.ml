@@ -1222,26 +1222,72 @@ let separate_next_state_clauses clauses =
 (*--------- state pre-instantiation --------------------*)
 (* separate clauses containing state vars for state pre-instantiation *)
 let separate_state_clauses clauses =
-	let is_next_state_var t =
+	let is_state_var t =
 		match t with
 		| Term.Fun _ -> false
 		| Term.Var (v, _) -> ((Var.get_type v) == Symbol.symb_ver_state_type)
 	in
 	let has_state_var clause =
-		(List.exists (Term.exists is_next_state_var) (Clause.get_literals clause)) in
+		let res = (List.exists (Term.exists is_state_var) (Clause.get_literals clause))
+		in
+		(*out_str ((Clause.to_string clause)^" has state: "^(string_of_bool res)); *)
+		res
+	in
 	List.partition has_state_var clauses
+
+(* clause is eligible for preinstantiation if it contains only occurrences of the same state var *)
+(* for some reason Next(B1, B2) got splitted sP(B1,B2) which resulted in clauses with two state vars even when Next is eliminated....*)
+exception Not_Elig
+let pre_instantiate_state_var_eligible clause =
+	let test_elig prev lit =
+		let f prev curr_v =
+			if (Var.get_type curr_v) == Symbol.symb_ver_state_type
+			then
+				(match prev with
+					| Some(prev_var) ->
+							(if prev_var == curr_v
+								then prev
+								else raise Not_Elig)
+					| None -> Some(curr_v)
+				)
+			else
+				prev
+		in
+		Term.fold_left_var f prev lit
+	in
+	try
+		let _ = Clause.fold test_elig None clause in
+		true
+	with
+	| Not_Elig -> false
 
 let pre_instantiate_state_var_clauses bound clauses =
 	let state_term = create_state_term bound in
 	let var_map = SMap.add Symbol.symb_ver_state_type state_term SMap.empty in
 	let f c =
-		let lits = Clause.get_literals c in
-		let new_lits = List.map (Subst.replace_vars None var_map) lits in
-		let new_clause = Clause.create (Clause.normalise_lit_list term_db new_lits) in
-		Clause.assign_tstp_source_instantiation new_clause c [];
-		new_clause
+		if pre_instantiate_state_var_eligible c
+		then
+			let lits = Clause.get_literals c in
+			let new_lits = List.map (Subst.replace_vars None var_map) lits in
+			let new_clause = Clause.create (Clause.normalise_lit_list term_db new_lits) in
+			Clause.assign_tstp_source_instantiation new_clause c [];
+			Prop_solver_exchange.add_clause_to_solver new_clause;
+			new_clause
+		else
+			c
 	in
 	List.map f clauses
+
+let pre_instantiate_state_var_clauses_range lower_bound upper_bound clauses =
+	assert (lower_bound <= upper_bound);
+	let rec f inst_cls l u =
+		if u < l
+		then inst_cls
+		else
+			let new_inst_cl = (pre_instantiate_state_var_clauses l clauses)@inst_cls in
+			let new_l = l +1 in
+			f new_inst_cl new_l u
+	in f [] lower_bound upper_bound
 
 (********** Utility functions **********)
 
@@ -1331,8 +1377,6 @@ Does not work at the moment because transitional addresses can occur in
 
 (*let _= out_str "\n!!! Warning: pre_instantiate_next_state_flag add to options!!!\n"*)
 
-
-
 (*-----------------------------------------*)
 (* Axioms for bound 0 *)
 (*-----------------------------------------*)
@@ -1349,21 +1393,28 @@ let init_bound all_clauses =
 				next_state_clauses:= cl_next_state;
 				cl_rest
 			)
-		else
-		if !current_options.bmc1_pre_inst_state (* !current_options.bmc1_pre_inst_state *)
-		then
-			(
-				let cl_next_state, cl_rest = separate_state_clauses clauses' in
-				state_clauses:= cl_next_state;
-				(pre_instantiate_state_var_clauses 0 !state_clauses) @ cl_rest
-			)
-		else
-			clauses'
+		else clauses'
 	in
+	(* moved to iprover.ml
+	let clauses'''=
+	if !current_options.bmc1_pre_inst_state (* !current_options.bmc1_pre_inst_state *)
+	then
+	(
+	let cl_state, cl_rest = separate_state_clauses clauses'' in
+	state_clauses:= cl_state;
+	out_str ("\n state clauses \n "^(Clause.clause_list_to_string cl_state)^"\n\n");
+	out_str ("\n pre ints state clauses \n "^(Clause.clause_list_to_string ((pre_instantiate_state_var_clauses 0 !state_clauses)))^"\n\n");
+	
+	(pre_instantiate_state_var_clauses 0 !state_clauses) @ cl_rest
+	)
+	else
+	clauses''
+	in
+	*)
 	let clauses =
 		if !current_options.bmc1_pre_inst_reach_state
 		then
-			let (reach, no_reach) = separate_reach_constants clauses''
+			let (_reach, no_reach) = separate_reach_constants clauses''
 			in
 			(*
 			out_str "\n\n----- Reach clauses  ---------------\n";
@@ -1373,21 +1424,15 @@ let init_bound all_clauses =
 			no_reach
 		(*      separate_reachable_state_clauses clauses'' *)
 		else
-					clauses''
+			clauses''
 	in
 	(* Create reachable states axiom for next bound *)
 	let reachable_state_axioms =
 		if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
 		then
 			begin
-				let reach_axs = pre_inst_reachable_state_axioms [] 0 0 in
+				pre_inst_reachable_state_axioms [] 0 0
 				(*	pre_inst_reachable_state_clauses [] 0 0 *)
-				(*
-				out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
-				out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
-				out_str "\n--------------------\n";
-				*)
-				reach_axs
 			end
 		
 		else
@@ -1416,7 +1461,11 @@ let init_bound all_clauses =
 						(create_only_bound_reachable_axioms [] 0 0)
 			end
 	in
-	
+	(*
+	out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
+	out_str ((Clause.clause_list_to_tptp reachable_state_axioms)^"\n\n");
+	out_str "\n--------------------\n";
+	*)
 	(* Create clock axiom *)
 	let clock_axioms =
 		create_all_clock_axioms_for_states
@@ -1503,13 +1552,24 @@ let increment_bound cur_bound next_bound simulate =
 		else
 			create_path_axioms [] cur_bound next_bound
 	in
-	let pre_inst_state_causes = 
-		 if !current_options.bmc1_pre_inst_state
-	  then
-		 (pre_instantiate_state_var_clauses next_bound !state_clauses)
-	else
-		 []
-		in
+	(*moved to iprover.ml*)
+	let pre_inst_state_clauses =
+		(* if !current_options.bmc1_pre_inst_state
+		then
+		(
+		let pre_inst_state_cl = pre_instantiate_state_var_clauses next_bound !state_clauses in
+		(* out_str ("\n\n State clauses: "^(Clause.clause_list_to_string !state_clauses)^"\n\n");
+		out_str "\n\n-----  pre_inst_state_clauses ---------------\n";
+		out_str ((Clause.clause_list_to_tptp pre_inst_state_cl)^"\n\n");
+		out_str "\n--------------------\n";
+		*)
+		pre_inst_state_cl
+		)
+		
+		else
+		*)
+		[]
+	in
 	(* Create reachable states axiom for next bound *)
 	let reachable_state_axioms =
 		if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
@@ -1588,7 +1648,7 @@ let increment_bound cur_bound next_bound simulate =
 		path_axioms @
 		clock_axioms @
 		bound_axioms_instantiated @
-		pre_inst_state_causes
+		pre_inst_state_clauses
 	in
 	
 	(* Output only in verbose mode *)
