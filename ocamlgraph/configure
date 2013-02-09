@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -x verbose #echo on
+
+CURRENTDIR=$(pwd)
+OCAMLGRAPHDIR=ocamlgraph-1.8.2
+
+cd "$CURRENTDIR/$OCAMLGRAPHDIR"
+
+./configure
+make 
+
+cp graph* $CURRENTDIR/
+cd $CURRENTDIR
