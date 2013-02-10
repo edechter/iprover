@@ -174,11 +174,11 @@ val arg_iter  : (term -> unit) -> args -> unit
 val arg_iter2 : (term -> term -> unit) -> args -> args -> unit
 
 (* folds over all subterems of the term including term itself *)
-val fold_left : ('a -> term -> 'a) -> 'a -> term -> 'a
+(*val fold_left : ('a -> term -> 'a) -> 'a -> term -> 'a *)
 val fold_left_var : ('a -> var -> 'a) -> 'a -> term -> 'a
 
 (* creates a new term by applying f to all its subterms bottom up including term itsef *)
-val map  : (term -> term) -> term -> term
+(*val map  : (term -> term) -> term -> term *)
 val map_var  : (var -> term) -> term -> term
 
 
@@ -238,8 +238,8 @@ val lit_cmp_type_list_to_lex_fun :
 (* replace all occurrences of subterm by byterm in t *)
 (* we assume that t, p, and q are in the term db and therefore we are using == *)
 (* the resulting term will need to be  added in term db separately *)
-
-val replace : subterm:term -> byterm:term -> term -> term
+(* replace : subterterm -> byterm:term -> term -> term *)
+val replace : term -> term -> term -> term
 
 
 val to_stream           : 'a string_stream -> term -> unit

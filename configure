@@ -21,7 +21,12 @@ if [ -d LTB ]; then
    cd ../
 fi
 
-
-
 OCAMLLIBSTR="OCAMLLIB=$(ocamlc -where)"
 echo "$OCAMLLIBSTR" > Makefile.extras
+
+#ocamlgraph
+
+CURRENTDIR=$(pwd)
+cd ocamlgraph/
+./configure
+cd $CURRENTDIR

@@ -29,6 +29,9 @@ let term_db_ref = Parser_types.term_db_ref
 
 let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
+module TermHash = Term.Hashtbl
+module TermMap = Term.Map
+
 (* The flattening transformation is based on                          *)
 (* Computing Finite Models by Reduction to Function-free clause logic *)
 (* by Baumgartner, Fuchs, de Nivelle, Tinelli *)
@@ -85,8 +88,15 @@ let add_clause_lits lit_list =
 let get_val_type sym = Symbol.get_val_type_def sym
 
 (*----------------*)
-
 module SymSet = Symbol.Set
+
+type cyclic_types =
+	{
+		cyclic_types : SymSet.t;
+		non_cyclic_types : SymSet.t
+	}
+
+(*----------------*)
 
 let init_sig = ref (Clause.create_clause_sig ())
 
@@ -98,13 +108,14 @@ let epr_type_set = ref SymSet.empty
 
 let epr_const_set = ref SymSet.empty
 
+let cyc_non_cyc_types = ref { cyclic_types = SymSet.empty; non_cyclic_types = SymSet.empty }
+
 (*-------------------------------------*)
 
 (* can be extended later *)
 let epr_type_set_init () =
 	let not_epr_type_set = ref SymSet.empty in
 	let val_types = ref SymSet.empty in
-	
 	not_epr_type_set := SymSet.add Symbol.symb_bool_type !not_epr_type_set;
 	let f symb =
 		let (arg_types, val_type) = get_sym_types symb in
@@ -136,28 +147,25 @@ let epr_const_set_init () =
 	in
 	SymSet.iter f !init_sig.Clause.sig_fun_preds
 
-(* we do not falt terms sat this test*)
-let to_flat_symb_test symb =
-	(*  out_str ("to flat test: "^(Symbol.to_string symb)^" ");*)
-	if !current_options.sat_epr_types
-	then
-		(
-			let vt = get_val_type symb in
-			let res = (not (SymSet.mem vt !epr_type_set)) in
-			(*   out_str ((string_of_bool res)^"\n");*)
-			res
-		)
-	else
-		true
+(*-----------------------*)
 
-let to_flat_type_test stype =
-	not(
-			(!current_options.sat_epr_types)
-			&&
-			(SymSet.mem stype !epr_type_set)
-		)
+let not_to_flat_type_test stype =
+	(!current_options.sat_epr_types
+		&&
+		(SymSet.mem stype !epr_type_set)
+	)
+	||
+	(!current_options.sat_non_cyclic_types
+		&&
+		(SymSet.mem stype !cyc_non_cyc_types.non_cyclic_types)
+	)
 
-let to_flat_atom_test atom =
+(* we do not faltten terms that do not sat this test*)
+let not_to_flat_symb_test symb =
+	let vt = get_val_type symb in
+	not_to_flat_type_test vt
+
+let not_to_flat_atom_test atom =
 	match atom with
 	| Term.Var _ -> false
 	| Term.Fun (symb, args, _) ->
@@ -167,12 +175,12 @@ let to_flat_atom_test atom =
 					let (eq_type, _t1, _t2) =
 						get_triple_from_list (Term.arg_to_list args) in
 					let eq_type_sym = Term.get_top_symb eq_type in
-					(to_flat_type_test eq_type_sym)
+					(not_to_flat_type_test eq_type_sym)
 				else
 					true
 			)
-let to_flat_lit_test lit =
-	to_flat_atom_test (Term.get_atom lit)
+let not_to_flat_lit_test lit =
+	not_to_flat_atom_test (Term.get_atom lit)
 
 (*
 let don_not_flat_term_test term =
@@ -213,7 +221,7 @@ let flat_signature () =
 			(
 				(Symbol.is_fun symb)
 				&&
-				(to_flat_symb_test symb)
+				(not (not_to_flat_symb_test symb))
 			)
 			then
 				(
@@ -237,15 +245,17 @@ let flat_signature () =
 	in
 	SymSet.iter f !init_sig.Clause.sig_fun_preds
 
+(*
 module TermHashKey =
 struct
-	type t = term
-	let equal = (==)
-	let hash = Term.get_fast_key
+type t = term
+let equal = (==)
+let hash = Term.get_fast_key
 end
 
 (* will have several uses*)
 module TermHash = Hashtbl.Make(TermHashKey)
+*)
 
 (*-------Definitions for Ground Terms ------------------------------------*)
 (* We introduce defintions for each ground non-variable term              *)
@@ -287,6 +297,8 @@ let rec add_term_def_table t =
 					)
 		| Term.Var _ -> failwith "add_term_def_table term should be ground"
 
+
+(* OLD
 (*---------Basic flattening------------------------*)
 (* Flattening of a clause is done in two stages:                      *)
 (* First, we build a hash table (var_env) mapping non-var term into vars. *)
@@ -334,12 +346,12 @@ let rec term_flattening_env fresh_vars_env var_env term =
 								Term.arg_iter (term_flattening_env fresh_vars_env var_env) relevant_args)
 					);
 					if (Symbol.is_fun symb)
-					&& (to_flat_symb_test symb)
+					&& (not (not_to_flat_symb_test symb))
 					then
 						(
 							(* max_var_ref:= Var.get_next_var !max_var_ref; *)
 							(*let new_var = SubstBound.get_next_unused_var renaming_env (Symbol.get_val_type_def symb) in*)
-							let fresh_var = Var.get_next_fresh_var fresh_vars_env  (Symbol.get_val_type_def symb) in
+							let fresh_var = Var.get_next_fresh_var fresh_vars_env (Symbol.get_val_type_def symb) in
 							let fresh_var_term = add_var_term fresh_var in
 							TermHash.add var_env term fresh_var_term
 						)
@@ -362,12 +374,13 @@ let order_term_var tv1 tv2 =
 	then (tv1, tv2)
 	else (tv2, tv1)
 
+
 (* We obtain flat def. of terms in var_env and   *)
 (* a normalised subst. corresponding to x \not = y *)
 (* subst is kept confluent *)
 (* later this substitution will be applied to all variables*)
 let flat_lit_env fresh_vars_env var_env neg_var_subst_ref lit =
-	if (not (to_flat_lit_test lit))
+	if (not_to_flat_lit_test lit)
 	then
 		()
 	else
@@ -417,14 +430,14 @@ let flat_lit_env fresh_vars_env var_env neg_var_subst_ref lit =
 
 (*
 let rec get_max_var_term current_max_var_ref term =
-	match term with
-	| Term.Fun (_, args, _) ->
-			Term.arg_iter (get_max_var_term current_max_var_ref) args
-	| Term.Var (v, _) ->
-			if (Var.compare v !current_max_var_ref) > 0
-			then
-				(current_max_var_ref := v)
-			else ()
+match term with
+| Term.Fun (_, args, _) ->
+Term.arg_iter (get_max_var_term current_max_var_ref) args
+| Term.Var (v, _) ->
+if (Var.compare v !current_max_var_ref) > 0
+then
+(current_max_var_ref := v)
+else ()
 *)
 
 (*
@@ -434,135 +447,285 @@ Clause.iter (get_max_var_term var_ref) clause;
 !var_ref
 *)
 
-(*---------------------------------*)
+*)
+
+
+(*-----------------New flattening with cyclic types but without def yet---------------------------------------*)
+(* P(t,..); *)
+(* get_flat_term t:*)
+(* either a var if top(t) is of a to_flatten type  *)
+(* or f(get_flattened term) *)
+(* vars are normalised wrt neg_var_subst_ref *)
+(* during get_flattend save*)
+(* 1) ~P_f(var, (flattened_args args)) for to_flatten type in an flat_env*)
+(* 2)  mapping from term into flat_term  so it can be used when the same term is processed later *)
+(* t=s then (get_flat_term t)=(get_flat_term s) ) *)
+(* t != s then if (get_flat_term t) == (get_flat_term s) remove else (get_flat_term t) == (get_flat_term s) *)
+
+(* if one of them is var then return (v,t) if both are vars compare them in by Var.compare otherwise restun as it is *)
+let order_terms t1 t2 =
+	if (Term.is_var t2)
+	then
+		if (Term.is_var t1)
+		then
+			if (Var.compare (Term.get_var t1) (Term.get_var t2)) > 0
+			then (t1, t2) (* both vars*)
+			else (t2, t1) (* both vars *)
+		else (* t2 var; t1 non var*)
+		(t2, t1)
+	else (*t2 is non-var, t1 var/non-var *)
+	(t1, t2)
+
+(* without (ground) term definitions yet !*)
 let flat_clause clause =
 	let var_env = TermHash.create 19 in
-	let clause_vars = Clause.get_var_list clause in 
+	let term_to_flat_term_env = ref TermMap.empty in
+	let clause_lits = Clause.get_literals clause in
+	
+	let clause_vars = Clause.get_var_list clause in
 	let fresh_vars_env = Var.init_fresh_vars_env_away clause_vars in
-	(*let max_var_ref = ref (get_max_var clause) in*)
+	
 	let neg_var_subst_ref = ref (Subst.create ()) in
-	Clause.iter (flat_lit_env fresh_vars_env var_env neg_var_subst_ref) clause;
-	(* now we have the map of non-var terms  to corresponding vars in var_env *)
-	(* get var_term corresponding to the term in var_env *)
-	let term_to_var_term term =
-		try
-			(Subst.find_normalised !neg_var_subst_ref
-					(TermHash.find var_env term))
-		with Not_found ->
-				if (Term.is_var term)
-				then Subst.find_normalised !neg_var_subst_ref term
-				else
-					failwith ("term_to_var_term: Not_found term: "
-							^(Term.to_string term))
+	(* lits of the form ~P_f(flat_args) *)
+	let fun_def_lits = ref [] in
+	
+	(*Clause.iter (flat_lit_env fresh_vars_env var_env neg_var_subst_ref) clause;*)
+	
+	(* add_to_neg_env checks if one of t1 or t2 is a vriable which does not occur in the other *)
+	(* then adds this pair to the env and return true otherwise return false*)
+	let neg_norm_term t = Subst.apply_subst_term term_db_ref !neg_var_subst_ref t in
+	
+	let add_to_neg_env t1 t2 =
+		(* assume that neither t1 nor t2 are in neg_var_subst_ref due to normalising *)
+		let norm_t1 = neg_norm_term t1 in
+		let norm_t2 = neg_norm_term t2 in
+		if (norm_t1 == norm_t2)
+		then
+			true (* ignore if they norm terms are equal *)
+		else
+			let (ot1, ot2) = order_terms norm_t1 norm_t2 in
+			if (Term.is_var ot1) && (not (Term.is_subterm ot1 ot2))
+			then
+				(
+					neg_var_subst_ref := Subst.add (Term.get_var ot1) ot2 !neg_var_subst_ref;
+					true
+				)
+			else
+				false
 	in
-	(* auxilary function to flatten arguments taking into account epr sorts *)
-	let flat_args_fun symb old_arg_list =
-		let arg_types, _val_type = get_sym_types symb in
-		let (_, rev_new_args) =
-			let f (arg_types_rest, new_args_rest) old_arg =
-				match arg_types_rest with
-				| arg_type:: tl ->
-						let new_arg =
-							if (to_flat_type_test arg_type)
+	(* a fun/var term not lit *)
+	let rec get_flat_term term =
+		try
+			TermMap.find term !term_to_flat_term_env
+		with
+		| Not_found ->
+				begin
+					match term with
+					| Term.Fun (symb, args, _) ->
+							let arg_list = Term.arg_to_list args in
+							let new_args = List.map get_flat_term arg_list in
+							if (not_to_flat_symb_test symb)
 							then
 								(
-									(*
-									out_str ("to flat type "^(Symbol.to_string arg_type)
-									^" term "^(Term.to_string old_arg)^"\n");
-									*)
-									term_to_var_term old_arg
+									let flat_term =	add_fun_term symb new_args in
+									(* add t-> flat_term *)
+									term_to_flat_term_env := TermMap.add term flat_term !term_to_flat_term_env;
+									flat_term
 								)
 							else
-								old_arg
-						in
-						(tl, new_arg:: new_args_rest)
-				|[] -> failwith "flat_lit rest lit should not happen"
-			
-			in
-			List.fold_left f (arg_types,[]) old_arg_list
-		in
-		let new_arg_list = List.rev rev_new_args in
-		new_arg_list
+								(
+									(* create ~P_f(new_args) *)
+									let pred_f_symb = Symbol.get_flattening symb in
+									(*	    out_str ("new symb: "^(Symbol.to_string new_symb)^"\n");*)
+									(* the value of the function is the first argument of the relation*)
+									let fresh_var = Var.get_next_fresh_var fresh_vars_env (Symbol.get_val_type_def symb) in
+									let fresh_var_term = add_var_term fresh_var in
+									let pred_f_args = fresh_var_term:: new_args in
+									let fun_def_lit = add_neg_lit pred_f_symb pred_f_args in
+									(* add ~P_f(flat_args) to list *)
+									fun_def_lits:= fun_def_lit::!fun_def_lits;
+									(* add t -> flat_term == fresh_var *)
+									term_to_flat_term_env := TermMap.add term fresh_var_term !term_to_flat_term_env;
+									fresh_var_term
+								)
+					
+					| Term.Var (v, _) -> term
+					(* Subst.find_normalised !neg_var_subst_ref term; normalise later after flattening *)
+				end
 	in
 	
-	(* first we flatten top of predicates and pos. eq. *)
-	(* (neq eq translates to x\=y and was added to subst.), *)
-	(* then we add all flattenings of terms in var_env *)
-	let flat_lit rest lit =
-		if (not (to_flat_lit_test lit))
-		then
-			lit:: rest
-		else
-			begin
-				let atom = Term.get_atom lit in
-				match atom with
-				| Term.Fun (symb, args, _) ->
-						if (symb == Symbol.symb_typed_equality)
-						then
-							if (Term.is_neg_lit lit)
-							then
-								(* all neg eq are falttend to x\not y which are added to neg_var_subst_ref *)
-								(* and will be added to the rest later *)
-								rest
-							else
-								(*positive eq, terms replaced by definitions *)
-								(* let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
-								(* replace *)
-								let (eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
-								(equality_term eq_type (term_to_var_term t1) (term_to_var_term t2)):: rest
-						else
-							(* non equlaity literal *)
-							let new_atom =
-								let old_arg_list = Term.arg_to_list args in
-								let new_arg_list = flat_args_fun symb old_arg_list in
-								add_fun_term symb new_arg_list
-							in
-							let new_lit =
-								if (Term.is_neg_lit lit)
-								then
-									add_fun_term Symbol.symb_neg [new_atom]
-								else
-									new_atom
-							in
-							new_lit:: rest
-				| Term.Var _ -> failwith "flat_lit: atom cannot be var"
-			end
-	in
-	let flat_part = Clause.fold flat_lit [] clause in
-	let get_env_part term var_term rest =
-		let new_var_term =
-			(Subst.find_normalised !neg_var_subst_ref var_term) in
-		match term with
+	let get_flat_lit rest lit =
+		let atom = Term.get_atom lit in
+		match atom with
 		| Term.Fun (symb, args, _) ->
-				let new_atom =
-					if (add_term_to_def_test term)
+				if (symb == Symbol.symb_typed_equality)
+				then
+					let (eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
+					let flat_t1 = (get_flat_term t1) in
+					let flat_t2 = (get_flat_term t2) in
+					if (Term.is_neg_lit lit)
 					then
-						(try
-							let new_symb = (TermHash.find term_def_table term) in
-							add_fun_term new_symb [new_var_term]
-						with Not_found ->
-								failwith "get_env_part: ground term shoud be in term_def_table "
-						)
+						if (add_to_neg_env flat_t1 flat_t2)
+						then
+							rest
+						else
+							(dis_equality eq_type flat_t1 flat_t2):: rest
+					else (* pos eq *)
+					(equality_term eq_type flat_t1 flat_t2):: rest
+				else (* non eq pred *)
+				let flat_atom_args = List.map get_flat_term (Term.arg_to_list args) in
+				let new_lit =
+					if (Term.is_neg_lit lit)
+					then
+						add_neg_lit symb flat_atom_args
 					else
-						(let new_symb = Symbol.get_flattening symb in
-							(*	    out_str ("new symb: "^(Symbol.to_string new_symb)^"\n");*)
-							(* the value of the function is the first argument of the relation*)
-							
-							let old_arg_list = Term.arg_to_list args in
-							let non_flat_new_arg_list = flat_args_fun symb old_arg_list in
-							
-							let new_args = new_var_term:: non_flat_new_arg_list
-							(*	      new_var_term::(Term.arg_to_list (Term.arg_map term_to_var_term args)) *)
-							in
-							add_fun_term new_symb new_args
-						)
+						add_fun_term symb flat_atom_args
 				in
-				let new_lit = add_fun_term Symbol.symb_neg [new_atom] in
 				new_lit:: rest
-		| Term.Var _ -> failwith "get_env_part should not be var term"
+		| Term.Var _ -> failwith "flat_lit: atom cannot be var"
 	in
-	let env_part = TermHash.fold get_env_part var_env [] in
-	add_clause_lits (env_part@flat_part)
+	let flat_lits = List.fold_left get_flat_lit [] clause_lits in
+	let new_lits = flat_lits@(!fun_def_lits) in
+	let new_neg_norm_lits = List.map neg_norm_term new_lits in
+	let new_clause = add_clause_lits new_neg_norm_lits in
+	Clause.assign_tstp_source_flattening new_clause clause;
+(*	out_str ("     Cl: \n"^(Clause.to_string clause)^"\n");
+	out_str ("Flat Cl: \n"^(Clause.to_string new_clause)^"\n");
+	*)
+	new_clause
+
+(*--------------OLD-------------------*)
+(*
+let flat_clause clause =
+let var_env = TermHash.create 19 in
+let clause_vars = Clause.get_var_list clause in
+let fresh_vars_env = Var.init_fresh_vars_env_away clause_vars in
+(*let max_var_ref = ref (get_max_var clause) in*)
+let neg_var_subst_ref = ref (Subst.create ()) in
+Clause.iter (flat_lit_env fresh_vars_env var_env neg_var_subst_ref) clause;
+(* now we have the map of non-var terms  to corresponding vars in var_env *)
+(* get var_term corresponding to the term in var_env *)
+
+let term_to_var_term term =
+try
+(Subst.find_normalised !neg_var_subst_ref
+(TermHash.find var_env term))
+with Not_found ->
+if (Term.is_var term)
+then Subst.find_normalised !neg_var_subst_ref term
+else
+failwith ("term_to_var_term: Not_found term: "
+^(Term.to_string term))
+in
+(* auxilary function to flatten arguments taking into account epr sorts *)
+let flat_args_fun symb old_arg_list =
+let arg_types, _val_type = get_sym_types symb in
+let (_, rev_new_args) =
+let f (arg_types_rest, new_args_rest) old_arg =
+match arg_types_rest with
+| arg_type:: tl ->
+let new_arg =
+if (to_flat_type_test arg_type)
+then
+(
+(*
+out_str ("to flat type "^(Symbol.to_string arg_type)
+^" term "^(Term.to_string old_arg)^"\n");
+*)
+term_to_var_term old_arg
+)
+else
+old_arg
+in
+(tl, new_arg:: new_args_rest)
+|[] -> failwith "flat_lit rest lit should not happen"
+
+in
+List.fold_left f (arg_types,[]) old_arg_list
+in
+let new_arg_list = List.rev rev_new_args in
+new_arg_list
+in
+
+(* first we flatten top of predicates and pos. eq. *)
+(* (neq eq translates to x\=y and was added to subst.), *)
+(* then we add all flattenings of terms in var_env *)
+let flat_lit rest lit =
+if (not (to_flat_lit_test lit))
+then
+lit:: rest
+else
+begin
+let atom = Term.get_atom lit in
+match atom with
+| Term.Fun (symb, args, _) ->
+if (symb == Symbol.symb_typed_equality)
+then
+if (Term.is_neg_lit lit)
+then
+(* all neg eq are falttend to x\not y which are added to neg_var_subst_ref *)
+(* and will be added to the rest later *)
+rest
+else
+(*positive eq, terms replaced by definitions *)
+(* let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
+(* replace *)
+let (eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
+(equality_term eq_type (term_to_var_term t1) (term_to_var_term t2)):: rest
+else
+(* non equlaity literal *)
+let new_atom =
+let old_arg_list = Term.arg_to_list args in
+let new_arg_list = flat_args_fun symb old_arg_list in
+add_fun_term symb new_arg_list
+in
+let new_lit =
+if (Term.is_neg_lit lit)
+then
+add_fun_term Symbol.symb_neg [new_atom]
+else
+new_atom
+in
+new_lit:: rest
+| Term.Var _ -> failwith "flat_lit: atom cannot be var"
+end
+in
+let flat_part = Clause.fold flat_lit [] clause in
+let get_env_part term var_term rest =
+let new_var_term =
+(Subst.find_normalised !neg_var_subst_ref var_term) in
+match term with
+| Term.Fun (symb, args, _) ->
+let new_atom =
+if (add_term_to_def_test term)
+then
+(try
+let new_symb = (TermHash.find term_def_table term) in
+add_fun_term new_symb [new_var_term]
+with Not_found ->
+failwith "get_env_part: ground term shoud be in term_def_table "
+)
+else
+(let new_symb = Symbol.get_flattening symb in
+(*	    out_str ("new symb: "^(Symbol.to_string new_symb)^"\n");*)
+(* the value of the function is the first argument of the relation*)
+
+let old_arg_list = Term.arg_to_list args in
+let non_flat_new_arg_list = flat_args_fun symb old_arg_list in
+
+let new_args = new_var_term:: non_flat_new_arg_list
+(*	      new_var_term::(Term.arg_to_list (Term.arg_map term_to_var_term args)) *)
+in
+add_fun_term new_symb new_args
+)
+in
+let new_lit = add_fun_term Symbol.symb_neg [new_atom] in
+new_lit:: rest
+| Term.Var _ -> failwith "get_env_part should not be var term"
+in
+let env_part = TermHash.fold get_env_part var_env [] in
+add_clause_lits (env_part@flat_part)
+*)
 
 (*----------------------------------------------------------------*)
 (* Gets definitions from the term_def_table                       *)
@@ -808,34 +971,34 @@ let dis_eq_axioms_all_dom_sym () =
 (* the result is dom_pred \/ R(1,x_1,x_2)\/R(2,x_1,x_2)\/...\/R(n,x_1,x_2)*)
 
 let axiom_dom_pred_symb bound_pred symb dom_elements =
- let (symb_types,_bool_type) = Symbol.get_stype_args_val_def symb in
- (* first is val type  *)
-  let arg_types, val_type = 
+	let (symb_types, _bool_type) = Symbol.get_stype_args_val_def symb in
+	(* first is val type  *)
+	let arg_types, val_type =
 		match symb_types with
-		| h::tl -> (tl,h)
-		| []-> failwith "axiom_dom_pred_symb: symb should have at least one arg"   
+		| h:: tl -> (tl, h)
+		| []-> failwith "axiom_dom_pred_symb: symb should have at least one arg"
 	in
- let var_env = Var.init_fresh_vars_env () in
- let rec get_var_args rest_vars rest_arg_types =
-	 match rest_arg_types with 
-	| [] -> List.rev rest_vars
-	| h::tl -> 
-		 let new_vars = (add_var_term (Var.get_next_fresh_var var_env h))::rest_vars in 
-	   get_var_args new_vars tl 
+	let var_env = Var.init_fresh_vars_env () in
+	let rec get_var_args rest_vars rest_arg_types =
+		match rest_arg_types with
+		| [] -> List.rev rest_vars
+		| h:: tl ->
+				let new_vars = (add_var_term (Var.get_next_fresh_var var_env h)):: rest_vars in
+				get_var_args new_vars tl
 	in
 	let var_args = get_var_args [] arg_types in
-(*
-		let rec get_var_args rest current_var i =
-		if i = 0 then List.rev rest
-		else
-			get_var_args
-				((add_var_term current_var):: rest) (Var.get_next_var current_var) (i -1)
+	(*
+	let rec get_var_args rest current_var i =
+	if i = 0 then List.rev rest
+	else
+	get_var_args
+	((add_var_term current_var):: rest) (Var.get_next_var current_var) (i -1)
 	in
 	let var_args =
-		get_var_args [] (Var.get_first_var ()) ((Symbol.get_arity symb) -1)
+	get_var_args [] (Var.get_first_var ()) ((Symbol.get_arity symb) -1)
 	in
-*)
-		let f rest dom_el =
+	*)
+	let f rest dom_el =
 		(add_fun_term symb (dom_el:: var_args)):: rest
 	in
 	let new_cl =
@@ -935,19 +1098,84 @@ let domain_axioms_triangular bound_pred =
 
 (*------------------------*)
 
-let get_epr_eq_axioms () =
-	let epr_eq_types =
-		(SymSet.inter !epr_type_set !init_sig.Clause.sig_eq_types) in
+(* eq axioms for non flatten types *)
+let get_non_flat_eq_axioms () =
+	let non_flat_eq_types =
+		if !current_options.sat_non_cyclic_types (* subsumse epr_types*)
+		then
+			(SymSet.inter !cyc_non_cyc_types.non_cyclic_types !init_sig.Clause.sig_eq_types)
+		else
+		if !current_options.sat_epr_types
+		then
+			(SymSet.inter !epr_type_set !init_sig.Clause.sig_eq_types)
+		else
+			SymSet.empty
+	in
 	let csig =
 		{
 			Clause.sig_fun_preds =
 				SymSet.union !flat_sym_set !init_sig.Clause.sig_fun_preds;
-			Clause.sig_eq_types = epr_eq_types
+			Clause.sig_eq_types = non_flat_eq_types
 		}
 	in
-	let epr_eq_ax = Eq_axioms.typed_eq_axioms_sig csig in
-	(*  out_str ("\n EPR eq ax: "^(Clause.clause_list_to_string  epr_eq_ax )^"\n");*)
-	epr_eq_ax
+	let non_flat_eq_ax = Eq_axioms.typed_eq_axioms_sig csig in
+(*	out_str ("\n NON Flat eq ax: "^(Clause.clause_list_to_string non_flat_eq_ax )^"\n");*)
+	non_flat_eq_ax
+
+(*--------- SCC based non-flattening -----------------------*)
+module DGS = Graph.Imperative.Digraph.Concrete(Symbol.Key)
+
+(* Strongly connected component *)
+module DGS_SCC = Graph.Components.Make(DGS)
+
+(* type1 -> type2 graph if there is func. with arg in type1 and val in type2 *)
+(* for predicates we add vetecies without edges *)
+let get_type_graph signature =
+	let type_graph = DGS.create ~size:1001 () in
+	let f symb =
+		let (arg_types, val_type) = Symbol.get_stype_args_val_def symb in
+		if (val_type == Symbol.symb_bool_type)
+		then (* just add vertices *)
+		(List.iter (DGS.add_vertex type_graph) arg_types)
+		else (* add edges *)
+		(List.iter (fun t -> DGS.add_edge type_graph t val_type) arg_types)
+	in
+	SymSet.iter f (signature.Clause.sig_fun_preds);
+	type_graph
+
+let get_scc type_graph =
+	let scc_list = DGS_SCC.scc_list type_graph in
+	(* non_cyclic separte scc consisting of a singe vertex v without an edge v->v *)
+	let cyclic_scc, non_cyclic_single =
+		let f scc_single =
+			match scc_single with
+			| [v] -> (DGS.mem_edge type_graph v v)
+			| _ -> true
+		in
+		List.partition f scc_list
+	in
+	let non_cyclic_type_list = List.flatten non_cyclic_single in
+	let non_cyclic_type_set = List.fold_left (fun rest t -> SymSet.add t rest) SymSet.empty non_cyclic_type_list in
+	let cyclic_type_list = List.flatten cyclic_scc in
+	let cyclic_type_set = List.fold_left (fun rest t -> SymSet.add t rest) SymSet.empty cyclic_type_list in
+	
+	(* debug out scc *)
+	
+(*	out_str "Signatuer SCC cyclic components: \n"; *)
+	let out_scc_single tlist =
+		out_str ("["^(list_to_string Symbol.to_string tlist ";")^"]\n")
+	in
+(*	List.iter out_scc_single cyclic_scc;*)
+(*	out_str "\n\n Signatuer SCC non-cyclic types: \n";
+	out_str ("["^(list_to_string Symbol.to_string non_cyclic_type_list ";")^"]\n");
+	*)
+	
+	(* debug *)
+	{ cyclic_types = cyclic_type_set; non_cyclic_types = non_cyclic_type_set }
+
+let cyc_non_cyc_types_init () =
+	cyc_non_cyc_types := (get_scc (get_type_graph !init_sig));
+	Statistics.incr_int_stat (SymSet.cardinal !cyc_non_cyc_types.non_cyclic_types) Statistics.sat_num_of_non_cyclic_types
 
 let init_finite_models clauses =
 	init_sig := Clause.clause_list_signature clauses;
@@ -965,7 +1193,12 @@ let init_finite_models clauses =
 	epr_type_set_init ();
 	epr_const_set_init ();
 	flat_signature ();
+	cyc_non_cyc_types_init ();
 	
+	(*
+	out_str " \n\n Finite Models raising SZS_Unknown after cyc_non_cyc_types_init ();\n ";
+	raise SZS_Unknown;
+	*)
 	(*
 	out_str ("EPR types: ");
 	
@@ -988,6 +1221,70 @@ let init_finite_models clauses =
 let dom_fun dom =
 flat_to_orig
 *)
+
+(*--------test for variable elimination part------*)
+
+type pos_neg_cl_lists =
+	{ pos_cl_list : Clause.clause list;
+		neg_cl_list : Clause.clause list }
+
+module SymbMap = Symbol.Map
+
+let rec add_clause_pred_map pred_map clause =
+	let f curr_pred_map lit =
+		let atom = Term.get_atom lit in
+		let pred_symb = Term.get_top_symb atom in
+		try
+			let clause_list = SymbMap.find pred_symb curr_pred_map in
+			SymbMap.add pred_symb (clause:: clause_list) curr_pred_map
+		with
+			Not_found ->
+				SymbMap.add pred_symb [clause] curr_pred_map
+	in
+	let lit_list = Clause.get_literals clause in
+	List.fold_left f pred_map lit_list
+
+let rec create_pred_map_cl_list clause_list =
+	List.fold_left add_clause_pred_map SymbMap.empty clause_list
+
+let rec add_clause_pred_map pred_map clause =
+	let f curr_pred_map lit =
+		let atom = Term.get_atom lit in
+		let is_neg = Term.is_neg_lit lit in
+		let pred_symb = Term.get_top_symb atom in
+		try
+			let old_pos_neg = SymbMap.find pred_symb curr_pred_map in
+			let new_pos_neg =
+				if is_neg then
+					{ old_pos_neg with
+						neg_cl_list = clause:: (old_pos_neg.neg_cl_list)
+					}
+				else
+					{ old_pos_neg with
+						pos_cl_list = clause:: (old_pos_neg.pos_cl_list)
+					}
+			in
+			SymbMap.add pred_symb new_pos_neg curr_pred_map
+		with
+			Not_found ->
+				let new_pos_neg =
+					if is_neg
+					then
+						{ pos_cl_list = [];
+							neg_cl_list = [clause];
+						}
+					else
+						{ pos_cl_list = [clause];
+							neg_cl_list = [];
+						}
+				in
+				SymbMap.add pred_symb new_pos_neg curr_pred_map
+	in
+	let lit_list = Clause.get_literals clause in
+	List.fold_left f pred_map lit_list
+
+let rec create_pred_map_cl_list clause_list =
+	List.fold_left add_clause_pred_map SymbMap.empty clause_list
 
 (*
 

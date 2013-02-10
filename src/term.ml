@@ -834,12 +834,6 @@ let get_fast_key (t: term) =
 	
 	| _ -> raise Term_fast_key_undef
 
-let rec fold_left f v t =
-	match t with
-	| Fun(_sym, args, _) ->
-			let res_arg = List.fold_left (fold_left f) v args in
-			f res_arg t
-	| _ -> f v t
 
 
 let rec fold_left_var f v t =
@@ -849,6 +843,7 @@ let rec fold_left_var f v t =
 		  res_arg
 	| Var(var,_) -> f v var 
 
+(*
 let rec map f t =
 	match t with
 	| Fun(sym, args, _) ->
@@ -856,6 +851,16 @@ let rec map f t =
 				List.map (map f) args in
 			f (create_fun_term sym new_args)
 	| v -> f v
+*)
+
+let rec fold_left f v t =
+	match t with
+	| Fun(_sym, args, _) ->
+			let res_arg = List.fold_left (fold_left f) v args in
+			f res_arg t
+	| _ -> f v t
+
+
 
 (* f: var-> term *)
 let rec map_var f t =
@@ -912,14 +917,32 @@ let rec iter_sym f term =
 (* we assume that t, p, and q are in the term db and therefore we are using == *)
 (* the resulting term will need to be  added in term db separately *)
 
-let rec replace ~subterm ~byterm t =
+let rec replace subterm byterm t =
+ 	if t == subterm 
+	then   
+		byterm 
+	else
+	match t with
+	| Fun(sym, args, _) ->
+			let new_args =
+				List.map (replace subterm byterm) args in
+			create_fun_term sym new_args
+	| v -> v
+
+(*
+does not work since map creats new terms without adding to term_db
+
+let replace subterm byterm t =
 	let f xt =
 		if xt == subterm
-		then byterm
-		else xt
+		then 
+				 byterm				
+		else 
+				xt
 	in
-	map f t
-
+  map f t 
+	
+*)
 (* if the type of the term is the same as type of the argument then replace it *)
 
 (*let inst_all_vars_by_term_typed *)

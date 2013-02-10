@@ -39,7 +39,7 @@ val init_finite_models : clause list -> unit
 
 val flat_clause_list : clause list -> clause list
 
-val get_epr_eq_axioms : unit -> clause list
+val get_non_flat_eq_axioms : unit -> clause list
 
 (*
 (* one should run flat_signature before any other function*)

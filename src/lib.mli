@@ -15,6 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
+exception SZS_Unknown
 
 val answer_mode_ref : bool ref
 

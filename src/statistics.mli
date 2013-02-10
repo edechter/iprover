@@ -48,6 +48,8 @@ val forced_gc_time       : stat_int_entry
 val num_of_sem_filtered_clauses : stat_int_entry
 val num_of_subtypes : stat_int_entry
 val sat_num_of_epr_types : stat_int_entry
+val sat_num_of_non_cyclic_types : stat_int_entry
+
 
 val parsing_time         : stat_float_entry 
 val sem_filter_time      : stat_float_entry 

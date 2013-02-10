@@ -22,7 +22,6 @@ open Printf
 (* record backtrace for debugging          *)
 (* compile with -g option to get the trace *)
 
-exception SZS_Unknown
 
 type clause = Clause.clause
 
@@ -503,9 +502,9 @@ let finite_models clauses =
 	Finite_models.init_finite_models prep_clauses;
 	let flat_clauses = (Finite_models.flat_clause_list prep_clauses)in
 	let init_clauses =
-		if (!current_options.sat_epr_types)
+		if (!current_options.sat_epr_types) || (!current_options.sat_non_cyclic_types)
 		then
-			(Finite_models.get_epr_eq_axioms ())@(flat_clauses)
+			(Finite_models.get_non_flat_eq_axioms ())@(flat_clauses)
 		else
 			flat_clauses
 	in
@@ -564,11 +563,11 @@ let finite_models clauses =
 				(*can use  Finite_models.domain_pred_axioms_all_dom new_bound_pred *)
 				Finite_models.domain_axioms_triangular new_bound_pred
 			in
-			(*
+	(*		
 			out_str ("\n---------Domain Axioms------------------\n"
 			^(Clause.clause_list_to_tptp domain_axioms)
 			^"\n------------------------\n");
-			*)
+  *)	
 			let dis_eq_axioms =
 				if no_input_eq ()
 				then []
@@ -576,11 +575,11 @@ let finite_models clauses =
 					(* can have Finite_models.dis_eq_axioms_all_dom () for exp. *)
 					Finite_models.dis_eq_axioms_all_dom_sym ()
 			in
-			(*
+	(*		
 			out_str ("\n---------Diseq Axioms------------------\n"
 			^(Clause.clause_list_to_tptp dis_eq_axioms)
 			^"\n------------------------\n");
-			*)
+  *)			
 			(*
 			let domain_axioms =
 			if no_input_eq ()
@@ -1150,17 +1149,6 @@ let out_bmc1_unsat_result bmc1_cur_bound =
 (* clauses used for finite model finding need not contain eq axioms *)
 
 let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clauses =
-	
-	(* For incremental BMC1 we must catch this and move to the next
-	bound. Otherwise the solver has been called before *)
-	if val_of_override !current_options.bmc1_incremental then
-		(if
-			(Prop_solver_exchange.solve ()) = PropSolver.Unsat
-			then
-				(* Raise separate exception, must continue with next bound *)
-				raise Prop_solver_exchange.Unsatisfiable);
-	
-	(* when Sat and eq ax are omitted we need to add them and start again *)
 	let when_eq_ax_ommitted () =
 		assert !eq_axioms_are_omitted;
 		out_str ("\n"^pref_str^("Adding Equality Axioms\n"));
@@ -1175,12 +1163,25 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 			main bmc1_for_pre_inst_cl (perp_eq_axs@clauses) finite_model_clauses filtered_out_clauses
 	in
 	let sched_run sched = schedule_run clauses finite_model_clauses sched in
-	if (not !current_options.instantiation_flag)
-	&& (not !current_options.resolution_flag)
-	then
-		failwith "No solver is selected: see --instantiation_flag, --resolution_flag"
-	else
-		try
+	(if (not !current_options.instantiation_flag)
+		&& (not !current_options.resolution_flag)
+		then
+			failwith "No solver is selected: see --instantiation_flag, --resolution_flag"
+		else ()
+	);
+	try
+		begin
+			(* For incremental BMC1 we must catch this and move to the next
+			bound. Otherwise the solver has been called before *)
+			if val_of_override !current_options.bmc1_incremental then
+				(if
+					(Prop_solver_exchange.solve ()) = PropSolver.Unsat
+					then
+						(* Raise separate exception, must continue with next bound *)
+						raise Prop_solver_exchange.Unsatisfiable);
+			
+			(* when Sat and eq ax are omitted we need to add them and start again *)
+			
 			if (!current_options.sat_mode && !current_options.sat_finite_models)
 			then
 				(* we use input clauses rather than clauses + eq axioms*)
@@ -1203,561 +1204,566 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 					| Schedule_sat ->
 							sched_run (sat_schedule ())
 				end
-		
-		(*
-		
-		(if !current_options.schedule then
-		(
-		let schedule =
-		if !current_options.sat_mode
-		then
-		sat_schedule ()
-		else
-		init_schedule ()
-		in
-		(*	 let schedule = init_schedule () in*)
-		schedule_run clauses schedule
-		)
-		else
-		(
-		if (!current_options.sat_mode && !current_options.sat_finite_models)
-		then
-		(*we use input clauses rather than clauses + eq axioms*)
-		finite_models !Parsed_input_to_db.input_clauses_ref
-		else
-		(* usual mode *)
-		let prover_functions_ref =
-		ref (create_provers "Inst" "Res" clauses) in
-		full_loop prover_functions_ref clauses
-		)
-		)
-		*)
-		(* end was commented *)
-		
-		with
-		| Discount.Satisfiable all_clauses
-		->
-				if !eq_axioms_are_omitted
-				then
-					when_eq_ax_ommitted ()
-				else
-					begin
-						out_str (satisfiable_str ());
-						
-						(* Do not output statistics in BMC1 mode with
-						-- bmc1_out_stat none *)
-						if (not (val_of_override !current_options.bmc1_incremental)) ||
-						(not (val_of_override !current_options.bmc1_out_stat =
-									BMC1_Out_Stat_None)) then
-							out_stat ();
-						
-						if
-						(not (!current_options.sat_out_model = Model_None)) ||
-						!current_options.sat_out_clauses
-						then
-							out_res_model all_clauses filtered_out_clauses
-						else ()
-						
-					end
-		
-		|
-		Instantiation.Satisfiable all_clauses
-		->
-				if !eq_axioms_are_omitted
-				then
-					when_eq_ax_ommitted ()
-				else
-					(out_str (satisfiable_str ());
-						
-						(* Do not output statistics in BMC1 mode with
-						-- bmc1_out_stat none *)
-						if (not (val_of_override !current_options.bmc1_incremental)) ||
-						(not (val_of_override !current_options.bmc1_out_stat =
-									BMC1_Out_Stat_None)) then
-							out_stat ();
-						
-						if (not (!current_options.sat_out_model = Model_None))
-						then
-							let inst_model =
-								(Model_inst.build_model all_clauses filtered_out_clauses) in
-							Model_inst.out_model inst_model
-						else ()
-						(*
-						if !current_options.sat_out_clauses then
-						(
-						sat_out_clauses all_clauses;
-						)
-						*)
-						
+			
+			(*
+			
+			(if !current_options.schedule then
+			(
+			let schedule =
+			if !current_options.sat_mode
+			then
+			sat_schedule ()
+			else
+			init_schedule ()
+			in
+			(*	 let schedule = init_schedule () in*)
+			schedule_run clauses schedule
+			)
+			else
+			(
+			if (!current_options.sat_mode && !current_options.sat_finite_models)
+			then
+			(*we use input clauses rather than clauses + eq axioms*)
+			finite_models !Parsed_input_to_db.input_clauses_ref
+			else
+			(* usual mode *)
+			let prover_functions_ref =
+			ref (create_provers "Inst" "Res" clauses) in
+			full_loop prover_functions_ref clauses
+			)
+			)
+			*)
+			(* end was commented *)
+		end
+	with
+	| Discount.Satisfiable all_clauses
+	->
+			if !eq_axioms_are_omitted
+			then
+				when_eq_ax_ommitted ()
+			else
+				begin
+					out_str (satisfiable_str ());
+					
+					(* Do not output statistics in BMC1 mode with
+					-- bmc1_out_stat none *)
+					if (not (val_of_override !current_options.bmc1_incremental)) ||
+					(not (val_of_override !current_options.bmc1_out_stat =
+								BMC1_Out_Stat_None)) then
+						out_stat ();
+					
+					if
+					(not (!current_options.sat_out_model = Model_None)) ||
+					!current_options.sat_out_clauses
+					then
+						out_res_model all_clauses filtered_out_clauses
+					else ()
+					
+				end
+	
+	|
+	Instantiation.Satisfiable all_clauses
+	->
+			if !eq_axioms_are_omitted
+			then
+				when_eq_ax_ommitted ()
+			else
+				(out_str (satisfiable_str ());
+					
+					(* Do not output statistics in BMC1 mode with
+					-- bmc1_out_stat none *)
+					if (not (val_of_override !current_options.bmc1_incremental)) ||
+					(not (val_of_override !current_options.bmc1_out_stat =
+								BMC1_Out_Stat_None)) then
+						out_stat ();
+					
+					if (not (!current_options.sat_out_model = Model_None))
+					then
+						let inst_model =
+							(Model_inst.build_model all_clauses filtered_out_clauses) in
+						Model_inst.out_model inst_model
+					else ()
+					(*
+					if !current_options.sat_out_clauses then
+					(
+					sat_out_clauses all_clauses;
 					)
-		
-		(* Incremental BMC1 solving: unsatisfiable when there are higher
-		bounds left to check *)
-		| Prop_solver_exchange.Unsatisfiable
-		(* | Discount.Unsatisfiable *)
-		| Instantiation.Unsatisfiable
-		| Discount.Empty_Clause _
-		when val_of_override !current_options.bmc1_incremental ->
-		
-		(* If SAT solver reports unsatisfiable without assumptions, then
-		problem is unsat for all bounds. Must not continue, since
-		solver is in invalid state *)
-		(* | (PropSolver.Unsatisfiable as e) *)
-		
-				(
+					*)
 					
-					if !current_options.dbg_backtrace then
-						Format.eprintf
-							"@\nUnsatisfiable exception raised.@\nBacktrace:@\n%s@\n@."
-							(Printexc.get_backtrace ());
+				)
+	
+	(* Incremental BMC1 solving: unsatisfiable when there are higher
+	bounds left to check *)
+	| Prop_solver_exchange.Unsatisfiable
+	(* | Discount.Unsatisfiable *)
+	| Instantiation.Unsatisfiable
+	| Discount.Empty_Clause _
+	when val_of_override !current_options.bmc1_incremental ->
+	
+	(* If SAT solver reports unsatisfiable without assumptions, then
+	problem is unsat for all bounds. Must not continue, since
+	solver is in invalid state *)
+	(* | (PropSolver.Unsatisfiable as e) *)
+	
+			(
+				
+				if !current_options.dbg_backtrace then
+					Format.eprintf
+						"@\nUnsatisfiable exception raised.@\nBacktrace:@\n%s@\n@."
+						(Printexc.get_backtrace ());
+				
+				(* Output SZS status *)
+				out_str (proved_str ());
+				
+				(* Output status for current bound *)
+				
+				out_bmc1_unsat_result !bmc1_cur_bound;
+				(* Assign last solved bound in statistics *)
+				assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
+				
+				(* Get clauses in unsatisfiable core *)
+				let unsat_core_clauses =
 					
-					(* Output SZS status *)
-					out_str (proved_str ());
+					match val_of_override !current_options.bmc1_add_unsat_core with
 					
-					(* Output status for current bound *)
+					(* No unsat core needed *)
+					| BMC1_Add_Unsat_Core_None
+					when
+					not (val_of_override !current_options.inst_out_proof) -> []
 					
-					out_bmc1_unsat_result !bmc1_cur_bound;
-					(* Assign last solved bound in statistics *)
-					assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
-					
-					(* Get clauses in unsatisfiable core *)
-					let unsat_core_clauses =
-						
-						match val_of_override !current_options.bmc1_add_unsat_core with
-						
-						(* No unsat core needed *)
-						| BMC1_Add_Unsat_Core_None
-						when
-						not (val_of_override !current_options.inst_out_proof) -> []
-						
-						(* Need unsat core  *)
-						| _ -> Prop_solver_exchange.unsat_core ()
-					
-					in
-					
-					if
-					
-					(* Verbose output for BMC1? *)
-					val_of_override !current_options.bmc1_verbose
-					
-					then
-						
-						(
-							
-							(* Print unsat core *)
-							Format.printf
-								"@\n%sUnsat core has size %d@\n@\n%a@."
-								pref_str
-								(List.length unsat_core_clauses)
-								(pp_any_list Clause.pp_clause_min_depth "\n") unsat_core_clauses;
-							
-						);
-					
-					(* Output proof from instantiation? *)
-					if val_of_override !current_options.inst_out_proof then
-						(
-							
-							(* Record time when proof extraction started *)
-							let start_time = Unix.gettimeofday () in
-							
-							(* Start proof output *)
-							Format.printf "@\n%% SZS output start CNFRefutation@\n@.";
-							
-							(* Proof output *)
-							Format.printf
-								"%a@."
-								TstpProof.pp_tstp_proof_unsat_core
-								unsat_core_clauses;
-							
-							(* End proof output *)
-							Format.printf "%% SZS output end CNFRefutation@\n@.";
-							
-							(* Record time when proof extraction finished *)
-							let end_time = Unix.gettimeofday () in
-							
-							(* Save time for proof extraction *)
-							add_float_stat (end_time -. start_time) out_proof_time;
-							
-						);
-					
-					(* Assign size of unsat core in statistics *)
-					assign_int_stat
-						(List.length unsat_core_clauses)
-						bmc1_unsat_core_size;
-					
-					let start_time = Unix.gettimeofday () in
-					
-					(* Get parent clauses of unsat core clauses *)
-					let unsat_core_parents =
-						
-						match val_of_override !current_options.bmc1_add_unsat_core with
-						
-						(* Use no clauses from unsat core *)
-						| BMC1_Add_Unsat_Core_None -> []
-						
-						(* Use only clauses from unsat core *)
-						| BMC1_Add_Unsat_Core_Clauses ->
-								unsat_core_clauses
-						
-						(* Use leaf clauses from unsat core *)
-						| BMC1_Add_Unsat_Core_Leaves ->
-								TstpProof.get_leaves unsat_core_clauses
-						
-						(* Use all clauses from unsat core *)
-						| BMC1_Add_Unsat_Core_All ->
-								TstpProof.get_parents unsat_core_clauses
-					
-					in
-					
-					let end_time = Unix.gettimeofday () in
-					
-					(* Assign size of unsat core in statistics *)
-					
-					assign_int_stat
-						(List.length unsat_core_parents)
-						bmc1_unsat_core_parents_size;
-					
-					(* Assign time to extract unsat core clauses in statistics *)
-					add_float_stat
-						(end_time -. start_time)
-						bmc1_unsat_core_clauses_time;
-					
-					if
-					
-					(* Verbose output for BMC1?*)
-					val_of_override !current_options.bmc1_verbose
-					
-					then
-						
-						(
-							
-							(* Print time to find parents of unsat core *)
-							Format.printf
-								"@\n%sTime to find parents of unsat core clauses: %.3f@."
-								pref_str
-								(end_time -. start_time);
-							
-							(* Print parents of unsat core *)
-							Format.printf
-								"@\n%sUnsat core parents has size %d@\n@."
-								pref_str
-								(List.length unsat_core_parents)
-							
-						);
-					
-					if
-					
-					(* Verbose output for BMC1?*)
-					val_of_override !current_options.bmc1_out_unsat_core
-					
-					then
-						
-						(
-							
-							(* Start proof output *)
-							Format.printf "@\n%% SZS output start ListOfCNF@\n@.";
-							
-							(* Output clauses *)
-							List.iter
-								(Format.printf
-										"%a@."
-										(TstpProof.pp_clause_with_source false))
-								unsat_core_parents;
-							
-							(* End proof output *)
-							Format.printf "%% SZS output end ListOfCNF@\n@."
-							
-						);
-					
-					if
-					
-					(* Dump unsat core in TPTP format? *)
-					val_of_override !current_options.bmc1_dump_unsat_core_tptp
-					
-					then
-						
-						(
-							
-							(* Formatter to write to, i.e. stdout or file *)
-							let dump_formatter =
-								Bmc1Axioms.get_bmc1_dump_formatter ()
-							in
-							
-							(* Output clauses *)
-							Format.fprintf
-								dump_formatter
-								"%% ------------------------------------------------------------------------@\n%% Unsat core for bound %d@\n%a@."
-								!bmc1_cur_bound
-								Clause.pp_clause_list_tptp
-								unsat_core_clauses;
-							
-							(* Output clauses *)
-							Format.fprintf
-								dump_formatter
-								"%% ------------------------------------------------------------------------@\n%% Lifted unsat core for bound %d@\n%a@."
-								!bmc1_cur_bound
-								Clause.pp_clause_list_tptp
-								unsat_core_parents;
-							(* Output bound assumptions *)
-							Format.fprintf
-								dump_formatter
-								"%% ------------------------------------------------------------------------@\n%% Clause assumptions for bound %d@\n%a@."
-								!bmc1_cur_bound
-								Clause.pp_clause_list_tptp
-								(Bmc1Axioms.get_bound_assumptions !bmc1_cur_bound)
-							
-						);
-					
-					(* Increment bound by one *)
-					let cur_bound, next_bound =
-						!bmc1_cur_bound, succ !bmc1_cur_bound
-					in
-					
-					(* Get value of maximal bound *)
-					let max_bound =
-						max
-							(val_of_override !current_options.bmc1_max_bound)
-							(val_of_override !current_options.bmc1_max_bound_default)
-					in
-					
-					if
-					
-					(* Next bound is beyond maximal bound? *)
-					next_bound > max_bound &&
-					
-					(* No maximal bound for -1 *)
-					max_bound >= 0
-					
-					then
-						
-						(
-							
-							(* Output unsatisfiable result for last bound *)
-							out_str (proved_str ());
-							
-						);
+					(* Need unsat core  *)
+					| _ -> Prop_solver_exchange.unsat_core ()
+				
+				in
+				
+				if
+				
+				(* Verbose output for BMC1? *)
+				val_of_override !current_options.bmc1_verbose
+				
+				then
 					
 					(
 						
-						(* When to output statistics? *)
-						match val_of_override !current_options.bmc1_out_stat with
-						
-						(* Output statistics after each bound *)
-						| BMC1_Out_Stat_Full -> out_stat ()
-						
-						(* Output statistics after last bound *)
-						| BMC1_Out_Stat_Last
-						when next_bound > max_bound -> out_stat ()
-						
-						(* Do not output statistics for bounds before last *)
-						| BMC1_Out_Stat_Last -> ()
-						
-						(* Never output statistics *)
-						| BMC1_Out_Stat_None -> ()
+						(* Print unsat core *)
+						Format.printf
+							"@\n%sUnsat core has size %d@\n@\n%a@."
+							pref_str
+							(List.length unsat_core_clauses)
+							(pp_any_list Clause.pp_clause_min_depth "\n") unsat_core_clauses;
 						
 					);
-					
-					if
-					
-					(* Next bound is beyond maximal bound? *)
-					next_bound > max_bound &&
-					
-					(* No maximal bound for -1 *)
-					max_bound >= 0
-					
-					then
-						
-						(
-							
-							(* Silently terminate *)
-							raise Exit
-							
-						);
-					
-					(* Output next bound *)
-					Format.printf
-						"%s Incrementing BMC1 bound to %d@\n@."
-						pref_str
-						next_bound;
-					
-					(* Clear properties of terms before running again *)
-					Instantiation.clear_after_inst_is_dead ();
-					
-					(* Add axioms for next bound *)
-					let next_bound_axioms =
-						Bmc1Axioms.increment_bound cur_bound next_bound false
-					in
-					
-					(* Preprocess axioms *)
-					let next_bound_axioms' =
-						Preprocess.preprocess next_bound_axioms
-					in
-					
-					(* Symbols in axioms are input symbols *)
-					assign_is_essential_input_symb next_bound_axioms';
-					
-					(* Add axioms to solver *)
-					List.iter
-						Prop_solver_exchange.add_clause_to_solver
-						next_bound_axioms';
-					
-					(* Flag all input clauses as not in unsat core *)
-					List.iter
-						(Clause.set_bool_param false Clause.in_unsat_core)
-						clauses;
-					
-					(* Flag clauses as in unsat core *)
-					List.iter
-						(Clause.set_bool_param true Clause.in_unsat_core)
-						unsat_core_parents;
-					
-					(* Extrapolated axioms from unsat core *)
-					let bmc1_axioms_extrapolated =
-						
-						if
-						
-						(* Extrapolate axioms in unsat core? *)
-						(val_of_override
-								!current_options.bmc1_unsat_core_extrapolate_axioms) &&
-						
-						(* Only if unsat caor has been extracted *)
-						(not
-								((val_of_override !current_options.bmc1_add_unsat_core) =
-									BMC1_Add_Unsat_Core_None))
-						
-						then
-							
-							(
-								
-								(* Leaves clauses in proof to avoid repeated
-								computation *)
-								let unsat_core_leaves =
-									match
-									val_of_override !current_options.bmc1_add_unsat_core
-									with
-									
-									(* Unsat core has not been calculated *)
-									| BMC1_Add_Unsat_Core_None ->
-									
-											failwith
-												"Cannot extrapolate BMC1 axioms without unsat core"
-									
-									(* Leaves of unsat core have not been calculated *)
-									| BMC1_Add_Unsat_Core_Clauses ->
-											TstpProof.get_leaves unsat_core_clauses
-									
-									(* Take leaves of proof or all clauses in proof *)
-									| BMC1_Add_Unsat_Core_Leaves
-									| BMC1_Add_Unsat_Core_All ->
-											unsat_core_parents
-								in
-								
-								(* Create axioms for next bound of all axioms of
-								previous bound in unsat core *)
-								let bmc1_axioms_extrapolated =
-									Bmc1Axioms.extrapolate_to_bound
-										next_bound
-										unsat_core_leaves
-								in
-								
-								if
-								
-								(* Verbose output for BMC1? *)
-								val_of_override !current_options.bmc1_verbose
-								
-								then
-									
-									(
-										
-										(* Print extrapolated BMC1 axioms *)
-										Format.printf
-											"@\n%sExtrapolated BMC1 axioms@\n@\n%a@."
-											pref_str
-											(pp_any_list Clause.pp_clause "\n")
-											bmc1_axioms_extrapolated
-										
-									);
-								
-								(* Flag clauses extrapolated to the next bound as in
-								unsat core *)
-								List.iter
-									(Clause.set_bool_param true Clause.in_unsat_core)
-									bmc1_axioms_extrapolated;
-								
-								(* Continue with extrapolated axioms *)
-								bmc1_axioms_extrapolated
-								
-							)
-						
-						else
-							
-							(* Do not extrapolate axioms *)
-							[]
-					
-					in
-					
-					(* Preprocessed clauses with axioms extrapolated *)
-					let unsat_core_clauses' =
-						Preprocess.preprocess
-							(unsat_core_parents @ bmc1_axioms_extrapolated)
-					in
-					
-					(* Add preprocessed clauses to solver
-					
-					Clauses may be split or simplified and must be added to
-					the solver then *)
-					List.iter
-						Prop_solver_exchange.add_clause_to_solver
-						unsat_core_clauses';
-					
-					(* Save next bound as current *)
-					bmc1_cur_bound := next_bound;
-					
-					(* Input clauses for next bound *)
-					let all_clauses =
-						let curr_cls = next_bound_axioms' @ unsat_core_clauses' @ clauses in
-						if !current_options.bmc1_pre_inst_state
-						then 
-							let to_pre_instantiate = (bmc1_for_pre_inst_cl)@next_bound_axioms' @ unsat_core_clauses' in
-						(*	out_str ("\n\nBefore pre inst \n\n"^(Clause.clause_list_to_string to_pre_instantiate)^"\n\n");*)
- 							let pre_inst = Bmc1Axioms.pre_instantiate_state_var_clauses_range !bmc1_cur_bound !bmc1_cur_bound to_pre_instantiate in
-						(*	out_str ("\n\n After pre inst \n\n"^(Clause.clause_list_to_string pre_inst)^"\n\n"); *)
-							pre_inst@clauses							
-						else
-							curr_cls
-					in					
 				
-					if
-					
-					(* Dump clauses to TPTP format? *)
-					val_of_override !current_options.bmc1_dump_clauses_tptp
-					
-					then
+				(* Output proof from instantiation? *)
+				if val_of_override !current_options.inst_out_proof then
+					(
 						
-						(
-						(*
+						(* Record time when proof extraction started *)
+						let start_time = Unix.gettimeofday () in
+						
+						(* Start proof output *)
+						Format.printf "@\n%% SZS output start CNFRefutation@\n@.";
+						
+						(* Proof output *)
+						Format.printf
+							"%a@."
+							TstpProof.pp_tstp_proof_unsat_core
+							unsat_core_clauses;
+						
+						(* End proof output *)
+						Format.printf "%% SZS output end CNFRefutation@\n@.";
+						
+						(* Record time when proof extraction finished *)
+						let end_time = Unix.gettimeofday () in
+						
+						(* Save time for proof extraction *)
+						add_float_stat (end_time -. start_time) out_proof_time;
+						
+					);
+				
+				(* Assign size of unsat core in statistics *)
+				assign_int_stat
+					(List.length unsat_core_clauses)
+					bmc1_unsat_core_size;
+				
+				let start_time = Unix.gettimeofday () in
+				
+				(* Get parent clauses of unsat core clauses *)
+				let unsat_core_parents =
+					
+					match val_of_override !current_options.bmc1_add_unsat_core with
+					
+					(* Use no clauses from unsat core *)
+					| BMC1_Add_Unsat_Core_None -> []
+					
+					(* Use only clauses from unsat core *)
+					| BMC1_Add_Unsat_Core_Clauses ->
+							unsat_core_clauses
+					
+					(* Use leaf clauses from unsat core *)
+					| BMC1_Add_Unsat_Core_Leaves ->
+							TstpProof.get_leaves unsat_core_clauses
+					
+					(* Use all clauses from unsat core *)
+					| BMC1_Add_Unsat_Core_All ->
+							TstpProof.get_parents unsat_core_clauses
+				
+				in
+				
+				let end_time = Unix.gettimeofday () in
+				
+				(* Assign size of unsat core in statistics *)
+				
+				assign_int_stat
+					(List.length unsat_core_parents)
+					bmc1_unsat_core_parents_size;
+				
+				(* Assign time to extract unsat core clauses in statistics *)
+				add_float_stat
+					(end_time -. start_time)
+					bmc1_unsat_core_clauses_time;
+				
+				if
+				
+				(* Verbose output for BMC1?*)
+				val_of_override !current_options.bmc1_verbose
+				
+				then
+					
+					(
+						
+						(* Print time to find parents of unsat core *)
+						Format.printf
+							"@\n%sTime to find parents of unsat core clauses: %.3f@."
+							pref_str
+							(end_time -. start_time);
+						
+						(* Print parents of unsat core *)
+						Format.printf
+							"@\n%sUnsat core parents has size %d@\n@."
+							pref_str
+							(List.length unsat_core_parents)
+						
+					);
+				
+				if
+				
+				(* Verbose output for BMC1?*)
+				val_of_override !current_options.bmc1_out_unsat_core
+				
+				then
+					
+					(
+						
+						(* Start proof output *)
+						Format.printf "@\n%% SZS output start ListOfCNF@\n@.";
+						
+						(* Output clauses *)
+						List.iter
+							(Format.printf
+									"%a@."
+									(TstpProof.pp_clause_with_source false))
+							unsat_core_parents;
+						
+						(* End proof output *)
+						Format.printf "%% SZS output end ListOfCNF@\n@."
+						
+					);
+				
+				if
+				
+				(* Dump unsat core in TPTP format? *)
+				val_of_override !current_options.bmc1_dump_unsat_core_tptp
+				
+				then
+					
+					(
+						
 						(* Formatter to write to, i.e. stdout or file *)
 						let dump_formatter =
-						Bmc1Axioms.get_bmc1_dump_formatter ()
+							Bmc1Axioms.get_bmc1_dump_formatter ()
 						in
 						
 						(* Output clauses *)
 						Format.fprintf
-						dump_formatter
-						"%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@."
-						next_bound
-						(pp_any_list Clause.pp_clause_tptp "\n")
-						all_clauses;
-						*)
-						);
+							dump_formatter
+							"%% ------------------------------------------------------------------------@\n%% Unsat core for bound %d@\n%a@."
+							!bmc1_cur_bound
+							Clause.pp_clause_list_tptp
+							unsat_core_clauses;
+						
+						(* Output clauses *)
+						Format.fprintf
+							dump_formatter
+							"%% ------------------------------------------------------------------------@\n%% Lifted unsat core for bound %d@\n%a@."
+							!bmc1_cur_bound
+							Clause.pp_clause_list_tptp
+							unsat_core_parents;
+						(* Output bound assumptions *)
+						Format.fprintf
+							dump_formatter
+							"%% ------------------------------------------------------------------------@\n%% Clause assumptions for bound %d@\n%a@."
+							!bmc1_cur_bound
+							Clause.pp_clause_list_tptp
+							(Bmc1Axioms.get_bound_assumptions !bmc1_cur_bound)
+						
+					);
+				
+				(* Increment bound by one *)
+				let cur_bound, next_bound =
+					!bmc1_cur_bound, succ !bmc1_cur_bound
+				in
+				
+				(* Get value of maximal bound *)
+				let max_bound =
+					max
+						(val_of_override !current_options.bmc1_max_bound)
+						(val_of_override !current_options.bmc1_max_bound_default)
+				in
+				
+				if
+				
+				(* Next bound is beyond maximal bound? *)
+				next_bound > max_bound &&
+				
+				(* No maximal bound for -1 *)
+				max_bound >= 0
+				
+				then
 					
-					(* Run again for next bound *)
-					main
-					  bmc1_for_pre_inst_cl
-						all_clauses
-						finite_model_clauses
-						filtered_out_clauses
-				)
+					(
+						
+						(* Output unsatisfiable result for last bound *)
+						out_str (proved_str ());
+						
+					);
+				
+				(
+					
+					(* When to output statistics? *)
+					match val_of_override !current_options.bmc1_out_stat with
+					
+					(* Output statistics after each bound *)
+					| BMC1_Out_Stat_Full -> out_stat ()
+					
+					(* Output statistics after last bound *)
+					| BMC1_Out_Stat_Last
+					when next_bound > max_bound -> out_stat ()
+					
+					(* Do not output statistics for bounds before last *)
+					| BMC1_Out_Stat_Last -> ()
+					
+					(* Never output statistics *)
+					| BMC1_Out_Stat_None -> ()
+					
+				);
+				
+				if
+				
+				(* Next bound is beyond maximal bound? *)
+				next_bound > max_bound &&
+				
+				(* No maximal bound for -1 *)
+				max_bound >= 0
+				
+				then
+					
+					(
+						
+						(* Silently terminate *)
+						raise Exit
+						
+					);
+				
+				(* Output next bound *)
+				Format.printf
+					"%s Incrementing BMC1 bound to %d@\n@."
+					pref_str
+					next_bound;
+				
+				(* Clear properties of terms before running again *)
+				Instantiation.clear_after_inst_is_dead ();
+				
+				(* Add axioms for next bound *)
+				let next_bound_axioms =
+					Bmc1Axioms.increment_bound cur_bound next_bound false
+				in
+				
+				(* Preprocess axioms *)
+				let next_bound_axioms' =
+					Preprocess.preprocess next_bound_axioms
+				in
+				
+				(* Symbols in axioms are input symbols *)
+				assign_is_essential_input_symb next_bound_axioms';
+				
+				(* Add axioms to solver *)
+				List.iter
+					Prop_solver_exchange.add_clause_to_solver
+					next_bound_axioms';
+				
+				(* Flag all input clauses as not in unsat core *)
+				List.iter
+					(Clause.set_bool_param false Clause.in_unsat_core)
+					clauses;
+				
+				(* Flag clauses as in unsat core *)
+				List.iter
+					(Clause.set_bool_param true Clause.in_unsat_core)
+					unsat_core_parents;
+				
+				(* Extrapolated axioms from unsat core *)
+				let bmc1_axioms_extrapolated =
+					
+					if
+					
+					(* Extrapolate axioms in unsat core? *)
+					(val_of_override
+							!current_options.bmc1_unsat_core_extrapolate_axioms) &&
+					
+					(* Only if unsat caor has been extracted *)
+					(not
+							((val_of_override !current_options.bmc1_add_unsat_core) =
+								BMC1_Add_Unsat_Core_None))
+					
+					then
+						
+						(
+							
+							(* Leaves clauses in proof to avoid repeated
+							computation *)
+							let unsat_core_leaves =
+								match
+								val_of_override !current_options.bmc1_add_unsat_core
+								with
+								
+								(* Unsat core has not been calculated *)
+								| BMC1_Add_Unsat_Core_None ->
+								
+										failwith
+											"Cannot extrapolate BMC1 axioms without unsat core"
+								
+								(* Leaves of unsat core have not been calculated *)
+								| BMC1_Add_Unsat_Core_Clauses ->
+										TstpProof.get_leaves unsat_core_clauses
+								
+								(* Take leaves of proof or all clauses in proof *)
+								| BMC1_Add_Unsat_Core_Leaves
+								| BMC1_Add_Unsat_Core_All ->
+										unsat_core_parents
+							in
+							
+							(* Create axioms for next bound of all axioms of
+							previous bound in unsat core *)
+							let bmc1_axioms_extrapolated =
+								Bmc1Axioms.extrapolate_to_bound
+									next_bound
+									unsat_core_leaves
+							in
+							
+							if
+							
+							(* Verbose output for BMC1? *)
+							val_of_override !current_options.bmc1_verbose
+							
+							then
+								
+								(
+									
+									(* Print extrapolated BMC1 axioms *)
+									Format.printf
+										"@\n%sExtrapolated BMC1 axioms@\n@\n%a@."
+										pref_str
+										(pp_any_list Clause.pp_clause "\n")
+										bmc1_axioms_extrapolated
+									
+								);
+							
+							(* Flag clauses extrapolated to the next bound as in
+							unsat core *)
+							List.iter
+								(Clause.set_bool_param true Clause.in_unsat_core)
+								bmc1_axioms_extrapolated;
+							
+							(* Continue with extrapolated axioms *)
+							bmc1_axioms_extrapolated
+							
+						)
+					
+					else
+						
+						(* Do not extrapolate axioms *)
+						[]
+				
+				in
+				
+				(* Preprocessed clauses with axioms extrapolated *)
+				let unsat_core_clauses' =
+					Preprocess.preprocess
+						(unsat_core_parents @ bmc1_axioms_extrapolated)
+				in
+				
+				(* Add preprocessed clauses to solver
+				
+				Clauses may be split or simplified and must be added to
+				the solver then *)
+				List.iter
+					Prop_solver_exchange.add_clause_to_solver
+					unsat_core_clauses';
+				
+				(* Save next bound as current *)
+				bmc1_cur_bound := next_bound;
+				
+				(* Input clauses for next bound *)
+				let all_clauses =
+					let curr_cls = next_bound_axioms' @ unsat_core_clauses' @ clauses in
+					if !current_options.bmc1_pre_inst_state
+					then
+						let to_pre_instantiate = (bmc1_for_pre_inst_cl)@next_bound_axioms' @ unsat_core_clauses' in
+						(*	out_str ("\n\nBefore pre inst \n\n"^(Clause.clause_list_to_string to_pre_instantiate)^"\n\n");*)
+						let pre_inst = Bmc1Axioms.pre_instantiate_state_var_clauses_range !bmc1_cur_bound !bmc1_cur_bound to_pre_instantiate in
+						(*	out_str ("\n\n After pre inst \n\n"^(Clause.clause_list_to_string pre_inst)^"\n\n"); *)
+						let joint_clauses = pre_inst@clauses in
+						if !current_options.bmc1_pre_inst_reach_state
+						then
+							Bmc1Axioms.pre_inst_reachable_state_clauses	!bmc1_cur_bound joint_clauses
+						else
+							joint_clauses
+					else
+						curr_cls
+				in
+				
+				if
+				
+				(* Dump clauses to TPTP format? *)
+				val_of_override !current_options.bmc1_dump_clauses_tptp
+				
+				then
+					
+					(
+					(*
+					(* Formatter to write to, i.e. stdout or file *)
+					let dump_formatter =
+					Bmc1Axioms.get_bmc1_dump_formatter ()
+					in
+					
+					(* Output clauses *)
+					Format.fprintf
+					dump_formatter
+					"%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@."
+					next_bound
+					(pp_any_list Clause.pp_clause_tptp "\n")
+					all_clauses;
+					*)
+					);
+				
+				(* Run again for next bound *)
+				main
+					bmc1_for_pre_inst_cl
+					all_clauses
+					finite_model_clauses
+					filtered_out_clauses
+			)
 
 (*-------- Reachability depth for father_of relation (Intel) -----------*)
 
@@ -2040,8 +2046,8 @@ let run_iprover () =
 			
 			(* when state vars are pre-instantiation is on  clauses in bmc1_for_pre_inst_cl *)
 			(* contain origianal clauses which are needed to be instantiated *)
-			let bmc1_for_pre_inst_cl = ref [] in (* assigned later*) 
-			 
+			let bmc1_for_pre_inst_cl = ref [] in (* assigned later*)
+			
 			(
 				
 				(
@@ -2066,9 +2072,9 @@ let run_iprover () =
 							()
 					
 				);
-								
+				
 				(* BMC1 with incremental bounds? *)
-				if val_of_override !current_options.bmc1_incremental 
+				if val_of_override !current_options.bmc1_incremental
 				then
 					
 					(
@@ -2142,18 +2148,25 @@ let run_iprover () =
 						
 						(* Add clauses for initial bound *)
 						current_clauses := bmc1_axioms' @ current_clauses';
+						(
+							if !current_options.bmc1_pre_inst_reach_state
+							then
+								(current_clauses := Bmc1Axioms.pre_inst_reachable_state_clauses (val_of_override !current_options.bmc1_min_bound)	!current_clauses)
+							else
+								()
+						);
 						(* when state vars are pre-instantiation is on  clauses in bmc1_for_pre_inst_cl *)
 						(* contain origianal clauses which are needed to be instantiated *)
-					 bmc1_for_pre_inst_cl :=  !current_clauses;
-				(if !current_options.bmc1_pre_inst_state
-              then
-								(current_clauses :=  (Bmc1Axioms.pre_instantiate_state_var_clauses_range 0 (val_of_override !current_options.bmc1_min_bound) !current_clauses);
-								(* out_str ("\n Inst. current clauses \n"^(Clause.clause_list_to_string !current_clauses)^"\n"); *)
+						bmc1_for_pre_inst_cl := !current_clauses;
+						(if !current_options.bmc1_pre_inst_state
+							then
+								(current_clauses := (Bmc1Axioms.pre_instantiate_state_var_clauses_range 0 (val_of_override !current_options.bmc1_min_bound) !current_clauses);
+									(* out_str ("\n Inst. current clauses \n"^(Clause.clause_list_to_string !current_clauses)^"\n"); *)
 								)
-						else ()
-					 );
+							else ()
+						);
 					);
-					);
+			);
 			(* Output maxial bound for BMC1 *)
 			let max_bound =
 				max
@@ -2250,11 +2263,11 @@ let run_iprover () =
 							(
 								gen_equality_axioms := Eq_axioms.eq_axiom_list !current_clauses;
 								(*debug *)
-						(*		
+								(*
 								out_str "\n-----------Eq Axioms:---------\n";
 								out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
 								out_str "\n--------------------\n";
-							*)	
+								*)
 								
 								(*debug *)
 								current_clauses := (!gen_equality_axioms)@(!current_clauses)
@@ -2337,27 +2350,26 @@ let run_iprover () =
 					(not (Symbol.is_input Symbol.symb_equality)))
 					*)
 					(* was as above but equality should be ok, *)
-				
-						(* problem with finite models and bmc1     *)
 					
-					if ((!current_options.prep_sem_filter != Sem_Filter_None) 
-					&&
-			    	(match !current_options.schedule with
-				  	| Schedule_verification_epr
-				   	| Schedule_verification_epr_tables
-					    -> false
-					  | _ -> true
-			     	)
-					   
+					(* problem with finite models and bmc1     *)
+					
+					if ((!current_options.prep_sem_filter != Sem_Filter_None)
+						&&
+						(match !current_options.schedule with
+							| Schedule_verification_epr
+							| Schedule_verification_epr_tables
+							-> false
+							| _ -> true
+						)
+						
 					)
 					then
 						(
-					(*-------------------------------------------------*)
-					out_str (pref_str^"Semantic Filtering...\n");
-					(*-------------------------------------------------*)
+							(*-------------------------------------------------*)
+							out_str (pref_str^"Semantic Filtering...\n");
+							(*-------------------------------------------------*)
 							
-		
-						 (*	  out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";*)
+							(*	  out_str "\n\n\n!!!! Fix Sem Filter for Finite models and BMC1 !!!!!!\n\n\n";*)
 							(*          current_clauses := Prep_sem_filter.filter !current_clauses)*)
 							(*	  current_clauses := List.sort cmp_clause_length !current_clauses;*)
 							
@@ -2736,6 +2748,7 @@ let run_iprover () =
 				
 				kill_all_child_processes ();
 				out_str (unknown_str ());
+				out_stat ();
 				raise x)
 	)
 

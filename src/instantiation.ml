@@ -975,10 +975,16 @@ let bmc1_bounds = ref []
              let simplified_given_clause 
 	       = simplify_given_clause  given_clause in
 
-	(*     out_str("\n--------------------------\n");
-             out_str ("\n Simpl Given Clause: "
-                     ^(Clause.to_string simplified_given_clause)^"\n");
+(*
+  (if (not (Clause.is_ground simplified_given_clause))
+  then
+	     (out_str("\n--------------------------\n");
+             out_str ("\n Simpl Non-Gr Given Clause: "
+                     ^(Clause.to_string simplified_given_clause)^"\n");)
+  else ()
+ );
 *)
+
 (*
 	     out_str ("Min def symb depth: "
 		      ^(param_to_string string_of_int 

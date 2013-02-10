@@ -45,8 +45,9 @@ type tstp_theory_bmc1 =
   | TSTP_bmc1_reachable_state_axiom of int 
   | TSTP_bmc1_reachable_state_conj_axiom of int 
   | TSTP_bmc1_reachable_state_on_bound_axiom of int
+	| TSTP_bmc1_reachable_sk_replacement of int * clause  (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
   | TSTP_bmc1_only_bound_reachable_state_axiom of int 
-  | TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
+	| TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
   | TSTP_bmc1_instantiated_clause of int * clause
 
 type tstp_theory =
@@ -70,6 +71,7 @@ type tstp_inference_rule =
   | Splitting of symbol list
   | Grounding of (Var.var * Term.term) list
   | Subtyping
+	| Flattening
 
 type tstp_inference_record = 
     tstp_inference_rule * clause list 
@@ -226,6 +228,7 @@ val get_dismatching : clause -> dismatching
 
 val get_tstp_source : clause -> tstp_source 
 
+	
 (** Clause is generated in an instantiation inference *)
 val assign_tstp_source_instantiation : clause -> clause -> clause list -> unit
 
@@ -259,6 +262,9 @@ val assign_tstp_source_backward_subsumption_resolution : clause -> clause list -
 
 (** Clause is generated in splitting with split symbols introduced *)
 val assign_tstp_source_split : symbol list -> clause -> clause -> unit 
+
+(** assign_tstp_source_flattening clause parent *)
+val assign_tstp_source_flattening : clause -> clause -> unit 
 
 
 (** Clause is generated in grounding with variable substitutions *)
@@ -511,5 +517,6 @@ val extend_clause_list_signature : clause_signature -> clause list -> unit
 (*-----assume clause is of the from [pred(sK)] where sK is a state skolem fun---*)
 val get_skolem_bound_clause : clause -> Term.term option
 
+(*val replace_subterm : term_db ref -> subterm:term ->  byterm:term -> clause -> clause*)
 
-val replace_subterm : term_db ref -> subterm:term ->  byterm:term -> clause -> clause
+val replace_subterm : term_db ref -> term ->  term -> clause -> clause

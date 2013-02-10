@@ -167,6 +167,7 @@ and tstp_theory_bmc1 =
 	| TSTP_bmc1_reachable_state_axiom of int
 	| TSTP_bmc1_reachable_state_conj_axiom of int
 	| TSTP_bmc1_reachable_state_on_bound_axiom of int
+	| TSTP_bmc1_reachable_sk_replacement of int * clause  (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
 	| TSTP_bmc1_only_bound_reachable_state_axiom of int
 	| TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
 	| TSTP_bmc1_instantiated_clause of int * clause
@@ -192,6 +193,7 @@ and tstp_inference_rule =
 	| Splitting of symbol list
 	| Grounding of (var * term) list
 	| Subtyping
+	| Flattening
 
 and tstp_inference_record =
 	tstp_inference_rule * clause list
@@ -200,6 +202,7 @@ and tstp_source =
 	| TSTP_external_source of tstp_external_source
 	| TSTP_internal_source of tstp_internal_source
 	| TSTP_inference_record of tstp_inference_record
+
 
 (*---------------------------------------------------------*)
 
@@ -964,6 +967,7 @@ let assign_tstp_source clause source =
 	(* Only if source undefined *)
 	| Undef -> clause.tstp_source <- Def source
 
+
 (* Clause is generated in an instantiation inference *)
 let assign_tstp_source_instantiation clause parent parents_side =
 	
@@ -1033,6 +1037,12 @@ let assign_tstp_source_split symbols clause parent =
 		clause
 		(TSTP_inference_record (Splitting symbols, [parent]))
 
+let assign_tstp_source_flattening clause parent = 
+	assign_tstp_source
+		clause
+		(TSTP_inference_record (Flattening, [parent]))
+
+	
 (* Clause is generated in grounding *)
 let assign_tstp_source_grounding grounding clause parent =
 	
@@ -1940,12 +1950,12 @@ let get_skolem_bound_clause clause =
 			else None
 	| _ -> None
 
-let replace_subterm termdb_ref ~subterm ~byterm cluase =
+let replace_subterm termdb_ref subterm byterm cluase =
 	normalise
 		termdb_ref
 		(create
 			
-				(List.map (Term.replace ~subterm: subterm ~byterm: byterm) (get_literals cluase)))
+				(List.map (Term.replace subterm byterm) (get_literals cluase)))
 
 (*
 

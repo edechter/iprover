@@ -37,13 +37,13 @@ debug=
 
 #CPP=true for CPP solver
 CPP=
-
+OCAMLGRAPH_PATH=./ocamlgraph
 #different modifications of MiniSat solver
 #CSOLVER=solver_mod_inc_clauses 
 CSOLVER=solver
 #CSOLVER=solver_basic
 
-OCAMLFLAGS=-inline 10 -noassert -I obj/ -I util/lib  
+OCAMLFLAGS=-inline 10 -noassert -I obj/ -I util/lib  -I ocamlgraph/
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
 
@@ -63,7 +63,7 @@ BASE_NAMES_BEFORE_LEXER = lib union_find options statistics bit_vec tableArray h
 
 #BASE_NAMES_AFTER_LEXER = parser_tptp parsed_input_to_db parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms propSolver prop_solver_exchange inference_rules model_inst finite_models preprocess prep_sem_filter large_theories discount instantiation
 
-BASE_NAMES_AFTER_LEXER = parser_tptp parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms cMinisat propSolver prop_solver_exchange type_inf bmc1Axioms tstpProof inference_rules model_inst finite_models preprocess prep_sem_filter prep_sem_filter_unif large_theories discount instantiation
+BASE_NAMES_AFTER_LEXER = parser_tptp parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms cMinisat propSolver prop_solver_exchange type_inf tstpProof bmc1Axioms inference_rules model_inst finite_models preprocess prep_sem_filter prep_sem_filter_unif large_theories discount instantiation
 
 BASE_NAMES_WITHOUT_LEXER = $(BASE_NAMES_BEFORE_LEXER) $(BASE_NAMES_AFTER_LEXER)
 BASE_NAMES_WITH_LEXER = $(BASE_NAMES_BEFORE_LEXER) $(LEXER) $(BASE_NAMES_AFTER_LEXER)
@@ -157,7 +157,7 @@ $(IPROVER_NAME) : util/lib/minisat.cmxa \
 		  $(INTERFACE) $(LEXER:%=src/%.ml)\
                   $(OBJ) $(IPROVER_C_OBJ) $(IPROVER_ADD_OBJ) src/$(IPROVER_BASE_NAME).ml 
 	$(COMPILE) $(IPROVERFLAGS) $(IPROVER_C_OBJ) -o $@ \
-        $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
+        $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa $(OCAMLGRAPH_PATH)/graph.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
 #        $(OCAMLFLAGS) unix.cmxa str.cmxa util/lib/minisat.cmxa util/lib/hhlmuc.cmxa $(OBJ) $(IPROVER_ADD_OBJ)
 #        $(OCAMLFLAGS) unix.cmxa str.cmxa $(OBJ) $(IPROVER_ADD_OBJ) 
 
@@ -193,7 +193,7 @@ test : $(TEST_INTERFACE)\
 
 #------------satandalone prop solver----------------------------------------
 
-STANDALONE_OCAML_NAMES=lib statistics cMinisat propSolver
+STANDALONE_OCAML_NAMES=lib statistics cMinisat options propSolver
 STANDALONE_OCAML_INT=$(STANDALONE_OCAML_NAMES:%=obj/%.cmi)
 STANDALONE_OCAML_OBJ=$(STANDALONE_OCAML_NAMES:%=obj/%.cmx)
 STANDALONE_OBJ=$(STANDALONE_OCAML_OBJ) $(IPROVER_C_OBJ)
@@ -253,19 +253,19 @@ clean: clean-util
 clean-util:
 	cd util && $(MAKE) -f Makefile clean
 
-
 clean_all: clean
-	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi; if [ -d $(VCLAUSIFIER_PATH) ]; then cd $(VCLAUSIFIER_PATH); make clean; rm -f vclausify_rel; cd ../; fi
+	if [ -d $(EPROVER_PATH) ]; then cd $(EPROVER_PATH); make clean; rm -f eprover; cd ../; fi;\
+	if [ -d $(VCLAUSIFIER_PATH) ]; then cd $(VCLAUSIFIER_PATH); make clean; rm -f vclausify_rel; cd ../; fi;\
+    if [ -d $(OCAMLGRAPH_PATH) ]; then cd $(OCAMLGRAPH_PATH); make clean; cd ../; fi
 
-
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./LICENSE_PicoSAT ./COPYING_Lingeling ./LICENSE_MiniSAT  ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB.batch ./README.CASC-J6
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./LICENSE_PicoSAT ./COPYING_Lingeling ./LICENSE_MiniSAT ./LICENSE_OCAMLGRAPH ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB.batch ./README.CASC-J6
 
 ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/iprover_sine_turing.sh ./LTB/iprover_sine_reduced_cores.sh ./LTB/create_ltb_batch.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c ./LTB/MZR.header ./LTB/MZR_turing.header ./LTB/SMO.header ./LTB/ISA.header ./LTB/MZR_bushy_rand_100.list ./LTB/MZR_chainy_rand_100.list ./LTB/SMO_2011.list ./LTB/ISA_2011.list ./LTB/MZR_bushy.list ./LTB/MZR_chainy.list
 
 #ARCHIVE_LTB_NAMES=./LTB
 
 #use this to temporally adding some names
-ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile
+ARCHIVE_Extras=Makefile_build Makefile_OCamlMakefile OCamlMakefile $(OCAMLGRAPH_PATH)
 
 
 #to archive E bundle "make E=true archive"
@@ -299,6 +299,6 @@ archive:clean_all
 #.PHONY: depend
 
 #depend:
-#	ocamldep -native -I src/ *.mli *.ml *.h *.cpp *.hpp *.c > depend
+#	ocamldep -native src/*.mli src/*.ml src/*.h src/*.cpp src/*.hpp src/*.c > depend
 
 #include depend

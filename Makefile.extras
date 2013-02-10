@@ -1,1 +1,1 @@
-OCAMLLIB=/usr/local/lib/ocaml
+OCAMLLIB=/opt/local/lib/ocaml

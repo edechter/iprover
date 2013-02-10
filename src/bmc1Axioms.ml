@@ -677,74 +677,118 @@ let rec pre_inst_reachable_state_axioms accum lbound = function
 
 (*------this extra is not used yet---------------------*)
 
-let separate_reachable_state_clauses clauses =
-	(* Clause.has_next_state is not assigned at this point so need to explicitely search for next state *)
-	
-	let (_reach_clauses, no_reach_cl) = separate_reach_constants clauses in
-	
+let has_bound_sk_constant_cl cl =
 	(* assume the size of reach_bound_skolem_constants is small, usually 1 *)
 	let has_bound_sk_constant_lit lit =
 		(List.exists
 				(fun sk -> Term.is_subterm sk lit) !reach_bound_skolem_constants)
 	in
-	let has_bound_sk_constant_cl cl =
-		Clause.exists has_bound_sk_constant_lit cl
-	in
-	let (has_bound_sk_constant, no_bound_sk_no_reach) =
-		List.partition has_bound_sk_constant_cl no_reach_cl
-	in
-	has_reach_bound_skolem_constants:= has_bound_sk_constant;
-	(* debug *)
-	(*
-	out_str "\n\n----- separated has_bound_sk_constant ---------------\n";
-	out_str ((Clause.clause_list_to_tptp has_bound_sk_constant)^"\n\n");
-	out_str "\n--------------------\n";
-	*)
-	(* debug *)
-	no_reach_cl
+	Clause.exists has_bound_sk_constant_lit cl
 
-let rec pre_inst_reachable_state_clauses accum lbound = function
-	| b when b < lbound -> accum
-	| b ->
+(*
+let separate_reachable_state_clauses clauses =
+(* Clause.has_next_state is not assigned at this point so need to explicitely search for next state *)
+
+let (_reach_clauses, no_reach_cl) = separate_reach_constants clauses in
+
+let (has_bound_sk_constant, no_bound_sk_no_reach) =
+List.partition has_bound_sk_constant_cl no_reach_cl
+in
+has_reach_bound_skolem_constants:= has_bound_sk_constant;
+(* debug *)
+(*
+out_str "\n\n----- separated has_bound_sk_constant ---------------\n";
+out_str ((Clause.clause_list_to_tptp has_bound_sk_constant)^"\n\n");
+out_str "\n--------------------\n";
+*)
+(* debug *)
+no_reach_cl
+*)
+
+(* pre_inst_reachable_state_clauses is applied to all clauses (in iprover.ml), after adding all other axioms *)
+
+let pre_inst_reachable_state_clauses b clauses =
+	
 	(* $$constBb *)
-			let state_term_b = create_state_term b in
-			
-			(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-			let bound_literal = create_compl_lit (create_bound_atom b)
-			in
-			let pre_inst_reachable_cl cl sk_term =
-				let repl_cl =
-					Clause.replace_subterm term_db ~subterm: sk_term ~byterm: state_term_b cl
-				in
-				let pre_inst_cl =
-					Clause.normalise
-						term_db
-						(Clause.create (bound_literal:: (Clause.get_literals repl_cl)))
-				in
-				Clause.assign_tstp_source_axiom_bmc1
-					(Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
-					pre_inst_cl;
-				pre_inst_cl
-			in
-			let pre_inst_all_sk_consts_cl cl =
-				List.fold_left
-					(fun rest sk ->
+	let state_term_b = create_state_term b in
+	
+	(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
+	let bound_literal = create_compl_lit (create_bound_atom b) in
+	let pre_inst_reachable_cl cl sk_term =
+		let cl_to_replace =
+			begin
+				try
+				(* out_str "TSTP_bmc1_reachable_sk_replacement Has SK \n ";
+				(Format.printf "%a@." (TstpProof.pp_clause_with_source false) cl);*)
+					match (Clause.get_tstp_source cl) with
+					| Clause.TSTP_external_source
+					(Clause.TSTP_theory
+					(Clause.TSTP_bmc1
+					(Clause.TSTP_bmc1_reachable_sk_replacement (_old_bound, parent_cl)))) ->
+					(* if this clause got already sK replaced on an old bound, then get the parent and replace in the parent *)
+					(*			out_str ("TSTP_bmc1_reachable_sk_replacement Parent: "^(Clause.to_string parent_cl)^"\n");*)
+							Some (parent_cl)
+					| _ ->
+							if (has_bound_sk_constant_cl cl)
+							then
 								(
-									(pre_inst_reachable_cl cl sk):: rest
+									if (not (Clause.is_ground cl))
+									then (* if clause is not ground more cre should be take since state preinstantiation modifies the clause and history gets also modified *)
+									failwith ("pre_inst_reachable_state_clauses only works with ground clauses")
+									else
+										Some (cl)
 								)
-					)
-					[] !reach_bound_skolem_constants
-			in
-			let pre_instantiated_all_cl =
-				List.fold_left
-					(fun rest cl ->
-								(
-									(pre_inst_all_sk_consts_cl cl)@rest
-								)
-					)
-					[] !has_reach_bound_skolem_constants
-			in
-			pre_inst_reachable_state_clauses (pre_instantiated_all_cl@accum) lbound (pred b)
+							else None
+				with _ -> failwith (" History was not defined for: "^(Clause.to_string cl)^"\n ")
+				
+			end
+		in
+		let final_cl =
+			(match cl_to_replace with
+				| Some cl ->
+						begin
+							let repl_cl =
+								Clause.replace_subterm term_db sk_term state_term_b cl in
+							let pre_inst_cl =
+								Clause.normalise
+									term_db
+									(Clause.create (bound_literal:: (Clause.get_literals repl_cl)))
+							in
+							Clause.assign_tstp_source_axiom_bmc1
+								(Clause.TSTP_bmc1_reachable_sk_replacement (b, cl))
+								pre_inst_cl;
+							(* out_str ("\n\n Replaced:  "^(Clause.to_string pre_inst_cl)^"\n");
+							out_str ("Replaced history: \n");
+							(Format.printf "%a@." (TstpProof.pp_clause_with_source false) pre_inst_cl);
+							*)
+							Prop_solver_exchange.add_clause_to_solver pre_inst_cl;
+							pre_inst_cl
+						end
+				| None -> cl
+			)
+		in
+		final_cl
+	in
+	let pre_inst_all_sk_consts_cl cl =
+		List.fold_left
+			(fun rest sk ->
+						(
+							(pre_inst_reachable_cl cl sk):: rest
+						)
+			)
+			[] !reach_bound_skolem_constants
+	in
+	let pre_instantiated_all_cl =
+		List.fold_left
+			(fun rest cl ->
+						(
+							(pre_inst_all_sk_consts_cl cl)@rest
+						)
+			)
+			[] clauses
+	in
+	(*	out_str ("\n\n pre_instantiated_all_cl \n\n "^(Clause.clause_list_to_string pre_instantiated_all_cl) ^"\n\n");*)
+	pre_instantiated_all_cl
 
 (********** Clock pattern **********)
 
@@ -785,8 +829,13 @@ let create_clock_axiom state clock pattern =
 	let clock_axiom =
 		Clause.normalise term_db (Clause.create [ clock_literal ])
 	in
-	
-	(* Return clock axiom *)
+	(* Assign clause history as axiom *)
+	(* Clause.assign_axiom_history Clause.BMC1_Axiom clock_axiom; *)
+	Clause.assign_tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_clock_axiom (state, clock, pattern))
+		clock_axiom;
+		
+	(* Return clock axiom *)	
 	clock_axiom
 
 (* Create axiom for given clock in given state *)
@@ -794,12 +843,6 @@ let create_clock_axioms state clock pattern accum =
 	
 	(* Create clock axiom *)
 	let clock_axiom = create_clock_axiom state clock pattern in
-	
-	(* Assign clause history as axiom *)
-	(* Clause.assign_axiom_history Clause.BMC1_Axiom clock_axiom; *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_clock_axiom (state, clock, pattern))
-		clock_axiom;
 	
 	(* Return clock axiom in accumulator *)
 	clock_axiom :: accum
@@ -1267,12 +1310,20 @@ let pre_instantiate_state_var_clauses bound clauses =
 	let f c =
 		if pre_instantiate_state_var_eligible c
 		then
-			let lits = Clause.get_literals c in
-			let new_lits = List.map (Subst.replace_vars None var_map) lits in
-			let new_clause = Clause.create (Clause.normalise_lit_list term_db new_lits) in
-			Clause.assign_tstp_source_instantiation new_clause c [];
-			Prop_solver_exchange.add_clause_to_solver new_clause;
-			new_clause
+			if (Clause.is_ground c)
+			then
+				( Prop_solver_exchange.add_clause_to_solver c;
+					c
+				)
+			else
+				begin
+					let lits = Clause.get_literals c in
+					let new_lits = List.map (Subst.replace_vars None var_map) lits in
+					let new_clause = Clause.create (Clause.normalise_lit_list term_db new_lits) in
+					Clause.assign_tstp_source_instantiation new_clause c [];
+					Prop_solver_exchange.add_clause_to_solver new_clause;
+					new_clause
+				end
 		else
 			c
 	in
@@ -1386,6 +1437,7 @@ let init_bound all_clauses =
 	let bound_instantiate_axioms_of_clauses, clauses' =
 		separate_bound_axioms all_clauses
 	in
+	out_str ("\n \n bound_instantiate_axioms_of_clauses \n "^(Clause.clause_list_to_string bound_instantiate_axioms_of_clauses)^"\n\n");
 	let clauses'' =
 		if !current_options.bmc1_pre_inst_next_state
 		then
@@ -1414,13 +1466,13 @@ let init_bound all_clauses =
 	let clauses =
 		if !current_options.bmc1_pre_inst_reach_state
 		then
-			let (_reach, no_reach) = separate_reach_constants clauses''
+			let (reach, no_reach) = separate_reach_constants clauses''
 			in
-			(*
+			
 			out_str "\n\n----- Reach clauses  ---------------\n";
 			out_str ((Clause.clause_list_to_tptp reach)^"\n\n");
 			out_str "\n--------------------\n";
-			*)
+			
 			no_reach
 		(*      separate_reachable_state_clauses clauses'' *)
 		else
@@ -1430,12 +1482,16 @@ let init_bound all_clauses =
 	let reachable_state_axioms =
 		if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
 		then
+			(*
 			begin
-				pre_inst_reachable_state_axioms [] 0 0
-				(*	pre_inst_reachable_state_clauses [] 0 0 *)
+			pre_inst_reachable_state_axioms [] 0 0
+			(*	pre_inst_reachable_state_clauses [] 0 0 *)
 			end
-		
+			*)
+			(* moved to pre_inst_reach all clauses in iprover.ml *)
+			[]
 		else
+			
 			begin
 				match val_of_override !current_options.bmc1_axioms with
 				
@@ -1574,17 +1630,22 @@ let increment_bound cur_bound next_bound simulate =
 	let reachable_state_axioms =
 		if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
 		then
+			(*
 			begin
-				let reach_axs = pre_inst_reachable_state_axioms [] (succ cur_bound) next_bound in
-				(*
-				out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
-				out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
-				out_str "\n--------------------\n";
-				*)
-				reach_axs
-				(*	pre_inst_reachable_state_clauses []  (succ cur_bound) next_bound*)
+			let reach_axs = pre_inst_reachable_state_axioms [] (succ cur_bound) next_bound in
+			(*
+			out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
+			out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
+			out_str "\n--------------------\n";
+			*)
+			reach_axs
+			(*	pre_inst_reachable_state_clauses []  (succ cur_bound) next_bound*)
 			end
+			*)
+			(* pre-instantiation of reachable states is moved to iprover.ml *)
+			[]
 		else
+			
 			begin
 				match val_of_override !current_options.bmc1_axioms with
 				

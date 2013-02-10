@@ -14,7 +14,7 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
-
+type clause = Clause.clause
  
 
 (** Return a formatter for writing into the file given in the option
@@ -49,6 +49,8 @@ val increment_bound : int -> int -> bool -> Clause.clause list
     list of clauses for the given bound. *)
 val extrapolate_to_bound : int -> Clause.clause list -> Clause.clause list 
 
- (* pre_instantiate_state_var_clauses_range low_bound upper_bound clauses *)
+ (** pre_instantiate_state_var_clauses_range low_bound upper_bound clauses *)
 val pre_instantiate_state_var_clauses_range : int -> int -> Clause.clause list -> Clause.clause list
+
+val pre_inst_reachable_state_clauses : int -> clause list -> clause list
 

@@ -20,6 +20,7 @@
 
 
 
+exception SZS_Unknown
 
 
 let answer_mode_ref = ref false

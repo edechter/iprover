@@ -158,6 +158,12 @@ let sat_num_of_epr_types =
    value = 0;
  }
 
+let sat_num_of_non_cyclic_types = 
+  {
+   int_entry_name  = "sat_num_of_non_cyclic_types";
+   value = 0;
+ }
+
    
 let forced_gc_time = 
   {
@@ -572,8 +578,8 @@ let gen_int_stat_list =
    num_of_sem_filtered_clauses;
    num_of_subtypes;
    sat_num_of_epr_types;
+	 sat_num_of_non_cyclic_types;
    forced_gc_time;
-
  ]
 
 let gen_float_stat_list = 
