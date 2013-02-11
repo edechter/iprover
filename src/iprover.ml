@@ -615,6 +615,7 @@ let finite_models clauses =
 		| Prop_solver_exchange.Unsatisfiable
 		| PropSolver.Unsatisfiable
 		-> (Instantiation.clear_after_inst_is_dead ();
+		(* since all inferred types are monotone, we can increase all domains simultaniously (other stratagies can be also worth trying) *)
 					model_size:=!model_size +1;
 					Finite_models.add_domain_constant_all_dom !model_size;
 					(* let new_dom_const =
