@@ -500,16 +500,27 @@ let finite_models clauses =
 	(*  Finite_models.flat_signature ();*)
 	
 	Finite_models.init_finite_models prep_clauses;
-	let flat_clauses = (Finite_models.flat_clause_list prep_clauses)in
-	let init_clauses =
+	let flat_clauses = (Finite_models.flat_clause_list prep_clauses) in
+	let eq_axioms = 
 		if (!current_options.sat_epr_types) || (!current_options.sat_non_cyclic_types)
 		then
-			(Finite_models.get_non_flat_eq_axioms ())@(flat_clauses)
-		else
-			flat_clauses
+			(Finite_models.get_non_flat_eq_axioms ())
+		else	
+			[]
+	in
+	out_str ("\n---------Eq Axioms------------------\n"
+	^(Clause.clause_list_to_tptp eq_axioms)
+	^"\n------------------------\n");
+
+	out_str ("\n---------Flat clauses------------------\n"
+	^(Clause.clause_list_to_tptp flat_clauses)
+	^"\n------------------------\n");
+	
+		let init_clauses =
+	  eq_axioms@flat_clauses
 	in
 	(*
-	out_str ("\n---------Flat clauses------------------\n"
+	out_str ("\n---------Init clauses------------------\n"
 	^(Clause.clause_list_to_tptp init_clauses)
 	^"\n------------------------\n");
 	*)
@@ -563,11 +574,11 @@ let finite_models clauses =
 				(*can use  Finite_models.domain_pred_axioms_all_dom new_bound_pred *)
 				Finite_models.domain_axioms_triangular new_bound_pred
 			in
-	(*		
+
 			out_str ("\n---------Domain Axioms------------------\n"
 			^(Clause.clause_list_to_tptp domain_axioms)
 			^"\n------------------------\n");
-  *)	
+ 
 			let dis_eq_axioms =
 				if no_input_eq ()
 				then []

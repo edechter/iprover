@@ -742,8 +742,8 @@ let default_options () = {
 	
 	(*---Sat mode------------*)
 	sat_mode = false;
-	sat_epr_types = false;
-	sat_non_cyclic_types = true;
+	sat_epr_types = true;
+	sat_non_cyclic_types = false;
 	sat_gr_def = false;
 	sat_finite_models = false;
 	sat_out_model = Model_Small;

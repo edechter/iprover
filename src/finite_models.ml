@@ -227,7 +227,7 @@ let flat_signature () =
 				(
 					begin
 						let new_symb_name = ("$$iProver_Flat_"^(Symbol.get_name symb)) in
-						let flat_type =
+							let flat_type =
 							match (Symbol.get_stype_args_val symb) with
 							| Def (old_args, old_val) ->
 							(*            Symbol.create_stype (old_args@[old_val]) Symbol.symb_bool_type*)
@@ -810,11 +810,13 @@ let create_bound_pred i =
 			Symbol.DomainPred in
 	add_fun_term add_bound_symb []
 
-(*-------domains do not include epr domains----------------*)
+(*-------domains do not include epr/non-cyclic domains----------------*)
 type domain =
 	{
 		dom_type : symbol;
+		(* in increasing order *)
 		mutable dom_elements : term list;
+		
 		(* all flat and defpred symbols with value type of domain_type *)
 		mutable dom_flat_preds : symbol list;
 		(*     mutable dom_def_preds : symbol list; *)
@@ -845,11 +847,10 @@ let domain_table = TDomainH.create 101
 let init_domains () =
 	let f flat_pred =
 		let val_type = get_val_pred_type flat_pred in
-		try
-		(*
-		out_str ("dom pred "^(Symbol.to_string flat_pred)
-		^" domain type: "^(Symbol.to_string val_type)^"\n");
-		*)
+	   out_str ("dom pred "^(Symbol.to_string flat_pred)
+		^" domain type: "^(Symbol.to_string val_type)^"\n");		
+	 try
+
 			let dom = TDomainH.find domain_table val_type in
 			dom.dom_flat_preds <- flat_pred:: (dom.dom_flat_preds)
 		with
@@ -870,7 +871,8 @@ let add_domain_constant dom i =
 		create_symbol
 			dom_symb_name (Symbol.create_stype [] dom.dom_type) Symbol.DomainConstant in
 	let dom_i_el = add_fun_term add_dom_symb [] in
-	dom.dom_elements <- dom_i_el:: (dom.dom_elements)
+	(* in increasing order  *)
+	dom.dom_elements <- (dom.dom_elements)@[dom_i_el]
 (*
 try
 let dom = TDomainH.find domain_table dom_type in
@@ -1055,7 +1057,9 @@ let domain_axioms_triangular bound_pred =
 	let num_of_occurences flat_sym =
 		try
 			let orig_symb = SymH.find flat_to_orig flat_sym in
-			Symbol.get_num_input_occur orig_symb
+			let num_of_occr = Symbol.get_num_input_occur orig_symb in
+			(*out_str ("Orig symb: "^(Symbol.to_string orig_symb)^" Flat symb: "^(Symbol.to_string flat_sym)^" num occ "^(string_of_int num_of_occr)^"\n");*)
+			num_of_occr
 		with Not_found -> failwith "domain_axioms_triangular_const: should not happen"
 	in
 	let cmp_occur s1 s2 =
@@ -1192,14 +1196,14 @@ let init_finite_models clauses =
 	*)
 	epr_type_set_init ();
 	epr_const_set_init ();
-	flat_signature ();
 	cyc_non_cyc_types_init ();
+	flat_signature ();
 	
 	(*
 	out_str " \n\n Finite Models raising SZS_Unknown after cyc_non_cyc_types_init ();\n ";
 	raise SZS_Unknown;
 	*)
-	(*
+	
 	out_str ("EPR types: ");
 	
 	(SymSet.iter
@@ -1211,7 +1215,19 @@ let init_finite_models clauses =
 	(SymSet.iter
 	(fun s -> (out_str ((Symbol.to_string s)^", "))) !epr_const_set);
 	out_str "\n" ;
-	*)
+	
+	
+	out_str ("Non cycling types: ");
+	
+	(SymSet.iter
+	(fun s -> (out_str ((Symbol.to_string s)^", "))) !cyc_non_cyc_types.non_cyclic_types);
+	out_str "\n" ;
+	
+	out_str ("Cycling types: ");
+	
+	(SymSet.iter
+	(fun s -> (out_str ((Symbol.to_string s)^", "))) !cyc_non_cyc_types.cyclic_types);
+	out_str "\n" ;
 	
 	init_domains ()
 
@@ -1286,6 +1302,23 @@ let rec add_clause_pred_map pred_map clause =
 let rec create_pred_map_cl_list clause_list =
 	List.fold_left add_clause_pred_map SymbMap.empty clause_list
 
+(* another test *)
+type 'a test_rec = 
+	{
+		mutable test_some : 'a param;
+		}
+
+
+(*
+let rec1 = {test_some = Undef}
+let rec2 = {test_some = Def("abc") }
+
+let list =
+	rec1.test_some <- Def(1);
+	rec1.test_some <- Undef;
+	rec1.test_some <- Def("abc"); 
+	[rec1;rec2]
+*)
 (*
 
 let domain_axioms_triangular_const dom_pred dom_terms const_list =

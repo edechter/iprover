@@ -974,6 +974,11 @@ let bmc1_bounds = ref []
 *)
              let simplified_given_clause 
 	       = simplify_given_clause  given_clause in
+(*
+      out_str("\n--------------------------\n");
+      out_str ("\n Simpl Given Clause: "
+                     ^(Clause.to_string simplified_given_clause)^"\n");
+*)										
 
 (*
   (if (not (Clause.is_ground simplified_given_clause))
@@ -1039,7 +1044,7 @@ let bmc1_bounds = ref []
 	     
 	
 
-(*	     out_str ("\n Given after simpl: "^(Clause.to_string new_clause)^"\n");*)
+(*     out_str ("\n Given after simpl: "^(Clause.to_string new_clause)^"\n");*)
 	     
 	       Prop_solver_exchange.selection_renew 
 		 move_lit_from_active_to_passive Selection.inst_lit_sel simplified_given_clause;
@@ -1373,9 +1378,12 @@ let init_instantiation () =
       add_clause_to_unprocessed added_clause
 	
     (* Skip duplicate clauses in the input *)
-    with Clause.Clause_fast_key_is_def -> ()
+    with Clause.Clause_fast_key_is_def -> failwith "init_instantiation Clause.Clause_fast_key_is_def"
   in
 
+(*Christph added; not clear why *)
+(* commented for now *)
+(*
   let input_clauses' =
     
     (* Check list of bounds for incremental BMC *)
@@ -1416,7 +1424,10 @@ let init_instantiation () =
   in
 
     List.iter add_input_to_unprocessed input_clauses'
+*)
 
+  List.iter add_input_to_unprocessed input_clauses
+	
 (* 
  (*----------debug----------*)
    let out_cl c = 
