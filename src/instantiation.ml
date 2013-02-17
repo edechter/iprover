@@ -1372,13 +1372,16 @@ let init_instantiation () =
   let add_input_to_unprocessed clause = 
     try
       let added_clause = 	     
-	ClauseAssignDB.add_ref (Clause.copy_clause clause) clause_db_ref
+	    ClauseAssignDB.add_ref (Clause.copy_clause clause) clause_db_ref
       in
+	(*		out_str ("\n Added: "^(Clause.to_string added_clause)^"\n");*)
       Clause.assign_when_born [] [] added_clause;
       add_clause_to_unprocessed added_clause
-	
     (* Skip duplicate clauses in the input *)
-    with Clause.Clause_fast_key_is_def -> failwith "init_instantiation Clause.Clause_fast_key_is_def"
+    with Clause.Clause_fast_key_is_def ->
+			(
+				(* out_str ("Failed: "^(Clause.to_string clause)^"\n"); *)
+		 failwith "init_instantiation Clause.Clause_fast_key_is_def")
   in
 
 (*Christph added; not clear why *)

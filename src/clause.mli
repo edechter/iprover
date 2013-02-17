@@ -130,8 +130,9 @@ val res_simplifying                  : clause_bool_param
 (* creates a new copy of the clause with the same parameters,*) 
 (* terms are not re-created *)
 val copy_clause  : clause -> clause
+(*
 val copy_clause_undef_fast_key  : clause -> clause
-
+*)
 val set_bool_param : bool ->  clause_bool_param -> clause -> unit
 val get_bool_param : clause_bool_param -> clause -> bool 
 (* inherit_bool_param param from_c to_c *)

@@ -77,7 +77,7 @@ let has_non_prolific_conj_symb = 22
 (* if used in simplifications then simplifying is true                            *)
 (* used in orphan elimination since we can eliminate only non-simplifying cluases *)
 let res_simplifying = 23
-
+ 
 let large_ax_considered = 24
 
 let ground = 25
@@ -352,12 +352,6 @@ let iter f clause = List.iter f clause.literals
 
 let get_literals clause = clause.literals
 
-let copy_clause c =
-	{ c with literals = c.literals }
-
-let copy_clause_undef_fast_key c =
-	{ c with fast_key = Undef }
-
 (* switching  parameters of clauses*)
 
 let set_bool_param value param clause =
@@ -389,6 +383,37 @@ let inherit_param_modif from_c to_c =
 (* match to_c.history with
 | Undef -> to_c.history <- Def (Simplified from_c)
 | _ -> ()
+*)
+
+let inherit_tstp_source from_c to_c =
+	to_c.tstp_source <- from_c.tstp_source
+
+let copy_clause c =
+	let new_c = create c.literals in 
+	inherit_conj_dist c new_c;
+	inherit_bool_param eq_axiom c new_c;
+	inherit_bool_param input_under_eq c new_c;
+	inherit_bool_param in_prop_solver c new_c;
+  inherit_bool_param in_unsat_core c new_c;
+  inherit_bool_param large_ax_considered c new_c;
+  new_c.prop_solver_id <- c.prop_solver_id;
+	new_c.tstp_source <- c.tstp_source;
+	new_c.conjecture_distance <- c.conjecture_distance;
+	new_c.max_atom_input_occur <- c.max_atom_input_occur;
+	new_c.min_defined_symb <- c.min_defined_symb;
+	new_c
+	
+
+
+
+	
+	
+(*
+let copy_clause c =
+	{ c with literals = c.literals }
+
+let copy_clause_undef_fast_key c =
+	{ c with fast_key = Undef }
 *)
 
 (*------------To stream/string-------------------------------*)
@@ -664,8 +689,8 @@ let inherit_history from_c to_c =
 to_c.history <- from_c.history
 *)
 
-let inherit_tstp_source from_c to_c =
-	to_c.tstp_source <- from_c.tstp_source
+
+
 
 let num_of_symb clause =
 	match clause.num_of_symb with
