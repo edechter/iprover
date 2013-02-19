@@ -404,7 +404,8 @@ let copy_clause_proper c =
 	new_c.min_defined_symb <- c.min_defined_symb;
 	new_c
 	
-	
+(*	in progress*)
+(* 
 let clause_reset c = 
 	(* does not work ex.: ALG+016 *)
 		c.fast_key <- Undef;
@@ -416,10 +417,13 @@ let clause_reset c =
 		let in_unsat_core_old = get_bool_param in_unsat_core c in
 		c.bool_param <- Bit_vec.false_vec;
 		set_bool_param in_unsat_core_old in_unsat_core c 
+*)
 
 let copy_clause c = 
-copy_clause_proper c
-		(*
+ copy_clause_proper c
+	
+		
+(*
 	clause_reset c;
 	c 
 *)
