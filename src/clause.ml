@@ -388,7 +388,8 @@ let inherit_param_modif from_c to_c =
 let inherit_tstp_source from_c to_c =
 	to_c.tstp_source <- from_c.tstp_source
 
-let copy_clause c =
+
+let copy_clause_proper c =
 	let new_c = create c.literals in 
 	inherit_conj_dist c new_c;
 	inherit_bool_param eq_axiom c new_c;
@@ -403,8 +404,39 @@ let copy_clause c =
 	new_c.min_defined_symb <- c.min_defined_symb;
 	new_c
 	
+	
+let clause_reset c = 
+	(* does not work ex.: ALG+016 *)
+		c.fast_key <- Undef;
+		c.db_id <- Undef;
+	(*	prop_solver_id = None;*)
+		c.inst_sel_lit <- Undef;
+		c.res_sel_lits <- Undef;
+		c.dismatching <- Undef;
+		let in_unsat_core_old = get_bool_param in_unsat_core c in
+		c.bool_param <- Bit_vec.false_vec;
+		set_bool_param in_unsat_core_old in_unsat_core c 
 
+let copy_clause c = 
+copy_clause_proper c
+		(*
+	clause_reset c;
+	c 
+*)
 
+(*		length = Undef;
+		num_of_symb = Undef;
+		num_of_var = Undef;
+		when_born = Undef;
+		tstp_source = Undef;
+		parent = Def(parent);
+		children = [];
+		activity = 0;
+		
+		conjecture_distance = max_conjecture_dist;
+		max_atom_input_occur =0;
+		min_defined_symb = Undef;
+*)
 
 	
 	
