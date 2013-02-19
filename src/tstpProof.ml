@@ -17,6 +17,8 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 open Lib
 open Options
 
+module ClauseHashtbl=Clause.Hashtbl
+
 (* Get parent leaf clauses of a list of clauses *)
 let rec get_leaves' visited accum = function
 	
@@ -24,7 +26,7 @@ let rec get_leaves' visited accum = function
 	| [] -> accum
 	
 	(* Clause already seen *)
-	| (clause :: tl) when Clause.ClauseHashtbl.mem visited clause ->
+	| (clause :: tl) when ClauseHashtbl.mem visited clause ->
 	
 	(* Skip clause *)
 			get_leaves' visited accum tl
@@ -33,7 +35,7 @@ let rec get_leaves' visited accum = function
 	| clause :: tl ->
 	
 	(* Remember clause *)
-			Clause.ClauseHashtbl.add visited clause ();
+			ClauseHashtbl.add visited clause ();
 			
 			(* Get source of clause *)
 			match
@@ -75,7 +77,7 @@ let rec get_leaves' visited accum = function
 
 (* Get parent clauses of a list of clauses *)
 let get_leaves clause_list =
-	get_leaves' (Clause.ClauseHashtbl.create 101) [] clause_list
+	get_leaves' (ClauseHashtbl.create 101) [] clause_list
 
 (* Order clauses topologically: leaves at the beginning, root at the
 end. First add all parents of a clause, then the clause.
@@ -91,14 +93,14 @@ let rec get_parents' visited accum = function
 	| [] -> accum
 	
 	(* Clause already seen *)
-	| (clause :: tl) when Clause.ClauseHashtbl.mem visited clause ->
+	| (clause :: tl) when ClauseHashtbl.mem visited clause ->
 	
 	(* Format.eprintf "get_parents' (visited) %a@."
 	Clause.pp_clause
 	clause; *)
 	
 	(* Clause is already in the list *)
-			if Clause.ClauseHashtbl.find visited clause then
+			if ClauseHashtbl.find visited clause then
 				
 				(* Skip clause *)
 				get_parents' visited accum tl
@@ -108,7 +110,7 @@ let rec get_parents' visited accum = function
 				(
 					
 					(* Remember insertion of clause into list *)
-					Clause.ClauseHashtbl.add visited clause true;
+					ClauseHashtbl.add visited clause true;
 					
 					(* Add clause to list *)
 					get_parents' visited (clause :: accum) tl
@@ -123,7 +125,7 @@ let rec get_parents' visited accum = function
 	clause; *)
 	
 	(* Remember recursion into parents of clause *)
-			Clause.ClauseHashtbl.add visited clause false;
+			ClauseHashtbl.add visited clause false;
 			
 			(* Get source of clause *)
 			match
@@ -142,7 +144,7 @@ let rec get_parents' visited accum = function
 					(
 						
 						(* Remember insertion of clause into list *)
-						Clause.ClauseHashtbl.add visited clause true;
+						ClauseHashtbl.add visited clause true;
 						
 						(* Add clause as leaf *)
 						get_parents'
@@ -182,7 +184,7 @@ let rec get_parents' visited accum = function
 (* Get parent clauses of a list of clauses *)
 let get_parents clause_list =
 	List.rev
-		(get_parents' (Clause.ClauseHashtbl.create 101) [] clause_list)
+		(get_parents' (ClauseHashtbl.create 101) [] clause_list)
 
 let pp_bind ppf (var, term) =
 	Format.fprintf

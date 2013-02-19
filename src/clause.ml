@@ -1195,9 +1195,11 @@ concl.history <- Def(Split(parent))
 
 *)
 
-module ClauseHashed =
-struct
-	type t = clause
+
+
+module Key = 
+	struct
+type t = clause
 	
 	let rec hash = function
 		
@@ -1294,8 +1296,20 @@ struct
 	
 end
 
-module ClauseHashtbl = Hashtbl.Make(ClauseHashed)
+module Map = Map.Make(Key)
 
+module Set = Set.Make(Key)
+type clause_set = Set.t
+
+module Hashtbl = Hashtbl.Make(Key)
+	
+	
+let clause_list_to_set clause_list = 
+	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
+
+
+	
+	
 (*
 
 let rec get_history_parents' visited accum = function
@@ -1684,7 +1698,7 @@ let bterm_subst_compare bound_t bound_s bound_subst =
 
 type var_param = var param
 
-module VarTableM = Hashtbl.Make (Var)
+module VarTableM = Var.VHashtbl
 
 let rec normalise_term_var' var_table (max_var_ref : var ref) term =
 	match term with
@@ -2370,6 +2384,14 @@ let clause_list_signature clause_list =
 	extend_clause_list_signature cl_sig clause_list;
 	cl_sig
 
+
+
+
+
+
+
+
+
 (*
 let rec to_string_history clause =
 match clause.history with
@@ -2489,3 +2511,10 @@ let to_string clause =
 "{"^(list_to_string Term.to_string clause.literals ";")^"}"
 ^"-num of sym-"^(string_of_int (get_num_of_sym clause))
 *)
+
+
+(* tmp*)
+
+
+
+

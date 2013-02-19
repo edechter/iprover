@@ -33,7 +33,10 @@ type bound_clause = clause Lib.bind
 
 type sym_set = Symbol.sym_set
 
+(*
 module ClauseHashtbl : Hashtbl.S with type key = clause
+*)
+
 
 type tstp_internal_source = 
   | TSTP_definition 
@@ -521,3 +524,87 @@ val get_skolem_bound_clause : clause -> Term.term option
 (*val replace_subterm : term_db ref -> subterm:term ->  byterm:term -> clause -> clause*)
 
 val replace_subterm : term_db ref -> term ->  term -> clause -> clause
+
+
+(*-----------------------------*)
+module Key :
+  sig
+    type t = clause
+    val equal : t -> t -> bool
+    val hash : t -> int
+    val compare : t -> t -> int
+  end
+
+
+module Map :
+  sig
+    type key = Key.t
+    type 'a t = 'a Map.Make(Key).t
+    val empty : 'a t
+    val is_empty : 'a t -> bool
+    val add : key -> 'a -> 'a t -> 'a t
+    val find : key -> 'a t -> 'a
+    val remove : key -> 'a t -> 'a t
+    val mem : key -> 'a t -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val map : ('a -> 'b) -> 'a t -> 'b t
+    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
+    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+  end
+
+module Hashtbl :
+  sig
+    type key = Key.t
+    type 'a t = 'a Hashtbl.Make(Key).t
+    val create : int -> 'a t
+    val clear : 'a t -> unit
+   (* val reset : 'a t -> unit *)
+    val copy : 'a t -> 'a t
+    val add : 'a t -> key -> 'a -> unit
+    val remove : 'a t -> key -> unit
+    val find : 'a t -> key -> 'a
+    val find_all : 'a t -> key -> 'a list
+    val replace : 'a t -> key -> 'a -> unit
+    val mem : 'a t -> key -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val length : 'a t -> int
+    (* val stats : 'a t -> Hashtbl.statistics *)
+  end
+
+
+module Set :
+  sig
+    type elt = Key.t
+    type t = Set.Make(Key).t
+    val empty : t
+    val is_empty : t -> bool
+    val mem : elt -> t -> bool
+    val add : elt -> t -> t
+    val singleton : elt -> t
+    val remove : elt -> t -> t
+    val union : t -> t -> t
+    val inter : t -> t -> t
+    val diff : t -> t -> t
+    val compare : t -> t -> int
+    val equal : t -> t -> bool
+    val subset : t -> t -> bool
+    val iter : (elt -> unit) -> t -> unit
+    val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
+    val for_all : (elt -> bool) -> t -> bool
+    val exists : (elt -> bool) -> t -> bool
+    val filter : (elt -> bool) -> t -> t
+    val partition : (elt -> bool) -> t -> t * t
+    val cardinal : t -> int
+    val elements : t -> elt list
+    val min_elt : t -> elt
+    val max_elt : t -> elt
+    val choose : t -> elt
+    val split : elt -> t -> t * bool * t
+  end
+
+type clause_set = Set.t
+
+val clause_list_to_set : clause list -> clause_set
