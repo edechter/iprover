@@ -834,7 +834,9 @@ let get_fast_key (t: term) =
 	
 	| _ -> raise Term_fast_key_undef
 
-
+let hash t = 
+	get_fast_key t
+	
 
 let rec fold_left_var f v t =
 	match t with

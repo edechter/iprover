@@ -93,6 +93,9 @@ val compose_sign  : bool -> ('a -> 'b -> int) -> ('a -> 'b -> int)
 (* hash sum where the first arg is rest and second is next number*)
 val hash_sum : int -> int ->int 
 
+(*let hash_list hash_elem list*)
+val hash_list : ('a -> int) -> 'a list -> int
+
 exception Termination_Signal
 
 (*----------------Processes-----------------*)

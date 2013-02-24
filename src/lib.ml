@@ -356,6 +356,11 @@ let () =  Random.init(13)
 let hash_sum rest num = 
   ((rest lsl 5) + rest) + num (* hash * 33 + num *)
 
+(* returns hash of a list; hash_elem is fun elem-> hash*)
+let hash_list hash_elem list = 
+	List.fold_left (fun rest elem -> hash_sum rest (hash_elem elem)) 0  list 
+	
+
 type 'a elem = Elem of 'a | Empty_Elem
 type 'a ref_elem = ('a elem) ref
 

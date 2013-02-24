@@ -263,6 +263,8 @@ val apply_to_atom : (term -> term) -> term -> term
 
 val get_fast_key : term -> int
 
+val hash : term -> int
+
 (*---------*)
 
 val is_skolem_const : term -> bool 
