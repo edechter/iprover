@@ -47,34 +47,33 @@ exception Term_compare_less
 type clause_bool_param = int
 
 (*-------Basic clause bool Param-----*)
-let bc_ground = 0
-let bc_horn = 1
-let bc_epr = 2
+(* auto parameters set automatically when clause is created from lits*)
+(* user parameters are set by the user *)
+let bc_ground = 0   (* auto *)
+let bc_horn = 1     (* auto *)
+let bc_epr = 2      (* auto *)
+let bc_eq_axiom = 3 (* user *)
 
-let bc_eq_axiom = 3
 (* input_under_eq  is true if a clause is (i) is a eq axiom or (ii) input   *)
 (* or (iii) obtained from input by some number of inferences with eq axioms *)
 (* so it is false for a cluase  obtained by an inference with two clauses   *)
-(* which are both non equality                                              *)
-let bc_input_under_eq = 4
+(* which are both non equality *)
+(* not used at the moment; may be in the future                             *)
+(* let bc_input_under_eq = 4 *)
 
-let bc_has_eq_lit_param = 5
-(* history how the clause is obtained*)
-let has_conj_symb = 6
-let bc_has_non_prolific_conj_symb = 7
+let bc_has_eq_lit = 4    (* auto *)
+let bc_has_conj_symb = 5 (* auto *) (* basd on Term.has_conj_symb *)
+let bc_has_non_prolific_conj_symb = 6 (* auto *)
 
-let bc_in_last_unsat_core = 8 (* could be changed *)
-let bc_has_bound_constant = 9
-let bc_has_next_state = 10
-let bc_has_reachable_state = 11
-let bc_large_ax_considered = 12
-let bc_not_implied_by_input = 13 (* clauses are assumed to be implied by the input clauses unless stated otherwise *)
-let bc_is_negated_conjecture = 14 (* change in the rest of the code! *)
+let bc_has_bound_constant = 7 (* auto *)
+let bc_has_next_state = 8 (* auto *)
+let bc_has_reachable_state = 9 (* auto *)
+(*let bc_large_ax_considered = 10 (* auto *) not used at the moment*)
+let bc_is_negated_conjecture = 11 (* user *) (*change in the rest of the code! *)
 
 (*--------Inst bool param------------*)
 
 let inst_is_dead = 0
-(*let in_clause_db = 1*)
 let inst_in_active = 1
 let inst_in_unif_index = 2
 let inst_in_subset_subsumption_index = 3
@@ -85,6 +84,7 @@ let inst_in_sim_passive = 6
 let inst_pass_queue1 = 7
 let inst_pass_queue2 = 8
 let inst_pass_queue3 = 9
+let bc_in_last_unsat_core = 10 (* could be changed *)
 
 (*-----------Res bool parm----------*)
 let res_sel_max = 0
@@ -98,8 +98,20 @@ let res_simplifying = 4
 
 (*--------End Bool param------------------*)
 
-(* all basic clauses are globally shared *)
-(* for clauses_with_context, clause contexts are shared within each context*)
+
+(*-----------------*)
+(* 1) basic clauses are difined by thier literals and all basic_clauses are globally shared                      *)
+(* 2) basic_clauses are used only to define (context) clauses   and should not be used outside of this module *)
+(* 3) a (context) clause is an extension of a basic clause with extra paramters including tstp source for proofs and  *)
+(*    paramteres used in a process such proof search in inst/res/etc or preprocessing *)
+(* 4) context clauses are indexed by basic clauses (so there is no two clauses with the same basic_clause in a contex) *)
+(*    but clauses can have different parametes in different contexts  *)
+(* 5) for proof reconstruction we are using one propositional solver so if a clauses was added to a uc_solver *)
+(*    then later a clause with the same basic clause is never added  *)
+(*    this may result in proof mixing contexts but should not be a problem *)
+(* 6) in a clause context parameters can be reassigned inplace without switching clause to a new context *)
+(*    thus sequantially the same context can be used for any number of inst/res cycles  *)
+(*    we need to copy a clause to another context only if simultaniously the same basic clause is used in more than one place *)
 
 type basic_clause =
 	basic_clause_node hash_consed
@@ -107,17 +119,26 @@ and
 basic_clause_node =
 	{
 		lits : literal_list;
-		mutable bool_param : Bit_vec.bit_vec;
-		mutable prop_solver_id : int option;
-		mutable length : int param;	(* number of all symbols in literals *)
-		mutable num_of_symb : int param;
-		mutable num_of_var : int param;
-		mutable max_atom_input_occur : int param; (* minial defined symbols *)
-		mutable min_defined_symb : int param;
+    mutable bc_bool_param : Bit_vec.bit_vec;
+		 length               : int;	(* number of all symbols in literals *)
+	   num_of_symb          : int;
+		 num_of_var           : int;
+		 max_atom_input_occur : int param; (* minimal defined symbols *)
+		 min_defined_symb     : int param;
 	}
+
 
 type sel_place = int
 
+(*----------clause context bit-vector paramters-----------*)
+
+let ccp_is_dead_in_context = 0 (* ccp_is_dead_in_context true the the clause is simplified in a context and replaced by other clauses *)
+	                             (* invariant: set of (not ccp_is_dead_in_context) clauses imply the set of all clauses in the context *)
+
+let ccp_in_unsat_core = 1 (* clause was in unsat core in the last proof search run *)
+
+
+(*------------------------------------------------------------------------------*)
 (* in a given context there is at most one clause with the same by basic_clause *)
 (* we can create any number of the same contexts: Inst/Res/Empty                *)
 (* the same basic clause can have different proofs in different contexts        *)
@@ -129,10 +150,15 @@ type clause =
 and clause_node =
 	{
 		basic_clause : basic_clause;
-		tstp_source : tstp_source param;
 		context_id : int;       (* clause_with_context is identified by context_id and basic_clause.tag *)
-		clause_param : clause_param;
-	}
+		mutable tstp_source   : tstp_source param; 
+		mutable simplified_by : simplified_by param;
+	  mutable prop_solver_id : int param; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
+		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
+		mutable proof_search_param   : clause_param;  (* we can reassign clause paramters within the same context *)
+		mutable clause_context_param :  Bit_vec.bit_vec; 
+	}	
+
 (* clause parameters can contain clauses themselves like inst_children *)
 and inst_param =
 	{
@@ -142,7 +168,6 @@ and inst_param =
 		mutable inst_when_born : int param;
 		mutable inst_children : clause list;
 		mutable inst_activity : int;
-		mutable inst_conjecture_distance : int;
 	}
 
 and res_param =
@@ -150,7 +175,6 @@ and res_param =
 		mutable res_bool_param : Bit_vec.bit_vec;
 		mutable res_sel_lits : literal_list param;
 		mutable res_when_born : int param;
-		mutable res_conjecture_distance : int;
 	}
 
 (* clause parameters can change from context to context but basic_clause will remain the same*)
@@ -159,7 +183,15 @@ and clause_param =
 	| Res_param of res_param
 	| Empty_param
 
-(* tstp_source part *)
+and simplified_by =             (* when clause got simplified we record the clauses which is got simplified by *)
+                                (* assumption are: 1) orginal cluase logically follows from the simplifed_by cluases *)
+																(* in particular we can replace the original clause by simplified_by clauses *)
+                                (* there is no cyclic simplification depdendences; we can recover the leaf simplifyig clauses which are not simplified *)
+	|Subsumption of clause
+	|Global_subsumption of clause
+    (* in future: demodulation, others *)
+
+(*-------tstp_source-----------*)
 
 and axiom =
 	| Eq_Axiom
@@ -195,7 +227,7 @@ and tstp_external_source =
 	| TSTP_theory of tstp_theory
 
 and tstp_inference_rule =
-	| Instantiation of clause list
+	| Instantiation of clause list (* side clauses *)
 	| Resolution of literal list
 	| Factoring of literal list
 	| Global_subsumption of int
@@ -213,6 +245,9 @@ and tstp_source =
 	| TSTP_external_source of tstp_external_source
 	| TSTP_internal_source of tstp_internal_source
 	| TSTP_inference_record of tstp_inference_record
+
+
+
 
 (*--------------Consing hash tables--------------------------*)
 
@@ -289,25 +324,217 @@ type bound_bclause = basic_clause Lib.bind
 let get_bclause c =
 	c.basic_clause
 
-let create_basic_clause lit_list =
+(*-----------------------------------------*)
+let compare_basic_clause c1 c2 = 
+	Pervasives.compare c1.tag c2.tag 
+
+let equal_basic_clause = (==)			
+
+let compare_clause c1 c2 = 
+    pair_compare_lex
+			Pervasives.compare
+			Pervasives.compare
+      (c1.node.context_id,c1.tag)
+			(c2.node.context_id,c2.tag)
+				
+let equal_clause = (==) 
+	
+(*---------- filling Bool params of a basic clause ----------------------------*)
+let set_bool_param_bc value param bclause =
+	bclause.node.bc_bool_param <- Bit_vec.set value param bclause.node.bc_bool_param
+
+let get_bool_param_bc param bclause =
+	Bit_vec.get param bclause.node.bc_bool_param
+
+(*----------*)
+let is_ground_lits lits =
+	let is_not_ground lit = not (Term.is_ground lit) in
+	not (List.exists is_not_ground lits)
+
+let is_ground_bc c = (get_bool_param_bc bc_ground c)
+
+(*----------*)
+let is_horn_lits lits = 
+	let num_pos = ref 0 in
+	let rec is_horn_check' lits =
+		match lits with
+		| h :: tl ->
+				if not (Term.is_neg_lit h)
+				then
+					if !num_pos >= 1
+					then false
+					else
+						(num_pos := !num_pos +1;
+							is_horn_check' tl
+						)
+				else
+					is_horn_check' tl
+		|[] -> true
+	in
+	is_horn_check' lits
+
+let is_horn_bc c = (get_bool_param_bc bc_horn c)
+
+(*-----------*)
+
+let is_epr_lits lits =
+	let is_not_epr lit = not (Term.is_epr_lit lit) in
+	not (List.exists is_not_epr lits) 
+		
+let is_epr_bc c = (get_bool_param_bc bc_epr c)
+
+(*----------*)
+let has_eq_lit c =
+	(List.exists Term.is_eq_lit c) 
+	
+let has_eq_lit c c = (get_bool_param_bc bc_has_eq_lit c)
+	
+(*----------*)
+
+(*let bc_input_under_eq *) (* not used at the moment *)
+
+let assign_term_bool_param_clause_param term_bool_param clause_bool_param bclause =
+	set_bool_param_bc
+		(List.exists (Term.get_fun_bool_param term_bool_param) bclause.node.lits)
+		clause_bool_param bclause
+
+(* let has_conj_symb  *)
+let assign_has_conj_symb bclause =
+	assign_term_bool_param_clause_param Term.has_conj_symb bc_has_conj_symb bclause
+
+(* let bc_has_non_prolific_conj_symb  *)
+let assign_has_non_prolific_conj_symb bclause =
+	assign_term_bool_param_clause_param Term.has_non_prolific_conj_symb bc_has_non_prolific_conj_symb bclause
+
+(* let bc_has_bound_constant  *)
+let assign_has_bound_constant bclause =
+	assign_term_bool_param_clause_param Term.has_bound_constant bc_has_bound_constant bclause
+
+(*let bc_has_next_state  *)
+let assign_has_next_state bclause =
+	set_bool_param_bc (List.exists Term.is_next_state_lit bclause.node.lits) bc_has_next_state bclause
+
+(*let bc_has_reachable_state *)
+let assign_has_reachable_state bclause =
+	set_bool_param_bc (List.exists Term.is_reachable_state_lit bclause.node.lits) bc_has_reachable_state bclause
+
+
+(* let bc_large_ax_considered = 12 *) (* set separately *)
+(*let bc_is_negated_conjecture = 14*) (* set separately *)
+
+let bc_init_bool_params lits = 
+ 
+
+(*-------------------------------*)
+
+(*	
+let num_of_symb clause =
+	match clause.num_of_symb with
+	| Def(n) -> n
+	| Undef -> failwith "Clause: num_of_symb is undef"
+
+let num_of_var clause =
+	match clause.num_of_var with
+	| Def(n) -> n
+	| Undef -> failwith "Clause: num_of_var is undef"
+
+let length clause =
+	match clause.length with
+	| Def(n) -> n
+	| Undef -> failwith "Clause: length is undef"
+*)
+	
+(*
+	mutable tstp_source : tstp_source param;
+	mutable length : int param;	(* number of all symbols in literals *)
+	mutable num_of_symb : int param;
+	mutable num_of_var : int param;
+	mutable max_atom_input_occur : int param; (* minial defined symbols *)
+	mutable min_defined_symb : int param;
+	mutable conjecture_distance : int;
+*)
+
+(* a very big number *)
+let max_conjecture_dist = 1 lsl 28
+let conjecture_int = 0
+
+(*----------------------------------*)
+let length_lits lits = List.length lits 
+
+let num_of_symb_lits lits =
+    	let f rest term = rest + (Term.get_num_of_symb term) in
+  	  List.fold_left f 0 lits
+
+let num_of_var_lits lits =
+  	let f rest term = rest + (Term.get_num_of_var term) in
+   	List.fold_left f 0 lits
+
+let max_atom_input_occur lits =
+	let get_symb lit =
+		let atom = Term.get_atom lit in
+		match atom with
+		| Term.Fun(symb, _, _) -> symb
+		| _ -> failwith "assign_max_atom_input_occur should not be var"
+	in
+	let cmp lit1 lit2 =
+		let symb1 = get_symb lit1 in
+		let symb2 = get_symb lit2 in
+		Pervasives.compare
+			(Symbol.get_num_input_occur symb1) (Symbol.get_num_input_occur symb2) in
+	let max_atom_input_occur = get_symb (list_find_max_element cmp c.literals) in
+	max_atom_input_occur
+
+(* defined depth -> circuit_depth *)
+let min_defined_symb_lits lits =
+	let cmp_lit l1 l2 =
+		let d1 = Symbol.get_defined_depth (Term.lit_get_top_symb l1) in
+		let d2 = Symbol.get_defined_depth (Term.lit_get_top_symb l2) in
+		match (d1, d2) with
+		| (Def(i1), Def(i2)) -> Pervasives.compare i1 i2
+		
+		(* changed to the opposite since spliting symbols by vapi become big!
+		(* Undef is greater then Def *)
+		| (Undef, Def _) -> 1
+		| (Def _, Undef) -> -1
+		*)
+		| (Undef, Def _) -> -1
+		| (Def _, Undef) -> 1
+		| (Undef, Undef) -> 0
+	in
+	let min_lit = list_find_min_element cmp_lit lits in
+	let min_d = Symbol.get_defined_depth (Term.lit_get_top_symb min_lit) in
+  min_d	
+
+
+(* can be dangerous since options are redefined after schedules take place; but clauses added during parsing*)
+(* can make definite exclusion list when we do not use cicuit topology
+let defined_symb_enabled_check () = 
+	!current_options.bmc1_incremental || !current_options.schedule = Options.verification_epr
+*)
+
+let create_basic_clause lits =
 	let basic_clause_node =
+	
 		{
 			lits = lit_list;
-			bool_param = Bit_vec.false_vec;
-			prop_solver_id = None;
-			length = Undef;
-			num_of_symb = Undef; 	(* number of all symbols in literals *)
-			num_of_var = Undef;
+			bc_bool_param = Bit_vec.false_vec;
+			length = ;
+			num_of_symb = int; 	(* number of all symbols in literals *)
+			num_of_var = int;
 			max_atom_input_occur = Undef; 	(* minial defined symbols *)
 			min_defined_symb = Undef;
 		}
 	in
-	add_bc_node basic_clause_node
-
-(*----------------------------------*)
-(* a very big number *)
-let max_conjecture_dist = 1 lsl 28
-let conjecture_int = 0
+	let added_bc = add_bc_node basic_clause_node in 
+	(if (added_bc.node == basic_clause_node) (* there is no copy in clause_db *)
+	then 
+		(fill_bc_params basic_clause_node)
+	else ()	
+	);
+	added_bc
+		
+								
+									
 
 (*
 let is_negated_conjecture clause =
@@ -356,6 +583,27 @@ let create_clause_inst context tstp_source lits =
 let create_clause_no_param context tstp_source lits =
 	create_clause_param context tstp_source Empty_param lits
 
+
+(*-------------------------------*)
+exception Clause_prop_solver_id_is_def
+exception Clause_prop_solver_id_is_undef
+
+let assign_prop_solver_id clause id = 
+	match bc.node.prop_solver_id with 
+	| Undef -> clause.node.prop_solver_id <- Def (id) 
+	| Def _ -> raise Clause_prop_solver_id_is_def
+
+let get_prop_solver_id clause = clause.node.prop_solver_id
+
+
+(*-------------------------------*)
+
+let assign_tstp_source_bc tstp_source bc = 
+	bc.node.tstp_source <-tstp_source
+
+let get_tstp_soruce_bc bc = 
+	bc.node.tstp_source
+	
 (*-----------------------------------------*)
 let axiom_to_string axiom =
 	match axiom with
@@ -371,6 +619,9 @@ let pp_axiom ppf = function
 	| Less_Axiom -> Format.fprintf ppf "Less Axiom"
 	| Range_Axiom -> Format.fprintf ppf "Range Axiom"
 	| BMC1_Axiom -> Format.fprintf ppf "BMC1 Axiom"
+
+
+
 
 (*---------------------OLD--------------------------------*)
 type clause =
@@ -414,7 +665,7 @@ and history =
 
 *)
 
-(* ********************************************************************** *)
+(*---------------------------------*)
 (*---------End bool params-------------*)
 
 (*---------------------------------------------------------*)
