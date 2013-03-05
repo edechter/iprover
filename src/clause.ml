@@ -396,7 +396,7 @@ let is_epr_bc c = (get_bool_param_bc bc_epr c)
 let has_eq_lit_lits lits =
 	(List.exists Term.is_eq_lit lits)
 
-let has_eq_lit c c = (get_bool_param_bc bc_has_eq_lit c)
+let has_eq_lit c = (get_bool_param_bc bc_has_eq_lit c)
 
 (*--------from term params to lits param-------------------------*)
 
@@ -418,9 +418,9 @@ let has_next_state_lits lits =
 let has_reachable_state_lits lits =
 	List.exists Term.is_reachable_state_lit lits
 
-(*-------------------------------*)
-
-
+(*----------------------------------*)
+  
+  
 (*----------------------------------*)
 let length_lits lits = List.length lits
 
@@ -631,17 +631,28 @@ let create_clause_no_param context tstp_source lits =
 	create_clause_param context tstp_source Empty_param lits
 
 (*----------------*)
+let get_proof_search_param c = c.node.proof_search_param
+	
+	
 let get_inst_param c = 
-	 match c.node.proof_search_param with 
+	 match (get_proof_search_param c) with 
 		Inst_param p -> p 
 	|_-> failwith "Inst_param is not defined" 
 
+let inst_get_bool_param c = 
+	let inst_param = get_inst_param c in 
+	inst_param.inst_bool_param
+	 
 let get_res_param c = 
-	 match c.node.proof_search_param with 
+	 match (get_proof_search_param c) with 
 		Res_param p -> p 
 	|_-> failwith "Res_param is not defined" 
 				  	
-	
+						
+let res_get_bool_param c = 
+	let res_param = get_res_param c in 
+	res_param.res_bool_param
+
 	
 (*-------------------------------*)
 exception Clause_prop_solver_id_is_def
@@ -773,8 +784,54 @@ let is_horn c =
 let is_epr c =
 	bc_get_bool_param bc_epr c
 	
+let is_eq_axiom c = 
+	bc_get_bool_param bc_eq_axiom c
+
+let assign_is_eq_axiom value c = (* user *) (* assign only for user parameters *)
+ set_bool_param_bc value bc_eq_axiom (get_bc c)
+																														
 let has_eq_lit c =
   bc_get_bool_param bc_has_eq_lit c
+
+let has_conj_symb c =
+	bc_get_bool_param bc_has_conj_symb c
+	
+let has_non_prolific_conj_symb c = 
+	bc_get_bool_param bc_has_non_prolific_conj_symb  c
+		
+let has_bound_constant c = 
+	bc_get_bool_param  bc_has_bound_constant c
+
+let has_next_state c = 
+	bc_get_bool_param bc_has_next_state  c
+		
+let has_reachable_state c = 
+	bc_get_bool_param bc_has_reachable_state  c																		
+
+
+(*
+let bc_ground = 0   (* auto *)
+let bc_horn = 1     (* auto *)
+let bc_epr = 2      (* auto *)
+let bc_eq_axiom = 3 (* user *)
+
+(* input_under_eq  is true if a clause is (i) is a eq axiom or (ii) input   *)
+(* or (iii) obtained from input by some number of inferences with eq axioms *)
+(* so it is false for a cluase  obtained by an inference with two clauses   *)
+(* which are both non equality *)
+(* not used at the moment; may be in the future                             *)
+(* let bc_input_under_eq = 4 *)
+
+let bc_has_eq_lit = 4    (* auto *)
+let bc_has_conj_symb = 5 (* auto *) (* basd on Term.has_conj_symb *)
+let bc_has_non_prolific_conj_symb = 6 (* auto *)
+
+let bc_has_bound_constant = 7 (* auto *)
+let bc_has_next_state = 8 (* auto *)
+let bc_has_reachable_state = 9 (* auto *)
+(*let bc_large_ax_considered = 10 (* auto *) not used at the moment *)
+let bc_is_negated_conjecture = 11 (* user *) (* TODO: change in the rest of the code! *)
+*)
 
 let is_empty_clause c = ((get_lits c) = [])
 
@@ -1055,6 +1112,158 @@ let get_inst_dismatching clause =
 	match inst_param.inst_dismatching with
 	| Def(dismatching) -> dismatching
 	| Undef -> raise Dismatching_undef
+
+
+(*--------------------------------------*)
+let fold_sym f a clause =
+	List.fold_left (Term.fold_sym f) a (get_lits clause)
+
+let iter_sym f clause =
+	List.iter (Term.iter_sym f) (get_lits clause)
+
+let inst_add_child clause child =
+	let inst_param = get_inst_param clause in
+	inst_param.inst_children <- child:: (inst_param.inst_children)
+
+let inst_get_children clause = 
+	let inst_param = get_inst_param clause in
+	inst_param.inst_children
+	
+
+let inst_get_activity clause = 
+	let inst_param = get_inst_param clause in
+	inst_param.inst_activity
+
+let inst_assign_activity act clause = 
+	let inst_param = get_inst_param clause in
+	inst_param.inst_activity <- act
+
+
+
+(*--------------Compare two clauses-------------------*)
+
+let cmp_num_var c1 c2 =
+	(Pervasives.compare (num_of_var c1) (num_of_var c2))
+
+let cmp_num_symb c1 c2 =
+	(Pervasives.compare (num_of_symb c1) (num_of_symb c2))
+
+let cmp_num_lits c1 c2 =
+	(Pervasives.compare (length c1) (length c2))
+
+let cmp_age c1 c2 =
+	let (when_born1,when_born2) =
+	(match ((get_proof_search_param c1), (get_proof_search_param c2)) with 
+	| (Inst_param(inst_param1), Inst_param(inst_param2)) ->
+		 (inst_param1.inst_when_born, inst_param2.inst_when_born)
+  | (Res_param(inst_param1), Res_param(inst_param2)) ->
+		 (inst_param1.res_when_born, inst_param2.res_when_born)
+	| _-> failwith (" cmp_age: when born is either not defined or not compatible in "^(to_string c1)^" "^(to_string c2)) 
+	)
+	in	
+	- (Pervasives.compare (when_born1) (when_born2))
+
+let cmp_ground c1 c2 =
+	Pervasives.compare (is_ground c1) (is_ground c2)
+
+let cmp_horn c1 c2 =
+	Pervasives.compare (is_horn c1) (is_horn c2)
+
+let cmp_epr c1 c2 =
+	Pervasives.compare (is_epr c1) (is_epr c2)
+
+(*
+let cmp_bool_param param c1 c2 =
+        Pervasives.compare (get_bool_param param c1) (get_bool_param param c2)
+*)
+
+let cmp_bc_bool_param param c1 c2 =
+    Pervasives.compare (bc_get_bool_param param c1) (bc_get_bool_param param c2)
+
+let cmp_bc_bool_param param c1 c2 =
+    Pervasives.compare (bc_get_bool_param param c1) (bc_get_bool_param param c2)
+
+let cmp_ccp_bool_param param c1 c2 =
+    Pervasives.compare (ccp_get_bool_param param c1) (ccp_get_bool_param param c2)
+
+let cmp_inst_bool_param param c1 c2 =
+    Pervasives.compare (inst_get_bool_param param c1) (inst_get_bool_param param c2)
+
+let cmp_res_bool_param param c1 c2 =
+    Pervasives.compare (res_get_bool_param param c1) (res_get_bool_param param c2)
+
+
+
+let cmp_in_unsat_core c1 c2 =
+	cmp_ccp_bool_param ccp_in_unsat_core c1 c2
+
+let cmp_has_eq_lit c1 c2 =
+	Pervasives.compare (has_eq_lit c1) (has_eq_lit c2)
+
+let cmp_has_conj_symb c1 c2 =
+	cmp_bool_param has_conj_symb c1 c2
+
+let cmp_has_bound_constant c1 c2 =
+	cmp_bool_param has_bound_constant c1 c2
+
+let cmp_has_next_state c1 c2 =
+	cmp_bool_param has_next_state c1 c2
+
+let cmp_has_reachable_state c1 c2 =
+	cmp_bool_param has_reachable_state c1 c2
+
+let cmp_has_non_prolific_conj_symb c1 c2 =
+	cmp_bool_param has_non_prolific_conj_symb c1 c2
+
+let cmp_max_atom_input_occur c1 c2 =
+	Pervasives.compare c1.max_atom_input_occur c2.max_atom_input_occur
+
+let cmp_min_defined_symb c1 c2 =
+	let d1 = c1.min_defined_symb in
+	let d2 = c2.min_defined_symb in
+	match (d1, d2) with
+	| (Def(i1), Def(i2)) -> Pervasives.compare i1 i2
+	(* Undef is greater then Def *)
+	| (Undef, Def _) -> -1
+	| (Def _, Undef) -> 1
+	| (Undef, Undef) -> 0
+
+let cl_cmp_type_to_fun t =
+	match t with
+	| Options.Cl_Age b -> compose_sign b cmp_age
+	| Options.Cl_Num_of_Var b -> compose_sign b cmp_num_var
+	| Options.Cl_Num_of_Symb b -> compose_sign b cmp_num_symb
+	| Options.Cl_Num_of_Lits b -> compose_sign b cmp_num_lits
+	| Options.Cl_Ground b -> compose_sign b cmp_ground
+	| Options.Cl_Conj_Dist b -> compose_sign b cmp_conjecture_distance
+	| Options.Cl_Has_Conj_Symb b -> compose_sign b cmp_has_conj_symb
+	| Options.Cl_has_bound_constant b -> compose_sign b cmp_has_bound_constant
+	| Options.Cl_has_next_state b -> compose_sign b cmp_has_next_state
+	| Options.Cl_has_reachable_state b -> compose_sign b cmp_has_reachable_state
+	| Options.Cl_Has_Non_Prolific_Conj_Symb b -> compose_sign b cmp_has_non_prolific_conj_symb
+	| Options.Cl_Max_Atom_Input_Occur b -> compose_sign b cmp_max_atom_input_occur
+	| Options.Cl_Horn b -> compose_sign b cmp_horn
+	| Options.Cl_EPR b -> compose_sign b cmp_epr
+	| Options.Cl_in_unsat_core b -> compose_sign b cmp_in_unsat_core
+	| Options.Cl_Has_Eq_Lit b -> compose_sign b cmp_has_eq_lit
+	| Options.Cl_min_defined_symb b -> compose_sign b cmp_min_defined_symb
+
+let cl_cmp_type_list_to_lex_fun l =
+	lex_combination ((List.map cl_cmp_type_to_fun l)@[(compose_12 (~-) compare)])
+
+(*------------------------------------------*)
+exception Literal_not_found
+
+let rec cut_literal_from_list literal list =
+	match list with
+	| h:: tl ->
+			if h == literal then tl
+			else h:: (cut_literal_from_list literal tl)
+	|[] -> raise Literal_not_found
+
+let cut_literal literal clause =
+	create (cut_literal_from_list literal clause.literals)
+
 
 
 (*---------------------OLD--------------------------------*)
@@ -1768,7 +1977,6 @@ let assign_has_eq c =
 	set_bool_param (has_eq_lit c) has_eq_lit_param c
 
 
-(* done *)
 let assign_res_sel_lits sel_lits clause =
 	clause.res_sel_lits <- Def(sel_lits)
 
