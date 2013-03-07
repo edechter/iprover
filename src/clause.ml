@@ -667,12 +667,14 @@ let get_prop_solver_id clause = clause.node.prop_solver_id
 
 (*-------------------------------*)
 
+(*
 let assign_tstp_source tstp_source c =
 	c.node.tstp_source <- tstp_source
 
 let get_tstp_source c =	c.node.tstp_source
 
 let get_context_id c = c.node.context_id
+*)
 
 (*------------------*)
 let get_lits c = c.node.basic_clause.node.lits 
@@ -699,6 +701,8 @@ let pp_axiom ppf = function
 	| BMC1_Axiom -> Format.fprintf ppf "BMC1 Axiom"
 
 (*----------------------------*)
+let get_node c = c.node
+
 let get_bc c = c.node.basic_clause
 	
 let get_bc_node c = c.node.basic_clause.node
@@ -765,15 +769,13 @@ let res_set_bool_param value param clause =
 	let res_param = get_res_param clause in
 	res_param.res_bool_param <- Bit_vec.set value param res_param.res_bool_param
 
-(*---------------------*)
+(*--------clause bc params get/assign -------------*)
+
 let inherit_conj_dist from_c to_c =
 	to_c.node.conjecture_distance <- from_c.node.conjecture_distance
 
-let get_conj_dist c = 
-	c.node.conjecture_distance
-
 let is_negated_conjecture c = 
-	bc_get_bool_param  bc_is_negated_conjecture c 
+	bc_get_bool_param bc_is_negated_conjecture c 
 
 let is_ground c =
 	bc_get_bool_param bc_ground c
@@ -808,29 +810,74 @@ let has_next_state c =
 let has_reachable_state c = 
 	bc_get_bool_param bc_has_reachable_state  c																		
 
+(*------clause params get/assign------*)
+
+
+let assign_tstp_source tstp_source c =
+	c.node.tstp_source <- tstp_source
+
+let get_tstp_source c =	c.node.tstp_source
+
+let get_context_id c = c.node.context_id
+
+let assign_context_id id c = 
+	c.node.context_id <- id
+
+let get_simplified_by c = 
+	c.node.simplified_by
+	
+let assign_simplied_by sby c = 
+		c.node.simplified_by <- sby
+		
+let get_conjecture_distance c = 
+		c.node.conjecture_distance
+
+let assign_conjecture_distance d c = 
+  c.node.conjecture_distance <- d
+
+(*------ccp bool params get/assign-------*)
+let is_dead_in_context c = 
+	Bit_vec.get ccp_is_dead_in_context c.node.ccp_bool_param
+	
+let assign_is_dead_in_context b c = 
+		Bit_vec.set b ccp_is_dead_in_context c.node.ccp_bool_param
+
+let in_unsat_core c = 
+	Bit_vec.get ccp_in_unsat_core c.node.ccp_bool_param
+
+let assign_in_unsat_core b c = 
+	Bit_vec.set b ccp_in_unsat_core c.node.ccp_bool_param
+
+(*-----proof_search param---------*)
+
+let assign_empty_ints_param c =
+	c.node.proof_search_param <- Inst_param(create_inst_param ()) 
+
+let assign_empty_res_param c =
+	c.node.proof_search_param <- Res_param(create_res_param ()) 
+
+let assign_empty_param c =
+  c.node.proof_search_param <- Empty_param
+	
+	
+	
+(*
+let ccp_is_dead_in_context = 0  (* user *)
+(* ccp_is_dead_in_context true the the clause is simplified in a context and replaced by other clauses *)
+(* invariant: set of (not ccp_is_dead_in_context) clauses imply the set of all clauses in the context *)
+
+let ccp_in_unsat_core = 1 (* user *)
+*)		
 
 (*
-let bc_ground = 0   (* auto *)
-let bc_horn = 1     (* auto *)
-let bc_epr = 2      (* auto *)
-let bc_eq_axiom = 3 (* user *)
-
-(* input_under_eq  is true if a clause is (i) is a eq axiom or (ii) input   *)
-(* or (iii) obtained from input by some number of inferences with eq axioms *)
-(* so it is false for a cluase  obtained by an inference with two clauses   *)
-(* which are both non equality *)
-(* not used at the moment; may be in the future                             *)
-(* let bc_input_under_eq = 4 *)
-
-let bc_has_eq_lit = 4    (* auto *)
-let bc_has_conj_symb = 5 (* auto *) (* basd on Term.has_conj_symb *)
-let bc_has_non_prolific_conj_symb = 6 (* auto *)
-
-let bc_has_bound_constant = 7 (* auto *)
-let bc_has_next_state = 8 (* auto *)
-let bc_has_reachable_state = 9 (* auto *)
-(*let bc_large_ax_considered = 10 (* auto *) not used at the moment *)
-let bc_is_negated_conjecture = 11 (* user *) (* TODO: change in the rest of the code! *)
+	basic_clause : basic_clause;
+		mutable context_id : int;       (* clause is identified by context_id and basic_clause.tag *)
+		mutable tstp_source : tstp_source param;
+		mutable simplified_by : simplified_by param;
+		mutable prop_solver_id : int param; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
+		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
+		mutable proof_search_param : proof_search_param;  (* we can reassign clause paramters within the same context *)
+		mutable ccp_bool_param : Bit_vec.bit_vec;
 *)
 
 let is_empty_clause c = ((get_lits c) = [])
