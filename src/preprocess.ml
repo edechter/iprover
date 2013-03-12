@@ -147,5 +147,12 @@ let preprocess clause_list =
       current_list:=Splitting.get_split_list split_result
   |Split_Off-> ()
     );
+	(if !current_options.pred_elim
+   then
+		(
+	    let new_clauses = PredElim.predElim !current_list in
+  	  current_list:= (List.map Clause.copy_clause new_clauses) 		
+		)
+	);		
   !current_list 
     

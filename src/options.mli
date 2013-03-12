@@ -185,6 +185,7 @@ type options = {
     mutable sub_typing            : bool;
     mutable brand_transform       : bool;
     mutable min_unsat_core        : bool;
+		mutable pred_elim             : bool;
  
 (*---Large Theories---------------*)
     mutable large_theory_mode     : bool;

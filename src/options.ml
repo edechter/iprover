@@ -616,6 +616,7 @@ type options = {
 	mutable sub_typing : bool;
 	mutable brand_transform : bool;
 	mutable min_unsat_core : bool;
+	mutable pred_elim : bool;
 	
 	(*---Large Theories---------------*)
 	mutable large_theory_mode : bool;
@@ -733,6 +734,7 @@ let default_options () = {
 	sub_typing = true;
 	brand_transform = false;
 	min_unsat_core = false;
+	pred_elim  = false;
 	
 	(*---Large Theories---------------*)
 	large_theory_mode = true;
@@ -1254,6 +1256,16 @@ let min_unsat_core_fun b =
 let min_unsat_core_inf =
 	bool_str^
 	inf_pref^"minimise unsat core whenever is used; can be expenisve but can lead to shorter proofs and current state: for proofs better true for bmc1 better false \n"
+
+(*-------*)
+let pred_elim_str = "--pred_elim"
+
+let pred_elim_fun b = 
+	!current_options.pred_elim <-b 
+
+let pred_elim_inf = 
+	bool_str^
+	inf_pref^"predicate elimination"
 
 (*-------Large Theories---------------*)
 
@@ -2209,8 +2221,9 @@ let spec_list =
 	(sub_typing_str, Arg.Bool(sub_typing_fun), sub_typing_inf);
 	(brand_transform_str, Arg.Bool(brand_transform_fun), brand_transform_inf);
 	(min_unsat_core_str, Arg.Bool(min_unsat_core_fun), min_unsat_core_inf);
-	
-	(*---Large Theories----*)
+	(pred_elim_str, Arg.Bool(pred_elim_fun), pred_elim_inf);
+
+		(*---Large Theories----*)
 	(large_theory_mode_str, Arg.Bool(large_theory_mode_fun), large_theory_mode_inf);
 	
 	(prolific_symb_bound_str, Arg.Int(prolific_symb_bound_fun), prolific_symb_bound_inf);
@@ -2420,6 +2433,7 @@ let general_options_str_list opt =
 	(sub_typing_str, (string_of_bool opt.sub_typing));
 	(brand_transform_str, (string_of_bool opt.brand_transform));
 	(min_unsat_core_str, (string_of_bool opt.min_unsat_core));
+	(pred_elim_str,(string_of_bool opt.pred_elim));
 	(prolific_symb_bound_str, (string_of_int opt.prolific_symb_bound));
 	(lt_threshold_str, (string_of_int opt.lt_threshold));
 	]
@@ -2876,6 +2890,7 @@ let option_1 () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = !current_options.brand_transform;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -3053,6 +3068,7 @@ let option_2 () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = !current_options.brand_transform;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -3197,6 +3213,7 @@ let option_3 () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = !current_options.brand_transform;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -3336,6 +3353,7 @@ let option_4 () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = !current_options.brand_transform;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -3480,6 +3498,7 @@ let option_finite_models () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = false;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -3623,6 +3642,7 @@ let option_epr_non_horn () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = false;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -3881,6 +3901,7 @@ let option_epr_horn () = {
 	sub_typing = !current_options.sub_typing;
 	brand_transform = false;
 	min_unsat_core = !current_options.min_unsat_core;
+	pred_elim = !current_options.pred_elim;
 	prolific_symb_bound = 500;
 	lt_threshold = 2000;
 	
@@ -4141,6 +4162,7 @@ let option_verification_epr ver_epr_opt =
 				sub_typing = false;
 				brand_transform = false;
 				min_unsat_core = !current_options.min_unsat_core;
+				pred_elim = !current_options.pred_elim;
 				prolific_symb_bound = 5000;
 				lt_threshold = 2000;
 				
@@ -4290,6 +4312,7 @@ let option_verification_epr ver_epr_opt =
 				sub_typing = false;
 				brand_transform = false;
 				min_unsat_core = !current_options.min_unsat_core;
+				pred_elim = !current_options.pred_elim;
 				prolific_symb_bound = 20000000;
 				lt_threshold = 20000000;
 				
@@ -4451,6 +4474,7 @@ let option_verification_epr ver_epr_opt =
 				sub_typing = false;
 				brand_transform = false;
 				min_unsat_core = !current_options.min_unsat_core;
+				pred_elim = !current_options.pred_elim;
 				prolific_symb_bound = 5000;
 				lt_threshold = 2000;
 				
