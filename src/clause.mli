@@ -1,580 +1,522 @@
-(*----------------------------------------------------------------------(C)-*)
-(* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
-   This file is part of iProver - a theorem prover for first-order logic.
-
-   iProver is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-   iProver is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-   See the GNU General Public License for more details.
-   You should have received a copy of the GNU General Public License
-   along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
-(*----------------------------------------------------------------------[C]-*)
-
-
-
-open Lib
-
-type var           = Var.var
-type literal       = Term.literal
-type term          = Term.term
-type symbol        = Symbol.symbol
-type literal_list  = literal list
-type term_db       = TermDB.termDB
-type subst         = Subst.subst
-type bound         = int
-type bound_subst   = SubstBound.bound_subst
-type clause
-type bound_clause = clause Lib.bind
-
-
+module VSet :
+  sig
+    type elt = Var.VKey.t
+    type t = Set.Make(Var.VKey).t
+    val empty : t
+    val is_empty : t -> bool
+    val mem : elt -> t -> bool
+    val add : elt -> t -> t
+    val singleton : elt -> t
+    val remove : elt -> t -> t
+    val union : t -> t -> t
+    val inter : t -> t -> t
+    val diff : t -> t -> t
+    val compare : t -> t -> int
+    val equal : t -> t -> bool
+    val subset : t -> t -> bool
+    val iter : (elt -> unit) -> t -> unit
+    val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
+    val for_all : (elt -> bool) -> t -> bool
+    val exists : (elt -> bool) -> t -> bool
+    val filter : (elt -> bool) -> t -> t
+    val partition : (elt -> bool) -> t -> t * t
+    val cardinal : t -> int
+    val elements : t -> elt list
+    val min_elt : t -> elt
+    val max_elt : t -> elt
+    val choose : t -> elt
+    val split : elt -> t -> t * bool * t
+  end
+type var = Var.var
+type bound_var = Var.bound_var
+type term = Term.term
+type bound_term = Term.bound_term
+type term_db = TermDB.termDB
+type subst = Subst.subst
+type bound = int
+type bound_subst = SubstBound.bound_subst
+type symbol = Symbol.symbol
+type dismatching = Dismatching.constr_set
+module SymSet :
+  sig
+    type elt = Symbol.Key.t
+    type t = Set.Make(Symbol.Key).t
+    val empty : t
+    val is_empty : t -> bool
+    val mem : elt -> t -> bool
+    val add : elt -> t -> t
+    val singleton : elt -> t
+    val remove : elt -> t -> t
+    val union : t -> t -> t
+    val inter : t -> t -> t
+    val diff : t -> t -> t
+    val compare : t -> t -> int
+    val equal : t -> t -> bool
+    val subset : t -> t -> bool
+    val iter : (elt -> unit) -> t -> unit
+    val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
+    val for_all : (elt -> bool) -> t -> bool
+    val exists : (elt -> bool) -> t -> bool
+    val filter : (elt -> bool) -> t -> t
+    val partition : (elt -> bool) -> t -> t * t
+    val cardinal : t -> int
+    val elements : t -> elt list
+    val min_elt : t -> elt
+    val max_elt : t -> elt
+    val choose : t -> elt
+    val split : elt -> t -> t * bool * t
+  end
 type sym_set = Symbol.sym_set
-
-(*
-module ClauseHashtbl : Hashtbl.S with type key = clause
-*)
-
-
-type tstp_internal_source = 
-  | TSTP_definition 
+type literal = Term.literal
+type literal_list = literal list
+type b_litlist = literal_list Lib.bind
+exception Term_compare_greater
+exception Term_compare_less
+type clause_bool_param = int
+val bc_ground : int
+val bc_horn : int
+val bc_epr : int
+val bc_eq_axiom : int
+val bc_has_eq_lit : int
+val bc_has_conj_symb : int
+val bc_has_non_prolific_conj_symb : int
+val bc_has_bound_constant : int
+val bc_has_next_state : int
+val bc_has_reachable_state : int
+val bc_is_negated_conjecture : int
+val ccp_is_dead : int
+val ccp_in_unsat_core : int
+val inst_in_active : int
+val inst_in_unif_index : int
+val inst_in_subset_subsumption_index : int
+val inst_in_subsumption_index : int
+val inst_in_sim_passive : int
+val inst_pass_queue1 : int
+val inst_pass_queue2 : int
+val inst_pass_queue3 : int
+val res_sel_max : int
+val res_pass_queue1 : int
+val res_pass_queue2 : int
+val res_in_sim_passive : int
+val res_simplifying : int
+type basic_clause = basic_clause_node Hashcons.hash_consed
+and basic_clause_node = {
+  lits : literal_list;
+  mutable bc_bool_param : Bit_vec.bit_vec;
+  mutable length : int;
+  mutable num_of_symb : int;
+  mutable num_of_var : int;
+  mutable min_defined_symb : int Lib.param;
+  mutable max_atom_input_occur : symbol Lib.param;
+}
+type sel_place = int
+type clause = {
+  basic_clause : basic_clause;
+  mutable fast_key : int;
+  mutable context_id : int;
+  mutable tstp_source : tstp_source Lib.param;
+  mutable simplified_by : simplified_by Lib.param;
+  mutable prop_solver_id : int Lib.param;
+  mutable conjecture_distance : int;
+  mutable proof_search_param : proof_search_param;
+  mutable ccp_bool_param : Bit_vec.bit_vec;
+}
+and inst_param = {
+  mutable inst_bool_param : Bit_vec.bit_vec;
+  mutable inst_sel_lit : (term * sel_place) Lib.param;
+  mutable inst_dismatching : dismatching Lib.param;
+  mutable inst_when_born : int Lib.param;
+  mutable inst_children : clause list;
+  mutable inst_activity : int;
+}
+and res_param = {
+  mutable res_bool_param : Bit_vec.bit_vec;
+  mutable res_sel_lits : literal_list Lib.param;
+  mutable res_when_born : int Lib.param;
+}
+and proof_search_param =
+    Inst_param of inst_param
+  | Res_param of res_param
+  | Empty_param
+and simplified_by =
+    Simp_by_subsumption of clause
+  | Simp_by_global_subsumption of clause
+and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom
+and tstp_internal_source =
+    TSTP_definition
   | TSTP_assumption
   | TSTP_non_eq_to_eq
-
-type tstp_theory_bmc1 = 
-  | TSTP_bmc1_path_axiom of int 
-  | TSTP_bmc1_reachable_state_axiom of int 
-  | TSTP_bmc1_reachable_state_conj_axiom of int 
+and tstp_theory_bmc1 =
+    TSTP_bmc1_path_axiom of int
+  | TSTP_bmc1_reachable_state_axiom of int
+  | TSTP_bmc1_reachable_state_conj_axiom of int
   | TSTP_bmc1_reachable_state_on_bound_axiom of int
-	| TSTP_bmc1_reachable_sk_replacement of int * clause  (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
-  | TSTP_bmc1_only_bound_reachable_state_axiom of int 
-	| TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
+  | TSTP_bmc1_reachable_sk_replacement of int * clause
+  | TSTP_bmc1_only_bound_reachable_state_axiom of int
+  | TSTP_bmc1_clock_axiom of int * Symbol.symbol * int list
   | TSTP_bmc1_instantiated_clause of int * clause
-
-type tstp_theory =
-  | TSTP_equality
+and tstp_theory =
+    TSTP_equality
   | TSTP_distinct
   | TSTP_bmc1 of tstp_theory_bmc1
   | TSTP_less
   | TSTP_range
-
-type tstp_external_source =
-  | TSTP_file_source of string * string
+and tstp_external_source =
+    TSTP_file_source of string * string
   | TSTP_theory of tstp_theory
-
-type tstp_inference_rule =
-  | Instantiation of clause list
+and tstp_inference_rule =
+    Instantiation of clause list
   | Resolution of literal list
   | Factoring of literal list
   | Global_subsumption of int
-  | Forward_subsumption_resolution 
+  | Forward_subsumption_resolution
   | Backward_subsumption_resolution
   | Splitting of symbol list
-  | Grounding of (Var.var * Term.term) list
+  | Grounding of (var * term) list
   | Subtyping
-	| Flattening
-
-type tstp_inference_record = 
-    tstp_inference_rule * clause list 
-
-type tstp_source = 
-  | TSTP_external_source of tstp_external_source
+  | Flattening
+and tstp_inference_record = tstp_inference_rule * clause list
+and tstp_source =
+    TSTP_external_source of tstp_external_source
   | TSTP_internal_source of tstp_internal_source
   | TSTP_inference_record of tstp_inference_record
-
-type axiom = 
-  |Eq_Axiom 
-  |Distinct_Axiom 
-  |Less_Axiom 
-  |Range_Axiom 
-  |BMC1_Axiom 
- 
-
-(* all boolean param are set false and other Undef*)
-val create         : literal_list -> clause
-val create_parent  : clause -> literal_list -> clause
-
-(* boolean parameters of te clause*)
-type clause_bool_param 
-
-val is_dead                      : clause_bool_param 
-val in_clause_db                 : clause_bool_param
-val in_active                    : clause_bool_param
-val in_unif_index                : clause_bool_param
-val in_subset_subsumption_index  : clause_bool_param
-val in_subsumption_index         : clause_bool_param
-val in_prop_solver               : clause_bool_param
-val inst_in_sim_passive          : clause_bool_param 
-val inst_pass_queue1             : clause_bool_param 
-val inst_pass_queue2             : clause_bool_param 
-val inst_pass_queue3             : clause_bool_param 
-val res_pass_queue1              : clause_bool_param 
-val res_pass_queue2              : clause_bool_param 
-val res_in_sim_passive           : clause_bool_param 
-val res_sel_max                  : clause_bool_param 
-val eq_axiom                     : clause_bool_param 
-val input_under_eq               : clause_bool_param 
-val has_conj_symb                : clause_bool_param 
-val has_bound_constant           : clause_bool_param  
-val has_next_state               : clause_bool_param  
-val has_reachable_state          : clause_bool_param  
-val has_non_prolific_conj_symb   : clause_bool_param 
-val in_unsat_core                : clause_bool_param 
-val large_ax_considered          : clause_bool_param  
-
-
-
- (* if used in simplifications then simplifying is true *)
-(* used in orphan elimination since we can eliminate only non-simplifying clauses *)
-val res_simplifying                  : clause_bool_param 
-
-(* creates a new copy of the clause with the same parameters,*) 
-(* terms are not re-created *)
-val copy_clause  : clause -> clause
-(*
-val copy_clause_undef_fast_key  : clause -> clause
-*)
-val set_bool_param : bool ->  clause_bool_param -> clause -> unit
-val get_bool_param : clause_bool_param -> clause -> bool 
-(* inherit_bool_param param from_c to_c *)
-val inherit_bool_param     :  clause_bool_param -> clause -> clause -> unit
-(* inherit_bool_param_all  from_c to_c *)
-val inherit_bool_param_all :  clause -> clause -> unit
-
-(* inherit relevant parameters for clauses obtained by modification: *)
-(* it can be simplified by prop_subsumption or obtained by splitting *)
-(*let inherit_param_modif from_c to_c = *)
-
-val inherit_param_modif : clause -> clause -> unit 
-
-(* fist form, second to*)
-(* val inherit_history : clause -> clause -> unit *)
-val inherit_tstp_source : clause -> clause -> unit
-
-val num_of_symb                 : clause -> int 
-val num_of_var                  : clause -> int 
-
-val length                      : clause -> int 
-
-(* can be used in e.g. resolution loops for calculating age*)
-val when_born                   : clause -> int
-
-(* adds all vars of the clause to the set *)
-val add_var_set : Var.VSet.t -> clause -> Var.VSet.t
-
-val get_var_list: clause -> var list 
-
-(*-------------------assignments------------------*)
-
-(* assigns when the clause born based on when the clauses in the premise where born *)
-(* when_born=max(min(pem1),min(prem2)) + 1                            *)
-(* if the the prem1 and prem2 is [] then zero is assined (e.g. imput clauses) *)
-
-val assign_when_born         : clause list ->clause list -> clause -> unit
-
-
-val assign_res_sel_lits          : literal_list -> clause -> unit
-
-val assign_inst_sel_lit          : literal -> clause -> unit
-
-(* conjecture distance *)
-
-(* big int  *)
+module BClause_Node_Key :
+  sig
+    type t = basic_clause_node
+    val equal : basic_clause_node -> basic_clause_node -> bool
+    val hash : basic_clause_node -> int
+  end
+module BClause_Htbl :
+  sig
+    type key = BClause_Node_Key.t
+    type t = Hashcons.Make(BClause_Node_Key).t
+    val create : int -> t
+    val clear : t -> unit
+    val hashcons : t -> key -> key Hashcons.hash_consed
+    val iter : (key Hashcons.hash_consed -> unit) -> t -> unit
+    val stats : t -> int * int * int * int * int * int
+  end
+val basic_clause_db : BClause_Htbl.t
+val add_bc_node : BClause_Htbl.key -> BClause_Htbl.key Hashcons.hash_consed
+type bound_clause = clause Lib.bind
+type bound_bclause = basic_clause Lib.bind
+val get_bclause : clause -> basic_clause
+val get_fast_key : clause -> int
+val get_context_id : clause -> int
+val compare_basic_clause :
+  'a Hashcons.hash_consed -> 'b Hashcons.hash_consed -> int
+val equal_basic_clause : 'a -> 'a -> bool
+val compare_clause : clause -> clause -> int
+val equal_clause : 'a -> 'a -> bool
+val equal : 'a -> 'a -> bool
+val compare : clause -> clause -> int
+val set_bool_param_bc :
+  bool -> int -> basic_clause_node Hashcons.hash_consed -> unit
+val get_bool_param_bc : int -> basic_clause_node Hashcons.hash_consed -> bool
+val is_ground_lits : Term.term list -> bool
+val is_ground_bc : basic_clause_node Hashcons.hash_consed -> bool
+val is_horn_lits : Term.literal list -> bool
+val is_horn_bc : basic_clause_node Hashcons.hash_consed -> bool
+val is_epr_lits : Term.term list -> bool
+val is_epr_bc : basic_clause_node Hashcons.hash_consed -> bool
+val has_eq_lit_lits : Term.literal list -> bool
+val exists_lit_with_true_bool_param :
+  Term.fun_term_bool_param -> Term.term list -> bool
+val has_conj_symb_lits : Term.term list -> bool
+val has_non_prolific_conj_symb_lits : Term.term list -> bool
+val has_bound_constant_lits : Term.term list -> bool
+val has_next_state_lits : Term.term list -> bool
+val has_reachable_state_lits : Term.term list -> bool
+val length_lits : 'a list -> int
+val num_of_symb_lits : Term.term list -> int
+val num_of_var_lits : Term.term list -> int
+val max_atom_input_occur_lits : Term.literal list -> Term.symbol
+val min_defined_symb_lits : Term.term list -> int Lib.param
+type 'a bool_param_fill_list = (('a -> bool) * int) list
+val fill_bool_params :
+  (('a -> bool) * int) list -> 'a -> Bit_vec.bit_vec -> Bit_vec.bit_vec
+val auto_bool_param_fill_list : ((Term.literal list -> bool) * int) list
+val template_bc_node : literal_list -> basic_clause_node
+val fill_bc_auto_params : basic_clause_node -> unit
+val create_basic_clause :
+  literal_list -> BClause_Htbl.key Hashcons.hash_consed
+val create_inst_param : unit -> inst_param
+val create_res_param : unit -> res_param
 val max_conjecture_dist : int
-
-(* all input conjectures 0 *)
-val conjecture_int      : int
-
-val is_negated_conjecture : clause -> bool
-
-(* inherit_conj_dist from_c to_c*)
-val inherit_conj_dist : clause -> clause -> unit
-val get_min_conjecture_distance  : clause list -> int
-
-(* assign max {int,max_conjecture_dist}*)
-val assign_conjecture_distance   : int -> clause -> unit
-val cmp_conjecture_distance      : clause -> clause -> int
-val get_conjecture_distance      : clause -> int
-val cmp_has_conj_symb                : clause -> clause -> int
-val cmp_has_non_prolific_conj_symb   : clause -> clause -> int
-
-exception Res_sel_lits_undef
-val get_res_sel_lits             : clause -> literal_list
-val res_sel_is_def               : clause -> bool
-
-exception Inst_sel_lit_undef
-val get_inst_sel_lit            : clause -> literal
-
-val get_parent                  : clause -> clause Lib.param
-
-(*
-val clause_get_history_parents : clause -> clause list 
-
-val clause_list_get_history_parents : clause list -> clause list 
-*)
-
-(* comapares places of two clauses, is used to compare that   *)
-(* sel literal in parent corresponds to sel lit in child      *)
-(* do not renormalise parents and children!*)
-val compare_sel_place           : clause -> clause -> int
-
-
-type dismatching = Dismatching.constr_set
-
-(*type dismatching = Dismatching.constr_list_feature*)
-
-val assign_dismatching : dismatching -> clause -> unit
-
-exception Dismatching_undef
-val get_dismatching : clause -> dismatching
-
-val get_tstp_source : clause -> tstp_source 
-
-	
-(** Clause is generated in an instantiation inference *)
-val assign_tstp_source_instantiation : clause -> clause -> clause list -> unit
-
-
-(** Clause is generated in a resolution inference *)
-val assign_tstp_source_resolution : clause -> clause list -> literal list -> unit 
-
-(** Clause is generated in a factoring inference *)
-val assign_tstp_source_factoring : clause -> clause -> literal list -> unit
-
-
-(** Clause is in input *)
-val assign_tstp_source_input : clause -> string -> string -> unit
-
-
-(** Clause is generated in a global propositional subsumption *)
-val assign_tstp_source_global_subsumption : int -> clause -> clause -> unit
-
-
-(** Clause is generated in a translation to purely equational problem *)
-val assign_tstp_source_non_eq_to_eq : clause -> clause -> unit
-
-
-(** Clause is generated in a forward subsumption resolution *)
-val assign_tstp_source_forward_subsumption_resolution : clause -> clause -> clause list -> unit
-
-
-(** Clause is generated in a backward subsumption resolution *)
-val assign_tstp_source_backward_subsumption_resolution : clause -> clause list -> unit
-
-
-(** Clause is generated in splitting with split symbols introduced *)
-val assign_tstp_source_split : symbol list -> clause -> clause -> unit 
-
-(** assign_tstp_source_flattening clause parent *)
-val assign_tstp_source_flattening : clause -> clause -> unit 
-
-
-(** Clause is generated in grounding with variable substitutions *)
-val assign_tstp_source_grounding : (Var.var * Term.term) list -> clause -> clause -> unit 
-
-val assign_tstp_source_subtyping : clause -> clause -> unit 
-
-
-(** Clause is an equality axiom *)
-val assign_tstp_source_axiom_equality : clause -> unit
-
-(** Clause is a distinct axiom *)
-val assign_tstp_source_axiom_distinct : clause -> unit
-
-(** Clause is an less axiom *)
-val assign_tstp_source_axiom_less : clause -> unit
-
-(** Clause is an range axiom *)
-val assign_tstp_source_axiom_range : clause -> unit
-
-(** Clause is an bmc1 axiom *)
-val assign_tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> clause -> unit
-
-(** Clause is an assumption *)
-val assign_tstp_source_assumption : clause -> unit
-
-
-(*
-val assign_instantiation_history : clause -> clause -> clause list -> unit
-
-(* history when this clause is obtined by resolution from parents upon_literals*)
-(* first arg is the conclusion, sencod arg are parents *) 
-val assign_resolution_history : clause -> clause list -> literal list -> unit 
-
-(* history when this clause is obtined by factoring from parent upon_literals*)
-
-(* first arg is the conclusion, sencod arg is the parent *) 
-val assign_factoring_history : clause -> clause -> literal list -> unit
-
-val assign_input_history : clause -> unit
-
-(* first arg is the conclusion, sencod arg is the parent *) 
-val assign_global_subsumption_history : clause -> clause -> unit
-
-(* first arg is the conclusion, sencod arg is the parent *) 
-val assign_non_eq_to_eq_history : clause -> clause -> unit
-
-(* the first arg is the conclusion, the sencod arg is the main parent *)
-(* and the third is the list of side parents*) 
-val assign_forward_subsumption_resolution_history : clause -> clause -> clause list -> unit
-
-val assign_backward_subsumption_resolution_history : clause -> clause list -> unit
-
-val assign_axiom_history : axiom -> clause -> unit
-val assign_axiom_history_cl_list : axiom -> clause list -> unit
-
-(* first arg is the resulting clause second arg is the parent *)
-val assign_split_history : clause -> clause -> unit
-*)
-
-(* first is parent second is child*)
-val add_child : clause -> clause -> unit
-val get_children : clause -> clause list
-
-val get_orphans : clause -> clause list
-
-val get_activity : clause -> int
-val assign_activity : int -> clause -> unit 
-
-
-(******)
-
-val assign_all_for_clause_db : clause -> unit
-
-exception Clause_fast_key_is_def
-
-(* only to be used in clauseDB where the fast_key is assigned*)
-val assign_fast_key : clause -> int -> unit
-
-(* If a clause has a fast_key, then the db_id is set to a unique
-   identifier of the clause database it was added to. This is
-   necessary to get unique clause names. *)
-exception Clause_db_id_is_def
-val assign_db_id : clause -> int -> unit
-
-
+val conjecture_int : int
+module KeyContext :
+  sig
+    type t = basic_clause
+    type e = clause
+    val hash : 'a Hashcons.hash_consed -> int
+    val equal : 'a Hashcons.hash_consed -> 'b Hashcons.hash_consed -> bool
+    val assign_fast_key : clause -> int -> unit
+    val assign_db_id : clause -> int -> unit
+  end
+module Context :
+  sig
+    type key = KeyContext.t
+    type e = KeyContext.e
+    type assign_map = AssignMap.Make(KeyContext).assign_map
+    val create : int -> string -> assign_map
+    val get_name : assign_map -> string
+    val get_map_id : assign_map -> int
+    val mem : assign_map -> key -> bool
+    val find : assign_map -> key -> e
+    val size : assign_map -> int
+    val fold : (key -> e -> 'a -> 'a) -> assign_map -> 'a -> 'a
+    val iter : (key -> e -> unit) -> assign_map -> unit
+    val add : assign_map -> key -> e -> e
+    val remove : assign_map -> key -> unit
+    val to_stream :
+      'a Lib.string_stream ->
+      ('a Lib.string_stream -> e -> unit) -> string -> assign_map -> unit
+    val out :
+      (out_channel Lib.string_stream -> e -> unit) ->
+      string -> assign_map -> unit
+    val to_string :
+      (Buffer.t Lib.string_stream -> e -> unit) ->
+      string -> assign_map -> string
+    val get_key_counter : assign_map -> int
+  end
+type context = Context.assign_map
+val create_context : int -> string -> Context.assign_map
+val template_clause : basic_clause -> clause
+val fill_clause_param :
+  tstp_source Lib.param -> proof_search_param -> clause -> unit
+val add_clause :
+  Context.assign_map ->
+  tstp_source Lib.param -> proof_search_param -> literal_list -> Context.e
+val create_clause_res :
+  Context.assign_map -> tstp_source Lib.param -> literal_list -> Context.e
+val create_clause_inst :
+  Context.assign_map -> tstp_source Lib.param -> literal_list -> Context.e
+val create_clause_no_param :
+  Context.assign_map -> tstp_source Lib.param -> literal_list -> Context.e
+val get_lits : clause -> literal_list
+val get_literals : clause -> literal_list
+val compare_lits : clause -> clause -> int
+val is_empty_clause : clause -> bool
+val to_stream : 'a Lib.string_stream -> clause -> unit
+val out : clause -> unit
+val to_string : clause -> string
+val clause_list_to_stream : 'a Lib.string_stream -> clause list -> unit
+val out_clause_list : clause list -> unit
+val clause_list_to_string : clause list -> string
+val get_proof_search_param : clause -> proof_search_param
 exception Clause_prop_solver_id_is_def
 exception Clause_prop_solver_id_is_undef
-
 val assign_prop_solver_id : clause -> int -> unit
-
-val get_prop_solver_id : clause -> int option
-
-
-
-(* compare = compare_fast_key and should not be used before 
-   fast_key is assigned i.e. clauseDB is build; 
-   before that use compare_key the same for equal*)  
-
-val compare  : clause -> clause -> int 
-val equal    : clause -> clause -> bool             
-
-(* 
-  compare_key impl. as structural equality used for clauseDB 
-  we assume that literals in clause are in termDB *)
-
-val compare_key           : clause -> clause -> int
-val compare_fast_key      : clause -> clause -> int
-
-
-(* physical membership  *)
-val memq    : literal -> clause -> bool
-
-val exists      : (literal -> bool) -> clause -> bool
-val find        : (literal -> bool) -> clause -> literal
-val fold        : ('a -> literal -> 'a) -> 'a -> clause -> 'a 
-val find_all    : (literal -> bool) -> clause -> literal_list
-val partition   : (literal -> bool) -> clause -> literal_list * literal_list
-val iter        : (literal -> unit) -> clause -> unit
-
-val get_literals : clause -> literal_list
-
-val is_empty_clause : clause -> bool
-
-(*val is_eq_clause    : clause -> bool*)
-
-val is_ground          : clause -> bool
-val is_epr             : clause -> bool
-val is_horn            : clause -> bool
-val has_eq_lit         : clause -> bool
-
-val get_min_defined_symb : clause -> int param
-
-(*Comapre two clauses*)
-val cmp_num_var  : clause -> clause -> int
-val cmp_num_symb : clause -> clause -> int
-val cmp_num_lits : clause -> clause -> int
-val cmp_age      : clause -> clause -> int
-val cmp_ground   : clause -> clause -> int
-val cmp_in_unsat_core : clause -> clause -> int
-
-
-val assign_has_conj_symb              : clause -> unit
-val assign_has_non_prolific_conj_symb : clause -> unit
-
-
-val cl_cmp_type_list_to_lex_fun : 
-    Options.cl_cmp_type list -> (clause -> clause -> int) 
-
-(* folds f on all symbols in the clause *)
-val fold_sym : ('a -> symbol -> 'a) -> 'a -> clause -> 'a 
-
-val iter_sym : (symbol-> unit) -> clause -> unit
-
-(* returns clause without cut literal, 
-  literal should be physically equal to literal in clause, 
-  raises Literal_not_found otherwise 
- *)
-
-(*  should use get_literals
-val cut_literal : literal -> clause -> clause *)
-
-val apply_bsubst : term_db ref -> bound_subst -> bound_clause -> clause 
-
-val apply_bsubst_norm_subst :  
-    term_db ref -> bound_subst -> bound -> clause -> clause * subst
-
-(* during normalisations below obtained literals are added to term_db*)
-val normalise_lit_list :  term_db ref -> literal_list ->literal_list
-val normalise :  term_db ref -> clause -> clause
-
-type b_litlist = literal_list Lib.bind
-
-val normalise_b_litlist : 
-    term_db ref -> bound_subst -> b_litlist -> literal_list 
-
-val normalise_blitlist_list :
-    term_db ref -> bound_subst -> (b_litlist list) -> literal_list 
-
- 
-
-(*
-val normalise_bclause : 
-    bound_clause -> bound_subst -> term_db ref -> clause
-
-val normalise_bclause_list : 
-    bound_clause list -> bound_subst -> term_db ref -> clause
-*)
-
-
-val to_stream                  : 'a string_stream -> clause -> unit
-val out                        : clause -> unit
-
-(** Print the name of a clause
-
-   Clauses are named [c_n], where [n] is the identifier (fast_key) of
-   the clause. If the identifier is undefined, the clause is named
-   [c_tmp].
-*)
+val get_prop_solver_id : clause -> int Lib.param
+val axiom_to_string : axiom -> string
+val pp_axiom : Format.formatter -> axiom -> unit
+val get_node : 'a Hashcons.hash_consed -> 'a
+val get_bc : clause -> basic_clause
+val get_bc_node : clause -> basic_clause_node
+val equal_bc : clause -> clause -> bool
+val memq : literal -> clause -> bool
+val exists : (literal -> bool) -> clause -> bool
+val find : (literal -> bool) -> clause -> literal
+val fold : ('a -> literal -> 'a) -> 'a -> clause -> 'a
+val find_all : (literal -> bool) -> clause -> literal list
+val partition : (literal -> bool) -> clause -> literal list * literal list
+val iter : (literal -> unit) -> clause -> unit
+val bc_set_bool_param : bool -> int -> clause -> unit
+val bc_get_bool_param : int -> clause -> bool
+val ccp_get_bool_param : int -> clause -> bool
+val ccp_set_bool_param : bool -> int -> clause -> unit
+val is_negated_conjecture : clause -> bool
+val is_ground : clause -> bool
+val is_horn : clause -> bool
+val is_epr : clause -> bool
+val is_eq_axiom : clause -> bool
+val assign_is_eq_axiom : bool -> clause -> unit
+val has_eq_lit : clause -> bool
+val has_conj_symb : clause -> bool
+val has_non_prolific_conj_symb : clause -> bool
+val has_bound_constant : clause -> bool
+val has_next_state : clause -> bool
+val has_reachable_state : clause -> bool
+val num_of_symb : clause -> int
+val num_of_var : clause -> int
+val length : clause -> int
+val get_max_atom_input_occur : clause -> symbol Lib.param
+val get_min_defined_symb : clause -> int Lib.param
+val assign_tstp_source : clause -> tstp_source -> unit
+val get_tstp_source : clause -> tstp_source Lib.param
+val assign_context_id : int -> clause -> unit
+val get_simplified_by : clause -> simplified_by Lib.param
+val assign_simplied_by : simplified_by Lib.param -> clause -> unit
+val get_conjecture_distance : clause -> int
+val assign_conjecture_distance : int -> clause -> unit
+val inherit_conj_dist : clause -> clause -> unit
+val get_min_conjecture_distance_clist : clause list -> int
+val get_is_dead : clause -> bool
+val assign_is_dead : 'a -> bool -> clause -> Bit_vec.bit_vec
+val in_unsat_core : clause -> bool
+val assign_in_unsat_core : bool -> clause -> Bit_vec.bit_vec
+val assign_empty_ints_param : clause -> unit
+val assign_empty_res_param : clause -> unit
+val assign_empty_param : clause -> unit
+val get_res_param : clause -> res_param
+val res_get_bool_param : int -> clause -> bool
+val res_set_bool_param : bool -> int -> clause -> unit
+val get_res_sel_max : clause -> bool
+val get_res_pass_queue1 : clause -> bool
+val set_res_pass_queue1 : bool -> clause -> unit
+val get_res_pass_queue2 : clause -> bool
+val set_res_pass_queue2 : bool -> clause -> unit
+val get_res_in_sim_passive : clause -> bool
+val set_res_in_sim_passive : bool -> clause -> unit
+val get_res_simplifying : clause -> bool
+val set_res_simplifying : bool -> clause -> unit
+val res_when_born : clause -> int
+val res_assigns_sel_lits : literal_list -> clause -> unit
+val res_sel_is_def : clause -> bool
+exception Res_sel_lits_undef
+val get_res_sel_lits : clause -> literal_list
+val get_inst_param : clause -> inst_param
+val inst_get_bool_param : int -> clause -> bool
+val inst_set_bool_param : bool -> int -> clause -> unit
+val get_inst_in_active : clause -> bool
+val set_inst_in_active : bool -> clause -> unit
+val get_inst_in_unif_index : clause -> bool
+val set_inst_in_unif_index : bool -> clause -> unit
+val get_inst_in_subset_subsumption_index : clause -> bool
+val set_inst_in_subset_subsumption_index : bool -> clause -> unit
+val get_inst_in_subsumption_index : clause -> bool
+val set_inst_in_subsumption_index : bool -> clause -> unit
+val get_inst_in_sim_passive : clause -> bool
+val set_inst_in_sim_passive : bool -> clause -> unit
+val get_inst_pass_queue1 : clause -> bool
+val set_inst_pass_queue1 : bool -> clause -> unit
+val get_inst_pass_queue2 : clause -> bool
+val set_inst_pass_queue2 : bool -> clause -> unit
+val get_ : int -> clause -> bool
+val set_ : bool -> int -> clause -> unit
+val get_inst_pass_queue3 : clause -> bool
+val set_inst_pass_queue3 : bool -> clause -> unit
+val inst_when_born : clause -> int
+exception Sel_lit_not_in_cluase
+val inst_find_sel_place : 'a -> 'a list -> int
+val inst_assign_sel_lit : literal -> clause -> unit
+val inst_assign_dismatching : dismatching -> clause -> unit
+exception Inst_sel_lit_undef
+val inst_get_sel_lit : clause -> term
+val res_compare_sel_place : clause -> clause -> int
+exception Dismatching_undef
+val get_inst_dismatching : clause -> dismatching
+val inst_add_child : clause -> clause -> unit
+val inst_get_children : clause -> clause list
+val inst_get_activity : clause -> int
+val inst_assign_activity : int -> clause -> unit
+val list_find_max_element_zero : (int -> int -> int) -> int list -> int
+val inst_when_born_concl : clause list -> clause list -> 'a -> int
+val inst_assign_when_born : clause list -> clause list -> clause -> unit
+val res_when_born_concl : clause list -> clause list -> 'a -> int
+val res_assign_when_born : clause list -> clause list -> clause -> unit
 val pp_clause_name : Format.formatter -> clause -> unit
-
-
+val pp_clause_with_id : Format.formatter -> clause -> unit
 val pp_clause : Format.formatter -> clause -> unit
+val pp_clause_min_depth : Format.formatter -> clause -> unit
+val pp_literals_tptp : Format.formatter -> Term.term list -> unit
 val pp_clause_literals_tptp : Format.formatter -> clause -> unit
 val pp_clause_tptp : Format.formatter -> clause -> unit
 val pp_clause_list_tptp : Format.formatter -> clause list -> unit
-
-val pp_clause_min_depth : Format.formatter -> clause -> unit
-
-val tptp_to_stream             : 'a string_stream -> clause -> unit
-val out_tptp                   : clause -> unit
-
-val clause_list_to_stream      : 'a string_stream -> clause list -> unit
-val out_clause_list            : clause list -> unit
-
-val clause_list_tptp_to_stream : 'a string_stream -> clause list -> unit
-val out_clause_list_tptp       : clause list -> unit
-
-val to_string : clause -> string
-val to_tptp   : clause -> string 
-val clause_list_to_string : clause list -> string
-val clause_list_to_tptp   : clause list -> string
-
-(* val to_stream_history : 'a string_stream -> clause -> unit *)
-
-(* val pp_clause_history : Format.formatter -> clause -> unit *)
-
-
-(* val out_history       : clause -> unit *)
-
-
-
-(*--------------------------*)
-type clause_signature = {
-  mutable sig_fun_preds : sym_set;
-  mutable sig_eq_types  : sym_set;
-}
-
-val create_clause_sig : unit -> clause_signature
-
-(* main fun  *)
-val clause_list_signature : clause list -> clause_signature
-
-val extend_clause_sig_term : clause_signature -> Term.term -> unit
-val extend_clause_sig_lit  : clause_signature -> Term.term -> unit
-val extend_clause_sig_cl   : clause_signature -> clause -> unit
-val extend_clause_list_signature : clause_signature -> clause list -> unit
-
-
-(*-----assume clause is of the from [pred(sK)] where sK is a state skolem fun---*)
-val get_skolem_bound_clause : clause -> Term.term option
-
-(*val replace_subterm : term_db ref -> subterm:term ->  byterm:term -> clause -> clause*)
-
-val replace_subterm : term_db ref -> term ->  term -> clause -> clause
-
-
-(*-----------------------------*)
+val tptp_to_stream : 'a Lib.string_stream -> clause -> unit
+val out_tptp : clause -> unit
+val to_tptp : clause -> string
+val clause_list_tptp_to_stream : 'a Lib.string_stream -> clause list -> unit
+val out_clause_list_tptp : clause list -> unit
+val clause_list_to_tptp : clause list -> string
+val add_var_set : Var.VSet.t -> clause -> Var.VSet.t
+val get_var_list : clause -> VSet.elt list
+val fold_sym : ('a -> Term.symbol -> 'a) -> 'a -> clause -> 'a
+val iter_sym : (Term.symbol -> unit) -> clause -> unit
+val cmp : ('a -> 'b) -> 'a -> 'a -> int
+val cmp_num_var : clause -> clause -> int
+val cmp_num_symb : clause -> clause -> int
+val cmp_num_lits : clause -> clause -> int
+val cmp_age : clause -> clause -> int
+val cmp_ground : clause -> clause -> int
+val cmp_horn : clause -> clause -> int
+val cmp_epr : clause -> clause -> int
+val cmp_in_unsat_core : clause -> clause -> int
+val cmp_has_eq_lit : clause -> clause -> int
+val cmp_has_conj_symb : clause -> clause -> int
+val cmp_has_bound_constant : clause -> clause -> int
+val cmp_has_next_state : clause -> clause -> int
+val cmp_has_reachable_state : clause -> clause -> int
+val cmp_has_non_prolific_conj_symb : clause -> clause -> int
+val cmp_conjecture_distance : clause -> clause -> int
+val cmp_max_atom_input_occur : clause -> clause -> int
+val cmp_min_defined_symb : clause -> clause -> int
+val cl_cmp_type_to_fun : Options.cl_cmp_type -> clause -> clause -> int
+val cl_cmp_type_list_to_lex_fun :
+  Options.cl_cmp_type list -> clause -> clause -> int
+exception Literal_not_found
+val cut_literal_from_list : 'a -> 'a list -> 'a list
+val assign_tstp_source_instantiation :
+  clause -> clause -> clause list -> unit
+val assign_tstp_source_resolution :
+  clause -> clause list -> literal list -> unit
+val assign_tstp_source_factoring : clause -> clause -> literal list -> unit
+val assign_tstp_source_subtyping : clause -> clause -> unit
+val assign_tstp_source_input : clause -> string -> string -> unit
+val assign_tstp_source_global_subsumption : int -> clause -> clause -> unit
+val assign_tstp_source_non_eq_to_eq : clause -> 'a -> unit
+val assign_tstp_source_forward_subsumption_resolution :
+  clause -> clause -> clause list -> unit
+val assign_tstp_source_backward_subsumption_resolution :
+  clause -> clause list -> unit
+val assign_tstp_source_split : symbol list -> clause -> clause -> unit
+val assign_tstp_source_flattening : clause -> clause -> unit
+val assign_tstp_source_grounding :
+  (var * term) list -> clause -> clause -> unit
+val assign_tstp_source_theory_axiom : clause -> tstp_theory -> unit
+val assign_tstp_source_axiom_equality : clause -> unit
+val assign_tstp_source_axiom_distinct : clause -> unit
+val assign_tstp_source_axiom_less : clause -> unit
+val assign_tstp_source_axiom_range : clause -> unit
+val assign_tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> clause -> unit
+val assign_tstp_source_assumption : clause -> unit
 module Key :
   sig
     type t = clause
-    val equal : t -> t -> bool
-    val hash : t -> int
-    val compare : t -> t -> int
+    val equal : 'a -> 'a -> bool
+    val hash : clause -> int
+    val compare : clause -> clause -> int
   end
-
-
 module Map :
   sig
     type key = Key.t
     type 'a t = 'a Map.Make(Key).t
     val empty : 'a t
     val is_empty : 'a t -> bool
-    val add : key -> 'a -> 'a t -> 'a t
-    val find : key -> 'a t -> 'a
-    val remove : key -> 'a t -> 'a t
     val mem : key -> 'a t -> bool
-    val iter : (key -> 'a -> unit) -> 'a t -> unit
-    val map : ('a -> 'b) -> 'a t -> 'b t
-    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val add : key -> 'a -> 'a t -> 'a t
+    val singleton : key -> 'a -> 'a t
+    val remove : key -> 'a t -> 'a t
+    val merge :
+      (key -> 'a option -> 'b option -> 'c option) -> 'a t -> 'b t -> 'c t
     val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
     val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-  end
-
-module Hashtbl :
-  sig
-    type key = Key.t
-    type 'a t = 'a Hashtbl.Make(Key).t
-    val create : int -> 'a t
-    val clear : 'a t -> unit
-   (* val reset : 'a t -> unit *)
-    val copy : 'a t -> 'a t
-    val add : 'a t -> key -> 'a -> unit
-    val remove : 'a t -> key -> unit
-    val find : 'a t -> key -> 'a
-    val find_all : 'a t -> key -> 'a list
-    val replace : 'a t -> key -> 'a -> unit
-    val mem : 'a t -> key -> bool
     val iter : (key -> 'a -> unit) -> 'a t -> unit
     val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    val length : 'a t -> int
-    (* val stats : 'a t -> Hashtbl.statistics *)
+    val for_all : (key -> 'a -> bool) -> 'a t -> bool
+    val exists : (key -> 'a -> bool) -> 'a t -> bool
+    val filter : (key -> 'a -> bool) -> 'a t -> 'a t
+    val partition : (key -> 'a -> bool) -> 'a t -> 'a t * 'a t
+    val cardinal : 'a t -> int
+    val bindings : 'a t -> (key * 'a) list
+    val min_binding : 'a t -> key * 'a
+    val max_binding : 'a t -> key * 'a
+    val choose : 'a t -> key * 'a
+    val split : key -> 'a t -> 'a t * 'a option * 'a t
+    val find : key -> 'a t -> 'a
+    val map : ('a -> 'b) -> 'a t -> 'b t
+    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
   end
-
-
 module Set :
   sig
     type elt = Key.t
@@ -604,7 +546,122 @@ module Set :
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
   end
-
 type clause_set = Set.t
-
-val clause_list_to_set : clause list -> clause_set
+module Hashtbl :
+  sig
+    type key = Key.t
+    type 'a t = 'a Hashtbl.Make(Key).t
+    val create : int -> 'a t
+    val clear : 'a t -> unit
+    val reset : 'a t -> unit
+    val copy : 'a t -> 'a t
+    val add : 'a t -> key -> 'a -> unit
+    val remove : 'a t -> key -> unit
+    val find : 'a t -> key -> 'a
+    val find_all : 'a t -> key -> 'a list
+    val replace : 'a t -> key -> 'a -> unit
+    val mem : 'a t -> key -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val length : 'a t -> int
+    val stats : 'a t -> Hashtbl.statistics
+  end
+val clause_list_to_set : Set.elt list -> Set.t
+val apply_bsubst :
+  SubstBound.term_db_ref ->
+  SubstBound.bound_subst -> int -> Term.term list -> SubstBound.term list
+val apply_bsubst_norm_subst :
+  SubstBound.term_db_ref ->
+  SubstBound.bound_subst ->
+  SubstBound.bound ->
+  Term.term list -> SubstBound.term list * SubstBound.subst
+val term_compare' : Term.term -> Term.term -> int
+val term_compare : Term.term -> Term.term -> int
+val norm_bterm_wrt_subst :
+  SubstBound.bound_term -> SubstBound.bound_subst -> SubstBound.bound_term
+val cmp_bmc1_atom_fun : unit -> Term.literal -> Term.literal -> int
+val bterm_subst_compare' :
+  SubstBound.bound_term ->
+  SubstBound.bound_term -> SubstBound.bound_subst -> int
+val bterm_subst_compare :
+  Term.literal Lib.bind ->
+  Term.literal Lib.bind -> SubstBound.bound_subst -> int
+type var_param = var Lib.param
+module VarTableM :
+  sig
+    type key = Var.VKey.t
+    type 'a t = 'a Hashtbl.Make(Var.VKey).t
+    val create : int -> 'a t
+    val clear : 'a t -> unit
+    val copy : 'a t -> 'a t
+    val add : 'a t -> key -> 'a -> unit
+    val remove : 'a t -> key -> unit
+    val find : 'a t -> key -> 'a
+    val find_all : 'a t -> key -> 'a list
+    val replace : 'a t -> key -> 'a -> unit
+    val mem : 'a t -> key -> bool
+    val iter : (key -> 'a -> unit) -> 'a t -> unit
+    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+    val length : 'a t -> int
+  end
+val normalise_term_var' :
+  Term.var VarTableM.t -> var ref -> Term.term -> Term.term
+val normalise_bterm_list :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst ->
+  Term.literal Lib.bind list -> SubstBound.term list
+val normalise_b_litlist_v1 :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst ->
+  Term.literal list Lib.bind -> SubstBound.term list
+val normalise_blitlist_list_v1 :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst ->
+  Term.literal list Lib.bind list -> SubstBound.term list
+val normalise_bclause_v1 :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst -> int * clause -> SubstBound.term list
+val normalise_bclause_list_v1 :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst -> (int * clause) list -> SubstBound.term list
+val normalise_b_litlist_v2' :
+  SubstBound.term_db_ref ->
+  SubstBound.bound_subst -> Term.term list Lib.bind -> SubstBound.term list
+val normalise_b_litlist_v2 :
+  SubstBound.term_db_ref ->
+  SubstBound.bound_subst -> Term.term list Lib.bind -> SubstBound.term list
+val normalise_blitlist_list_v2 :
+  SubstBound.term_db_ref ->
+  SubstBound.bound_subst ->
+  Term.term list Lib.bind list -> SubstBound.term list
+val normalise_b_litlist :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst ->
+  Term.literal list Lib.bind -> SubstBound.term list
+val normalise_blitlist_list :
+  TermDB.termDB ref ->
+  SubstBound.bound_subst ->
+  Term.literal list Lib.bind list -> SubstBound.term list
+val normalise_lit_list :
+  TermDB.termDB ref -> Term.literal list -> SubstBound.term list
+val add_normalise :
+  TermDB.termDB ref ->
+  Context.assign_map ->
+  tstp_source Lib.param ->
+  proof_search_param -> Term.literal list -> Context.e
+val get_non_simplifying_parents : clause -> clause list
+val get_orphans : clause -> clause list
+val get_skolem_bound_clause : clause -> Term.term option
+val replace_subterm :
+  TermDB.termDB ref ->
+  'a -> Term.term -> Term.term -> Term.term list -> SubstBound.term list
+type clause_signature = {
+  mutable sig_fun_preds : sym_set;
+  mutable sig_eq_types : sym_set;
+}
+val create_clause_sig : unit -> clause_signature
+val extend_clause_sig_term : clause_signature -> Term.term -> unit
+val extend_clause_sig_lit : clause_signature -> Term.literal -> unit
+val extend_clause_sig_cl : clause_signature -> clause -> unit
+val extend_clause_list_signature : clause_signature -> clause list -> unit
+val clause_list_signature : clause list -> clause_signature

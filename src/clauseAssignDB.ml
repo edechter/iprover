@@ -16,9 +16,8 @@
 
 
 
-
-
 open Lib
+
 type clause = Clause.clause
 
 module ClauseKey =

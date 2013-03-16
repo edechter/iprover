@@ -25,7 +25,9 @@ module type KeyEl =
   sig
 		type t
     type e (* t -> element *)
-    val compare : t -> t -> int
+    (* val compare : t -> t -> int *)
+		val hash : t -> int 
+		val equal : t -> t -> bool  
     val assign_fast_key : e -> int -> unit
     val assign_db_id : e -> int -> unit
   end
@@ -34,7 +36,7 @@ module Make(MKey:KeyEl) =
 	struct
 	type key = MKey.t
 	type e = MKey.e
-  module M = Map.Make(MKey) 
+  module M = Hashtbl.Make(MKey) 
 
 	type assign_map = 
 		{
@@ -45,9 +47,10 @@ module Make(MKey:KeyEl) =
 
  type t = assign_map 
   
- let create_name name =
+ (* size initial size; will be resized as necesssary *)	
+ let create size name =
 	   let new_map = 
-     { map = M.empty;
+     { map = M.create size;
 		   name = name;
 			 map_id = !assign_map_counter;
 		   key_counter = 0 
@@ -61,9 +64,9 @@ module Make(MKey:KeyEl) =
     (* Return the unique identifier of the map *)
     let get_map_id m  = m.map_id
 
-    let mem m e = M.mem e m.map
-    let find m e = M.find e m.map
-    let size m = M.cardinal m.map
+    let mem m k = M.mem m.map k
+    let find m k = M.find m.map k
+    let size m = M.length m.map
 		  
 		(* f : key -> e -> a -> a*)
     let fold f m a =  M.fold f m.map a
@@ -74,22 +77,22 @@ module Make(MKey:KeyEl) =
 		(* adds key -> e to the map and returns the e with assigned map_id and fast_key *)
 		(* use find to check key is in the map separately *)
     let add m key e = 
-     (* try (find m key)
+    try (M.find m.map key)
       with
     	Not_found-> 
 				(
-				*)
+				
 	         MKey.assign_fast_key e (m.key_counter);  					
 	         MKey.assign_db_id e (get_map_id m);
 	         m.key_counter <- m.key_counter + 1;
-					 m.map <- (M.add key e m.map);
+					 (M.add m.map key e);
 					 e
-	     	
+	     	)
 	    
 
  (*note that remove does not decrease the greatest_key*)   	   
     let remove m key =   
-			m.map <- M.remove key m.map
+		M.remove m.map key
 			 
     let to_stream s (el_to_str: 'a string_stream -> e -> unit) separator m =
 		 s.stream_add_str 
@@ -124,36 +127,3 @@ module Make(MKey:KeyEl) =
     let  get_key_counter m = m.key_counter
 
 end
-(*
-module type AbstDB =
-  sig   
-    type elem
-    type abstDB 
-    val create      : unit -> abstDB 
-    val create_name : string -> abstDB
-    val mem         : elem -> abstDB -> bool 
-    val add         : elem -> abstDB -> abstDB
-    val add_ref     : elem -> abstDB ref -> elem
-    val remove      : elem -> abstDB -> abstDB 
-    val find        : elem -> abstDB -> elem
-    val size        : abstDB -> int
-    val map         : (elem -> elem)-> abstDB -> abstDB  
-    val fold        : (elem -> 'a -> 'a) -> abstDB -> 'a -> 'a
-    val iter        : (elem -> unit) -> abstDB -> unit
-(*    val to_string   : (elem -> string) -> string -> abstDB ->string*)
-    val get_name    : abstDB -> string
-    val get_db_id   : abstDB -> int
-    val to_stream   : 
-	'a string_stream -> ('a string_stream -> elem -> unit) ->
-	  string -> abstDB -> unit
-    val out            : 
-	(out_channel string_stream -> elem -> unit) ->
-	  string -> abstDB -> unit
-
-    val to_string   : (Buffer.t string_stream -> elem  -> unit) 
-      -> string -> abstDB ->  string
-
-(*debug*)
-    val get_greatest_key : abstDB -> int
-  end	
-  *)    

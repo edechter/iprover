@@ -59,7 +59,7 @@ include Makefile.extras
 
 #BASE_NAMES = lib options statistics bit_vec tableArray heap priority_queues tree trie trie_func vectorIndex abstDB abstAssignDB symbol symbolDB var term termDB orderings subst substBound dismatching clause selection clauseAssignDB clauseDB parser_types lexer_tptp parser_tptp parsed_input_to_db parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms propSolver prop_solver_exchange inference_rules model_inst finite_models preprocess prep_sem_filter large_theories
 
-BASE_NAMES_BEFORE_LEXER = lib hashcons union_find options statistics bit_vec tableArray heap priority_queues tree trie trie_func vectorIndex abstDB abstAssignDB symbol symbolDB var term termDB orderings subst substBound dismatching clause selection clauseAssignDB clauseDB parser_types logic_interface 
+BASE_NAMES_BEFORE_LEXER = lib hashcons union_find options statistics bit_vec assignMap tableArray heap priority_queues tree trie trie_func vectorIndex abstDB abstAssignDB symbol symbolDB var term termDB orderings subst substBound dismatching clause selection clauseAssignDB clauseDB parser_types logic_interface 
 
 #BASE_NAMES_AFTER_LEXER = parser_tptp parsed_input_to_db parseFiles splitting unif unifIndex discrTree subsetSubsume subsumptionIndex eq_axioms propSolver prop_solver_exchange inference_rules model_inst finite_models preprocess prep_sem_filter large_theories discount instantiation
 
