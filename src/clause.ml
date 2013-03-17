@@ -991,7 +991,7 @@ let res_when_born c =
 				failwith fail_str
 			)
 		
-let res_assigns_sel_lits sel_lits clause =
+let res_assign_sel_lits sel_lits clause =
 	let res_param = get_res_param clause in
 	res_param.res_sel_lits <- Def(sel_lits)
 
@@ -1462,7 +1462,7 @@ let cut_literal literal lit_list =
 
 
 
-(* ------------ TSTP source get/assign ----------------------- *)
+(* ------------ TSTP source  ----------------------- *)
 
 
 (*  *)
@@ -1479,116 +1479,81 @@ let assign_tstp_source clause source =
 *)
 
 (* Clause is generated in an instantiation inference *)
-let assign_tstp_source_instantiation clause parent parents_side =	
-	assign_tstp_source 
-	clause
+let tstp_source_instantiation parent parents_side =	
   (TSTP_inference_record ((Instantiation parents_side), [parent]))
 
 (* Clause is generated in a resolution inference *)
-let assign_tstp_source_resolution clause parents upon_literals =	
-	assign_tstp_source
-		clause
+let tstp_source_resolution parents upon_literals =	
 		(TSTP_inference_record ((Resolution upon_literals), parents))
 
 (* Clause is generated in a factoring inference *)
-let assign_tstp_source_factoring clause parent upon_literals =
-	
-	assign_tstp_source
-		clause
+let tstp_source_factoring parent upon_literals =
 		(TSTP_inference_record ((Factoring upon_literals), [parent]))
 
-let assign_tstp_source_subtyping clause parent =
-	assign_tstp_source
-		clause
+let tstp_source_subtyping clause parent =
 		(TSTP_inference_record ((Subtyping), [parent]))
 
 (* Clause is in input *)
-let assign_tstp_source_input clause file name =
-	
-	assign_tstp_source
-		clause
+let tstp_source_input file name =
 		(TSTP_external_source (TSTP_file_source (file, name)))
 
 (* Clause is generated in a global propositional subsumption *)
-let assign_tstp_source_global_subsumption max_clause_id clause parent =
-	
-	assign_tstp_source
-		clause
+let tstp_source_global_subsumption max_clause_id parent =
 		(TSTP_inference_record (Global_subsumption max_clause_id, [parent]))
 
 (* Clause is generated in a translation to purely equational problem *)
-let assign_tstp_source_non_eq_to_eq clause parent =
-	
-	assign_tstp_source
-		clause
+let tstp_source_non_eq_to_eq parent =
 		(TSTP_internal_source TSTP_non_eq_to_eq)
 
 (* Clause is generated in a forward subsumption resolution *)
-let assign_tstp_source_forward_subsumption_resolution clause main_parent parents =
-	
-	assign_tstp_source
-		clause
+let tstp_source_forward_subsumption_resolution main_parent parents =
 		(TSTP_inference_record
 			(Forward_subsumption_resolution, (main_parent :: parents)))
 
 (* Clause is generated in a backward subsumption resolution *)
-let assign_tstp_source_backward_subsumption_resolution clause parents =
-	
-	assign_tstp_source
-		clause
+let tstp_source_backward_subsumption_resolution parents =
 		(TSTP_inference_record (Backward_subsumption_resolution, parents))
 
 (* Clause is generated in splitting *)
-let assign_tstp_source_split symbols clause parent =
-	
-	assign_tstp_source
-		clause
+let tstp_source_split symbols parent =
 		(TSTP_inference_record (Splitting symbols, [parent]))
 
-let assign_tstp_source_flattening clause parent =
-	assign_tstp_source
-		clause
+let tstp_source_flattening parent =
 		(TSTP_inference_record (Flattening, [parent]))
 
 (* Clause is generated in grounding *)
-let assign_tstp_source_grounding grounding clause parent =
-	
-	assign_tstp_source
-		clause
+let tstp_source_grounding grounding parent =
 		(TSTP_inference_record (Grounding grounding, [parent]))
 
 (* Clause is a theory axiom *)
-let assign_tstp_source_theory_axiom clause theory =
-	
-	assign_tstp_source
-		clause
+let tstp_source_theory_axiom theory =
 		(TSTP_external_source (TSTP_theory theory))
 
 (* Clause is an equality axiom *)
-let assign_tstp_source_axiom_equality clause =
-	assign_tstp_source_theory_axiom clause TSTP_equality
+let tstp_source_axiom_equality () =
+	tstp_source_theory_axiom TSTP_equality
 
 (* Clause is a distinct axiom *)
-let assign_tstp_source_axiom_distinct clause =
-	assign_tstp_source_theory_axiom clause TSTP_distinct
+let tstp_source_axiom_distinct () =
+	tstp_source_theory_axiom TSTP_distinct
 
 (* Clause is an less axiom *)
-let assign_tstp_source_axiom_less clause =
-	assign_tstp_source_theory_axiom clause TSTP_less
+let tstp_source_axiom_less () =
+	tstp_source_theory_axiom TSTP_less
 
 (* Clause is an range axiom *)
-let assign_tstp_source_axiom_range clause =
-	assign_tstp_source_theory_axiom clause TSTP_range
+let tstp_source_axiom_range () =
+	tstp_source_theory_axiom TSTP_range
 
 (* Clause is an bmc1 axiom *)
-let assign_tstp_source_axiom_bmc1 bmc1_axiom clause =
-	assign_tstp_source_theory_axiom clause (TSTP_bmc1 bmc1_axiom)
+let tstp_source_axiom_bmc1 bmc1_axiom =
+	tstp_source_theory_axiom (TSTP_bmc1 bmc1_axiom)
 
 (* Clause is generated in grounding *)
-let assign_tstp_source_assumption clause =
-	assign_tstp_source clause (TSTP_internal_source TSTP_assumption)
+let tstp_source_assumption () =
+	 (TSTP_internal_source TSTP_assumption)
 
-(*---------------- end TSTP assignments --------------------------*)
+(*---------------- end TSTP --------------------------*)
 
 (*-------------- Hash/Map/Set -------------------------*)
 

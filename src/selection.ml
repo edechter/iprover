@@ -30,12 +30,12 @@ let get_sel sel_fun clause =
     Clause.get_res_sel_lits clause
   with Clause.Res_sel_lits_undef ->
     let sel_lits = sel_fun clause in
-    Clause.assign_res_sel_lits sel_lits clause;
+    Clause.res_assign_sel_lits sel_lits clause;
     sel_lits
 
 let kbo_sel_max' clause = 
   list_get_max_elements_v 
-    Orderings.simple_kbo_lit (Clause.get_literals clause)
+    Orderings.simple_kbo_lit (Clause.get_lits clause)
 
 (*let kbo_sel_max clause = get_sel kbo_sel_max' clause see below*)
 
@@ -50,7 +50,7 @@ let literal_neg_selection_max'  clause =
    with 
      Not_found -> (* all lits are positive*)
        list_get_max_elements_v 
-	 Orderings.simple_kbo_lit (Clause.get_literals clause)
+	 Orderings.simple_kbo_lit (Clause.get_lits clause)
     
 let literal_neg_selection_max  = 
   get_sel literal_neg_selection_max' 
@@ -66,7 +66,7 @@ let literal_neg_selection_min'  clause =
       [neg_literal]
     with 
     Not_found -> (* all lits are positive*)
-      list_get_max_elements_v Orderings.simple_kbo_lit (Clause.get_literals clause)
+      list_get_max_elements_v Orderings.simple_kbo_lit (Clause.get_lits clause)
 	
 let literal_neg_selection_min clause = get_sel literal_neg_selection_min' clause
 
@@ -80,7 +80,7 @@ let literal_neg_selection_min clause = get_sel literal_neg_selection_min' clause
 (* assume no duplicates of lits in the clause *)
 exception No_next_neg
 let next_neg_sel clause = 
-  let  lits = (Clause.get_literals clause) in
+  let  lits = (Clause.get_lits clause) in
   try 
     let current_sel = 
       (match (Clause.get_res_sel_lits clause) 
@@ -92,7 +92,7 @@ let next_neg_sel clause =
       let next_sel = List.find Term.is_neg_lit tail_lits in
       (* todo test if next_sel is the last neg and all in the original are*)
       (* neg then it is already max sel*)
-      Clause.assign_res_sel_lits [next_sel] clause; 
+      Clause.res_assign_sel_lits [next_sel] clause; 
       [next_sel]
     with 
       Not_found -> raise No_next_neg
@@ -100,7 +100,7 @@ let next_neg_sel clause =
     Clause.Res_sel_lits_undef ->   
       try 
 	let next_sel = List.find Term.is_neg_lit lits in
-	Clause.assign_res_sel_lits [next_sel] clause; 
+	Clause.res_assign_sel_lits [next_sel] clause; 
 	[next_sel]
       with 
 	Not_found -> raise No_next_neg
@@ -108,20 +108,20 @@ let next_neg_sel clause =
 
 (* sel max kbo but if there is neg in max then selects any such neg*)
 let sel_kbo_max clause =
-  if (not (Clause.get_bool_param Clause.res_sel_max clause)) 
+  if (not (Clause.get_res_sel_max clause)) 
   then 
-    (Clause.set_bool_param true Clause.res_sel_max clause;
+    (Clause.set_res_sel_max true clause;
      let new_sel_lits = 
        list_get_max_elements_v 
 	 Orderings.simple_kbo_lit (Clause.get_literals clause)
      in 
      try  
        let neg_sel = List.find Term.is_neg_lit new_sel_lits in
-       Clause.assign_res_sel_lits [neg_sel] clause; 
+       Clause.res_assign_sel_lits [neg_sel] clause; 
        [neg_sel]
      with
        Not_found -> 
-	 (Clause.assign_res_sel_lits new_sel_lits clause;
+	 (Clause.res_assign_sel_lits new_sel_lits clause;
 	  new_sel_lits)
     )
   else
@@ -136,7 +136,7 @@ let sel_kbo_max clause =
 (*also works when no sel is assigned*)
 exception Max_sel	  
 let change_sel clause = 
-  if (Clause.get_bool_param Clause.res_sel_max clause) 
+  if (Clause.get_res_sel_max clause) 
   then raise Max_sel
   else
     try 

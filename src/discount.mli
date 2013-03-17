@@ -21,9 +21,9 @@ open Lib
 type term   = Term.term
 type clause = Clause.clause
 
-type all_clauses = ClauseAssignDB.clauseDB
+type context = Clause.context
 
-exception Satisfiable of all_clauses
+exception Satisfiable of context
 
 (* exception Unsatisfiable *)
 exception Empty_Clause of clause

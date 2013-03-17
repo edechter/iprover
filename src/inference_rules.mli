@@ -19,7 +19,7 @@
 type clause  = Clause.clause
 type literal = Clause.literal
 type term_db = TermDB.termDB
-type clause_db = ClauseAssignDB.clauseDB
+type context = Clause.context
 
 (*
 val num_of_dismatch_blockings    :  int ref 
@@ -57,5 +57,5 @@ val instantiation : term_db ref -> clause -> literal -> literal ->
 *)
 
 
-val instantiation_norm : term_db ref -> clause_db ref -> clause -> literal -> literal ->
+val instantiation_norm : term_db ref -> context -> clause -> literal -> literal ->
   clause list -> literal -> clause list 

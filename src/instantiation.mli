@@ -23,8 +23,7 @@ type clause = Clause.clause
 type lit = Term.literal
 type term = Term.term
 
-
-type all_clauses = ClauseAssignDB.clauseDB
+type context = Clause.context
 
 (*
 type model
@@ -32,7 +31,7 @@ val out_model : model -> unit
 *)
 
 exception Unsatisfiable
-exception Satisfiable of all_clauses
+exception Satisfiable of context
 exception DontKnow
 
 val clear_after_inst_is_dead : unit -> unit

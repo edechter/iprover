@@ -191,7 +191,7 @@ val create_context : int -> string -> context
 
 (*val template_clause : basic_clause -> clause*)
 
-(** add_clause creats a clause within a context is the only way to *)
+(** creats a clause within a context is the only way to *)
 val create_clause :
   context -> tstp_source -> proof_search_param -> literal_list -> clause
 	
@@ -204,10 +204,11 @@ val create_clause_inst :
 val create_clause_no_param :
   context -> tstp_source -> literal_list -> clause
 	
-	
+(*-----*)	
 val get_lits : clause -> literal_list
 
-(*val get_literals : clause -> literal_list *)
+(** get_literals = get_lits *)
+val get_literals : clause -> literal_list 
 
 val compare_lits : clause -> clause -> int
 
@@ -229,8 +230,15 @@ val clause_list_to_string : clause list -> string
 
 val axiom_to_string : axiom -> string
 
-val pp_axiom : Format.formatter -> axiom -> unit
+val tptp_to_stream : 'a Lib.string_stream -> clause -> unit
+val out_tptp : clause -> unit
+val to_tptp : clause -> string
+val clause_list_tptp_to_stream : 'a Lib.string_stream -> clause list -> unit
+val out_clause_list_tptp : clause list -> unit
+val clause_list_to_tptp : clause list -> string
 
+(**------pretty priting------------*)
+val pp_axiom : Format.formatter -> axiom -> unit
 val pp_clause_name : Format.formatter -> clause -> unit
 val pp_clause_with_id : Format.formatter -> clause -> unit
 val pp_clause : Format.formatter -> clause -> unit
@@ -239,12 +247,6 @@ val pp_literals_tptp : Format.formatter -> Term.term list -> unit
 val pp_clause_literals_tptp : Format.formatter -> clause -> unit
 val pp_clause_tptp : Format.formatter -> clause -> unit
 val pp_clause_list_tptp : Format.formatter -> clause list -> unit
-val tptp_to_stream : 'a Lib.string_stream -> clause -> unit
-val out_tptp : clause -> unit
-val to_tptp : clause -> string
-val clause_list_tptp_to_stream : 'a Lib.string_stream -> clause list -> unit
-val out_clause_list_tptp : clause list -> unit
-val clause_list_to_tptp : clause list -> string
 
 (*-------------------*)
 
@@ -345,10 +347,12 @@ val set_res_simplifying : bool -> clause -> unit
 
 (** res non-bool param *)
 val res_when_born : clause -> int
-val res_assigns_sel_lits : literal_list -> clause -> unit
-val res_sel_is_def : clause -> bool
+
 exception Res_sel_lits_undef
+val res_sel_is_def : clause -> bool
 val get_res_sel_lits : clause -> literal_list
+val res_assign_sel_lits : literal_list -> clause -> unit
+
 val res_when_born_concl : clause list -> clause list -> 'a -> int
 
 (** inst bool param *)
@@ -398,9 +402,31 @@ val inst_get_activity : clause -> int
 val inst_assign_activity : int -> clause -> unit
 val inst_assign_when_born : clause list -> clause list -> clause -> unit
 
-(**----assign tstp sources-----*)
-val assign_tstp_source_instantiation :
-  clause -> clause -> clause list -> unit
+(**---- tstp sources -----*)
+val tstp_source_instantiation : clause -> clause list -> tstp_source
+val tstp_source_resolution : clause list -> literal list -> tstp_source
+val tstp_source_factoring : clause -> literal list -> tstp_source
+val tstp_source_subtyping : 'a -> clause -> tstp_source
+val tstp_source_input : string -> string -> tstp_source
+val tstp_source_global_subsumption : int -> clause -> tstp_source
+val tstp_source_non_eq_to_eq : 'a -> tstp_source
+val tstp_source_forward_subsumption_resolution :
+  clause -> clause list -> tstp_source
+val tstp_source_backward_subsumption_resolution : clause list -> tstp_source
+val tstp_source_split : symbol list -> clause -> tstp_source
+val tstp_source_flattening : clause -> tstp_source
+val tstp_source_grounding : (var * term) list -> clause -> tstp_source
+val tstp_source_theory_axiom : tstp_theory -> tstp_source
+val tstp_source_axiom_equality : unit -> tstp_source
+val tstp_source_axiom_distinct : unit -> tstp_source
+val tstp_source_axiom_less : unit -> tstp_source
+val tstp_source_axiom_range : unit -> tstp_source
+val tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> tstp_source
+val tstp_source_assumption : unit -> tstp_source
+
+(*
+val tstp_source_instantiation :
+    clause -> clause list -> unit
 val assign_tstp_source_resolution :
   clause -> clause list -> literal list -> unit
 val assign_tstp_source_factoring : clause -> clause -> literal list -> unit
@@ -423,6 +449,7 @@ val assign_tstp_source_axiom_less : clause -> unit
 val assign_tstp_source_axiom_range : clause -> unit
 val assign_tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> clause -> unit
 val assign_tstp_source_assumption : clause -> unit
+*)
 
 (**---------*)
 val fold_sym : ('a -> Term.symbol -> 'a) -> 'a -> clause -> 'a
