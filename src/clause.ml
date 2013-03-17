@@ -628,12 +628,12 @@ let template_clause bc =
 		}
 
 let fill_clause_param tstp_source ps_param c =
-	 c.tstp_source <- tstp_source;
+	 c.tstp_source <- Def(tstp_source);
 	 c.proof_search_param <- ps_param
 	 (* No auto bool context params *)
 	 (* TODO: conjecture_distance from the rest of the code to here*)
 	
-let add_clause context tstp_source proof_search_param lits =
+let create_clause context tstp_source proof_search_param lits =
 	let bc = create_basic_clause lits in
 	try 
 		Context.find context bc 
@@ -650,14 +650,14 @@ let add_clause context tstp_source proof_search_param lits =
 	
 let create_clause_res context tstp_source lits =
 	let res_param = Res_param (create_res_param ()) in (* max_conjecture_dist calculate *)
-	add_clause context tstp_source res_param lits
+	create_clause context tstp_source res_param lits
 
 let create_clause_inst context tstp_source lits =
 	let inst_param = Inst_param (create_inst_param ()) in
-	add_clause context tstp_source inst_param lits
+	create_clause context tstp_source inst_param lits
 
 let create_clause_no_param context tstp_source lits =
-	add_clause context tstp_source Empty_param lits
+	create_clause context tstp_source Empty_param lits
 
 (*------------------*)
 
@@ -966,6 +966,7 @@ let res_set_bool_param value param clause =
 	res_param.res_bool_param <- Bit_vec.set value param res_param.res_bool_param
 
 let get_res_sel_max c = res_get_bool_param res_sel_max c
+let set_res_sel_max v c = res_set_bool_param v res_sel_max c
 
 let get_res_pass_queue1 c = res_get_bool_param res_pass_queue1 c
 let set_res_pass_queue1 v c = res_set_bool_param v res_pass_queue1 c
@@ -1024,6 +1025,10 @@ let inst_set_bool_param value param clause =
 	inst_param.inst_bool_param <- Bit_vec.set value param inst_param.inst_bool_param
 
 (*
+
+let get_ c = inst_get_bool_param  c
+let set_ v c = inst_set_bool_param v c
+
 let inst_in_active = 1
 let inst_in_unif_index = 2
 let inst_in_subset_subsumption_index = 3
@@ -1053,9 +1058,6 @@ let set_inst_in_sim_passive v c = inst_set_bool_param v inst_in_sim_passive c
 
 let get_inst_pass_queue1 c = inst_get_bool_param inst_pass_queue1 c
 let set_inst_pass_queue1 v c = inst_set_bool_param v inst_pass_queue1 c
-
-let get_ c = inst_get_bool_param  c
-let set_ v c = inst_set_bool_param v c
 
 let get_inst_pass_queue2 c = inst_get_bool_param inst_pass_queue2 c
 let set_inst_pass_queue2 v c = inst_set_bool_param v inst_pass_queue2 c
@@ -1855,9 +1857,9 @@ let normalise_bclause_list term_db_ref bsubst bclause_list =
 let normalise_lit_list term_db_ref lit_list =
 	normalise_blitlist_list term_db_ref (SubstBound.create ()) [(1, lit_list)]
 
-let add_normalise term_db_ref context tstp_source proof_search_param lit_list = 
+let create_normalise term_db_ref context tstp_source proof_search_param lit_list = 
   let normalised_lit_list = normalise_lit_list term_db_ref lit_list in 
-	add_clause context tstp_source proof_search_param normalised_lit_list
+	create_clause context tstp_source proof_search_param normalised_lit_list
 
 		 
 (*
