@@ -397,7 +397,9 @@ let eliminate_clause clause =
 (* *)  
   (if (Clause.get_bool_param  Clause.in_subset_subsumption_index clause) 
   then 
-    (ss_index_ref := SubsetSubsume.remove clause !ss_index_ref)
+    (ss_index_ref := SubsetSubsume.remove clause !ss_index_ref;
+		Clause.
+		)
   );
 (* *)
   (if (Clause.get_bool_param  Clause.in_subsumption_index clause) 

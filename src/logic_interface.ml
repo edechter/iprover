@@ -1,6 +1,15 @@
 (* to generate interface *)
 (* ocamlc -I obj/ -i src/logic_interface.ml > src/logic_interface.mli *)
 
+type var    = Var.var
+type clause = Clause.clause
+type lit = Term.literal
+type term = Term.term
+type symbol = Symbol.symbol
+type context = Clause.context
+type proof_search_param = Clause.proof_search_param
+
+
 let term_db_ref = Parser_types.term_db_ref
 
 (* first when term_db_ref is a parameter *)
@@ -14,8 +23,10 @@ let add_fun_term_args symb args =
 let add_var_term var = 
   TermDB.add_ref (Term.create_var_term var) term_db_ref
 	
-let new_clause lits = Clause.normalise term_db_ref (Clause.create lits)
-
+let create_clause context tstp_source proof_search_param lits = 
+	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
+	Clause.create_clause context tstp_source proof_search_param norm_lits	
+		
 let add_typed_equality_term stype_term t s =
 	let args = [stype_term; t; s] in
 	add_fun_term Symbol.symb_typed_equality args

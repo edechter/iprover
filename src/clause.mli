@@ -135,6 +135,7 @@ val create_basic_clause :
   literal_list -> BClause_Htbl.key Hashcons.hash_consed
 *)
 
+(**--create proof search parameters---------*)
 val create_inst_param : unit -> inst_param
 val create_res_param : unit -> res_param
 
@@ -191,9 +192,12 @@ val create_context : int -> string -> context
 
 (*val template_clause : basic_clause -> clause*)
 
-(** creats a clause within a context is the only way to *)
+(** creates a clause within a context; use create_neg_conjecture if a clause is a negate conjectue *)
 val create_clause :
   context -> tstp_source -> proof_search_param -> literal_list -> clause
+	
+val create_neg_conjecture :
+ context -> tstp_source -> proof_search_param -> literal_list -> clause
 	
 val create_clause_res :
   context -> tstp_source -> literal_list -> clause
@@ -329,6 +333,28 @@ val res_get_bool_param : int -> clause -> bool
 val res_set_bool_param : bool -> int -> clause -> unit
 *)
 
+(** proof search bool param*)
+val get_ps_in_active : clause -> bool
+val set_ps_in_active : bool -> clause -> unit
+val get_ps_in_unif_index : clause -> bool
+val set_ps_in_unif_index : bool -> clause -> unit
+val get_ps_in_subset_subsumption_index : clause -> bool
+val set_ps_in_subset_subsumption_index : bool -> clause -> unit
+val get_ps_in_subsumption_index : clause -> bool
+val set_ps_in_subsumption_index : bool -> clause -> unit
+val get_ps_in_sim_passive : clause -> bool
+val set_ps_in_sim_passive : bool -> clause -> unit
+val get_ps_pass_queue1 : clause -> bool
+val set_ps_pass_queue1 : bool -> clause -> unit
+val get_ps_pass_queue2 : clause -> bool
+val set_ps_pass_queue2 : bool -> clause -> unit
+val get_ps_pass_queue3 : clause -> bool
+val set_ps_pass_queue3 : bool -> clause -> unit
+val get_ps_sel_max : clause -> bool
+val set_ps_sel_max : bool -> clause -> unit
+val get_ps_simplifying : clause -> bool
+val set_ps_simplifying : bool -> clause -> unit
+(*
 (** res bool param*)
 val get_res_sel_max : clause -> bool
 val set_res_sel_max : bool -> clause -> unit
@@ -344,6 +370,7 @@ val set_res_in_sim_passive : bool -> clause -> unit
 
 val get_res_simplifying : clause -> bool
 val set_res_simplifying : bool -> clause -> unit
+*)
 
 (** res non-bool param *)
 val res_when_born : clause -> int
@@ -361,6 +388,7 @@ val get_inst_param : clause -> inst_param
 val inst_get_bool_param : int -> clause -> bool
 val inst_set_bool_param : bool -> int -> clause -> unit
 *)
+(*
 val get_inst_in_active : clause -> bool
 val set_inst_in_active : bool -> clause -> unit
 
@@ -384,6 +412,7 @@ val set_inst_pass_queue2 : bool -> clause -> unit
 
 val get_inst_pass_queue3 : clause -> bool
 val set_inst_pass_queue3 : bool -> clause -> unit
+*)
 
 (** inst non-bool param *)
 val inst_when_born : clause -> int
@@ -596,16 +625,18 @@ val normalise_b_litlist :
 val normalise_blitlist_list :
   TermDB.termDB ref ->
   SubstBound.bound_subst ->
-  Term.literal list Lib.bind list -> SubstBound.term list
+  Term.literal list Lib.bind list -> Term.term list
 
 val normalise_lit_list :
-  TermDB.termDB ref -> Term.literal list -> SubstBound.term list
+  TermDB.termDB ref -> Term.literal list -> Term.term list
 
+(*
 val create_normalise :
   TermDB.termDB ref ->
   context ->
   tstp_source ->
   proof_search_param -> Term.literal list -> clause
+*)
 
 (*--------------*)
 val get_non_simplifying_parents : clause -> clause list

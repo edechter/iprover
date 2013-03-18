@@ -16,11 +16,12 @@
 
 
 
+open Logic_interface
 
-
+(*
 type clause  = Clause.clause
 type literal = Clause.literal
-
+*)
 
 
 (* restricted subset subsumption very fast but 
@@ -77,7 +78,7 @@ module SubsetSubsume =
 *)
 module Key =
   struct
-    type t      = literal
+    type t      = lit
     let compare = Term.compare
   end
     
@@ -107,12 +108,12 @@ let is_subsumed clause index =
   let lit_list = Clause.get_literals clause in
   is_subsumed' lit_list index
     
-
-
+		
 let add_clause clause index = 
   try
     let new_index = SIndexM.add (Clause.get_literals clause) clause index in
-    Clause.set_bool_param true Clause.in_subset_subsumption_index clause;
+   (* Clause.set_bool_param true Clause.in_subset_subsumption_index clause; *)
+	  Clause.set_ps_in_subset_subsumption_index true clause;
     new_index
   with
   |Trie_func.Trie_add_leaf_extension -> raise Is_subsumed 
@@ -132,12 +133,11 @@ let remove_subsumed clause trie =
     Not_found -> raise No_subsumed
 
 
-
 let remove clause trie = 
   try
-    (Clause.set_bool_param false Clause.in_subset_subsumption_index clause;
-     SIndexM.remove (Clause.get_literals clause) trie)
-     
+    (Clause.set_ps_in_subset_subsumption_index false clause;
+	  (*Clause.set_bool_param false Clause.in_subset_subsumption_index clause;*)
+     SIndexM.remove (Clause.get_literals clause) trie)     
   with
     Not_found -> raise Not_found
 

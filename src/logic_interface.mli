@@ -1,6 +1,15 @@
 (* Logical interface *)
 (* shorthands for frequently used functions: building terms, clauses, equiations etc. *)
 
+type var    = Var.var
+type clause = Clause.clause
+type lit = Term.literal
+type term = Term.term
+type symbol = Symbol.symbol
+type context = Clause.context
+type proof_search_param = Clause.proof_search_param
+
+
 
 val add_fun_term : Term.symbol -> Term.term list -> TermDB.term
 
@@ -8,10 +17,15 @@ val add_fun_term_args : Term.symbol -> Term.args -> TermDB.term
 
 val add_var_term : Term.var -> TermDB.term
 
-val new_clause : Clause.literal_list -> Clause.clause
+val create_clause :
+  Clause.context ->
+  Clause.tstp_source ->
+  Clause.proof_search_param -> 
+	Term.literal list -> Clause.clause
 
 val add_typed_equality_term :
   Term.term -> Term.term -> Term.term -> TermDB.term
+
 val add_typed_equality_term_sym :
   Term.symbol -> TermDB.term -> TermDB.term -> TermDB.term
 

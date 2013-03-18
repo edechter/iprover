@@ -84,30 +84,30 @@ let ccp_is_dead = 0  (* user *)
 let ccp_in_unsat_core = 1 (* user *)
  (* clause was in unsat core in the last proof search run *)
 (* used in bmc1 *)
+(*--------proof search bool params --------------------------*)
+(*--------common params for most proof search will be prefixed by ps--*)
 
-(*--------Inst bool param------------*)
+(*-------- param common for other  ------------*)
 
 (*let inst_is_dead = 0 *)
-let inst_in_active = 1
-let inst_in_unif_index = 2
-let inst_in_subset_subsumption_index = 3
-let inst_in_subsumption_index = 4
+let ps_in_active = 1
+let ps_in_unif_index = 2
+let ps_in_subset_subsumption_index = 3
+let ps_in_subsumption_index = 4
 (*let inst_in_prop_solver = 5 *)
-let inst_in_sim_passive = 6
-
-let inst_pass_queue1 = 7
-let inst_pass_queue2 = 8
-let inst_pass_queue3 = 9
+let ps_in_sim_passive = 5
+let ps_pass_queue1 = 6
+let ps_pass_queue2 = 7
+let ps_pass_queue3 = 8
 
 (*-----------Res bool parm----------*)
-let res_sel_max = 0
-let res_pass_queue1 = 1
-let res_pass_queue2 = 2
-let res_in_sim_passive = 3
+let ps_sel_max = 9
 
 (* if used in simplifications then simplifying is true                            *)
 (* used in orphan elimination since we can eliminate only non-simplifying cluases *)
-let res_simplifying = 4
+let ps_simplifying = 10
+
+(*----no specific for inst bool param ----*)
 
 (*--------End Bool param------------------*)
 
@@ -547,9 +547,6 @@ let create_res_param () =
 	}
 *)
 
-(* a very big number *)
-let max_conjecture_dist = 1 lsl 28
-let conjecture_int = 0
 
 
 (*-----------------*)
@@ -612,7 +609,7 @@ let to_string clause_db =
 
 (*------new--------*)
 
-
+(*
 (* us to check whether the clause is in the *)
 let template_clause bc =
 	{
@@ -626,38 +623,8 @@ let template_clause bc =
 		proof_search_param = Empty_param;
 		ccp_bool_param = Bit_vec.false_vec
 		}
+*)
 
-let fill_clause_param tstp_source ps_param c =
-	 c.tstp_source <- Def(tstp_source);
-	 c.proof_search_param <- ps_param
-	 (* No auto bool context params *)
-	 (* TODO: conjecture_distance from the rest of the code to here*)
-	
-let create_clause context tstp_source proof_search_param lits =
-	let bc = create_basic_clause lits in
-	try 
-		Context.find context bc 
-	with 
-	 Not_found -> 
-	(let clause = template_clause bc in	
-	  let added_clause = Context.add context bc clause in
-	  fill_clause_param tstp_source proof_search_param added_clause;
-    added_clause
-		)	
-	
-	
-(* literals are not normalised *)
-	
-let create_clause_res context tstp_source lits =
-	let res_param = Res_param (create_res_param ()) in (* max_conjecture_dist calculate *)
-	create_clause context tstp_source res_param lits
-
-let create_clause_inst context tstp_source lits =
-	let inst_param = Inst_param (create_inst_param ()) in
-	create_clause context tstp_source inst_param lits
-
-let create_clause_no_param context tstp_source lits =
-	create_clause context tstp_source Empty_param lits
 
 (*------------------*)
 
@@ -908,12 +875,6 @@ let assign_conjecture_distance d c =
 let inherit_conj_dist from_c to_c =
 	to_c.conjecture_distance <- from_c.conjecture_distance
 
-let get_min_conjecture_distance_clist c_list =
-	let f current_min c =
-		let d = (get_conjecture_distance c) in
-		(if d < current_min then d
-			else current_min)
-	in List.fold_left f max_conjecture_dist c_list
 
 
 
@@ -952,11 +913,13 @@ let res_simplifying = 4
 
 *)
 
+
 let get_res_param c = 
 	 match (get_proof_search_param c) with 
 		Res_param p -> p 
 	| _ -> failwith "Res_param is not defined" 
-				  	
+
+(*				  	
 let res_get_bool_param param clause =
 	let res_param = get_res_param clause in
   Bit_vec.get param res_param.res_bool_param
@@ -964,6 +927,7 @@ let res_get_bool_param param clause =
 let res_set_bool_param value param clause =
 	let res_param = get_res_param clause in
 	res_param.res_bool_param <- Bit_vec.set value param res_param.res_bool_param
+
 
 let get_res_sel_max c = res_get_bool_param res_sel_max c
 let set_res_sel_max v c = res_set_bool_param v res_sel_max c
@@ -979,6 +943,7 @@ let set_res_in_sim_passive v c = res_set_bool_param v res_in_sim_passive c
 
 let get_res_simplifying c = res_get_bool_param res_simplifying c
 let set_res_simplifying v c = res_set_bool_param v res_simplifying c
+*)
 
 (*---res non-boolean param--*)	
 let res_when_born c =
@@ -1010,19 +975,62 @@ let get_res_sel_lits clause =
 
 (*----------inst param get/set------------------------*)
 
-(*-----inst bool params-------*)
-let get_inst_param c = 
-	 match (get_proof_search_param c) with 
-		Inst_param p -> p 
-	| _ -> failwith "Res_param is not defined" 
-				  	
-let inst_get_bool_param param clause =
-	let inst_param = get_inst_param clause in
-  Bit_vec.get param inst_param.inst_bool_param
-						
-let inst_set_bool_param value param clause =
-	let inst_param = get_inst_param clause in
-	inst_param.inst_bool_param <- Bit_vec.set value param inst_param.inst_bool_param
+(*-----proof search bool params-------*)
+let get_ps_bv_param c = 
+	match (get_proof_search_param c) with 
+	| Inst_param p -> p.inst_bool_param
+  | Res_param p ->p.res_bool_param
+  | Empty_param -> failwith "get_ps_bool_param: Empty_param does not have bool params"
+
+let ps_get_bool_param param c = 
+	let ps_bool_param = get_ps_bv_param c in
+  Bit_vec.get param ps_bool_param
+
+let ps_set_bool_param value param c = 
+	match (get_proof_search_param c) with 
+	| Inst_param p -> p.inst_bool_param <- Bit_vec.set value param p.inst_bool_param
+  | Res_param p -> p.res_bool_param <- Bit_vec.set value param p.res_bool_param
+  | Empty_param -> failwith "get_ps_bool_param: Empty_param does not have bool params"
+
+
+
+
+let get_ps_in_active c = ps_get_bool_param ps_in_active c
+let set_ps_in_active v c = ps_set_bool_param v ps_in_active c
+
+let get_ps_in_unif_index c = ps_get_bool_param ps_in_unif_index c
+let set_ps_in_unif_index v c = ps_set_bool_param v ps_in_unif_index c
+
+let get_ps_in_subset_subsumption_index c = ps_get_bool_param ps_in_subset_subsumption_index c
+let set_ps_in_subset_subsumption_index v c = ps_set_bool_param v ps_in_subset_subsumption_index c
+
+let get_ps_in_subsumption_index c = ps_get_bool_param ps_in_subsumption_index c
+let set_ps_in_subsumption_index v c = ps_set_bool_param v ps_in_subsumption_index c
+
+let get_ps_in_sim_passive c = ps_get_bool_param ps_in_sim_passive c
+let set_ps_in_sim_passive v c = ps_set_bool_param v ps_in_sim_passive c
+
+let get_ps_pass_queue1 c = ps_get_bool_param ps_pass_queue1 c
+let set_ps_pass_queue1 v c = ps_set_bool_param v ps_pass_queue1 c
+
+let get_ps_pass_queue2 c = ps_get_bool_param ps_pass_queue2 c
+let set_ps_pass_queue2 v c = ps_set_bool_param v ps_pass_queue2 c
+
+let get_ps_pass_queue3 c = ps_get_bool_param ps_pass_queue3 c
+let set_ps_pass_queue3 v c = ps_set_bool_param v ps_pass_queue3 c
+
+let get_ps_sel_max c = ps_get_bool_param ps_sel_max c
+let set_ps_sel_max v c = ps_set_bool_param v ps_sel_max c
+
+let get_ps_simplifying c = ps_get_bool_param ps_simplifying c
+let set_ps_simplifying v c = ps_set_bool_param v ps_simplifying c
+
+
+
+(*
+let get_ c = ps_get_bool_param  c
+let set_ v c = ps_set_bool_param v c
+*)
 
 (*
 
@@ -1041,6 +1049,7 @@ let inst_pass_queue2 = 8
 let inst_pass_queue3 = 9
 *)
 
+(*
 let get_inst_in_active c = inst_get_bool_param inst_in_active c
 let set_inst_in_active v c = inst_set_bool_param v inst_in_active c
 
@@ -1067,7 +1076,7 @@ let set_ v c = inst_set_bool_param v c
 
 let get_inst_pass_queue3 c = inst_get_bool_param inst_pass_queue3 c
 let set_inst_pass_queue3 v c = inst_set_bool_param v inst_pass_queue3 c
-
+*)
 (*----inst non-boolean params -----------*)
 let inst_when_born c =
 	let inst_param = get_inst_param c in
@@ -1356,226 +1365,6 @@ let iter_sym f clause =
 
 
 
-(*--------------Compare two clauses-------------------*)
-
-(* f_perv returns a value that can be compared by Pervasives.compare; ususally int or bool *)
-let cmp f_perv c1 c2 = Pervasives.compare (f_perv c1) (f_perv c2)
-
-let cmp_num_var c1 c2 = cmp num_of_var c1 c2
-
-let cmp_num_symb c1 c2 = cmp num_of_symb c1 c2
-	
-let cmp_num_lits c1 c2 = cmp length c1 c2
-
-let cmp_age c1 c2 =
-	let (when_born1, when_born2) =
-	(match ((get_proof_search_param c1), (get_proof_search_param c2)) with 
-	| (Inst_param(inst_param1), Inst_param(inst_param2)) ->
-		 (inst_param1.inst_when_born, inst_param2.inst_when_born)
-  | (Res_param(inst_param1), Res_param(inst_param2)) ->
-		 (inst_param1.res_when_born, inst_param2.res_when_born)
-	| _ -> failwith (" cmp_age: when born is either not defined or not compatible in "^(to_string c1)^" "^(to_string c2)) 
-	)
-	in	
-	- (Pervasives.compare (when_born1) (when_born2))
-
-let cmp_ground c1 c2 = cmp is_ground c1 c2
-
-let cmp_horn c1 c2 = cmp is_horn c1 c2
-
-let cmp_epr c1 c2 = cmp is_epr c1 c2
-
-let cmp_in_unsat_core c1 c2 = cmp in_unsat_core c1 c2
-
-let cmp_has_eq_lit c1 c2 = cmp has_eq_lit c1 c2
-
-let cmp_has_conj_symb c1 c2 = cmp has_conj_symb c1 c2
-
-let cmp_has_bound_constant c1 c2 = cmp has_bound_constant c1 c2
-
-let cmp_has_next_state c1 c2 = cmp has_next_state c1 c2
-
-let cmp_has_reachable_state c1 c2 = cmp has_reachable_state c1 c2
-
-let cmp_has_non_prolific_conj_symb c1 c2 = cmp has_non_prolific_conj_symb c1 c2
-
-let cmp_conjecture_distance c1 c2 = cmp get_conjecture_distance c1 c2
-	
-
-let cmp_max_atom_input_occur c1 c2 =
-	let d1 = get_max_atom_input_occur c1 in
-	let d2 = get_max_atom_input_occur c2 in
-	match (d1, d2) with
-	| (Def(i1), Def(i2)) -> Pervasives.compare i1 i2
-	(* Undef is greater then Def *)
-	| (Undef, Def _) -> -1
-	| (Def _, Undef) -> 1
-	| (Undef, Undef) -> 0
-
-let cmp_min_defined_symb c1 c2 =
-	let d1 = get_min_defined_symb c1 in
-	let d2 = get_min_defined_symb c2 in
-	match (d1, d2) with
-	| (Def(i1), Def(i2)) -> Pervasives.compare i1 i2
-	(* Undef is greater then Def *)
-	| (Undef, Def _) -> -1
-	| (Def _, Undef) -> 1
-	| (Undef, Undef) -> 0
-
-let cl_cmp_type_to_fun t =
-	match t with
-	| Options.Cl_Age b -> compose_sign b cmp_age
-	| Options.Cl_Num_of_Var b -> compose_sign b cmp_num_var
-	| Options.Cl_Num_of_Symb b -> compose_sign b cmp_num_symb
-	| Options.Cl_Num_of_Lits b -> compose_sign b cmp_num_lits
-	| Options.Cl_Ground b -> compose_sign b cmp_ground
-	| Options.Cl_Conj_Dist b -> compose_sign b cmp_conjecture_distance
-	| Options.Cl_Has_Conj_Symb b -> compose_sign b cmp_has_conj_symb
-	| Options.Cl_has_bound_constant b -> compose_sign b cmp_has_bound_constant
-	| Options.Cl_has_next_state b -> compose_sign b cmp_has_next_state
-	| Options.Cl_has_reachable_state b -> compose_sign b cmp_has_reachable_state
-	| Options.Cl_Has_Non_Prolific_Conj_Symb b -> compose_sign b cmp_has_non_prolific_conj_symb
-	| Options.Cl_Max_Atom_Input_Occur b -> compose_sign b cmp_max_atom_input_occur
-	| Options.Cl_Horn b -> compose_sign b cmp_horn
-	| Options.Cl_EPR b -> compose_sign b cmp_epr
-	| Options.Cl_in_unsat_core b -> compose_sign b cmp_in_unsat_core
-	| Options.Cl_Has_Eq_Lit b -> compose_sign b cmp_has_eq_lit
-	| Options.Cl_min_defined_symb b -> compose_sign b cmp_min_defined_symb
-
-let cl_cmp_type_list_to_lex_fun l =
-	lex_combination ((List.map cl_cmp_type_to_fun l)@[(compose_12 (~-) compare)])
-
-(*------------------------------------------*)
-exception Literal_not_found
-
-let rec cut_literal_from_list literal list =
-	match list with
-	| h:: tl ->
-			if h == literal then tl
-			else h:: (cut_literal_from_list literal tl)
-	|[] -> raise Literal_not_found
-
-
-(*
-let cut_literal literal lit_list =
-*)
-
-
-
-(* ------------ TSTP source  ----------------------- *)
-
-
-(*  *)
-(*
-let assign_tstp_source clause source =
-	
-	match clause.tstp_source with
-	
-	(* Fail if source already defined *)
-	| Def _ -> raise (Failure "Clause source already assigned")
-	
-	(* Only if source undefined *)
-	| Undef -> clause.tstp_source <- Def source
-*)
-
-(* Clause is generated in an instantiation inference *)
-let tstp_source_instantiation parent parents_side =	
-  (TSTP_inference_record ((Instantiation parents_side), [parent]))
-
-(* Clause is generated in a resolution inference *)
-let tstp_source_resolution parents upon_literals =	
-		(TSTP_inference_record ((Resolution upon_literals), parents))
-
-(* Clause is generated in a factoring inference *)
-let tstp_source_factoring parent upon_literals =
-		(TSTP_inference_record ((Factoring upon_literals), [parent]))
-
-let tstp_source_subtyping clause parent =
-		(TSTP_inference_record ((Subtyping), [parent]))
-
-(* Clause is in input *)
-let tstp_source_input file name =
-		(TSTP_external_source (TSTP_file_source (file, name)))
-
-(* Clause is generated in a global propositional subsumption *)
-let tstp_source_global_subsumption max_clause_id parent =
-		(TSTP_inference_record (Global_subsumption max_clause_id, [parent]))
-
-(* Clause is generated in a translation to purely equational problem *)
-let tstp_source_non_eq_to_eq parent =
-		(TSTP_internal_source TSTP_non_eq_to_eq)
-
-(* Clause is generated in a forward subsumption resolution *)
-let tstp_source_forward_subsumption_resolution main_parent parents =
-		(TSTP_inference_record
-			(Forward_subsumption_resolution, (main_parent :: parents)))
-
-(* Clause is generated in a backward subsumption resolution *)
-let tstp_source_backward_subsumption_resolution parents =
-		(TSTP_inference_record (Backward_subsumption_resolution, parents))
-
-(* Clause is generated in splitting *)
-let tstp_source_split symbols parent =
-		(TSTP_inference_record (Splitting symbols, [parent]))
-
-let tstp_source_flattening parent =
-		(TSTP_inference_record (Flattening, [parent]))
-
-(* Clause is generated in grounding *)
-let tstp_source_grounding grounding parent =
-		(TSTP_inference_record (Grounding grounding, [parent]))
-
-(* Clause is a theory axiom *)
-let tstp_source_theory_axiom theory =
-		(TSTP_external_source (TSTP_theory theory))
-
-(* Clause is an equality axiom *)
-let tstp_source_axiom_equality () =
-	tstp_source_theory_axiom TSTP_equality
-
-(* Clause is a distinct axiom *)
-let tstp_source_axiom_distinct () =
-	tstp_source_theory_axiom TSTP_distinct
-
-(* Clause is an less axiom *)
-let tstp_source_axiom_less () =
-	tstp_source_theory_axiom TSTP_less
-
-(* Clause is an range axiom *)
-let tstp_source_axiom_range () =
-	tstp_source_theory_axiom TSTP_range
-
-(* Clause is an bmc1 axiom *)
-let tstp_source_axiom_bmc1 bmc1_axiom =
-	tstp_source_theory_axiom (TSTP_bmc1 bmc1_axiom)
-
-(* Clause is generated in grounding *)
-let tstp_source_assumption () =
-	 (TSTP_internal_source TSTP_assumption)
-
-(*---------------- end TSTP --------------------------*)
-
-(*-------------- Hash/Map/Set -------------------------*)
-
-module Key = 
-	struct
-  type t = clause
-	let equal = (==)
-	let hash c = hash_sum (get_fast_key c) (get_context_id c)
-	let compare = compare
-	end
-
-module Map = Map.Make(Key)
-
-module Set = Set.Make(Key)
-type clause_set = Set.t
-
-module Hashtbl = Hashtbl.Make(Key)
-
-let clause_list_to_set clause_list =
-	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
-
-
 (*-------------------------------------------------------------------------------------------*)
 (*------------------------- Normalising binded lit_lists /clauses ---------------------------*)
 (*-------------------------------------------------------------------------------------------*)
@@ -1822,9 +1611,344 @@ let normalise_bclause_list term_db_ref bsubst bclause_list =
 let normalise_lit_list term_db_ref lit_list =
 	normalise_blitlist_list term_db_ref (SubstBound.create ()) [(1, lit_list)]
 
+(*
 let create_normalise term_db_ref context tstp_source proof_search_param lit_list = 
   let normalised_lit_list = normalise_lit_list term_db_ref lit_list in 
 	create_clause context tstp_source proof_search_param normalised_lit_list
+*)
+
+(*----------------conjecture distance------------------------------------*)
+(* a very big number *)
+let max_conjecture_dist = 1 lsl 28
+let conjecture_int = 0
+
+let get_min_conjecture_distance_clist c_list =
+	let f current_min c =
+		let d = (get_conjecture_distance c) in
+		(if d < current_min then d
+			else current_min)
+	in List.fold_left f max_conjecture_dist c_list
+
+
+let get_parents tstp_source =
+	match tstp_source with
+	| TSTP_inference_record
+	(tstp_inference_rule, main_parents) ->
+			let side_parents =
+				begin
+					match tstp_inference_rule with
+					| Instantiation side_parents -> side_parents
+					| Resolution _ -> []
+					| Factoring _ -> []
+					| Global_subsumption _ -> []
+					| Forward_subsumption_resolution -> []
+					| Backward_subsumption_resolution -> []
+					| Splitting _ ->[]
+					| Grounding _ ->[]
+					| Subtyping  ->[]
+					| Flattening ->[]
+				end
+			in main_parents@side_parents
+	| _ ->	[] (* other tstp_sources*)
+
+(* we assume that the check if the clause is a conjecture is done before*)
+(* applying get_conjecture_distance_tstp_source *)
+(* this is min distance of the parents, so we would need to increase before assigning to the clause *)
+
+let get_conjecture_distance_tstp_source tstp_source = 
+	let parents = get_parents tstp_source in 
+	get_min_conjecture_distance_clist parents
+
+
+(**-------- create clause ----------------------------*)
+
+let new_clause is_negated_conjecture tstp_source ps_param bc = 
+	 let conjecture_distance = 
+		if is_negated_conjecture
+		then 0
+		else
+	  	(get_conjecture_distance_tstp_source tstp_source)+1
+		in 	
+		let new_clause = 
+	 {
+		basic_clause = bc;
+		fast_key = 0; (* auto assigned when added to context *)
+		context_id = 0; (* auto assigned when added to context *)
+		tstp_source = Def(tstp_source);
+		simplified_by = Undef;
+		prop_solver_id = Undef;
+		conjecture_distance = conjecture_distance;
+		proof_search_param = ps_param;
+		ccp_bool_param = Bit_vec.false_vec
+		}
+	  in
+	 bc_set_bool_param is_negated_conjecture bc_is_negated_conjecture new_clause;
+	 new_clause
+   
+(*	
+let fill_clause_param is_conjecture tstp_source ps_param c =
+	 c.tstp_source <- Def(tstp_source);
+	 c.proof_search_param <- ps_param;
+		c.conjecture_distance <- 
+		
+	 (* No auto bool context params *)
+	 (* TODO: conjecture_distance from the rest of the code to here*)
+	*)
+	
+
+let create_clause_neg_conj_opt context is_negated_conjecture tstp_source proof_search_param lits =
+	let bc = create_basic_clause lits in
+	try 
+		Context.find context bc 
+	with 
+	 Not_found -> 
+	(let clause = new_clause is_negated_conjecture tstp_source proof_search_param bc in	
+	  let added_clause = Context.add context bc clause in
+    added_clause
+		)	
+	
+(* assume clause is not a negated conjecture *)
+let create_clause context tstp_source proof_search_param lits =
+ create_clause_neg_conj_opt context false tstp_source proof_search_param lits
+
+(* assume clause is a negate_conjecture *)
+let create_neg_conjecture context tstp_source proof_search_param lits = 
+	create_clause_neg_conj_opt context true tstp_source proof_search_param lits
+	
+	
+(* literals are not normalised *)
+	
+let create_clause_res context tstp_source lits =
+	let res_param = Res_param (create_res_param ()) in (* max_conjecture_dist calculate *)
+	create_clause context tstp_source res_param lits
+
+let create_clause_inst context tstp_source lits =
+	let inst_param = Inst_param (create_inst_param ()) in
+	create_clause context tstp_source inst_param lits
+
+let create_clause_no_param context tstp_source lits =
+	create_clause context tstp_source Empty_param lits
+
+
+(*--------------Compare two clauses-------------------*)
+
+(* f_perv returns a value that can be compared by Pervasives.compare; ususally int or bool *)
+let cmp f_perv c1 c2 = Pervasives.compare (f_perv c1) (f_perv c2)
+
+let cmp_num_var c1 c2 = cmp num_of_var c1 c2
+
+let cmp_num_symb c1 c2 = cmp num_of_symb c1 c2
+	
+let cmp_num_lits c1 c2 = cmp length c1 c2
+
+let cmp_age c1 c2 =
+	let (when_born1, when_born2) =
+	(match ((get_proof_search_param c1), (get_proof_search_param c2)) with 
+	| (Inst_param(inst_param1), Inst_param(inst_param2)) ->
+		 (inst_param1.inst_when_born, inst_param2.inst_when_born)
+  | (Res_param(inst_param1), Res_param(inst_param2)) ->
+		 (inst_param1.res_when_born, inst_param2.res_when_born)
+	| _ -> failwith (" cmp_age: when born is either not defined or not compatible in "^(to_string c1)^" "^(to_string c2)) 
+	)
+	in	
+	- (Pervasives.compare (when_born1) (when_born2))
+
+let cmp_ground c1 c2 = cmp is_ground c1 c2
+
+let cmp_horn c1 c2 = cmp is_horn c1 c2
+
+let cmp_epr c1 c2 = cmp is_epr c1 c2
+
+let cmp_in_unsat_core c1 c2 = cmp in_unsat_core c1 c2
+
+let cmp_has_eq_lit c1 c2 = cmp has_eq_lit c1 c2
+
+let cmp_has_conj_symb c1 c2 = cmp has_conj_symb c1 c2
+
+let cmp_has_bound_constant c1 c2 = cmp has_bound_constant c1 c2
+
+let cmp_has_next_state c1 c2 = cmp has_next_state c1 c2
+
+let cmp_has_reachable_state c1 c2 = cmp has_reachable_state c1 c2
+
+let cmp_has_non_prolific_conj_symb c1 c2 = cmp has_non_prolific_conj_symb c1 c2
+
+let cmp_conjecture_distance c1 c2 = cmp get_conjecture_distance c1 c2
+	
+
+let cmp_max_atom_input_occur c1 c2 =
+	let d1 = get_max_atom_input_occur c1 in
+	let d2 = get_max_atom_input_occur c2 in
+	match (d1, d2) with
+	| (Def(i1), Def(i2)) -> Pervasives.compare i1 i2
+	(* Undef is greater then Def *)
+	| (Undef, Def _) -> -1
+	| (Def _, Undef) -> 1
+	| (Undef, Undef) -> 0
+
+let cmp_min_defined_symb c1 c2 =
+	let d1 = get_min_defined_symb c1 in
+	let d2 = get_min_defined_symb c2 in
+	match (d1, d2) with
+	| (Def(i1), Def(i2)) -> Pervasives.compare i1 i2
+	(* Undef is greater then Def *)
+	| (Undef, Def _) -> -1
+	| (Def _, Undef) -> 1
+	| (Undef, Undef) -> 0
+
+let cl_cmp_type_to_fun t =
+	match t with
+	| Options.Cl_Age b -> compose_sign b cmp_age
+	| Options.Cl_Num_of_Var b -> compose_sign b cmp_num_var
+	| Options.Cl_Num_of_Symb b -> compose_sign b cmp_num_symb
+	| Options.Cl_Num_of_Lits b -> compose_sign b cmp_num_lits
+	| Options.Cl_Ground b -> compose_sign b cmp_ground
+	| Options.Cl_Conj_Dist b -> compose_sign b cmp_conjecture_distance
+	| Options.Cl_Has_Conj_Symb b -> compose_sign b cmp_has_conj_symb
+	| Options.Cl_has_bound_constant b -> compose_sign b cmp_has_bound_constant
+	| Options.Cl_has_next_state b -> compose_sign b cmp_has_next_state
+	| Options.Cl_has_reachable_state b -> compose_sign b cmp_has_reachable_state
+	| Options.Cl_Has_Non_Prolific_Conj_Symb b -> compose_sign b cmp_has_non_prolific_conj_symb
+	| Options.Cl_Max_Atom_Input_Occur b -> compose_sign b cmp_max_atom_input_occur
+	| Options.Cl_Horn b -> compose_sign b cmp_horn
+	| Options.Cl_EPR b -> compose_sign b cmp_epr
+	| Options.Cl_in_unsat_core b -> compose_sign b cmp_in_unsat_core
+	| Options.Cl_Has_Eq_Lit b -> compose_sign b cmp_has_eq_lit
+	| Options.Cl_min_defined_symb b -> compose_sign b cmp_min_defined_symb
+
+let cl_cmp_type_list_to_lex_fun l =
+	lex_combination ((List.map cl_cmp_type_to_fun l)@[(compose_12 (~-) compare)])
+
+(*------------------------------------------*)
+exception Literal_not_found
+
+let rec cut_literal_from_list literal list =
+	match list with
+	| h:: tl ->
+			if h == literal then tl
+			else h:: (cut_literal_from_list literal tl)
+	|[] -> raise Literal_not_found
+
+
+(*
+let cut_literal literal lit_list =
+*)
+
+
+
+(* ------------ TSTP source  ----------------------- *)
+
+
+(*  *)
+(*
+let assign_tstp_source clause source =
+	
+	match clause.tstp_source with
+	
+	(* Fail if source already defined *)
+	| Def _ -> raise (Failure "Clause source already assigned")
+	
+	(* Only if source undefined *)
+	| Undef -> clause.tstp_source <- Def source
+*)
+
+(* Clause is generated in an instantiation inference *)
+let tstp_source_instantiation parent parents_side =	
+  (TSTP_inference_record ((Instantiation parents_side), [parent]))
+
+(* Clause is generated in a resolution inference *)
+let tstp_source_resolution parents upon_literals =	
+		(TSTP_inference_record ((Resolution upon_literals), parents))
+
+(* Clause is generated in a factoring inference *)
+let tstp_source_factoring parent upon_literals =
+		(TSTP_inference_record ((Factoring upon_literals), [parent]))
+
+let tstp_source_subtyping clause parent =
+		(TSTP_inference_record ((Subtyping), [parent]))
+
+(* Clause is in input *)
+let tstp_source_input file name =
+		(TSTP_external_source (TSTP_file_source (file, name)))
+
+(* Clause is generated in a global propositional subsumption *)
+let tstp_source_global_subsumption max_clause_id parent =
+		(TSTP_inference_record (Global_subsumption max_clause_id, [parent]))
+
+(* Clause is generated in a translation to purely equational problem *)
+let tstp_source_non_eq_to_eq parent =
+		(TSTP_internal_source TSTP_non_eq_to_eq)
+
+(* Clause is generated in a forward subsumption resolution *)
+let tstp_source_forward_subsumption_resolution main_parent parents =
+		(TSTP_inference_record
+			(Forward_subsumption_resolution, (main_parent :: parents)))
+
+(* Clause is generated in a backward subsumption resolution *)
+let tstp_source_backward_subsumption_resolution parents =
+		(TSTP_inference_record (Backward_subsumption_resolution, parents))
+
+(* Clause is generated in splitting *)
+let tstp_source_split symbols parent =
+		(TSTP_inference_record (Splitting symbols, [parent]))
+
+let tstp_source_flattening parent =
+		(TSTP_inference_record (Flattening, [parent]))
+
+(* Clause is generated in grounding *)
+let tstp_source_grounding grounding parent =
+		(TSTP_inference_record (Grounding grounding, [parent]))
+
+(* Clause is a theory axiom *)
+let tstp_source_theory_axiom theory =
+		(TSTP_external_source (TSTP_theory theory))
+
+(* Clause is an equality axiom *)
+let tstp_source_axiom_equality () =
+	tstp_source_theory_axiom TSTP_equality
+
+(* Clause is a distinct axiom *)
+let tstp_source_axiom_distinct () =
+	tstp_source_theory_axiom TSTP_distinct
+
+(* Clause is an less axiom *)
+let tstp_source_axiom_less () =
+	tstp_source_theory_axiom TSTP_less
+
+(* Clause is an range axiom *)
+let tstp_source_axiom_range () =
+	tstp_source_theory_axiom TSTP_range
+
+(* Clause is an bmc1 axiom *)
+let tstp_source_axiom_bmc1 bmc1_axiom =
+	tstp_source_theory_axiom (TSTP_bmc1 bmc1_axiom)
+
+(* Clause is generated in grounding *)
+let tstp_source_assumption () =
+	 (TSTP_internal_source TSTP_assumption)
+
+(*---------------- end TSTP --------------------------*)
+
+(*-------------- Hash/Map/Set -------------------------*)
+
+module Key = 
+	struct
+  type t = clause
+	let equal = (==)
+	let hash c = hash_sum (get_fast_key c) (get_context_id c)
+	let compare = compare
+	end
+
+module Map = Map.Make(Key)
+
+module Set = Set.Make(Key)
+type clause_set = Set.t
+
+module Hashtbl = Hashtbl.Make(Key)
+
+let clause_list_to_set clause_list =
+	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
+
 
 		 
 (*
@@ -1851,7 +1975,7 @@ let rec get_orphans clause =
 	if (get_is_dead clause)
 	then [clause]
 	else
-	if (get_res_simplifying clause)
+	if (get_ps_simplifying clause)
 	then []
 	else
 		let parents = get_non_simplifying_parents clause in

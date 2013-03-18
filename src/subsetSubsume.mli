@@ -15,9 +15,8 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
+open Logic_interface
 
-type clause  = Clause.clause
-type literal = Clause.literal
 
 (* restricted subset subsumption very fast but 
    very incomplete :  

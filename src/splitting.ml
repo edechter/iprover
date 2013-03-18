@@ -16,14 +16,17 @@
 
 
 
-
-
 open Lib
+open Logic_interface
+
 type var    = Var.var
 type clause = Clause.clause
 type lit = Term.literal
 type term = Term.term
 type symbol = Symbol.symbol
+type context = Clause.context
+type proof_search_param = Clause.proof_search_param
+
 
 let symb_db_ref  = Parser_types.symbol_db_ref
 let term_db_ref  = Parser_types.term_db_ref
@@ -150,8 +153,8 @@ let rec partition_lit_list var_tried_hash partition =
 (* now *)
 (* C_1\/~p_1;..C_n\/~p_n; p_1\/..\/p_n\/ground_lits *)
 
-let ground_split_clause clause =
-
+  	
+let ground_split_clause context proof_search_param clause =
   let var_tried_hash = VarHash.create 23 in
   let all_lits = Clause.get_literals clause in
   let (ground_lits,non_ground_lits) = List.partition Term.is_ground all_lits in
@@ -192,7 +195,6 @@ let ground_split_clause clause =
       with 
 	Not_found ->
 	  (
-
 	   let new_split_symb = 
 	     SymbolDB.create_new_split_symb 
 	       symb_db_ref 
@@ -202,24 +204,18 @@ let ground_split_clause clause =
 	   num_of_split_atoms := !num_of_split_atoms+1;
 	   split_symbols := new_split_symb :: !split_symbols;
 	   
-	   let split_atom = 
-	     TermDB.add_ref (Term.create_fun_term new_split_symb []) term_db_ref in
-	   let split_neg_atom = 
-	     TermDB.add_ref (Term.create_fun_term Symbol.symb_neg [split_atom]) term_db_ref in
+	   let split_atom = add_fun_term new_split_symb [] in
+	   let split_neg_atom = add_neg_atom split_atom in
+		
 	   split_map_ref := 
 	     SplitMap.add norm_list (split_atom,split_neg_atom) !split_map_ref;
 (*	 split_clauses:= (Clause.create (split_atom::norm_list))::(!split_clauses);
 	 split_ground_lits:=split_neg_atom::(!split_ground_lits)
 *)
-	   let split_clause = (Clause.create (split_neg_atom::norm_list)) in
-	   Clause.inherit_param_modif clause split_clause;
-	   (* Clause.assign_split_history split_clause clause; *)
-
-	   (* Clause was split with a fresh splitting symbol introduced *)
-	   Clause.assign_tstp_source_split 
-	     [new_split_symb] 
-	     split_clause 
-	     clause;
+     let tstp_source = Clause.tstp_source_split [new_split_symb] clause in
+	 
+     let split_clause = create_clause context tstp_source proof_search_param  (split_neg_atom::norm_list) in
+		(* assign when born in the corresponding search loop *)
 
 	   split_clauses:= split_clause::(!split_clauses);
 	   split_ground_lits:=split_atom::(!split_ground_lits)
@@ -227,16 +223,11 @@ let ground_split_clause clause =
       )
     in
     List.iter create_split_clause_split_atom processed;
-    let ground_clause =  Clause.create !split_ground_lits in
-    Clause.inherit_param_modif clause ground_clause;
+		let tstp_source_ground_clause =  Clause.tstp_source_split (!split_symbols) clause in 
+    let ground_clause = create_clause context tstp_source_ground_clause proof_search_param !split_ground_lits in
+    (* Clause.inherit_param_modif clause ground_clause; *)
     (* Clause.assign_split_history ground_clause clause; *)
-
-    (* Clause was split with fresh splitting symbols introduced *)
-    Clause.assign_tstp_source_split 
-      !split_symbols
-      ground_clause 
-      clause; 
-
+ 
     let split_final_list = ground_clause::(!split_clauses) in
     let result ={
       split_list          = split_final_list;
@@ -253,12 +244,12 @@ let ground_split_clause clause =
     result 
       
 
-let ground_split_clause_list clause_list = 
+let ground_split_clause_list context proof_search_param clause_list = 
   let init_result = empty_result ()in
   let f rest clause = 
 (*    out_str ("Clause to Split: "^(Clause.to_string clause)^"\n");*)
     let clause_split_result = 
-      ground_split_clause clause in
+      ground_split_clause context proof_search_param clause in
 (*    out_str ("Clauses After Split: \n"
 	     ^(Clause.clause_list_to_string clause_split_result.split_list)^"\n");*)
     let result =

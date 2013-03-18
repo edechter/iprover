@@ -109,8 +109,10 @@ struct
 				if not (List.exists (Clause.equal clause) elem)
 				then
 					elem_ref:= Elem(clause:: elem);
-				Clause.set_bool_param
+				(*Clause.set_bool_param
 					true Clause.in_subsumption_index clause
+					*)
+					Clause.set_ps_in_subsumption_index true clause
 		| Empty_Elem -> elem_ref:= Elem([clause])
 	
 	let add_clause_list clause =
@@ -129,7 +131,7 @@ struct
 		(* let feature_list = Feature.get_feature_list clause in *)
 		
 		let is_subsumed_by d =
-			if not (Clause.get_bool_param Clause.is_dead d)
+			if not (Clause.get_is_dead d)
 			then
 				try
 					let unif = Unif.subsumes d clause in
@@ -149,7 +151,7 @@ struct
 	(* List version *)
 	let is_subsumed_list clause =
 		let f d =
-			if not (Clause.get_bool_param Clause.is_dead d)
+			if not (Clause.get_is_dead d)
 			then
 				try
 					let unif = Unif.subsumes d clause in
@@ -213,7 +215,7 @@ struct
 			| Elem(clause_list) ->
 					let (subsumed, rest) = get_subsumed clause clause_list in
 					List.iter
-						(Clause.set_bool_param false Clause.in_subsumption_index) subsumed;
+						(Clause.set_ps_in_subsumption_index false) subsumed;
 					(* (out_str
 					(
 					"Subsumer: "
@@ -314,7 +316,7 @@ struct
 					^(Clause.clause_list_to_string subsumed)^"\n"));*)
 					List.iter
 						(fun (c, _) ->
-									(Clause.set_bool_param false Clause.in_subsumption_index c)) subsumed;
+									(Clause.set_ps_in_subsumption_index false c)) subsumed;
 					(if rest = []
 						then
 							(VIndexM.remove (List.rev followed_key_list) index_ref
@@ -377,7 +379,7 @@ struct
 	
 	(*------Removes clause from index--------------*)
 	let remove_clause index_ref feature_list clause =
-		Clause.set_bool_param false Clause.in_subsumption_index clause;
+		Clause.set_ps_in_subsumption_index false clause;
 		let elem_ref = (VIndexM.find feature_list !index_ref) in
 		match !elem_ref with
 		| Elem(clause_list) ->
@@ -457,8 +459,7 @@ struct
 				if not (List.exists (Clause.equal clause) elem)
 				then
 					elem_ref:= Elem(clause:: elem);
-				Clause.set_bool_param
-					true Clause.in_subsumption_index clause
+				Clause.set_ps_in_subsumption_index true clause
 		| Empty_Elem -> elem_ref:= Elem([clause])
 	
 	let add_clause_debug feature_list clause index_ref =
@@ -471,7 +472,7 @@ struct
 		(* let feature_list = Feature.get_feature_list clause in *)
 		
 		let is_subsumed_by d =
-			if not (Clause.get_bool_param Clause.is_dead d)
+			if not (Clause.get_is_dead d)
 			then
 				try
 				(* out_str ("Trying subs: "^(Clause.to_string clause)^" by "
@@ -493,7 +494,7 @@ struct
 	(* List version *)
 	let is_subsumed_list clause =
 		let f d =
-			if not (Clause.get_bool_param Clause.is_dead d)
+			if not (Clause.get_is_dead d)
 			then
 				try
 					let unif = Unif.subsumes d clause in
@@ -556,7 +557,7 @@ struct
 			| Elem(clause_list) ->
 					let (subsumed, rest) = get_subsumed clause clause_list in
 					List.iter
-						(Clause.set_bool_param false Clause.in_subsumption_index) subsumed;
+						(Clause.set_ps_in_subsumption_index false) subsumed;
 					(* (out_str
 					(
 					"Subsumer: "
@@ -656,7 +657,7 @@ struct
 					^(Clause.clause_list_to_string subsumed)^"\n"));*)
 					List.iter
 						(fun (c, _) ->
-									(Clause.set_bool_param false Clause.in_subsumption_index c)) subsumed;
+									(Clause.set_ps_in_subsumption_index false c)) subsumed;
 					(if rest = []
 						then
 							(VIndexM.remove (List.rev followed_key_list) index_ref
@@ -718,7 +719,7 @@ struct
 	
 	(*------Removes clause from index--------------*)
 	let remove_clause index_ref feature_list clause =
-		Clause.set_bool_param false Clause.in_subsumption_index clause;
+		Clause.set_ps_in_subsumption_index false clause;
 		let elem_ref = (VIndexM.find feature_list !index_ref) in
 		match !elem_ref with
 		| Elem(clause_list) ->

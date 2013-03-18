@@ -108,9 +108,9 @@ let next_neg_sel clause =
 
 (* sel max kbo but if there is neg in max then selects any such neg*)
 let sel_kbo_max clause =
-  if (not (Clause.get_res_sel_max clause)) 
+  if (not (Clause.get_ps_sel_max clause)) 
   then 
-    (Clause.set_res_sel_max true clause;
+    (Clause.set_ps_sel_max true clause;
      let new_sel_lits = 
        list_get_max_elements_v 
 	 Orderings.simple_kbo_lit (Clause.get_literals clause)
@@ -136,7 +136,7 @@ let sel_kbo_max clause =
 (*also works when no sel is assigned*)
 exception Max_sel	  
 let change_sel clause = 
-  if (Clause.get_res_sel_max clause) 
+  if (Clause.get_ps_sel_max clause) 
   then raise Max_sel
   else
     try 

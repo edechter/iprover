@@ -79,6 +79,21 @@ let parser_state = init_parser_state ()
 let symbol_db_ref = ref (SymbolDB.create_name "Symbols_DB")
 let term_db_ref = ref (TermDB.create_name "Terms_DB")
 
+(*----------------*)
+let context = Clause.create_context 21701 "input clauses" (* 21701 medium large prime number *)
+let proof_search_param = Clause.Empty_param
+
+let create_clause tstp_source lits = 
+	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
+	Clause.create_clause context tstp_source proof_search_param norm_lits	
+
+let create_neg_conjecture tstp_source lits = 
+	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
+	Clause.create_neg_conjecture context tstp_source proof_search_param norm_lits	
+		
+	
+(*----------------*)	
+
 let () = Statistics.assign_fun_stat
 		(fun () -> TermDB.size !term_db_ref) Statistics.num_of_terms
 
@@ -121,7 +136,7 @@ let distinct : (((term list) list) ref) = ref []
 (* as list of lists of terms note distinct are *)
 (* not in added to the clauses!                *)
 
-let all_current_clauses : ((clause list) ref) = ref []
+let all_current_clauses : ((clause list) ref) = ref [] 
 
 let get_clauses_without_extra_axioms () = (!neg_conjectures)@(!parsed_clauses)
 
@@ -275,25 +290,26 @@ let retype_lits lits =
 	  List.map retype_lit lits
 	
 let cnf_formula_fun name role formula annotations =
+	incr_int_stat 1 num_of_input_clauses;
 	if !contains_distinct
 	then
 		analyse_distinct formula
 	else
 		begin
 			let retyped_lits = retype_lits formula in
-			let new_clause = 
-				Clause.create (Clause.normalise_lit_list term_db_ref retyped_lits) in
-			(* Clause.assign_input_history new_clause; *)
-			Clause.assign_tstp_source_input new_clause "" name;
-			incr_int_stat 1 num_of_input_clauses;
+			let tstp_source =	Clause.tstp_source_input "" name in
+						
 			match role with
 			|"negated_conjecture" | "question" ->
+				(
 					incr_int_stat 1 num_of_input_neg_conjectures;
-					Clause.assign_conjecture_distance
-						Clause.conjecture_int new_clause;
-					neg_conjectures := new_clause::!neg_conjectures
+					let neg_conj = create_neg_conjecture tstp_source retyped_lits in
+					neg_conjectures := neg_conj::!neg_conjectures
+				)
 			| _ ->
+				 (let new_clause = create_clause tstp_source retyped_lits in 
 					parsed_clauses := new_clause::!parsed_clauses
+				)
 		end
 
 (* Redo with the separate parsing for predicates !!! *)
