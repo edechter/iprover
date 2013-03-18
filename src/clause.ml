@@ -41,7 +41,10 @@ type b_litlist = literal_list bind
 exception Term_compare_greater
 exception Term_compare_less
 
-
+(*
+let clause_counter = ref 0 
+let incr_clause_counter () =  (clause_counter := !clause_counter+1)
+*)
 
 (* all boolean param of a clause stored in a bit vector (should be in 0-30 range)*)
 (* position of the param in the vector *)
@@ -152,8 +155,8 @@ type sel_place = int
 type clause =
 	{
 		basic_clause : basic_clause;
-		mutable fast_key : int;    (* unique id within the context*)
-		mutable context_id : int;  (* clause is identified by context_id and fast_id *)
+		mutable fast_key : int;    (* unique id  the context*)
+  	mutable context_id : int;  (* clause is identified by context_id and fast_id *)
 		mutable tstp_source : tstp_source param;
 		mutable simplified_by : simplified_by param;
 		mutable prop_solver_id : int param; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)

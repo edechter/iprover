@@ -17,25 +17,21 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 open Lib
 open Logic_interface
 
-type clause = Clause.clause
-type lit = Term.literal
-type term = Term.term
-type symbol = Symbol.symbol
-
 module SymSet = Symbol.Set
 type sym_set = Symbol.sym_set
 
 type csig = Clause.clause_signature
 
-(*type symbol_db_ref = SymbolDB.symbolDB ref*)
-(*type clause_db_ref = ClauseAssignDB.clauseDB ref*)
 
-let symbol_db_ref = Parser_types.symbol_db_ref
-let term_db_ref = Parser_types.term_db_ref
+(* redefine create_clause from Logic_interface *)
+
+let create_clause context tstp_source lits = 
+   create_clause context tstp_source Clause.Empty_param lits
 
 let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
 module SymbMap = Symbol.Map
+
 let less_map_ref = Parser_types.less_map
 let range_map_ref = Parser_types.range_map
 let is_ess_less_range symb =
@@ -54,19 +50,22 @@ let v3 = Var.get_next_var v2
 let v4 = Var.get_next_var v3
 
 (* creates term from var and adds to term_db*)
-let term_var var = TermDB.add_ref (Term.create_var_term var) term_db_ref
+(* let term_var var = TermDB.add_ref (Term.create_var_term var) term_db_ref *)
 
-let tv0 = term_var v0
-let tv1 = term_var v1
-let tv2 = term_var v2
-let tv3 = term_var v3
-let tv4 = term_var v4
+let tv0 = add_var_term v0
+let tv1 = add_var_term v1
+let tv2 = add_var_term v2
+let tv3 = add_var_term v3
+let tv4 = add_var_term v4
 
 let term_var_typed vtype vval =
-	TermDB.add_ref (Term.create_var_term (Var.create vtype vval)) term_db_ref
+	add_var_term (Var.create vtype vval)
 
+
+(*
 let add_fun_term symb args =
 	TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
+*)
 
 (*
 let equality_term t s =
@@ -99,8 +98,8 @@ let dis_typed_equality stype t s =
 
 
 let assign_eq_ax_param ax =
-	Clause.set_bool_param true Clause.eq_axiom ax ;
-	Clause.set_bool_param true Clause.input_under_eq ax;
+	Clause.assign_is_eq_axiom true ax;
+(*	Clause.set_bool_param true Clause.input_under_eq ax;*) (* not used now*)
 	(* Clause.assign_axiom_history Clause.Eq_Axiom ax *)
 	Clause.assign_tstp_source_axiom_equality ax
 
@@ -126,7 +125,7 @@ let trans_symmetry_axiom () =
 (* we can preinstantiate for types occuring in the problem *)
 
 (*-------reflexifity-------*)
-let typed_reflexivity_axiom_var () =
+let typed_reflexivity_axiom_var context =
 	let reflex_term = add_typed_equality_term tv0 tv1 tv1 in
 	let refl_ax = new_clause [reflex_term] in
 	assign_eq_ax_param refl_ax;
@@ -217,8 +216,8 @@ let typed_congruence_axiom eq_type_set symb =
 									begin
 										let fresh_var1 = Var.get_next_fresh_var fresh_vars_env h in
 										let fresh_var2 = Var.get_next_fresh_var fresh_vars_env h in
-										let fresh_var_term1 = (term_var fresh_var1) in
-										let fresh_var_term2 = (term_var fresh_var2) in
+										let fresh_var_term1 = (add_var_term fresh_var1) in
+										let fresh_var_term2 = (add_var_term fresh_var2) in
 										
 										get_args_dis_lits										
 											tl
@@ -233,7 +232,7 @@ let typed_congruence_axiom eq_type_set symb =
 									(* same varaibles *)
 									begin
 										let fresh_var = Var.get_next_fresh_var fresh_vars_env h in
-									  let fresh_var_term = (term_var fresh_var) in
+									  let fresh_var_term = (add_var_term fresh_var) in
 										get_args_dis_lits
 											tl
 											(fresh_var_term:: args1)
@@ -398,7 +397,7 @@ let bit_index_var vval =
 	Var.create Symbol.symb_ver_bit_index_type vval
 
 let bit_index_var_term vval = 
-	term_var (bit_index_var vval)
+	add_var_term (bit_index_var vval)
 
 
 let bit_index_symb i =
