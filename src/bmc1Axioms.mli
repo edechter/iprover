@@ -14,7 +14,9 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
-type clause = Clause.clause
+open Logic_interface
+
+(*type clause = Clause.clause*)
  
 
 (** Return a formatter for writing into the file given in the option

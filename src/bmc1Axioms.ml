@@ -17,14 +17,9 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 open Lib
 open Options
 open Statistics
-type clause = Clause.clause
+open Logic_interface
+
 module SMap = Symbol.Map
-
-(* The symbol database *)
-let symbol_db = Parser_types.symbol_db_ref
-
-(* The term database *)
-let term_db = Parser_types.term_db_ref
 
 (* Assumptions for previous bounds *)
 let invalid_bound_assumptions = ref []
@@ -108,22 +103,20 @@ let var_n vtype n = Var.create vtype n
 
 (* Get n-th variable term *)
 let term_xn vtype n =
-	TermDB.add_ref
-		(Term.create_var_term (var_n vtype n))
-		term_db
-
+	add_var_term (var_n vtype n)
+	
 (* Create term for variable X0 *)
-let term_x0 vtype = TermDB.add_ref (term_xn vtype 0) term_db
+let term_x0 vtype =  (term_xn vtype 0) 
 
 (* Create term for variable X1 *)
-let term_x1 vtype = TermDB.add_ref (term_xn vtype 1) term_db
+let term_x1 vtype =  (term_xn vtype 1) 
 
 (* Create term for variable X2 *)
-let term_x2 vtype = TermDB.add_ref (term_xn vtype 2) term_db
+let term_x2 vtype = (term_xn vtype 2)
 
 (* Create typed equation *)
-let create_typed_equation stype lhs rhs =
-	
+let create_typed_equation stype lhs rhs = add_typed_equality_term_sym stype lhs rhs
+	(*
 	(* Add or retrieve type term from term database *)
 	let stype_term =
 		TermDB.add_ref
@@ -137,9 +130,11 @@ let create_typed_equation stype lhs rhs =
 				Symbol.symb_typed_equality
 				[stype_term; lhs; rhs])
 		term_db
+*)
 
+(*
 (* Create term *)
-let create_term symbol_name symbol_type =
+let create_constant_term symbol_name symbol_type =
 	
 	(* Type of symbol *)
 	let symbol_stype = Symbol.create_stype [] symbol_type in
@@ -160,6 +155,12 @@ let create_term symbol_name symbol_type =
 	
 	(* Return creted term *)
 	term
+*)
+
+let create_constant_term const_name const_type_symb =
+ 	let const_stype = Symbol.create_stype [] const_type_symb in
+  let const = create_symbol const_name const_stype in 
+	add_fun_term const []
 
 (* Create skolem term with parameter *)
 let create_skolem_term (symbol_format : ('a -> 'b, 'c, 'd, 'e, 'e, 'b) format6) symbol_type (name_param: 'a) =
@@ -168,7 +169,7 @@ let create_skolem_term (symbol_format : ('a -> 'b, 'c, 'd, 'e, 'e, 'b) format6) 
 	let skolem_symbol_name = Format.sprintf symbol_format name_param in
 	
 	(* Create term *)
-	create_term skolem_symbol_name symbol_type
+	create_constant_term skolem_symbol_name symbol_type
 
 (* Create atom with arguments *)
 let create_atom symbol_name arg_types args =
@@ -179,36 +180,20 @@ let create_atom symbol_name arg_types args =
 	in
 	
 	(* Add or retrieve symbol from symbol database *)
-	let symbol =
-		SymbolDB.add_ref
-			(Symbol.create_from_str_type symbol_name symbol_stype)
-			symbol_db
+	let symbol = create_symbol symbol_name symbol_stype
 	in
 	
 	(* Create atom and add to term database *)
-	let atom =
-		TermDB.add_ref
-			(Term.create_fun_term symbol args)
-			term_db
+	let atom = add_fun_term symbol args
 	in
 	
 	(* Return created atom *)
 	atom
 
 let create_atom_symb symb args =
-	let atom = TermDB.add_ref
-			(Term.create_fun_term symb args)
-			term_db
-	in
+	let atom = add_fun_term symb args in
 	atom
 
-(* Create complementary literal *)
-let create_compl_lit term =
-	
-	(* Add or retrieve complement from term database *)
-	TermDB.add_ref
-		(Term.compl_lit term)
-		term_db
 
 (********** Creation of terms and atoms **********)
 
@@ -304,17 +289,15 @@ let create_path_axiom b =
 	
 	(* Create unit clause of atom *)
 	let path_axiom_b =
-		Clause.normalise
-			term_db
-			(Clause.create [ path_atom_b ])
-	in
-	(* Assign clause history as path axiom for bound *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_path_axiom b)
-		path_axiom_b;
-	
-	(* Return path axiom for bound *)
-	path_axiom_b
+		let tstp_source = 
+		    Clause.tstp_source_axiom_bmc1
+		    (Clause.TSTP_bmc1_path_axiom b)
+   in	
+		 create_clause tstp_source Clause.Empty_param [ path_atom_b ]
+	 in	
+
+		(* Return path axiom for bound *)
+	 path_axiom_b
 
 (* Create path axioms for all bounds down to [lbound] *)
 let rec create_path_axioms accum lbound = function
@@ -350,22 +333,23 @@ let pre_instantiate_next_state_clause state_p state_q clause =
 	
 	(* nex_gr_atom = $$nextState($$constBq,$$constBp) *)
 	let next_gr_atom = create_path_atom state_term_p state_term_q in
-	let next_gr_cl =
-		Clause.normalise term_db
-			(Clause.create [next_gr_atom ])
-	in
-	(* Assign clause history as path axiom for bound *)
-	Clause.assign_tstp_source_axiom_bmc1
+	let tstp_source = 
+		Clause.tstp_source_axiom_bmc1
 		(Clause.TSTP_bmc1_path_axiom state_q)
-		next_gr_cl;
+	in
+	let next_gr_cl =
+		create_clause tstp_source Clause.Empty_param [next_gr_atom ]
+	in
 	try
 		let mgu = Unif.unify_bterms (1, next_gr_atom) (2, next_cl_atom) in
+		let tstp_source = 
+			Clause.tstp_source_resolution
+		      [clause; next_gr_cl] [next_cl_lit; next_gr_atom]
+		in			
 		let resolved =
-			Clause.create
-				(Clause.normalise_blitlist_list term_db mgu [(2, rest_lits)])
+			create_clause tstp_source Clause.Empty_param
+				(Clause.normalise_blitlist_list term_db_ref mgu [(2, rest_lits)])
 		in
-		Clause.assign_tstp_source_resolution
-			resolved [clause; next_gr_cl] [next_cl_lit; next_gr_atom];
 		resolved
 	with
 		Unif.Unification_failed ->
@@ -400,18 +384,15 @@ let create_reachable_state_axiom b =
 	let reachable_state_atom_b =
 		create_reachable_state_atom state_term_b
 	in
+	let tstp_source = 
+		Clause.tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_reachable_state_axiom b)
+  in
 	
 	(* Create unit clause of atom *)
 	let reachable_state_axiom_b =
-		Clause.normalise
-			term_db
-			(Clause.create [ reachable_state_atom_b ])
+		create_clause tstp_source Clause.Empty_param [ reachable_state_atom_b ]
 	in
-	
-	(* Assign clause history as reachable state axiom for bound *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_reachable_state_axiom b)
-		reachable_state_axiom_b;
 	
 	(* Return reachable state axiom for bound *)
 	reachable_state_axiom_b
@@ -459,12 +440,12 @@ let create_reachable_state_conj_axiom bound =
 	
 	(* Create head literal in clause, i.e. ~reachableState(X0) *)
 	let reachable_state_literal =
-		create_compl_lit
+		add_compl_lit
 			(create_reachable_state_atom (term_x0 state_type))
 	in
 	
 	(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-	let bound_literal = create_compl_lit (create_bound_atom bound) in
+	let bound_literal = add_compl_lit (create_bound_atom bound) in
 	
 	(* Create head of clause,
 	i.e. {~$$iProver_bound { b }; ~reachableState(X0)] *)
@@ -476,16 +457,13 @@ let create_reachable_state_conj_axiom bound =
 	let reachable_state_literals =
 		create_reachable_state_literals reachable_state_axiom_head bound
 	in
-	
+	let tstp_source = Clause.tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_reachable_state_conj_axiom bound)
+	in
 	(* Create axiom *)
 	let reachable_state_conj_axiom =
-		Clause.normalise term_db (Clause.create reachable_state_literals);
+		create_clause tstp_source Clause.Empty_param reachable_state_literals
 	in
-	
-	(* Assign clause history as axiom *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_reachable_state_conj_axiom bound)
-		reachable_state_conj_axiom;
 	
 	(* Return created clause *)
 	reachable_state_conj_axiom
@@ -504,21 +482,17 @@ let create_reachable_state_on_bound_axiom b =
 	in
 	
 	(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-	let bound_literal = create_compl_lit (create_bound_atom b) in
+	let bound_literal = add_compl_lit (create_bound_atom b) in
 	
+	let tstp_source = 
+		Clause.tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_reachable_state_on_bound_axiom b)
+	in
 	(* Create unit clause of atom *)
 	let reachable_state_axiom_b =
-		Clause.normalise
-			term_db
-			(Clause.create [ bound_literal; reachable_state_atom_b ])
+		create_clause tstp_source Clause.Empty_param [ bound_literal; reachable_state_atom_b ]
 	in
-	
-	(* Assign clause history as axiom *)
-	(* Clause.assign_axiom_history Clause.BMC1_Axiom reachable_state_axiom_b; *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_reachable_state_on_bound_axiom b)
-		reachable_state_axiom_b;
-	
+		
 	(* Return reachable state axiom for bound *)
 	reachable_state_axiom_b
 
@@ -544,11 +518,11 @@ let rec create_reachable_state_on_bound_axioms accum lbound = function
 let create_only_bound_reachable_axiom b =
 	
 	(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-	let bound_literal = create_compl_lit (create_bound_atom b) in
+	let bound_literal = add_compl_lit (create_bound_atom b) in
 	
 	(* Create literal ~$$reachableState(X0) *)
 	let reachable_state_x0_literal =
-		create_compl_lit (create_reachable_state_atom (term_x0 state_type))
+		add_compl_lit (create_reachable_state_atom (term_x0 state_type))
 	in
 	
 	(* Create state term for state *)
@@ -561,22 +535,18 @@ let create_only_bound_reachable_axiom b =
 			state_term_b
 			(term_x0 state_type)
 	in
-	
+	let tstp_source = 
+		Clause.tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
+	in
 	(* Create clause
 	~$$iProver_bound { b } | ~$$reachableState(X0) | X0 = constB { b } *)
 	let reachable_state_axiom_b =
-		Clause.normalise
-			term_db
-			(Clause.create
+		create_clause tstp_source Clause.Empty_param 
 					[ bound_literal;
 					reachable_state_x0_literal;
-					reachable_state_literal_b ])
+					reachable_state_literal_b ]
 	in
-	
-	(* Assign clause history as axiom *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
-		reachable_state_axiom_b;
 	
 	(* Return created clause *)
 	reachable_state_axiom_b
@@ -640,7 +610,7 @@ let rec pre_inst_reachable_state_axioms accum lbound = function
 			let state_term_b = create_state_term b in
 			
 			(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-			let bound_literal = create_compl_lit (create_bound_atom b) in
+			let bound_literal = add_compl_lit (create_bound_atom b) in
 			
 			(* Create equation sK = constB{b} *)
 			let reachable_state_literal_b sK =
@@ -652,17 +622,15 @@ let rec pre_inst_reachable_state_axioms accum lbound = function
 			in
 			(* Create clause [sK = constB{b}] *)
 			let reachable_state_axiom_b sK =
-				let reach_ax =
-					Clause.normalise
-						term_db
-						(Clause.create
-								[bound_literal; (reachable_state_literal_b sK)])
-				in
-				(* Assign clause history as axiom *)
-				Clause.assign_tstp_source_axiom_bmc1
+      let tstp_source =
+				 Clause.tstp_source_axiom_bmc1
 					(Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
-					reach_ax;
-				reach_ax
+			in
+			let reach_ax =
+			create_clause tstp_source Clause.Empty_param
+								[bound_literal; (reachable_state_literal_b sK)]
+				in
+			reach_ax
 			in
 			let reach_axioms =
 				List.fold_left
@@ -713,7 +681,7 @@ let pre_inst_reachable_state_clauses b clauses =
 	let state_term_b = create_state_term b in
 	
 	(* Create literal for current bound, i.e. ~$$iProver_bound{b} *)
-	let bound_literal = create_compl_lit (create_bound_atom b) in
+	let bound_literal = add_compl_lit (create_bound_atom b) in
 	let pre_inst_reachable_cl cl sk_term =
 		let cl_to_replace =
 			begin
@@ -747,16 +715,15 @@ let pre_inst_reachable_state_clauses b clauses =
 			(match cl_to_replace with
 				| Some cl ->
 						begin
-							let repl_cl =
-								Clause.replace_subterm term_db sk_term state_term_b cl in
-							let pre_inst_cl =
-								Clause.normalise
-									term_db
-									(Clause.create (bound_literal:: (Clause.get_literals repl_cl)))
-							in
-							Clause.assign_tstp_source_axiom_bmc1
+							let repl_cl_lits =
+								Clause.replace_subterm term_db_ref sk_term state_term_b (get_lits cl) in
+							let tstp_source = 	
+								Clause.tstp_source_axiom_bmc1
 								(Clause.TSTP_bmc1_reachable_sk_replacement (b, cl))
-								pre_inst_cl;
+							in
+							let pre_inst_cl =
+							create_clause	tstp_source Clause.Empty_param (bound_literal:: (repl_cl_lits))
+							in
 							(* out_str ("\n\n Replaced:  "^(Clause.to_string pre_inst_cl)^"\n");
 							out_str ("Replaced history: \n");
 							(Format.printf "%a@." (TstpProof.pp_clause_with_source false) pre_inst_cl);
@@ -804,9 +771,7 @@ let create_clock_axiom state clock pattern =
 	
 	(* Create atom for clock *)
 	let clock_atom =
-		TermDB.add_ref
-			(Term.create_fun_term clock [ state_term ])
-			term_db
+		add_fun_term clock [ state_term ]
 	in
 	
 	(* Create literal for clock *)
@@ -821,20 +786,18 @@ let create_clock_axiom state clock pattern =
 		else
 			
 			(* Clock literal is negative *)
-			create_compl_lit clock_atom
+			add_compl_lit clock_atom
 	
 	in
-	
+	let tstp_source = 
+		Clause.tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_clock_axiom (state, clock, pattern))
+	in
 	(* Create clock axiom *)
 	let clock_axiom =
-		Clause.normalise term_db (Clause.create [ clock_literal ])
+		create_clause tstp_source Clause.Empty_param [ clock_literal ]
 	in
-	(* Assign clause history as axiom *)
-	(* Clause.assign_axiom_history Clause.BMC1_Axiom clock_axiom; *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_clock_axiom (state, clock, pattern))
-		clock_axiom;
-		
+	
 	(* Return clock axiom *)	
 	clock_axiom
 
@@ -1188,7 +1151,7 @@ let rec bound_instantiate_term bound = function
 				let term_bound_name = base_name ^ (string_of_int bound) in
 				
 				(* Replace term with term for current bound *)
-				create_term term_bound_name address_type
+				create_constant_term term_bound_name address_type
 			
 			else
 				
@@ -1204,11 +1167,8 @@ let rec bound_instantiate_term bound = function
 			in
 			
 			(* Return term with instantiated arguments *)
-			TermDB.add_ref
-				(Term.create_fun_term
-						symb
-						args')
-				term_db
+			add_fun_term symb	args'
+				
 
 (* Instantiate clause for current bound *)
 let bound_instantiate_clause bound clause =
@@ -1222,19 +1182,15 @@ let bound_instantiate_clause bound clause =
 	let clause_literals' =
 		List.map (bound_instantiate_term bound) clause_literals
 	in
-	
+	let tstp_source = 
+		Clause.tstp_source_axiom_bmc1
+		(Clause.TSTP_bmc1_instantiated_clause (bound, clause))
+	in
 	(* Create new clause of instantiated literals *)
 	let instantiated_clause =
-		Clause.normalise
-			term_db
-			(Clause.create clause_literals')
+
+		create_clause	tstp_source Clause.Empty_param	clause_literals'
 	in
-	
-	(* Assign clause history as axiom *)
-	(* Clause.assign_axiom_history Clause.BMC1_Axiom instantiated_clause; *)
-	Clause.assign_tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_instantiated_clause (bound, clause))
-		instantiated_clause;
 	
 	(* Return instantiated clause *)
 	instantiated_clause
@@ -1319,9 +1275,9 @@ let pre_instantiate_state_var_clauses bound clauses =
 				begin
 					let lits = Clause.get_literals c in
 					let new_lits = List.map (Subst.replace_vars None var_map) lits in
-					let new_clause = Clause.create (Clause.normalise_lit_list term_db new_lits) in
-					Clause.assign_tstp_source_instantiation new_clause c [];
-					Prop_solver_exchange.add_clause_to_solver new_clause;
+          let tstp_source = Clause.tstp_source_instantiation c [] in
+					let new_clause = create_clause tstp_source Clause.Empty_param new_lits in
+				  Prop_solver_exchange.add_clause_to_solver new_clause;
 					new_clause
 				end
 		else
@@ -1400,13 +1356,16 @@ let get_bmc1_dump_formatter () =
 (********** Top functions **********)
 
 (* Return clauses with assumptions for given bound *)
+
 let get_bound_assumptions bound =
 	
 	(* Get atom iProver_bound{n} *)
 	let bound_literal = create_bound_atom bound in
-	
+  let tstp_source = Clause.tstp_source_assumption	in
+	let assumption = 
+		create_clause tstp_source Clause.Empty_param [ bound_literal ] in
 	(* Return unit clause containing positive bound atom *)
-	[ Clause.normalise term_db (Clause.create [ bound_literal ]) ]
+	[ assumption ]
 
 (* reachable state pre-instantiation *)
 
@@ -1592,7 +1551,7 @@ let increment_bound cur_bound next_bound simulate =
 	i.e. $$iProver_bound { b_cur },...,$$iProver_bound { b_next - 1 } *)
 	let bound_literals_cur_to_next =
 		List.map
-			create_compl_lit
+			add_compl_lit
 			(create_bound_atom_list [] next_bound cur_bound)
 	in
 	

@@ -3,6 +3,7 @@
 
 type var    = Var.var
 type symbol = Symbol.symbol
+type stype = Symbol.stype
 type term = Term.term
 type args = Term.args
 type lit = Term.term
@@ -17,6 +18,15 @@ let term_db_ref = Parser_types.term_db_ref
 let context = Parser_types.context
 
 (* first when term_db_ref is a parameter *)
+
+(*----------------- symbols ---------------------------------*)
+
+(*let creat_const_symb symb_name ~symb_type =*)
+let create_symbol symbol_name symbol_stype =
+	SymbolDB.add_ref
+			(Symbol.create_from_str_type symbol_name symbol_stype)
+			symbol_db_ref
+	
 
 (*---------------terms/lits----------------------------------*)
 let add_fun_term symb args = 
@@ -57,17 +67,18 @@ let add_term_algebra_eq_term args =
     let ta_eq_type_term = (add_fun_term Symbol.symb_term_algebra_type []) in
 	 add_fun_term Symbol.symb_typed_equality  (ta_eq_type_term::args)
 
-(*--------clause----------------*)	
+(*--------clause---------------*)	
 
 let create_clause tstp_source proof_search_param lits = 
 	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
 	Clause.create_clause term_db_ref tstp_source proof_search_param norm_lits	
 
-
 let create_clause_context context tstp_source proof_search_param lits =
 	let clause = create_clause tstp_source proof_search_param lits in
 	Clause.context_add context clause
-	
+
+let get_lits c = Clause.get_lits c
+		
 let context_create = Clause.context_create
 let context_add  = Clause.context_add
 let context_remove = Clause.context_remove  

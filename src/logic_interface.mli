@@ -3,6 +3,7 @@
 
 type var    = Var.var
 type symbol = Symbol.symbol
+type stype = Symbol.stype
 type term = Term.term
 type args = Term.args
 type lit = Term.term
@@ -15,6 +16,10 @@ type proof_search_param = Clause.proof_search_param
 (** db_refs are taken from Parser_types*)
 val symbol_db_ref : SymbolDB.symbolDB ref
 val term_db_ref : TermDB.termDB ref
+
+(** create_symbol symbol_name symbol_stype *)
+
+val create_symbol : string -> stype -> symbol
 
 (** add_fun_term symb arg_list *)
 val add_fun_term : symbol -> term list -> term
@@ -59,6 +64,8 @@ val create_clause_context :
   tstp_source ->
   proof_search_param -> 
 	lit list -> clause
+	
+val get_lits : clause -> lit list
 	
 (**------------clause context-------------------*)	
 (** create_context size name; size approximate initial size *)
