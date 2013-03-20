@@ -5,6 +5,7 @@ exception THF_format
 type var = Var.var
 type term = Term.term
 type clause = Clause.clause
+
 module SymbMap :
   sig
     type key = Symbol.Key.t
@@ -28,6 +29,7 @@ type includes = {
   includes_file_name : string;
   include_formula_list : string list;
 }
+val context : Clause.context
 val symbol_db_ref : SymbolDB.symbolDB ref
 val term_db_ref : Clause.term_db ref
 val parsed_clauses : Clause.clause list ref

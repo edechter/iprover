@@ -25,8 +25,8 @@ type csig = Clause.clause_signature
 
 (* redefine create_clause from Logic_interface *)
 
-let create_clause context tstp_source lits = 
-   create_clause context tstp_source Clause.Empty_param lits
+let create_clause tstp_source lits = 
+   create_clause tstp_source Clause.Empty_param lits
 
 let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
@@ -96,12 +96,20 @@ let dis_typed_equality stype t s =
 	neg_atom (typed_equality_term stype t s)
 *)
 
-
+(*
 let assign_eq_ax_param ax =
 	Clause.assign_is_eq_axiom true ax;
 (*	Clause.set_bool_param true Clause.input_under_eq ax;*) (* not used now*)
 	(* Clause.assign_axiom_history Clause.Eq_Axiom ax *)
 	Clause.assign_tstp_source_axiom_equality ax
+*)
+
+
+let create_eq_ax_clause ax_lits =
+ let tstp_source = Clause.tstp_source_axiom_equality in 
+ let ax_clause = create_clause tstp_source ax_lits in
+ Clause.assign_is_eq_axiom true ax_clause;
+ ax_clause
 
 (*
 let reflexivity_axiom () =
@@ -127,8 +135,7 @@ let trans_symmetry_axiom () =
 (*-------reflexifity-------*)
 let typed_reflexivity_axiom_var context =
 	let reflex_term = add_typed_equality_term tv0 tv1 tv1 in
-	let refl_ax = new_clause [reflex_term] in
-	assign_eq_ax_param refl_ax;
+	let refl_ax = create_eq_ax_clause [reflex_term] in
 	refl_ax
 
 (* some times it is useful to have instantiatied eq axioms *)
@@ -136,8 +143,7 @@ let typed_reflexivity_axiom_type eq_type_sym =
 	let eq_type = (add_fun_term eq_type_sym []) in
 	let ttv0 = term_var_typed eq_type_sym 0 in
 	let reflex_term = add_typed_equality_term eq_type ttv0 ttv0 in
-	let refl_ax = new_clause [reflex_term] in
-	assign_eq_ax_param refl_ax;
+	let refl_ax = create_eq_ax_clause [reflex_term] in
 	refl_ax
 
 let typed_reflexivity_axiom_type_set eq_type_set =
@@ -154,8 +160,7 @@ let typed_trans_symmetry_axiom_var () =
 	let x01 = add_typed_dis_equality tv0 tv1 tv2 in
 	let x21 = add_typed_dis_equality tv0 tv3 tv2 in
 	let x20 = add_typed_equality_term tv0 tv3 tv1 in
-	let trans_sim_ax = new_clause [x01; x21; x20] in
-	assign_eq_ax_param trans_sim_ax;
+	let trans_sim_ax = create_eq_ax_clause [x01; x21; x20] in
 	trans_sim_ax
 
 let typed_trans_symmetry_axiom_type eq_type_sym =
@@ -169,8 +174,7 @@ let typed_trans_symmetry_axiom_type eq_type_sym =
 	let x01 = add_typed_dis_equality eq_type ttv0 ttv1 in
 	let x21 = add_typed_dis_equality eq_type ttv2 ttv1 in
 	let x20 = add_typed_equality_term eq_type ttv2 ttv0 in
-	let trans_sim_ax = new_clause [x01; x21; x20] in
-	assign_eq_ax_param trans_sim_ax;
+	let trans_sim_ax = create_eq_ax_clause [x01; x21; x20] in
 	trans_sim_ax
 
 let typed_trans_symmetry_axiom_type_set eq_type_set =
@@ -187,8 +191,7 @@ let typed_symmetry_axiom_sym eq_type_sym =
 	let ttv1 = term_var_typed eq_type_sym 1 in
 	let neg_eq_x0_x1 = add_typed_dis_equality eq_type ttv0 ttv1 in
 	let eq_x1_x0 = add_typed_equality_term eq_type ttv1 ttv0 in
-	let sym_ax = new_clause [neg_eq_x0_x1; eq_x1_x0] in
-	assign_eq_ax_param sym_ax;
+	let sym_ax = create_eq_ax_clause [neg_eq_x0_x1; eq_x1_x0] in
 	sym_ax
 
 (*--------------typed version--------------*)
@@ -254,11 +257,8 @@ let typed_congruence_axiom eq_type_set symb =
 				then
 					let pred = add_fun_term symb args1 in
 					let neg_pred = add_neg_atom (add_fun_term symb args2) in
-					let pred_congr_ax =
-						Clause.normalise term_db_ref
-							(Clause.create (pred:: neg_pred:: dis_eq_lits))
+					let pred_congr_ax = create_eq_ax_clause  (pred:: neg_pred:: dis_eq_lits)
 					in
-					assign_eq_ax_param pred_congr_ax;
 					Some(pred_congr_ax)
 				else
 					(let pos_part =
@@ -266,11 +266,8 @@ let typed_congruence_axiom eq_type_set symb =
 							let s = add_fun_term symb args2 in
 							add_typed_equality_term (add_fun_term type_value []) t s
 						in
-						let fun_congr_ax =
-							Clause.normalise term_db_ref
-								(Clause.create (pos_part:: dis_eq_lits)) in
-						assign_eq_ax_param fun_congr_ax;
-						Some(fun_congr_ax)
+						let fun_congr_ax = create_eq_ax_clause (pos_part:: dis_eq_lits) in
+					  Some(fun_congr_ax)
 					)
 	| Undef ->
 			(None)
@@ -359,9 +356,9 @@ let distinct_ax_list () =
 			let dist_axioms_one_term term term_list =
 				let f rest cterm =
 					let dis_eq_term = (add_typed_dis_equality default_type_term term cterm) in
-					let dis_ax = Clause.create [dis_eq_term] in
-					(* Clause.assign_axiom_history Clause.Distinct_Axiom dis_ax; *)
-					Clause.assign_tstp_source_axiom_distinct dis_ax;
+					let tstp_source = Clause.tstp_source_axiom_distinct in
+					let dis_ax = create_clause tstp_source [dis_eq_term] in
+					(* Clause.assign_axiom_history Clause.Distinct_Axiom dis_ax; *)					
 					dis_ax:: rest
 				in
 				List.fold_left f [] term_list
@@ -448,12 +445,12 @@ let always_false_ax symb =
 (*----------------*)
 let less_pos_axs symb max_pos_ind =
 	let f rest i =
-		(new_clause [(bit_index_atom symb i)]):: rest in
+		(create_clause Clause.tstp_source_axiom_less [(bit_index_atom symb i)]):: rest in
 	fold_down_interval f 0 (max_pos_ind -1) []
 
 let less_neg_axs symb max_pos_ind max_ind =
 	let f rest i =
-		(new_clause
+		(create_clause Clause.tstp_source_axiom_less
 				[(add_neg_atom (bit_index_atom symb i))]):: rest in
 	fold_down_interval f max_pos_ind max_ind []
 
@@ -463,18 +460,18 @@ let less_eq_ax symb max_pos_ind =
 		(add_typed_equality_term (bit_index_type_term ()) (bit_index_term i) bv0):: rest in
 	let eq_terms = fold_down_interval f 0 (max_pos_ind -1) [] in
 	let neg_less_term = add_neg_atom (add_fun_term symb [bv0]) in
-	new_clause (neg_less_term:: eq_terms)
+	create_clause Clause.tstp_source_axiom_less (neg_less_term:: eq_terms)
 
 (*-------------*)
 
 let range_pos_axs symb min_int_ind max_int_ind =
 	let f rest i =
-		(new_clause [(bit_index_atom symb i)]):: rest in
+		(create_clause Clause.tstp_source_axiom_range [(bit_index_atom symb i)]):: rest in
 	fold_down_interval f min_int_ind max_int_ind []
 
 let range_neg_axs symb min_int_ind max_int_ind max_ind =
 	let f rest i =
-		(new_clause [(add_neg_atom (bit_index_atom symb i))]):: rest in
+		(create_clause Clause.tstp_source_axiom_range [(add_neg_atom (bit_index_atom symb i))]):: rest in
 	let left = fold_down_interval f 0 (min_int_ind -1) [] in
 	let right = fold_down_interval f (max_int_ind +1) max_ind [] in
 	left@right
@@ -485,7 +482,7 @@ let range_eq_ax symb min_int_ind max_int_ind =
 		(add_typed_equality_term (bit_index_type_term ()) (bit_index_term i) bv0):: rest in
 	let eq_terms = fold_down_interval f min_int_ind max_int_ind [] in
 	let neg_range_term = add_neg_atom (add_fun_term symb [bv0]) in
-	new_clause (neg_range_term:: eq_terms)
+	create_clause Clause.tstp_source_axiom_range (neg_range_term:: eq_terms)
 
 (*let range_axiom_via_less range_symb *)
 (* less axioms should be added after the range axioms since mode less symbols can be added *)
@@ -523,7 +520,6 @@ let less_axioms () =
 	let max_ind = get_max_bit_index () in
 	let less_axioms = less_axioms' max_ind in
 	(* Clause.assign_axiom_history_cl_list Clause.Less_Axiom less_axioms; *)
-	List.iter Clause.assign_tstp_source_axiom_less less_axioms;
 	less_axioms
 
 let range_axioms' max_ind =
@@ -552,7 +548,6 @@ let range_axioms () =
 	let max_ind = get_max_bit_index () in
 	let range_axioms = range_axioms' max_ind in
 	(* Clause.assign_axiom_history_cl_list Clause.Less_Axiom range_axioms; *)
-	List.iter Clause.assign_tstp_source_axiom_range range_axioms;
 	range_axioms
 
 let less_range_axioms () =
@@ -567,10 +562,7 @@ let less_range_axioms () =
 	
 	let less_range_axioms =
 		(less_axioms' max_ind) @ (range_axioms' max_ind)
-	in
-	
-	List.iter Clause.assign_tstp_source_axiom_range less_range_axioms;
-	
+	in		
 	less_range_axioms
 
 (*--------------- Brand's transformation -------------------*)
@@ -712,13 +704,12 @@ let flat_clause clause =
 	let f t x rest =
 		(dis_eq_term (flat_top renaming_env var_env t) x):: rest in
 	let neg_def = TermHash.fold f var_env [] in
-	Clause.create (Clause.normalise_lit_list term_db_ref (neg_def@flat_lits_without_neg_def))
+	create_clause (Clause.tstp_source_flattening clause) (neg_def@flat_lits_without_neg_def)
 
 let eq_axioms_flatting clause_list =
 	if (Symbol.is_essential_input Symbol.symb_typed_equality)
 	then
-		(
-			
+		(			
 			let flat_clauses = List.map flat_clause clause_list in
 			let eq_ax = [(typed_reflexivity_axiom_var ()); (typed_trans_symmetry_axiom_var ())] in
 			eq_ax@flat_clauses

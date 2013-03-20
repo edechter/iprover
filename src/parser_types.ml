@@ -16,6 +16,8 @@
  
 open Lib
 open Statistics
+(* can not open Logic_interface since its uses dbs defined here *)
+
 exception Parsing_fails
 exception FOF_format
 exception TFF_format
@@ -80,17 +82,18 @@ let symbol_db_ref = ref (SymbolDB.create_name "Symbols_DB")
 let term_db_ref = ref (TermDB.create_name "Terms_DB")
 
 (*----------------*)
-let context = Clause.create_context 21701 "input clauses" (* 21701 medium large prime number *)
+let context = Clause.context_create 21701 (* 21701 medium large prime number *)
 let proof_search_param = Clause.Empty_param
 
 let create_clause tstp_source lits = 
-	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
-	Clause.create_clause context tstp_source proof_search_param norm_lits	
+	let clause = Clause.create_clause term_db_ref tstp_source proof_search_param lits in 
+	Clause.context_add context clause 
 
 let create_neg_conjecture tstp_source lits = 
-	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
-	Clause.create_neg_conjecture context tstp_source proof_search_param norm_lits	
-		
+	let clause = Clause.create_neg_conjecture term_db_ref tstp_source proof_search_param lits	in
+	Clause.context_add context clause 
+
+
 	
 (*----------------*)	
 

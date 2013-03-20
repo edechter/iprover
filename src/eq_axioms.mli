@@ -15,9 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
-
-type symbol = Symbol.symbol
-type clause = Clause.clause
+open Logic_interface
 
 type sym_set = Symbol.sym_set
 

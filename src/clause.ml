@@ -24,6 +24,7 @@ type bound_var = Var.bound_var
 type term = Term.term
 type bound_term = Term.bound_term
 type term_db = TermDB.termDB
+type term_db_ref = term_db ref
 type subst = Subst.subst
 type bound = int
 type bound_subst = SubstBound.bound_subst
@@ -1777,7 +1778,7 @@ let get_conjecture_distance_tstp_source tstp_source =
 
 (**-------- create clause ----------------------------*)
 
-let new_clause is_negated_conjecture tstp_source ps_param bc = 
+let new_clause ~is_negated_conjecture tstp_source ps_param bc = 
 	 let conjecture_distance = 
 		if is_negated_conjecture
 		then 0
@@ -1813,32 +1814,40 @@ let fill_clause_param is_conjecture tstp_source ps_param c =
 	*)
 	
 
-let create_clause_neg_conj_opt is_negated_conjecture tstp_source proof_search_param lits =
-	let bc = create_basic_clause lits in
-	new_clause is_negated_conjecture tstp_source proof_search_param bc
-	
-	
+let create_clause_opts ~is_negated_conjecture term_db_ref tstp_source proof_search_param lits =
+	let bc = create_basic_clause (normalise_lit_list term_db_ref lits) in
+	new_clause ~is_negated_conjecture tstp_source proof_search_param bc
+
+(*---------------*)		
+(* by default all literals in clauses are normalised *)
 (* assume clause is not a negated conjecture *)
-let create_clause  tstp_source proof_search_param lits =
- create_clause_neg_conj_opt false tstp_source proof_search_param lits
+
+let create_clause term_db_ref tstp_source proof_search_param lits =
+ create_clause_opts ~is_negated_conjecture:false term_db_ref tstp_source proof_search_param lits
+
+(* not normalised clause *)
+let create_clause_raw tstp_source proof_search_param lits = 
+	let bc = create_basic_clause lits in
+	new_clause ~is_negated_conjecture:false tstp_source proof_search_param bc
+
 
 (* assume clause is a negate_conjecture *)
-let create_neg_conjecture  tstp_source proof_search_param lits = 
-	create_clause_neg_conj_opt true tstp_source proof_search_param lits
+let create_neg_conjecture term_db_ref tstp_source proof_search_param lits = 
+	create_clause_opts ~is_negated_conjecture:true term_db_ref tstp_source proof_search_param lits
 	
 	
 (* literals are not normalised *)
 	
-let create_clause_res  tstp_source lits =
+let create_clause_res term_db_ref tstp_source lits =
 	let res_param = Res_param (create_res_param ()) in (* max_conjecture_dist calculate *)
-	create_clause  tstp_source res_param lits
+	create_clause term_db_ref tstp_source res_param lits
 
-let create_clause_inst  tstp_source lits =
+let create_clause_inst term_db_ref tstp_source lits =
 	let inst_param = Inst_param (create_inst_param ()) in
-	create_clause  tstp_source inst_param lits
+	create_clause term_db_ref tstp_source inst_param lits
 
-let create_clause_no_param  tstp_source lits =
-	create_clause  tstp_source Empty_param lits
+let create_clause_no_param term_db_ref tstp_source lits =
+	create_clause term_db_ref tstp_source Empty_param lits
 
 
 (*--------------Compare two clauses-------------------*)
@@ -2015,19 +2024,19 @@ let tstp_source_theory_axiom theory =
 		(TSTP_external_source (TSTP_theory theory))
 
 (* Clause is an equality axiom *)
-let tstp_source_axiom_equality () =
+let tstp_source_axiom_equality =
 	tstp_source_theory_axiom TSTP_equality
 
 (* Clause is a distinct axiom *)
-let tstp_source_axiom_distinct () =
+let tstp_source_axiom_distinct =
 	tstp_source_theory_axiom TSTP_distinct
 
 (* Clause is an less axiom *)
-let tstp_source_axiom_less () =
+let tstp_source_axiom_less =
 	tstp_source_theory_axiom TSTP_less
 
 (* Clause is an range axiom *)
-let tstp_source_axiom_range () =
+let tstp_source_axiom_range =
 	tstp_source_theory_axiom TSTP_range
 
 (* Clause is an bmc1 axiom *)
@@ -2035,7 +2044,7 @@ let tstp_source_axiom_bmc1 bmc1_axiom =
 	tstp_source_theory_axiom (TSTP_bmc1 bmc1_axiom)
 
 (* Clause is generated in grounding *)
-let tstp_source_assumption () =
+let tstp_source_assumption =
 	 (TSTP_internal_source TSTP_assumption)
 
 (*---------------- end TSTP --------------------------*)

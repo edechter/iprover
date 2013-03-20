@@ -46,9 +46,35 @@ val add_term_algebra_eq_term : term list -> term
 val add_typed_dis_equality :
   term -> term -> term -> term
 
-(** create_clause context tstp_source proof_search_param lits *)
+(**---------Clause-----------*)
+(** create_clause tstp_source proof_search_param lits *)
 val create_clause :
+  tstp_source ->
+  proof_search_param -> 
+	lit list -> clause
+
+(** create_clause_context: creats and add clause to context/returns old if already exists in the context *)
+val create_clause_context :
   context ->
   tstp_source ->
   proof_search_param -> 
 	lit list -> clause
+	
+(**------------clause context-------------------*)	
+(** create_context size name; size approximate initial size *)
+val context_create : int -> context
+val context_add : context -> clause -> clause
+val context_remove : context -> clause -> unit
+val context_mem : context -> clause -> bool
+val context_reset : context -> unit
+val context_find : context -> clause -> clause
+val context_iter : context -> (clause -> unit) -> unit
+val context_fold : context -> (clause -> 'a -> 'a) -> 'a -> 'a
+val context_size : context -> int
+
+(* context_add_context from_cxt to_cxt *)
+val context_add_context : context -> context -> unit
+(** replaces dead with simplified_by *)
+val context_replace_dead : context -> unit
+	
+		

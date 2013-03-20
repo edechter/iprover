@@ -5,6 +5,7 @@ type bound_var = Var.bound_var
 type term = Term.term
 type bound_term = Term.bound_term
 type term_db = TermDB.termDB
+type term_db_ref = term_db ref
 type subst = Subst.subst
 type bound = int
 type bound_subst = SubstBound.bound_subst
@@ -218,20 +219,25 @@ val context_replace_dead : context -> unit
 (*val template_clause : basic_clause -> clause*)
 
 (** creates a clause within a context; use create_neg_conjecture if a clause is a negate conjectue *)
+(** literals are normalised, use create_clause_raw for creating with literals as it is *)
 val create_clause :
-   tstp_source -> proof_search_param -> literal_list -> clause
+   term_db_ref -> tstp_source -> proof_search_param -> literal_list -> clause
+
+(* clause with literals as it is (non-normalised)*)
+val create_clause_raw : 
+    tstp_source -> proof_search_param -> literal_list -> clause
 	
 val create_neg_conjecture :
-  tstp_source -> proof_search_param -> literal_list -> clause
+  term_db_ref -> tstp_source -> proof_search_param -> literal_list -> clause
 	
 val create_clause_res :
-   tstp_source -> literal_list -> clause
+   term_db_ref -> tstp_source -> literal_list -> clause
 
 val create_clause_inst :
-   tstp_source -> literal_list -> clause
+   term_db_ref -> tstp_source -> literal_list -> clause
 
 val create_clause_no_param :
-   tstp_source -> literal_list -> clause
+   term_db_ref -> tstp_source -> literal_list -> clause
 	
 (*-----*)	
 val get_lits : clause -> literal_list
@@ -332,7 +338,7 @@ val get_min_defined_symb : clause -> int Lib.param
 val assign_tstp_source : clause -> tstp_source -> unit
 val get_tstp_source : clause -> tstp_source Lib.param
 
-val get_simplified_by : clause -> simplified_by Lib.param
+val get_simplified_by : clause -> simplified_by Lib.param 
 val assign_simplied_by : simplified_by Lib.param -> clause -> unit
 
 val get_conjecture_distance : clause -> int
@@ -471,12 +477,12 @@ val tstp_source_split : symbol list -> clause -> tstp_source
 val tstp_source_flattening : clause -> tstp_source
 val tstp_source_grounding : (var * term) list -> clause -> tstp_source
 val tstp_source_theory_axiom : tstp_theory -> tstp_source
-val tstp_source_axiom_equality : unit -> tstp_source
-val tstp_source_axiom_distinct : unit -> tstp_source
-val tstp_source_axiom_less : unit -> tstp_source
-val tstp_source_axiom_range : unit -> tstp_source
+val tstp_source_axiom_equality : tstp_source
+val tstp_source_axiom_distinct : tstp_source
+val tstp_source_axiom_less : tstp_source
+val tstp_source_axiom_range : tstp_source
 val tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> tstp_source
-val tstp_source_assumption : unit -> tstp_source
+val tstp_source_assumption : tstp_source
 
 (*
 val tstp_source_instantiation :
