@@ -322,6 +322,14 @@ let pp_inference_rule parents ppf = function
 				"subtyping,@,[status(esa)],@,@[<hov 1>[%a]@]"
 				(pp_any_list Clause.pp_clause_name ",")
 				parents
+
+	(* Clause is from translation to purely equational clauses *)
+	| Clause.Non_eq_to_eq ->
+		Format.fprintf
+				ppf
+				"non_eq_to_eq,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				(pp_any_list Clause.pp_clause_name ",")
+				parents
 	
 	| Clause.Flattening ->
 			Format.fprintf
@@ -417,13 +425,8 @@ let pp_tstp_source clausify_proof clause ppf = function
 	(* Clause is from an internal assumption *)
 	| Clause.TSTP_internal_source Clause.TSTP_assumption ->
 	
-			Format.fprintf ppf "assumption"
-	
-	(* Clause is from translation to purely equational clauses *)
-	| Clause.TSTP_internal_source Clause.TSTP_non_eq_to_eq ->
-	
-			Format.fprintf ppf "non_eq_to_eq"
-	
+			Format.fprintf ppf "assumption"	
+			
 	(* Clause is from an inference *)
 	| Clause.TSTP_inference_record inference_record ->
 	

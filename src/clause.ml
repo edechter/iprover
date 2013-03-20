@@ -971,7 +971,10 @@ let assign_tstp_source c tstp_source =
 	| Def _ -> raise (Failure "Clause source already assigned")
 	| Undef -> c.tstp_source <- Def(tstp_source)
 
-let get_tstp_source c =	c.tstp_source
+let get_tstp_source c =	
+	match c.tstp_source with 
+	| Def (tstp_source) -> tstp_source 
+	| Undef -> failwith ("tstp_source is not defined for clause: "^(to_string c))
 
 (*let get_context_id c = c.node.context_id*)
 
@@ -1421,7 +1424,7 @@ let rec pp_clause_list_tptp ppf = function
 	(* Skip equality axioms *)
 	(*  | { history = Def (Axiom Eq_Axiom) } :: tl ->      *)
 	| c:: tl when 
-	  (get_tstp_source c) = Def (TSTP_external_source (TSTP_theory TSTP_equality)) -> 
+	  (get_tstp_source c) = TSTP_external_source (TSTP_theory TSTP_equality)-> 
 			pp_clause_list_tptp ppf tl
 	
 	(* Clause at last position in list *)

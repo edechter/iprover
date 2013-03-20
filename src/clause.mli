@@ -336,7 +336,7 @@ val get_min_defined_symb : clause -> int Lib.param
 (** get/assign general clause params *)
 
 val assign_tstp_source : clause -> tstp_source -> unit
-val get_tstp_source : clause -> tstp_source Lib.param
+val get_tstp_source : clause -> tstp_source
 
 val get_simplified_by : clause -> simplified_by Lib.param 
 val assign_simplied_by : simplified_by Lib.param -> clause -> unit
