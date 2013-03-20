@@ -2,7 +2,7 @@ open Lib
 open Options
 open Statistics
 
-(* contributers: Moshe Emmer, Ilan Tchernowitz *)
+(* contributors: Moshe Emmer, Ilan Tchernowitz *)
 
 
 type clause = Clause.clause
@@ -45,6 +45,7 @@ let () = assign_fun_stat
 
 let ss_r_index_ref = ref (SubsetSubsume.create ())
 let ss_f_index_ref = ref (SubsetSubsume.create ())
+
 
 exception Eliminated
 exception Empty_Clause of clause
@@ -150,8 +151,8 @@ let rec remove_clause_pred_map pred_map cl =
 	let lit_list = Clause.get_literals cl in
 	List.fold_left f pred_map lit_list
 
-let rec create_pred_map_cl_list clause_set =
-	Set.fold add_clause_pred_map clause_set SymbMap.empty
+let rec create_pred_map_cl_list clause_set pred_map_ref =
+	Set.fold add_clause_pred_map clause_set !pred_map_ref
 
 
 (*-------------------------------------------------------*)
@@ -190,13 +191,14 @@ let is_subset_subsumed cl index_ref =
 
 (*-------------------------------------------------------*)
 (*---------------- Forward Simplification ---------------*)
-let simplify_forward cl index_ref = 
+let simplify_forward cl index_ref pred_map_ref = 
   if (is_tautology cl) 
   then 
     ((*out_str_debug 
        ("Simplified tautology: "
         ^(Clause.to_string cl));*)        
       incr_int_stat 1  res_tautology_del;
+      remove_clause_pred_map !pred_map_ref cl;
      raise Eliminated)
   else
     if (is_subset_subsumed cl index_ref) 
@@ -205,6 +207,7 @@ let simplify_forward cl index_ref =
          ("Subset_subsumed: "
           ^(Clause.to_string cl)); *)
         incr_int_stat 1 res_forward_subset_subsumed;
+	remove_clause_pred_map !pred_map_ref cl;
        raise Eliminated)
     else
       if !current_options.res_prop_simpl_new
@@ -219,33 +222,53 @@ let simplify_forward cl index_ref =
                   if (is_subset_subsumed new_cl index_ref) 
                   then
                     (incr_int_stat 1 res_forward_subset_subsumed;
+		     remove_clause_pred_map !pred_map_ref cl;
                      raise Eliminated)
-                  else new_cl
+                  else 
+		     ( 
+		       let predMap = add_clause_pred_map new_cl !pred_map_ref in
+		       new_cl
+		     )
                  )
                else
-                 cl 
+		(
+		 let predMap = add_clause_pred_map cl !pred_map_ref in
+                 cl
+		)
         )
       else
-        cl  
+	(
+          let predMap = add_clause_pred_map cl !pred_map_ref in
+	  cl
+	)
+	
 
 (*-------------------------------------------------------*)
 (*---------------- Backward Simplification ---------------*)
-let eliminate_clause index_ref cl = 
+let eliminate_clause index_ref pred_map_ref cl = 
   Clause.set_bool_param 
     true Clause.is_dead cl;
 (* *)  
   (if (Clause.get_bool_param  Clause.in_subset_subsumption_index cl) 
   then 
-    (index_ref := SubsetSubsume.remove cl !index_ref)
+    (
+      index_ref := SubsetSubsume.remove cl !index_ref;
+      let predMap = remove_clause_pred_map !pred_map_ref cl in
+      ()
+    )
   );
 (* *)
   (if (Clause.get_bool_param  Clause.in_subsumption_index cl) 
   then 
+   (
     SubsumptionIndexM.remove_clause 
-      subsumption_index_ref (get_feature_list cl) cl
+      subsumption_index_ref (get_feature_list cl) cl;
+     let predMap = remove_clause_pred_map !pred_map_ref cl in
+     ()
+    )
   )
 
-let simplify_backward main_clause index_ref = 
+let simplify_backward main_clause index_ref pred_map_ref = 
   try 
     let subsumed_clauses = SubsetSubsume.find_subsumed main_clause !index_ref in
 (*    out_str (
@@ -255,7 +278,7 @@ let simplify_backward main_clause index_ref =
 (* we can eliminate backward subsumed clauses since *)
 (* we first forward subsume a given clause *)
 (* and therefore subsumptions are proper here *)
-      List.iter (eliminate_clause index_ref) subsumed_clauses;
+      List.iter (eliminate_clause index_ref pred_map_ref) subsumed_clauses;
    
     incr_int_stat (List.length subsumed_clauses) res_backward_subset_subsumed;
     (if not (subsumed_clauses = []) 
@@ -270,12 +293,14 @@ let simplify_backward main_clause index_ref =
 (*-------------------------------------------------------*)
 (*------------------ Resolution -------------------------*)
 
-let resolution c1 l1 compl_l1 c_list2 term_db_ref index_ref = 
+let resolution c1 l1 compl_l1 c_list2 term_db_ref index_ref pred_map_ref = 
   let new_litlist1 = 
     Clause.find_all (fun lit -> not(l1 == lit)) c1 
   in 
   let f rest c2 = 
-    let l2_list = Clause.find_all (fun lit -> (Term.get_top_symb (Term.get_atom lit) == Term.get_top_symb (Term.get_atom compl_l1))) c2 in
+	try
+    let l2_list = Clause.find_all 
+		(fun lit -> (Term.get_top_symb (Term.get_atom lit) == Term.get_top_symb (Term.get_atom compl_l1))) c2 in
     let l2 = List.hd l2_list in
     let mgu = Unif.unify_bterms (1,compl_l1) (2,l2) in
     let new_litlist2 = 
@@ -291,12 +316,15 @@ let resolution c1 l1 compl_l1 c_list2 term_db_ref index_ref =
     Clause.assign_conjecture_distance (min_conj_dist+1) conclusion; 
      
     (* forward simplification wrt F *)
-    try
-	let r_to_add = simplify_forward conclusion index_ref in 
-	r_to_add::rest; 
+    
+	   let r_to_add = simplify_forward conclusion index_ref pred_map_ref in 
+	    r_to_add::rest; 
     with
-	Eliminated -> rest in
-  List.fold_left f [] c_list2     
+		| Unif.Unification_failed -> rest
+	  | Eliminated -> rest 
+		in
+		
+     List.fold_left f [] c_list2     
 
 
 (*-------------------------------------------------------*)
@@ -305,7 +333,8 @@ let resolution c1 l1 compl_l1 c_list2 term_db_ref index_ref =
 let predElim_fun clause_list =
 	let clause_set = Clause.clause_list_to_set clause_list in 
 	let entry = ref false in
-	let predMap = create_pred_map_cl_list clause_set in
+	let pred_map_ref = ref (SymbMap.empty) in
+	let predMap = create_pred_map_cl_list clause_set pred_map_ref in
 	(* let predList = Map.bindings predMap in *)
 	let predList = SymbMap.fold (fun key _val rest -> (key::rest)) predMap [] in
 	try
@@ -315,7 +344,14 @@ let predElim_fun clause_list =
 		    	if (pred_info.multi_occ_cnt == 0) then
 			    let posClauses = pred_info.pos_cl_list in
 			    let negClauses = pred_info.neg_cl_list in
+			    let not_in_pos_neg cl =
+				 not (List.exists (fun cl_eq -> (cl == cl_eq)) (posClauses@negClauses))
+			    in
+			    let restClauses = List.filter not_in_pos_neg clause_list in
 			    (* build resolution resolvents *)
+			    if (((List.length posClauses) == 0) || ((List.length negClauses) == 0)) then
+				rest
+			    else 
 			    let r rest pos_cl =
 			    	let curr_lit_list = Clause.find_all (fun l_pred -> ((Term.get_top_symb (Term.get_atom l_pred)) == pred)) pos_cl in
 				(* a checker for curr_lit_list length *)
@@ -325,14 +361,17 @@ let predElim_fun clause_list =
 				| false ->
 					let curr_lit = List.hd curr_lit_list in
 			    		let compl_curr_lit = Term.compl_lit curr_lit in 
-			    		let r_to_add = resolution pos_cl curr_lit compl_curr_lit negClauses term_db_ref ss_f_index_ref in
+			    		let r_to_add = resolution pos_cl curr_lit compl_curr_lit negClauses term_db_ref ss_f_index_ref pred_map_ref in
 					(r_to_add@rest)
 			    in
-			    let res = List.fold_left r [] posClauses in 
+			    let res = List.fold_left r [] posClauses in
+			    let remove_clause_local cl = let dummy = remove_clause_pred_map !pred_map_ref cl in () in
+			    let removed_pos_clauses = List.iter remove_clause_local posClauses in
+			    let removed_neg_clauses = List.iter remove_clause_local negClauses in 
 			    (* forward simplification of each clause in R wrt R*)
 			    let r_fwd rest cl =
 			    	try
-			    		let cl_new = simplify_forward cl ss_r_index_ref in
+			    		let cl_new = simplify_forward cl ss_r_index_ref pred_map_ref in
 					cl_new::rest;
 				with
 					Eliminated -> rest
@@ -340,7 +379,7 @@ let predElim_fun clause_list =
 			    let res_fwd_simplified = List.fold_left r_fwd [] res in
 			    (* backward simplification of R wrt each clause in R*)
 			    let r_back cl =
-			    	simplify_backward cl ss_r_index_ref
+			    	simplify_backward cl ss_r_index_ref pred_map_ref
 			    in
 			    let for_backward_simplification = List.iter r_back res_fwd_simplified in
 			    let r_clean rest cl = 
@@ -349,8 +388,10 @@ let predElim_fun clause_list =
 				else
 				    (cl::rest)
 			    in
-			    List.fold_left r_clean [] res_fwd_simplified 
-			else [];
+			    let r_to_return = List.fold_left r_clean [] res_fwd_simplified in
+			    r_to_return@restClauses
+			else 
+			    rest;
 			(*should it be true??*)
 			(*let conclusion = Clause.create [] in
 			conclusion::rest in*)
@@ -365,10 +406,18 @@ let predElim_fun clause_list =
 
 let predElim clause_list =
 	out_str "\n\n Before pred elim: \n\n";
-	out_str (Clause.clause_list_to_string clause_list); 
+	out_str "\n\n Length of clause list before: ";
+	print_int (List.length clause_list); 
+	out_str "\n\n";
+	out_str (Clause.clause_list_to_string clause_list);
 	let new_clause_list = predElim_fun clause_list in 
 	out_str "\n\n After pred elim: \n\n";
 	out_str (Clause.clause_list_to_string new_clause_list); 
+	out_str "\n\n Length of clause list after: ";
+	print_int (List.length new_clause_list);
+	out_str "\n\n";
 	new_clause_list
+
+	
  
 	
