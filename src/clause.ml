@@ -84,8 +84,10 @@ let bc_is_negated_conjecture = 11 (* user *) (* TODO: change in the rest of the 
 let ccp_is_dead = 0  (* user *)
 (* ccp_is_dead true the the clause is simplified in a context and replaced by other clauses *)
 (* invariant: set of (not ccp_is_dead) clauses imply the set of all clauses in the context *)
+let cpp_in_prop_solver = 1 (* user *)
 
-let ccp_in_unsat_core = 1 (* user *)
+let ccp_in_unsat_core = 2 (* user *)
+
  (* clause was in unsat core in the last proof search run *)
 (* used in bmc1 *)
 (*--------proof search bool params --------------------------*)
@@ -883,12 +885,14 @@ let bc_set_bool_param value param clause =
 let bc_get_bool_param param clause =
 	Bit_vec.get param (get_bc_node clause).bc_bool_param
 
+(*------------- *)
 let ccp_get_bool_param param clause = 
 	Bit_vec.get param clause.ccp_bool_param
 
 let ccp_set_bool_param value param clause =
 	clause.ccp_bool_param <- Bit_vec.set value param clause.ccp_bool_param
 
+(*--------------*)
 let inst_get_bool_param param clause =
 	let inst_param = get_inst_param clause in
 	Bit_vec.get param inst_param.inst_bool_param
@@ -996,16 +1000,22 @@ let inherit_conj_dist from_c to_c =
 
 (*------ccp bool params get/assign-------*)
 let get_is_dead c = 
-	Bit_vec.get ccp_is_dead c.ccp_bool_param
+	ccp_get_bool_param ccp_is_dead c
 	
-let assign_is_dead t b c = 
-	Bit_vec.set b ccp_is_dead c.ccp_bool_param
+let assign_is_dead b c = 
+	ccp_set_bool_param b ccp_is_dead c 
 
 let in_unsat_core c = 
-	Bit_vec.get ccp_in_unsat_core c.ccp_bool_param
+	ccp_get_bool_param ccp_in_unsat_core c
 
 let assign_in_unsat_core b c = 
-	Bit_vec.set b ccp_in_unsat_core c.ccp_bool_param
+  ccp_set_bool_param b ccp_in_unsat_core c
+
+let in_prop_solver c = 
+	 ccp_get_bool_param cpp_in_prop_solver c
+
+let assign_in_prop_solver b c = 
+	ccp_set_bool_param b cpp_in_prop_solver c
 
 (*-----proof_search param get/assign---------*)
 

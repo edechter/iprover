@@ -21,12 +21,13 @@
 open Lib 
 open Statistics
 open Options
-open TermDB.Open
+open Logic_interface
 
 (* Separate exception, different from PropSolver.Unsatisfiable. In
    BMC1 we must not continue after PropSolver.Unsatisfiable, since
    solver is in invalid state (unsat without assumptions), but we must
    continue after this exception (unsat with assumptions). *)
+
 exception Unsatisfiable
 
 
@@ -204,7 +205,7 @@ else
 			
 		let f stype s gr_term_map_curr =
 			let gr_by_term = 
-				  add_fun_term term_db_ref s [] in 
+				  add_fun_term s [] in 
 			 SMap.add stype gr_by_term gr_term_map_curr
 	 in
 	 let gr_term_map = 
@@ -461,7 +462,7 @@ let var_entry_sel_to_string prop_var_entry =
   try
     let clause_list_str =  
       let get_cl_str rest clause = 
-	let sel_lit = Clause.get_inst_sel_lit clause in
+	let sel_lit = Clause.inst_get_sel_lit clause in
 	let sel_str = "\n Selected:  "^(Term.to_string sel_lit)^"\n" in
 	let clause_str = " In clause: "^(Clause.to_string clause) in
 	rest^sel_str^clause_str 

@@ -348,10 +348,13 @@ val inherit_conj_dist : clause -> clause -> unit
 val get_min_conjecture_distance_clist : clause list -> int
 
 val get_is_dead : clause -> bool
-val assign_is_dead : 'a -> bool -> clause -> Bit_vec.bit_vec
+val assign_is_dead : bool -> clause -> unit
 
 val in_unsat_core : clause -> bool
-val assign_in_unsat_core : bool -> clause -> Bit_vec.bit_vec
+val assign_in_unsat_core : bool -> clause -> unit
+
+val in_prop_solver : clause -> bool
+val assign_in_prop_solver : bool -> clause -> unit
 
 val assign_empty_ints_param : clause -> unit
 val assign_empty_res_param : clause -> unit
