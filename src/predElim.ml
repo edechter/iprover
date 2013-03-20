@@ -316,11 +316,11 @@ let resolution c1 l1 compl_l1 c_list2 term_db_ref index_ref pred_map_ref =
     Clause.assign_conjecture_distance (min_conj_dist+1) conclusion; 
      
     (* forward simplification wrt F *)
-    
+   
 	   let r_to_add = simplify_forward conclusion index_ref pred_map_ref in 
-	    r_to_add::rest; 
+	    r_to_add::rest			
     with
-		| Unif.Unification_failed -> rest
+		| Unif.Unification_failed -> rest 
 	  | Eliminated -> rest 
 		in
 		
