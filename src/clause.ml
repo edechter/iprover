@@ -41,10 +41,10 @@ type b_litlist = literal_list bind
 exception Term_compare_greater
 exception Term_compare_less
 
-(*
+
 let clause_counter = ref 0 
 let incr_clause_counter () =  (clause_counter := !clause_counter+1)
-*)
+
 
 (* all boolean param of a clause stored in a bit vector (should be in 0-30 range)*)
 (* position of the param in the vector *)
@@ -155,8 +155,8 @@ type sel_place = int
 type clause =
 	{
 		basic_clause : basic_clause;
-		mutable fast_key : int;    (* unique id  the context*)
-  	mutable context_id : int;  (* clause is identified by context_id and fast_id *)
+		mutable fast_key : int;    (* unique id  based on clause_counter *)
+(*  mutable context_id : int; *)  (* clause is identified by context_id and fast_id *)
 		mutable tstp_source : tstp_source param;
 		mutable simplified_by : simplified_by param;
 		mutable prop_solver_id : int param; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
@@ -195,7 +195,7 @@ and simplified_by =
 	(* in particular we can replace the original clause by simplified_by clauses *)
 	(* there is no cyclic simplification depdendences; we can recover the leaf simplifyig clauses which are not simplified *)
 	| Simp_by_subsumption of clause
-	| Simp_by_global_subsumption of clause
+(*	| Simp_by_global_subsumption of clause *) (* covered by subsumption witness *)
 (* in future: demodulation, others *)
 
 (*-------tstp_source-----------*)
@@ -298,8 +298,22 @@ type bound_bclause = basic_clause Lib.bind
 let get_bclause c =
 	c.basic_clause
 
-let get_fast_key c = c.fast_key 
-let get_context_id c = c.context_id
+let get_bc = get_bclause (* shorthand *)
+
+(* fast_key is unique for each generated clause  *)
+let get_fast_key c = c.fast_key
+
+(* lits_fast_key is the basic_clause rather than basic_clause.tag since if we use tag basic clause may be removed *)
+(* by weak table since no refernce will be held *)
+(*  unique for each literal list *)
+
+
+let get_lits_fast_key c = c.basic_clause
+let get_lits_hash c = c.basic_clause
+let lits_compere c1 c2 = Pervasives.compare c1.tag c2.tag
+let lits_equal c1 c2 =  c1.basic_clause == c2.basic_clause
+ 
+(* let get_context_id c = c.context_id *)
 	
 (*-----------------------------------------*)
 let compare_basic_clause c1 c2 =
@@ -307,18 +321,27 @@ let compare_basic_clause c1 c2 =
 
 let equal_basic_clause = (==)
 
+(*
 let compare_clause c1 c2 =
 	pair_compare_lex
 		Pervasives.compare
 		Pervasives.compare
 		((get_fast_key c1), (get_context_id c1))
 		((get_fast_key c2), (get_context_id c2))
+*)
+
+let compare_clause c1 c2 =
+	Pervasives.compare (get_fast_key c1) (get_fast_key c2)
 
 let equal_clause = (==)
 
 let equal = equal_clause
 
 let compare = compare_clause 
+
+let compare_lits c1 c2 = compare_basic_clause (get_bc c1) (get_bc c2)
+
+let equal_lits c1 c2 =  equal_basic_clause (get_bc c1) (get_bc c2) 
 
 
 (*---------- filling Bool params of a basic clause ----------------------------*)
@@ -550,28 +573,115 @@ let create_res_param () =
 	}
 *)
 
-
-
+(*
 (*-----------------*)
 module KeyContext = 
 	struct
 		  type t = basic_clause (* key *)
-		  type e = clause
 			let hash bc = bc.tag
-			let equal bc1 bc2 = (bc1.tag = bc2.tag) 
-    (*  let compare c1 c2 = compare_basic_clause (get_bclause c1) (get_bclause c2) *)
-      let assign_fast_key c i = c.fast_key <- i 
-      let assign_db_id c i = c.context_id <- i 
-	end
+			let equal bc1 bc2 = (bc1 == bc2) 
+  end
 	 
-module Context = AssignMap.Make(KeyContext)
+module Context = Hashtbl.Make(KeyContext)
 
-type context = Context.assign_map
+type context = clause Context.t
 
 (* cc -- context*)
 
-let create_context size name = Context.create size name
+(* creates context with an inital size *)
+let context_create size = Context.create size 
 
+let context_add cc c = 
+	let bc = (get_bc c) in
+	try (Context.find cc bc) 
+	with 
+	| Not_found -> 
+		(Context.add cc bc c;
+		c
+		)
+		
+let context_remove cc c = Context.remove cc (get_bc c)
+let context_mem cc c = Context.mem cc (get_bc c)
+let context_reset cc = Context.reset cc (* empties context*) 		
+let context_find cc c = Context.find cc (get_bc c)
+
+let context_iter cc f = Context.iter (fun _ c -> f c) cc
+let context_fold cc f a = Context.fold (fun _ c a -> (f c a)) cc a  
+let context_size cc = Context.length cc
+
+(** copy_context from_cxt to_contxt; if a clause in to_context it will remain and not replaced by from_cxt; *)
+(** from_cxt remains unchanged;  clauses are not renewed but added so changing paramtes in to_cxt will affect on from_cxt *)
+(* use context_reset which clears and resizes to the initial size *)
+
+let context_add_context from_cxt to_cxt =
+	let f c = 
+		 ignore (context_add to_cxt c)
+		in
+	context_iter from_cxt f
+
+let get_simplified_by c = 
+	match c.simplified_by with 
+	| Def(Simp_by_subsumption sc)-> Some(sc)
+	| Undef -> None
+	 
+(* add assert of non-cyclicity check *)		
+let get_simplifed_by_rec clause_list = 
+	let rec f to_process simp_by = 
+	match to_process with 
+	|h::tl -> 
+		(match h.simplified_by with 
+	   |Def(Simp_by_subsumption sc) -> 
+	  	(assert (get_is_dead h);
+				f (sc::tl) simp_by
+			)
+	   |Undef -> 
+		  (assert (not (get_is_dead h));
+				f tl (sc::simp_by)
+				)
+		 )		
+	|	[] -> simp_by
+	    	 
+ in
+  f clause_list	[]
+	
+	
+(* replaces dead clauses with simplified *)
+let context_replace_dead cc =
+	let dead_list = 
+      let f c rest = 
+				if (is_dead c)
+        then 
+					(context_remove cc c;
+						c::rest)
+			else 
+				(
+					rest
+					)
+	in 
+	context_fold f cc []
+	in
+	let simp_by = get_simplifed_by_rec dead_list in 
+	List.iter (fun c -> ignore (context_add cc c)) simp_by
+	
+	
+	
+(* a diferent version prossible to merge from smaller to larger
+let merge_context from_cxt to_contxt = 
+
+		let (smaller_cxt,larger_cxt) = 
+		if (context_size from_cxt) < (context_size to_cxt)
+		then 
+			(from_cxt, to_cxt) 
+		else 
+			(to_cxt, from_cxt)
+	in (* move from smaller to bigger cxt*)
+	let f c = 
+		 if (context_mem larger_cxt c) 
+		 then ()
+		 else 
+*)
+
+	*)					
 (*
 (* cc -- context*)
 let cc_create size name = Context.create_name size name
@@ -860,8 +970,10 @@ let get_tstp_source c =	c.tstp_source
 
 (*let get_context_id c = c.node.context_id*)
 
+(*
 let assign_context_id id c = 
 	c.context_id <- id
+*)
 
 let get_simplified_by c = 
 	c.simplified_by
@@ -1227,13 +1339,13 @@ the clause. If the identifier is undefined, the clause is named
 [c_tmp].
 *)
 let pp_clause_name ppf clause = 
-	Format.fprintf ppf "c_%d_%d" (get_context_id clause) (get_fast_key clause)
+	Format.fprintf ppf "c_%d" (*(get_context_id clause)*) (get_fast_key clause)
 
 let pp_clause_with_id ppf clause =
 	Format.fprintf
 		ppf
-		"(%d_%d) {%a}"
-		(get_context_id clause)
+		"(%d) {%a}"
+		(*(get_context_id clause)*)
 		(get_fast_key clause)
 		(pp_any_list Term.pp_term ";") (get_lits clause)
 
@@ -1283,8 +1395,8 @@ let pp_clause_literals_tptp ppf clause =
 let pp_clause_tptp ppf clause =
 	Format.fprintf
 		ppf
-		"cnf(c_%d_%d,%s,(%a))."
-	  (get_context_id clause)  (get_fast_key clause)
+		"cnf(c_%d,%s,(%a))."
+	 (* (get_context_id clause) *) (get_fast_key clause)
 		(if (is_negated_conjecture clause)
 			then "negated_conjecture"
 			else "plain")
@@ -1314,7 +1426,7 @@ let rec pp_clause_list_tptp ppf = function
 let tptp_to_stream s clause =
 	begin
 		s.stream_add_str "cnf(";
-		s.stream_add_str ("id_"^(string_of_int (get_context_id clause))^"_"^(string_of_int  (get_fast_key clause)));
+		s.stream_add_str ("id_"^(string_of_int  (get_fast_key clause)));
 		s.stream_add_char ',';
 		(if (is_negated_conjecture clause)
 			then
@@ -1672,11 +1784,13 @@ let new_clause is_negated_conjecture tstp_source ps_param bc =
 		else
 	  	(get_conjecture_distance_tstp_source tstp_source)+1
 		in 	
+		let fast_key = !clause_counter in
+		incr_clause_counter ();
 		let new_clause = 
 	 {
 		basic_clause = bc;
-		fast_key = 0; (* auto assigned when added to context *)
-		context_id = 0; (* auto assigned when added to context *)
+		fast_key = fast_key; (* auto assigned when added to context *)
+(*	context_id = 0; *)(* auto assigned when added to context *)
 		tstp_source = Def(tstp_source);
 		simplified_by = Undef;
 		prop_solver_id = Undef;
@@ -1699,38 +1813,32 @@ let fill_clause_param is_conjecture tstp_source ps_param c =
 	*)
 	
 
-let create_clause_neg_conj_opt context is_negated_conjecture tstp_source proof_search_param lits =
+let create_clause_neg_conj_opt is_negated_conjecture tstp_source proof_search_param lits =
 	let bc = create_basic_clause lits in
-	try 
-		Context.find context bc 
-	with 
-	 Not_found -> 
-	(let clause = new_clause is_negated_conjecture tstp_source proof_search_param bc in	
-	  let added_clause = Context.add context bc clause in
-    added_clause
-		)	
+	new_clause is_negated_conjecture tstp_source proof_search_param bc
+	
 	
 (* assume clause is not a negated conjecture *)
-let create_clause context tstp_source proof_search_param lits =
- create_clause_neg_conj_opt context false tstp_source proof_search_param lits
+let create_clause  tstp_source proof_search_param lits =
+ create_clause_neg_conj_opt false tstp_source proof_search_param lits
 
 (* assume clause is a negate_conjecture *)
-let create_neg_conjecture context tstp_source proof_search_param lits = 
-	create_clause_neg_conj_opt context true tstp_source proof_search_param lits
+let create_neg_conjecture  tstp_source proof_search_param lits = 
+	create_clause_neg_conj_opt true tstp_source proof_search_param lits
 	
 	
 (* literals are not normalised *)
 	
-let create_clause_res context tstp_source lits =
+let create_clause_res  tstp_source lits =
 	let res_param = Res_param (create_res_param ()) in (* max_conjecture_dist calculate *)
-	create_clause context tstp_source res_param lits
+	create_clause  tstp_source res_param lits
 
-let create_clause_inst context tstp_source lits =
+let create_clause_inst  tstp_source lits =
 	let inst_param = Inst_param (create_inst_param ()) in
-	create_clause context tstp_source inst_param lits
+	create_clause  tstp_source inst_param lits
 
-let create_clause_no_param context tstp_source lits =
-	create_clause context tstp_source Empty_param lits
+let create_clause_no_param  tstp_source lits =
+	create_clause  tstp_source Empty_param lits
 
 
 (*--------------Compare two clauses-------------------*)
@@ -1932,27 +2040,150 @@ let tstp_source_assumption () =
 
 (*---------------- end TSTP --------------------------*)
 
-(*-------------- Hash/Map/Set -------------------------*)
 
-module Key = 
+(*-----------------*)
+module KeyContext = 
 	struct
-  type t = clause
-	let equal = (==)
-	let hash c = hash_sum (get_fast_key c) (get_context_id c)
-	let compare = compare
-	end
+		  type t = basic_clause (* key *)
+			let hash bc = bc.tag
+			let equal bc1 bc2 = (bc1 == bc2) 
+  end
+	 
+module Context = Hashtbl.Make(KeyContext)
 
-module Map = Map.Make(Key)
+type context = clause Context.t
 
-module Set = Set.Make(Key)
-type clause_set = Set.t
+(* cc -- context*)
 
-module Hashtbl = Hashtbl.Make(Key)
+(* creates context with an inital size *)
+let context_create size = Context.create size 
 
-let clause_list_to_set clause_list =
-	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
+let context_add cc c = 
+	let bc = (get_bc c) in
+	try (Context.find cc bc) 
+	with 
+	| Not_found -> 
+		(Context.add cc bc c;
+		c
+		)
+		
+let context_remove cc c = Context.remove cc (get_bc c)
+let context_mem cc c = Context.mem cc (get_bc c)
+let context_reset cc = Context.reset cc (* empties context*) 		
+let context_find cc c = Context.find cc (get_bc c)
+
+let context_iter cc f = Context.iter (fun _ c -> f c) cc
+let context_fold cc f a = Context.fold (fun _ c a -> (f c a)) cc a  
+let context_size cc = Context.length cc
+
+(** copy_context from_cxt to_contxt; if a clause in to_context it will remain and not replaced by from_cxt; *)
+(** from_cxt remains unchanged;  clauses are not renewed but added so changing paramtes in to_cxt will affect on from_cxt *)
+(* use context_reset which clears and resizes to the initial size *)
+
+let context_add_context from_cxt to_cxt =
+	let f c = 
+		 ignore (context_add to_cxt c)
+		in
+	context_iter from_cxt f
+
+(*
+*)
+	 
+(* add assert of non-cyclicity check *)		
+let get_simplifed_by_rec clause_list = 
+	let rec f to_process simp_by = 
+	match to_process with 
+	|h::tl -> 
+		(match (get_simplified_by h) with 
+	   |Def(Simp_by_subsumption sc) -> 
+	  	(assert (get_is_dead h);
+				f (sc::tl) simp_by
+			)
+	   |Undef -> 
+		  (assert (not (get_is_dead h));
+				f tl (h::simp_by)
+				)
+		 )		
+	|	[] -> simp_by
+	    	 
+ in
+  f clause_list	[]
+	
+	
+(* replaces dead clauses with simplified *)
+let context_replace_dead cc =
+	let dead_list = 
+      let f c rest = 
+				if (get_is_dead c)
+        then 
+					(context_remove cc c;
+						c::rest)
+			else 
+				(
+					rest
+					)
+	in 
+	context_fold cc f []
+	in
+	let simp_by = get_simplifed_by_rec dead_list in 
+	List.iter (fun c -> ignore (context_add cc c)) simp_by
+	
+	
+	
+(* a diferent version prossible to merge from smaller to larger
+let merge_context from_cxt to_contxt = 
+
+		let (smaller_cxt,larger_cxt) = 
+		if (context_size from_cxt) < (context_size to_cxt)
+		then 
+			(from_cxt, to_cxt) 
+		else 
+			(to_cxt, from_cxt)
+	in (* move from smaller to bigger cxt*)
+	let f c = 
+		 if (context_mem larger_cxt c) 
+		 then ()
+		 else 
+*)
+
+						
+(*
+(* cc -- context*)
+let cc_create size name = Context.create_name size name
+let cc_mem cc bc = Context.mem cc bc
+let cc_find cc bc = Context.find cc bc
+let cc_size cc = Context.size cc
+
+(* in cc_fold f: bc -> c -> 'a -> 'a *)
+let cc_fold f cc a = Context.fold f cc a
+
+(* in cc_iter f: bc -> c -> unit *)
+let cc_iter f cc = Context.iter f cc
+let cc_add cc clause = 
+  Context.add clause db_ref
+
+(* should be copyed since add_ref is different....*)
+let cc_add context elem =
+      let cc_ref = ref context in
+      let _ = cc_add_ref cc_ref elem in
+      !cc_ref
 
 
+let cc_remove context clause = 
+  let new_context = Context.remove clause context in
+  Clause.set_bool_param false Clause.in_clause_db clause;
+  new_db
+
+let cc_get_name = ClauseDBM.get_name
+
+let to_stream s clause_db = 
+  ClauseDBM.to_stream s Clause.to_stream ",\n" clause_db
+
+let out = to_stream stdout_stream
+
+let to_string clause_db = 
+  ClauseDBM.to_string Clause.to_stream ",\n" clause_db
+*)
 		 
 (*
 let normalise term_db_ref clause =
@@ -2007,7 +2238,7 @@ let get_skolem_bound_clause clause =
 	| _ -> None
 
 
-let replace_subterm termdb_ref context subterm byterm lits =
+let replace_subterm termdb_ref subterm byterm lits =
 	normalise_lit_list
 		termdb_ref
 				(List.map (Term.replace subterm byterm) lits)
@@ -2065,4 +2296,26 @@ let clause_list_signature clause_list =
 	extend_clause_list_signature cl_sig clause_list;
 	cl_sig
 																														
+
+
+(*-------------- Hash/Map/Set -------------------------*)
+
+module Key = 
+	struct
+  type t = clause
+	let equal = (==)
+	let hash c =  (get_fast_key c) 
+(*	let hash c = hash_sum (get_fast_key c) (get_context_id c)*)
+	let compare = compare
+	end
+
+module Map = Map.Make(Key)
+
+module Set = Set.Make(Key)
+type clause_set = Set.t
+
+module Hashtbl = Hashtbl.Make(Key)
+
+let clause_list_to_set clause_list =
+	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
 

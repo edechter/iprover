@@ -12,7 +12,6 @@ type tstp_source = Clause.tstp_source
 type context = Clause.context
 type proof_search_param = Clause.proof_search_param
 
-
 let symbol_db_ref = Parser_types.symbol_db_ref
 let term_db_ref = Parser_types.term_db_ref
 

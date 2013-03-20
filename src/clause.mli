@@ -30,7 +30,7 @@ and proof_search_param =
   | Empty_param
 and simplified_by =
     Simp_by_subsumption of clause
-  | Simp_by_global_subsumption of clause
+ (* | Simp_by_global_subsumption of clause*)
 and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom
 and tstp_internal_source =
     TSTP_definition
@@ -77,10 +77,21 @@ type bound_clause = clause Lib.bind
 
 (* val get_bclause : clause -> basic_clause *)
 
+(*type lits_fast_key*)
+
 val get_fast_key : clause -> int
+val compare_lits : clause -> clause -> int
+val equal_lits : clause -> clause -> bool
 
+(*
+val get_lits_fast_key : clause -> basic_clause
+val get_lits_hash : clause -> basic_clause
+val lits_compare : lits_fast_key -> lits_fast_key -> int
+val lits_equal : clause -> clause -> bool
+*)
+(*
 val get_context_id : clause -> int
-
+*)
 (*
 val compare_basic_clause :
   'a Hashcons.hash_consed -> 'b Hashcons.hash_consed -> int
@@ -188,25 +199,39 @@ module Context :
 type context
 
 (** create_context size name; size approximate initial size *)
-val create_context : int -> string -> context
+val context_create : int -> context
+val context_add : context -> clause -> clause
+val context_remove : context -> clause -> unit
+val context_mem : context -> clause -> bool
+val context_reset : context -> unit
+val context_find : context -> clause -> clause
+val context_iter : context -> (clause -> unit) -> unit
+val context_fold : context -> (clause -> 'a -> 'a) -> 'a -> 'a
+val context_size : context -> int
+
+(* context_add_context from_cxt to_cxt *)
+val context_add_context : context -> context -> unit
+(** replaces dead with simplified_by *)
+val context_replace_dead : context -> unit
+
 
 (*val template_clause : basic_clause -> clause*)
 
 (** creates a clause within a context; use create_neg_conjecture if a clause is a negate conjectue *)
 val create_clause :
-  context -> tstp_source -> proof_search_param -> literal_list -> clause
+   tstp_source -> proof_search_param -> literal_list -> clause
 	
 val create_neg_conjecture :
- context -> tstp_source -> proof_search_param -> literal_list -> clause
+  tstp_source -> proof_search_param -> literal_list -> clause
 	
 val create_clause_res :
-  context -> tstp_source -> literal_list -> clause
+   tstp_source -> literal_list -> clause
 
 val create_clause_inst :
-  context -> tstp_source -> literal_list -> clause
+   tstp_source -> literal_list -> clause
 
 val create_clause_no_param :
-  context -> tstp_source -> literal_list -> clause
+   tstp_source -> literal_list -> clause
 	
 (*-----*)	
 val get_lits : clause -> literal_list
@@ -646,7 +671,7 @@ val get_skolem_bound_clause : clause -> Term.term option
 (*--------------*)
 val replace_subterm :
   TermDB.termDB ref ->
-  'a -> Term.term -> Term.term -> Term.term list -> SubstBound.term list
+   Term.term -> Term.term -> Term.term list -> Term.term list
 
 (**---clause signature ----*)
 
