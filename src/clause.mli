@@ -291,7 +291,7 @@ exception Clause_prop_solver_id_is_def
 exception Clause_prop_solver_id_is_undef
 
 val assign_prop_solver_id : clause -> int -> unit
-val get_prop_solver_id : clause -> int Lib.param
+val get_prop_solver_id : clause -> int option
 
 (*val get_bc : clause -> basic_clause
 val get_bc_node : clause -> basic_clause_node

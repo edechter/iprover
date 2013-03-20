@@ -1462,7 +1462,7 @@ exception PropImplied
 let add_clause_to_solver clause =
 
   (* Skip if clause already in solver *)
-  if Clause.get_bool_param Clause.in_prop_solver clause then 
+  if (Clause.in_prop_solver clause) then 
 
     (
 (*
@@ -1489,11 +1489,8 @@ let add_clause_to_solver clause =
 	  Clause.pp_clause clause;
 	  
       (* Mark clause as added to the solver *)
-      Clause.set_bool_param true Clause.in_prop_solver clause;
-
-	  (* Copy clause history *)
-      Clause.inherit_tstp_source clause clause;
-      
+      Clause.assign_in_prop_solver true clause;
+     
       (* Get literals from clause *)
       let lits = Clause.get_literals clause in
       
@@ -2063,9 +2060,9 @@ let preserve_model_solver move_lit_from_active_to_passive var_entry =
 		  let new_truth_val = PropSolver.lit_val solver prop_var in
 		  var_entry.truth_val <- Def(new_truth_val);
 		  let move_cl_from_active_to_passive clause =
-		   if  (Clause.get_bool_param Clause.in_active clause) 
+		   if  (Clause.get_ps_in_active clause) 
  		   then 
-		     (let sel_lit = Clause.get_inst_sel_lit clause in
+		     (let sel_lit = Clause.inst_get_sel_lit clause in
 		     (* moves all clauses indexed by sel_lit *)
                     move_lit_from_active_to_passive sel_lit)
                    else ()
@@ -2116,9 +2113,9 @@ let change_model_solver  move_lit_from_active_to_passive var_entry =
 		    (var_entry_to_string var_entry)^"\n");*)	  	 
 	     var_entry.truth_val <- Def(new_truth_val);
 	     let move_cl_from_active_to_passive clause =
-	       if  (Clause.get_bool_param Clause.in_active clause) 
+	       if  (Clause.get_ps_in_active clause) 
 	       then 
-		 (let sel_lit = Clause.get_inst_sel_lit clause in
+		 (let sel_lit = Clause.inst_get_sel_lit clause in
 	     (*  out_str ("Change_model in Active: "^(Clause.to_string clause)^"\n");*)
 	       (* moves all clauses indexed by sel_lit *)
 		 move_lit_from_active_to_passive sel_lit
@@ -2207,7 +2204,7 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
     let _= preserve_model_solver move_lit_from_active_to_passive solver var_entry in () in
   Clause.iter preserve_mod clause; *)
   try
-    let sel_lit       = Clause.get_inst_sel_lit clause in    
+    let sel_lit       = Clause.inst_get_sel_lit clause in    
     let sel_var_entry = get_prop_gr_var_entry sel_lit in
     if 
       (consistent_with_model sel_lit)
@@ -2247,7 +2244,7 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 	     let model_sel_var_entry  = get_prop_gr_var_entry model_sel_lit in
 	       if  (preserve_model_solver move_lit_from_active_to_passive model_sel_var_entry) then 
 		 ((*change_model_solver model_sel_var_entry;*)
-		  Clause.assign_inst_sel_lit model_sel_lit clause;
+		  Clause.inst_assign_sel_lit model_sel_lit clause;
 		  ass_if_consistent model_sel_lit clause;
 (*		  out_str ("preserve model:  "^
 			   (var_entry_to_string model_sel_var_entry)^"\n");
@@ -2281,7 +2278,7 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 (*	     out_str("Sel_Lit: "^(Term.to_string solver_sel_lit)^"  "
 		     ^"Sel_lit entry: "
 		     ^(var_entry_to_string  solver_sel_var_entry));*)
-	     Clause.assign_inst_sel_lit solver_sel_lit clause; 
+	     Clause.inst_assign_sel_lit solver_sel_lit clause; 
 	     ass_if_consistent solver_sel_lit clause
 (*	     out_str ("----------------------------\n");*)
 	   )
@@ -2313,7 +2310,7 @@ let rec selection_renew_model move_lit_from_active_to_passive selection_fun clau
 			  ^"Sel_lit entry: "
 			  ^(var_entry_to_string new_solver_sel_var_entry)^"\n");
 *)
-		   Clause.assign_inst_sel_lit new_solver_sel_lit clause; 
+		   Clause.inst_assign_sel_lit new_solver_sel_lit clause; 
 		   ass_if_consistent new_solver_sel_lit clause
 		
 	     )
@@ -2364,7 +2361,7 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 (*	     out_str("Sel_Lit: "^(Term.to_string solver_sel_lit)^"  "
 		     ^"Sel_lit entry: "
 		     ^(var_entry_to_string  solver_sel_var_entry));*)
-	     Clause.assign_inst_sel_lit solver_sel_lit clause; 
+	     Clause.inst_assign_sel_lit solver_sel_lit clause; 
 	     ass_if_consistent solver_sel_lit clause
 (*	     out_str ("----------------------------\n");*)
 	   )
@@ -2392,7 +2389,7 @@ let rec selection_renew_solver move_lit_from_active_to_passive selection_fun cla
 			  "Sel_Lit: "^(Term.to_string new_solver_sel_lit)^"\n"
 			  ^"Sel_lit entry: "
 			  ^(var_entry_to_string new_solver_sel_var_entry)^"\n");*)
-		 Clause.assign_inst_sel_lit new_solver_sel_lit clause; 
+		 Clause.inst_assign_sel_lit new_solver_sel_lit clause; 
 		 ass_if_consistent new_solver_sel_lit clause
 	     )
 	
@@ -2623,25 +2620,23 @@ let prop_subsumption clause =
 	( (* Format.eprintf "Clause simplified to empty clause in prop_subsumption@."; *)
 	 raise Unsatisfiable)
       else
-	(let new_clause   = 
-	  Clause.normalise term_db_ref 
-	    (Clause.create 
+	(
+		let tstp_source = 
+			Clause.tstp_source_global_subsumption 
+	   ((TableArray.num_of_elem var_table) + 
+	       (PropSolver.clauses_with_id solver_uc)) clause
+    in
+		let new_clause = create_clause tstp_source Clause.Empty_param
 	       ((List.map 
-		   (function add_lit -> add_lit.slit) new_add_lits)@(!adjoint_preds))) 
+		   (function add_lit -> add_lit.slit) new_add_lits)@(!adjoint_preds))
 	in
 	  (* out_str ("Old Clause: "^(Clause.to_string clause)^"\n");  *)
-	    Clause.inherit_param_modif clause new_clause;
-	    (* Clause.assign_global_subsumption_history new_clause clause; *)
-
+	   (* Clause.inherit_param_modif clause new_clause; *)
+	
 	 (* Clause was propositionally subsumed by some clauses up to
 	    the currently highest clause ID *)
-	 Clause.assign_tstp_source_global_subsumption 
-	   ((TableArray.num_of_elem var_table) + 
-	       (PropSolver.clauses_with_id solver_uc))
-	   new_clause 
-	   clause; 
-
-            Clause.set_bool_param true Clause.res_simplifying new_clause;
+		  
+      Clause.set_ps_simplifying true new_clause;
 	    add_clause_to_solver new_clause;
 	   
 (*	    out_str ("New Clause: "^(Clause.to_string new_clause)^"\n");*)
@@ -2815,15 +2810,14 @@ let ground_clause clause =
       
       (* Ground literals in clause *)
       let gnd_literals, grounding = 
-	ground_literals ([], []) (Clause.get_literals clause) 
+	     ground_literals ([], []) (Clause.get_literals clause) 
       in
-      
+      let tstp_source = 
+			 Clause.tstp_source_grounding grounding clause in
+	
       (* Create new ground clause *)
-      let gnd_clause = Clause.create (List.rev gnd_literals) in
-      
-      (* Assign source for clause *)
-      Clause.assign_tstp_source_grounding grounding gnd_clause clause;
-
+      let gnd_clause = create_clause tstp_source Clause.Empty_param (List.rev gnd_literals) in
+        
       (* Return clause *)
       gnd_clause 
 	

@@ -162,7 +162,7 @@ type clause =
 (*  mutable context_id : int; *)  (* clause is identified by context_id and fast_id *)
 		mutable tstp_source : tstp_source param;
 		mutable simplified_by : simplified_by param;
-		mutable prop_solver_id : int param; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
+		mutable prop_solver_id : int option; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
 		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
 		mutable proof_search_param : proof_search_param;  (* we can reassign clause paramters within the same context *)
 		mutable ccp_bool_param : Bit_vec.bit_vec;
@@ -800,8 +800,8 @@ exception Clause_prop_solver_id_is_undef
 
 let assign_prop_solver_id c id =
 	match c.prop_solver_id with
-	| Undef -> c.prop_solver_id <- Def (id)
-	| Def _ -> raise Clause_prop_solver_id_is_def
+	| None -> c.prop_solver_id <- Some (id)
+	| Some _ -> raise Clause_prop_solver_id_is_def
 
 let get_prop_solver_id clause = clause.prop_solver_id
 
@@ -1804,7 +1804,7 @@ let new_clause ~is_negated_conjecture tstp_source ps_param bc =
 (*	context_id = 0; *)(* auto assigned when added to context *)
 		tstp_source = Def(tstp_source);
 		simplified_by = Undef;
-		prop_solver_id = Undef;
+		prop_solver_id = None;
 		conjecture_distance = conjecture_distance;
 		proof_search_param = ps_param;
 		ccp_bool_param = Bit_vec.false_vec
