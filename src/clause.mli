@@ -36,7 +36,6 @@ and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom
 and tstp_internal_source =
     TSTP_definition
   | TSTP_assumption
-  | TSTP_non_eq_to_eq
 and tstp_theory_bmc1 =
     TSTP_bmc1_path_axiom of int
   | TSTP_bmc1_reachable_state_axiom of int
@@ -64,6 +63,7 @@ and tstp_inference_rule =
   | Backward_subsumption_resolution
   | Splitting of symbol list
   | Grounding of (var * term) list
+	| Non_eq_to_eq
   | Subtyping
   | Flattening
 and tstp_inference_record = tstp_inference_rule * clause list
@@ -469,10 +469,10 @@ val inst_assign_when_born : clause list -> clause list -> clause -> unit
 val tstp_source_instantiation : clause -> clause list -> tstp_source
 val tstp_source_resolution : clause list -> literal list -> tstp_source
 val tstp_source_factoring : clause -> literal list -> tstp_source
-val tstp_source_subtyping : 'a -> clause -> tstp_source
+val tstp_source_subtyping :  clause -> tstp_source
 val tstp_source_input : string -> string -> tstp_source
 val tstp_source_global_subsumption : int -> clause -> tstp_source
-val tstp_source_non_eq_to_eq : 'a -> tstp_source
+val tstp_source_non_eq_to_eq : clause -> tstp_source
 val tstp_source_forward_subsumption_resolution :
   clause -> clause list -> tstp_source
 val tstp_source_backward_subsumption_resolution : clause list -> tstp_source

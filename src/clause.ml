@@ -213,7 +213,6 @@ and axiom =
 and tstp_internal_source =
 	| TSTP_definition
 	| TSTP_assumption
-	| TSTP_non_eq_to_eq
 
 and tstp_theory_bmc1 =
 	| TSTP_bmc1_path_axiom of int
@@ -245,6 +244,7 @@ and tstp_inference_rule =
 	| Backward_subsumption_resolution
 	| Splitting of symbol list
 	| Grounding of (var * term) list
+	| Non_eq_to_eq
 	| Subtyping
 	| Flattening
 
@@ -1770,7 +1770,8 @@ let get_parents tstp_source =
 					| Forward_subsumption_resolution -> []
 					| Backward_subsumption_resolution -> []
 					| Splitting _ ->[]
-					| Grounding _ ->[]
+					| Grounding _ -> []
+					| Non_eq_to_eq -> []
 					| Subtyping  ->[]
 					| Flattening ->[]
 				end
@@ -1994,7 +1995,7 @@ let tstp_source_resolution parents upon_literals =
 let tstp_source_factoring parent upon_literals =
 		(TSTP_inference_record ((Factoring upon_literals), [parent]))
 
-let tstp_source_subtyping clause parent =
+let tstp_source_subtyping parent =
 		(TSTP_inference_record ((Subtyping), [parent]))
 
 (* Clause is in input *)
@@ -2007,7 +2008,7 @@ let tstp_source_global_subsumption max_clause_id parent =
 
 (* Clause is generated in a translation to purely equational problem *)
 let tstp_source_non_eq_to_eq parent =
-		(TSTP_internal_source TSTP_non_eq_to_eq)
+		(TSTP_inference_record (Non_eq_to_eq,[parent]))
 
 (* Clause is generated in a forward subsumption resolution *)
 let tstp_source_forward_subsumption_resolution main_parent parents =

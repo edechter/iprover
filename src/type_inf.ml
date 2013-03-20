@@ -16,6 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
+open Logic_interface 
 
 type symbol = Symbol.symbol
 type stype = Symbol.stype
@@ -490,10 +491,11 @@ let sub_type_inf clause_list =
 					clause:: rest
 				else
 					(
-						
-						let new_clause = Clause.create (Clause.normalise_lit_list term_db_ref typed_var_lits) in											
-						Clause.inherit_param_modif clause new_clause;
-						Clause.assign_tstp_source_subtyping new_clause clause;
+						let tstp_source = Clause.tstp_source_subtyping clause in
+						let new_clause =
+							 create_clause tstp_source Clause.Empty_param (Clause.normalise_lit_list term_db_ref typed_var_lits) in											
+			(*			Clause.inherit_param_modif clause new_clause; *)
+			
 						Prop_solver_exchange.add_clause_to_solver new_clause;
 						(*	out_str ("Typed: "^(Clause.to_string new_clause)^"\n"); *)
 						new_clause:: rest
