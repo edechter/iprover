@@ -39,7 +39,7 @@ let reach_bound_skolem_constants = ref []
 (* clauses which contain reach_bound_skolem_constants/ used in state pre-inst *)
 let has_reach_bound_skolem_constants = ref []
 
-(********** Symbol names and name patterns **********)
+(*--------- Symbol names and name patterns ------------*)
 
 (* Type of addresses *)
 let address_type = Symbol.symb_ver_address_type

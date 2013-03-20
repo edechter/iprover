@@ -21,12 +21,9 @@
 open Lib
 open Options
 open Statistics
+open Logic_interface 
 
-type clause  = Clause.clause
-type term    = Term.term
-type literal = Clause.literal
-type term_db = TermDB.termDB
-type clause_db = ClauseAssignDB.clauseDB
+
 (*
 type  statistics = 
     {num_of_dismatch_blockings : int;
@@ -79,6 +76,7 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
     check_disc_time_limit ();
     let new_litlist2 = 
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
+		let tstp_source = Clause.tstp_source_resolution [c1;c2] [l1;l2] in  
     let conclusion = 
 		Clause.create (Clause.normalise_blitlist_list 
 	      term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)]) in

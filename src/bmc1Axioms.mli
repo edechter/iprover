@@ -15,8 +15,6 @@
 (*----------------------------------------------------------------------[C]-*)
 
 open Logic_interface
-
-(*type clause = Clause.clause*)
  
 
 (** Return a formatter for writing into the file given in the option
