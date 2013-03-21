@@ -2626,7 +2626,7 @@ let prop_subsumption clause =
 	   ((TableArray.num_of_elem var_table) + 
 	       (PropSolver.clauses_with_id solver_uc)) clause
     in
-		let new_clause = create_clause tstp_source Clause.Empty_param
+		let new_clause = create_clause tstp_source 
 	       ((List.map 
 		   (function add_lit -> add_lit.slit) new_add_lits)@(!adjoint_preds))
 	in
@@ -2816,7 +2816,7 @@ let ground_clause clause =
 			 Clause.tstp_source_grounding grounding clause in
 	
       (* Create new ground clause *)
-      let gnd_clause = create_clause tstp_source Clause.Empty_param (List.rev gnd_literals) in
+      let gnd_clause = create_clause tstp_source (List.rev gnd_literals) in
         
       (* Return clause *)
       gnd_clause 
