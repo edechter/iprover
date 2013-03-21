@@ -2633,10 +2633,11 @@ let prop_subsumption clause =
 	  (* out_str ("Old Clause: "^(Clause.to_string clause)^"\n");  *)
 	   (* Clause.inherit_param_modif clause new_clause; *)
 	
+		 clause_register_subsumed_by ~by:new_clause clause;
+ 
 	 (* Clause was propositionally subsumed by some clauses up to
 	    the currently highest clause ID *)
-		  
-      Clause.set_ps_simplifying true new_clause;
+	
 	    add_clause_to_solver new_clause;
 	   
 (*	    out_str ("New Clause: "^(Clause.to_string new_clause)^"\n");*)

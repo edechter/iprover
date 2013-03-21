@@ -493,7 +493,8 @@ let sub_type_inf clause_list =
 					(
 						let tstp_source = Clause.tstp_source_subtyping clause in
 						let new_clause =
-							 create_clause tstp_source Clause.Empty_param (Clause.normalise_lit_list term_db_ref typed_var_lits) in											
+							 create_clause tstp_source (Clause.normalise_lit_list term_db_ref typed_var_lits) in
+						Clause.assign_replaced_by (Def(Clause.RB_sub_typing new_clause)) clause;	
 			(*			Clause.inherit_param_modif clause new_clause; *)
 			
 						Prop_solver_exchange.add_clause_to_solver new_clause;

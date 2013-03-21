@@ -293,7 +293,7 @@ let create_path_axiom b =
 		    Clause.tstp_source_axiom_bmc1
 		    (Clause.TSTP_bmc1_path_axiom b)
    in	
-		 create_clause tstp_source Clause.Empty_param [ path_atom_b ]
+		 create_clause tstp_source [ path_atom_b ]
 	 in	
 
 		(* Return path axiom for bound *)
@@ -338,7 +338,7 @@ let pre_instantiate_next_state_clause state_p state_q clause =
 		(Clause.TSTP_bmc1_path_axiom state_q)
 	in
 	let next_gr_cl =
-		create_clause tstp_source Clause.Empty_param [next_gr_atom ]
+		create_clause tstp_source [next_gr_atom ]
 	in
 	try
 		let mgu = Unif.unify_bterms (1, next_gr_atom) (2, next_cl_atom) in
@@ -347,7 +347,7 @@ let pre_instantiate_next_state_clause state_p state_q clause =
 		      [clause; next_gr_cl] [next_cl_lit; next_gr_atom]
 		in			
 		let resolved =
-			create_clause tstp_source Clause.Empty_param
+			create_clause tstp_source 
 				(Clause.normalise_blitlist_list term_db_ref mgu [(2, rest_lits)])
 		in
 		resolved
@@ -391,7 +391,7 @@ let create_reachable_state_axiom b =
 	
 	(* Create unit clause of atom *)
 	let reachable_state_axiom_b =
-		create_clause tstp_source Clause.Empty_param [ reachable_state_atom_b ]
+		create_clause tstp_source  [ reachable_state_atom_b ]
 	in
 	
 	(* Return reachable state axiom for bound *)
@@ -462,7 +462,7 @@ let create_reachable_state_conj_axiom bound =
 	in
 	(* Create axiom *)
 	let reachable_state_conj_axiom =
-		create_clause tstp_source Clause.Empty_param reachable_state_literals
+		create_clause tstp_source  reachable_state_literals
 	in
 	
 	(* Return created clause *)
@@ -490,7 +490,7 @@ let create_reachable_state_on_bound_axiom b =
 	in
 	(* Create unit clause of atom *)
 	let reachable_state_axiom_b =
-		create_clause tstp_source Clause.Empty_param [ bound_literal; reachable_state_atom_b ]
+		create_clause tstp_source  [ bound_literal; reachable_state_atom_b ]
 	in
 		
 	(* Return reachable state axiom for bound *)
@@ -542,7 +542,7 @@ let create_only_bound_reachable_axiom b =
 	(* Create clause
 	~$$iProver_bound { b } | ~$$reachableState(X0) | X0 = constB { b } *)
 	let reachable_state_axiom_b =
-		create_clause tstp_source Clause.Empty_param 
+		create_clause tstp_source  
 					[ bound_literal;
 					reachable_state_x0_literal;
 					reachable_state_literal_b ]
@@ -627,7 +627,7 @@ let rec pre_inst_reachable_state_axioms accum lbound = function
 					(Clause.TSTP_bmc1_only_bound_reachable_state_axiom b)
 			in
 			let reach_ax =
-			create_clause tstp_source Clause.Empty_param
+			create_clause tstp_source 
 								[bound_literal; (reachable_state_literal_b sK)]
 				in
 			reach_ax
@@ -722,7 +722,7 @@ let pre_inst_reachable_state_clauses b clauses =
 								(Clause.TSTP_bmc1_reachable_sk_replacement (b, cl))
 							in
 							let pre_inst_cl =
-							create_clause	tstp_source Clause.Empty_param (bound_literal:: (repl_cl_lits))
+							create_clause	tstp_source  (bound_literal:: (repl_cl_lits))
 							in
 							(* out_str ("\n\n Replaced:  "^(Clause.to_string pre_inst_cl)^"\n");
 							out_str ("Replaced history: \n");
@@ -795,7 +795,7 @@ let create_clock_axiom state clock pattern =
 	in
 	(* Create clock axiom *)
 	let clock_axiom =
-		create_clause tstp_source Clause.Empty_param [ clock_literal ]
+		create_clause tstp_source  [ clock_literal ]
 	in
 	
 	(* Return clock axiom *)	
@@ -1189,7 +1189,7 @@ let bound_instantiate_clause bound clause =
 	(* Create new clause of instantiated literals *)
 	let instantiated_clause =
 
-		create_clause	tstp_source Clause.Empty_param	clause_literals'
+		create_clause	tstp_source	clause_literals'
 	in
 	
 	(* Return instantiated clause *)
@@ -1276,7 +1276,7 @@ let pre_instantiate_state_var_clauses bound clauses =
 					let lits = Clause.get_literals c in
 					let new_lits = List.map (Subst.replace_vars None var_map) lits in
           let tstp_source = Clause.tstp_source_instantiation c [] in
-					let new_clause = create_clause tstp_source Clause.Empty_param new_lits in
+					let new_clause = create_clause tstp_source  new_lits in
 				  Prop_solver_exchange.add_clause_to_solver new_clause;
 					new_clause
 				end
@@ -1363,7 +1363,7 @@ let get_bound_assumptions bound =
 	let bound_literal = create_bound_atom bound in
   let tstp_source = Clause.tstp_source_assumption	in
 	let assumption = 
-		create_clause tstp_source Clause.Empty_param [ bound_literal ] in
+		create_clause tstp_source  [ bound_literal ] in
 	(* Return unit clause containing positive bound atom *)
 	[ assumption ]
 

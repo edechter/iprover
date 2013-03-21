@@ -223,17 +223,19 @@ let ground_split_clause context proof_search_param clause =
       )
     in
     List.iter create_split_clause_split_atom processed;
+	
 		let tstp_source_ground_clause =  Clause.tstp_source_split (!split_symbols) clause in 
     let ground_clause = create_clause tstp_source_ground_clause !split_ground_lits in
-    (* Clause.inherit_param_modif clause ground_clause; *)
+	  (* Clause.inherit_param_modif clause ground_clause; *)
     (* Clause.assign_split_history ground_clause clause; *)
- 
-    let split_final_list = ground_clause::(!split_clauses) in
+ 	  let split_final_list = ground_clause::(!split_clauses) in
     let result ={
       split_list          = split_final_list;
       num_of_splits       = (List.length !split_clauses);
       num_of_split_atoms  = !num_of_split_atoms;
-    }in
+    }
+		in
+		
     result 
   else 
     let result ={
@@ -250,6 +252,17 @@ let ground_split_clause_list context proof_search_param clause_list =
 (*    out_str ("Clause to Split: "^(Clause.to_string clause)^"\n");*)
     let clause_split_result = 
       ground_split_clause context proof_search_param clause in
+	  let unchanged = 
+		(match (clause_split_result.split_list)
+		 with 
+		| [cl] -> (cl == clause) 
+		| _-> false
+		)
+		in
+		(if (not unchanged) then  
+	   (Clause.assign_replaced_by (Def(Clause.RB_splitting clause_split_result.split_list)) clause)
+		else ()	
+    );
 (*    out_str ("Clauses After Split: \n"
 	     ^(Clause.clause_list_to_string clause_split_result.split_list)^"\n");*)
     let result =
