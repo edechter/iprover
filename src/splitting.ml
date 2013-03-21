@@ -19,18 +19,6 @@
 open Lib
 open Logic_interface
 
-type var    = Var.var
-type clause = Clause.clause
-type lit = Term.literal
-type term = Term.term
-type symbol = Symbol.symbol
-type context = Clause.context
-type proof_search_param = Clause.proof_search_param
-
-
-let symb_db_ref  = Parser_types.symbol_db_ref
-let term_db_ref  = Parser_types.term_db_ref
- 
 
 type split_result = 
     { 
@@ -154,7 +142,7 @@ let rec partition_lit_list var_tried_hash partition =
 (* C_1\/~p_1;..C_n\/~p_n; p_1\/..\/p_n\/ground_lits *)
 
   	
-let ground_split_clause context proof_search_param clause =
+let ground_split_clause clause =
   let var_tried_hash = VarHash.create 23 in
   let all_lits = Clause.get_literals clause in
   let (ground_lits,non_ground_lits) = List.partition Term.is_ground all_lits in
@@ -197,7 +185,7 @@ let ground_split_clause context proof_search_param clause =
 	  (
 	   let new_split_symb = 
 	     SymbolDB.create_new_split_symb 
-	       symb_db_ref 
+	       symbol_db_ref 
 	       (Symbol.create_stype [] Symbol.symb_bool_type) 
 	   in
 	   
@@ -246,12 +234,12 @@ let ground_split_clause context proof_search_param clause =
     result 
       
 
-let ground_split_clause_list context proof_search_param clause_list = 
+let ground_split_clause_list clause_list = 
   let init_result = empty_result ()in
   let f rest clause = 
 (*    out_str ("Clause to Split: "^(Clause.to_string clause)^"\n");*)
     let clause_split_result = 
-      ground_split_clause context proof_search_param clause in
+      ground_split_clause clause in
 	  let unchanged = 
 		(match (clause_split_result.split_list)
 		 with 

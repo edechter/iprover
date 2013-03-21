@@ -98,7 +98,7 @@ let pred_to_fun_atom pred_to_fun_htbl atom =
       then 
 	let fun_symb = pred_to_fun_symb pred_to_fun_htbl pred in
 	let fun_term = add_fun_term_args fun_symb args in 
-	let eq_term  = Logic_interface.add_typed_equality_term_sym Symbol.symb_bool_type fun_term top_term in
+	let eq_term  = add_typed_equality_sym Symbol.symb_bool_type fun_term top_term in
 	eq_term
       else
 	atom
@@ -116,10 +116,10 @@ let pred_to_fun_clause pred_to_fun_htbl clause =
     List.map
       (pred_to_fun_lit pred_to_fun_htbl)
       (Clause.get_literals clause) in
-  let new_clause = 
-    Clause.normalise term_db_ref (Clause.create new_lits)  in
+	let tstp_source = Clause.tstp_source_non_eq_to_eq clause in		
+  let new_clause = create_clause tstp_source new_lits in
   (* Clause.assign_non_eq_to_eq_history new_clause clause; *)
-  Clause.assign_tstp_source_non_eq_to_eq new_clause clause;
+  
   new_clause
       
 let preprocess clause_list =

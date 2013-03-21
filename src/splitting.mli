@@ -16,13 +16,7 @@
 
 
 
-type var    = Var.var
-type symbol = Symbol.symbol
-type term = Term.term
-type lit = Term.term
-type clause = Clause.clause
-type context = Clause.context
-type proof_search_param = Clause.proof_search_param
+open Logic_interface 
 
 type split_map
 val create_split_map : unit -> split_map
@@ -34,6 +28,6 @@ val get_num_of_splits      : split_result -> int
 val get_num_of_split_atoms : split_result -> int
 
 
-val ground_split_clause : context -> proof_search_param -> clause -> split_result 
+val ground_split_clause : clause -> split_result 
 
-val ground_split_clause_list : context -> proof_search_param -> clause list -> split_result 
+val ground_split_clause_list : clause list -> split_result 
