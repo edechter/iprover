@@ -54,25 +54,15 @@ val add_typed_dis_equality :
 (**---------Clause-----------*)
 (** create_clause tstp_source proof_search_param lits *)
 val create_clause :
-  tstp_source ->
-  proof_search_param -> 
+  tstp_source -> 
 	lit list -> clause
 
 (** create_clause_context: creats and add clause to context/returns old if already exists in the context *)
 val create_clause_context :
   context ->
   tstp_source ->
-  proof_search_param -> 
 	lit list -> clause
 	
-val create_clause_res :
-   tstp_source -> lit list -> clause
-
-val create_clause_inst :
-     tstp_source -> lit list -> clause
-
-val create_clause_empty_param :
-    tstp_source -> lit list -> clause
 	
 val get_lits : clause -> lit list
 	
@@ -98,6 +88,6 @@ val context_size : context -> int
 (* context_add_context from_cxt to_cxt *)
 val context_add_context : context -> context -> unit
 (** replaces dead with simplified_by *)
-val context_replace_dead : context -> unit
+val context_replace_by : context -> unit
 	
 		

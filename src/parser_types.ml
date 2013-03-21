@@ -83,14 +83,13 @@ let term_db_ref = ref (TermDB.create_name "Terms_DB")
 
 (*----------------*)
 let context = Clause.context_create 21701 (* 21701 medium large prime number *)
-let proof_search_param = Clause.Empty_param
 
 let create_clause tstp_source lits = 
-	let clause = Clause.create_clause term_db_ref tstp_source proof_search_param lits in 
+	let clause = Clause.create_clause term_db_ref tstp_source lits in 
 	Clause.context_add context clause 
 
 let create_neg_conjecture tstp_source lits = 
-	let clause = Clause.create_neg_conjecture term_db_ref tstp_source proof_search_param lits	in
+	let clause = Clause.create_neg_conjecture term_db_ref tstp_source lits	in
 	Clause.context_add context clause 
 
 

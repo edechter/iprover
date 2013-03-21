@@ -70,36 +70,24 @@ let add_term_algebra_eq_term args =
 
 (*--------clause---------------*)	
 
-let create_clause tstp_source proof_search_param lits = 
+let create_clause tstp_source lits = 
 	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
-	Clause.create_clause term_db_ref tstp_source proof_search_param norm_lits	
+	Clause.create_clause term_db_ref tstp_source norm_lits	
 
-let create_clause_context context tstp_source proof_search_param lits =
-	let clause = create_clause tstp_source proof_search_param lits in
+let create_clause_context context tstp_source lits =
+	let clause = create_clause tstp_source lits in
 	Clause.context_add context clause
 
-
-let create_clause_res tstp_source lits =
-  create_clause
-  	  tstp_source (Clause.Res_param(Clause.create_res_param ()))  lits	
-
-let create_clause_inst tstp_source lits =
-  create_clause
-  	 tstp_source (Clause.Inst_param(Clause.create_inst_param ()))  lits	
-  
-let create_clause_empty_param tstp_source lits =
-  create_clause
-     tstp_source (Clause.Empty_param)  lits	
+let normalise_blitlist_list blitlist_list = 
+	Clause.normalise_blitlist_list term_db_ref blitlist_list 		
 
 let get_lits c = Clause.get_lits c
 
 let clause_register_subsumed_by ~by c = 
    Clause.assign_is_dead true c;
 	 Clause.set_ps_simplifying true by;
-   Clause.assign_simplied_by (Def(Clause.Simp_by_subsumption by)) c
+   Clause.assign_replaced_by (Def(Clause.RB_subsumption by)) c
 	
-let normalise_blitlist_list blitlist_list = 
-	Clause.normalise_blitlist_list term_db_ref blitlist_list 		
 
 (*---------- context ----------------*)				
 let context_create = Clause.context_create
@@ -116,6 +104,6 @@ let context_size = Clause.context_size
 let context_add_context = Clause.context_add_context
  
 (** replaces dead with simplified_by *)
-let context_replace_dead = Clause.context_replace_dead 	
+let context_replace_by = Clause.context_replace_by 	
 		
 
