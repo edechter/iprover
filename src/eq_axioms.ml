@@ -23,10 +23,6 @@ type sym_set = Symbol.sym_set
 type csig = Clause.clause_signature
 
 
-(* redefine create_clause from Logic_interface *)
-
-let create_clause tstp_source lits = 
-   create_clause tstp_source Clause.Empty_param lits
 
 let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
