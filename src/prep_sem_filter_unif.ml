@@ -362,7 +362,7 @@ let get_filtered_out_clauses filter_state =
     |Elem(fclause_list) -> 
 	let f fclause = 
 	  let watched_lit = (List.hd fclause.lits_to_try) in 
-	  Clause.assign_inst_sel_lit watched_lit fclause.orig_clause;
+	  Clause.inst_assign_sel_lit watched_lit fclause.orig_clause;
 	  filtered_out_clauses := fclause.orig_clause::(!filtered_out_clauses)
 	in 
 	List.iter f fclause_list
