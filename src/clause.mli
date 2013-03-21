@@ -31,7 +31,7 @@ and replaced_by =
 	| RB_sub_typing of clause
 	| RB_splitting of clause list  
 
-and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom
+(*and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom*)
 and tstp_internal_source =
     TSTP_definition
   | TSTP_assumption
@@ -259,7 +259,7 @@ val out_clause_list : clause list -> unit
 
 val clause_list_to_string : clause list -> string
 
-val axiom_to_string : axiom -> string
+(* val axiom_to_string : axiom -> string *)
 
 val tptp_to_stream : 'a Lib.string_stream -> clause -> unit
 val out_tptp : clause -> unit
@@ -269,7 +269,7 @@ val out_clause_list_tptp : clause list -> unit
 val clause_list_to_tptp : clause list -> string
 
 (**------pretty priting------------*)
-val pp_axiom : Format.formatter -> axiom -> unit
+(* val pp_axiom : Format.formatter -> axiom -> unit *)
 val pp_clause_name : Format.formatter -> clause -> unit
 val pp_clause_with_id : Format.formatter -> clause -> unit
 val pp_clause : Format.formatter -> clause -> unit

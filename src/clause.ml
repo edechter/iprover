@@ -205,14 +205,14 @@ and replaced_by =
 
 
 (*-------tstp_source-----------*)
-
+(*
 and axiom =
 	| Eq_Axiom
 	| Distinct_Axiom
 	| Less_Axiom
 	| Range_Axiom
 	| BMC1_Axiom
-
+*)
 and tstp_internal_source =
 	| TSTP_definition
 	| TSTP_assumption
@@ -611,6 +611,7 @@ let get_tstp_source c =	c.node.tstp_source
 
 
 (*-----------------------------------------*)
+(*
 let axiom_to_string axiom =
 	match axiom with
 	| Eq_Axiom -> "Equality Axiom"
@@ -618,13 +619,15 @@ let axiom_to_string axiom =
 	| Less_Axiom -> "Less Axiom"
 	| Range_Axiom -> "Range Axiom"
 	| BMC1_Axiom -> "BMC1 Axiom"
-
+*)
+(*
 let pp_axiom ppf = function
 	| Eq_Axiom -> Format.fprintf ppf "Equality Axiom"
 	| Distinct_Axiom -> Format.fprintf ppf "Distinct Axiom"
 	| Less_Axiom -> Format.fprintf ppf "Less Axiom"
 	| Range_Axiom -> Format.fprintf ppf "Range Axiom"
 	| BMC1_Axiom -> Format.fprintf ppf "BMC1 Axiom"
+*)
 
 (*----------------------------*)
 let get_node c = c.node
