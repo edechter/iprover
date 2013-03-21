@@ -35,6 +35,7 @@ val add_var_term : var -> term
 
 (** add_neg_atom atom *)
 val add_neg_atom : term -> term
+val add_neg_atom_symb : symbol -> term list -> term
 
 (** add_compl_lit lit  *)
 val add_compl_lit : term -> term
@@ -43,16 +44,21 @@ val add_compl_lit : term -> term
 val add_typed_equality_term :
   term -> term -> term -> term
 
+val add_typed_disequality_term :
+  term -> term -> term -> term
+
+
 (** add_typed_equality_term_sym eq_type_sym t s *)
-val add_typed_equality_term_sym :
+val add_typed_equality_sym :
   symbol -> term -> term -> term
 
+val add_typed_disequality_sym :
+  symbol -> term -> term -> term
+	
+	
 (** add_term_algebra_eq_term args *)
 val add_term_algebra_eq_term : term list -> term
 
-
-val add_typed_dis_equality :
-  term -> term -> term -> term
 
 (**---------Clause-----------*)
 (** create_clause tstp_source proof_search_param lits *)

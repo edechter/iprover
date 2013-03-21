@@ -115,7 +115,7 @@ let term_x1 vtype =  (term_xn vtype 1)
 let term_x2 vtype = (term_xn vtype 2)
 
 (* Create typed equation *)
-let create_typed_equation stype lhs rhs = add_typed_equality_term_sym stype lhs rhs
+let create_typed_equation stype lhs rhs = add_typed_equality_sym stype lhs rhs
 	(*
 	(* Add or retrieve type term from term database *)
 	let stype_term =

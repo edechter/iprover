@@ -46,14 +46,23 @@ let add_typed_equality_term stype_term t s =
 	let args = [stype_term; t; s] in
 	add_fun_term Symbol.symb_typed_equality args
 
-let add_typed_equality_term_sym eq_type_sym t s =
+let add_typed_equality_sym eq_type_sym t s =
 	let eq_type_term = (add_fun_term eq_type_sym []) in
 	add_typed_equality_term eq_type_term t s
 
 
+let add_typed_disequality_term eq_type t s =
+	add_fun_term Symbol.symb_neg [(add_typed_equality_term eq_type t s)]
+
+let add_typed_disequality_sym eq_type_sym t s =
+	add_fun_term Symbol.symb_neg [(add_typed_equality_sym eq_type_sym t s)]
+
 let add_neg_atom atom =
 	let args = [atom] in
 	add_fun_term Symbol.symb_neg args
+
+let add_neg_atom_symb symb args = 
+ add_neg_atom	(add_fun_term symb args)
 
 let add_compl_lit lit = 
 	TermDB.add_ref (Term.compl_lit lit) term_db_ref 
@@ -63,9 +72,10 @@ let dis_equality t s =
 	neg_atom (equality_term t s)
 *)
 
+(*
 let add_typed_dis_equality stype t s =
 	add_neg_atom (add_typed_equality_term stype t s)
-
+*)
 (* used for model output *)
 let add_term_algebra_eq_term args = 
     let ta_eq_type_term = (add_fun_term Symbol.symb_term_algebra_type []) in

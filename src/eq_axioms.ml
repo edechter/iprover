@@ -153,8 +153,8 @@ let typed_reflexivity_axiom_type_set eq_type_set =
 let typed_trans_symmetry_axiom_var () =
 	(* tv3 is used for types *)
 	(*  let type_var_term = tv3 in *)
-	let x01 = add_typed_dis_equality tv0 tv1 tv2 in
-	let x21 = add_typed_dis_equality tv0 tv3 tv2 in
+	let x01 = add_typed_disequality_term tv0 tv1 tv2 in
+	let x21 = add_typed_disequality_term tv0 tv3 tv2 in
 	let x20 = add_typed_equality_term tv0 tv3 tv1 in
 	let trans_sim_ax = create_eq_ax_clause [x01; x21; x20] in
 	trans_sim_ax
@@ -167,8 +167,8 @@ let typed_trans_symmetry_axiom_type eq_type_sym =
 	let ttv1 = term_var_typed eq_type_sym 1 in
 	let ttv2 = term_var_typed eq_type_sym 2 in
 	
-	let x01 = add_typed_dis_equality eq_type ttv0 ttv1 in
-	let x21 = add_typed_dis_equality eq_type ttv2 ttv1 in
+	let x01 = add_typed_disequality_term eq_type ttv0 ttv1 in
+	let x21 = add_typed_disequality_term eq_type ttv2 ttv1 in
 	let x20 = add_typed_equality_term eq_type ttv2 ttv0 in
 	let trans_sim_ax = create_eq_ax_clause [x01; x21; x20] in
 	trans_sim_ax
@@ -185,7 +185,7 @@ let typed_symmetry_axiom_sym eq_type_sym =
 	let eq_type = (add_fun_term eq_type_sym []) in
 	let ttv0 = term_var_typed eq_type_sym 0 in
 	let ttv1 = term_var_typed eq_type_sym 1 in
-	let neg_eq_x0_x1 = add_typed_dis_equality eq_type ttv0 ttv1 in
+	let neg_eq_x0_x1 = add_typed_disequality_term eq_type ttv0 ttv1 in
 	let eq_x1_x0 = add_typed_equality_term eq_type ttv1 ttv0 in
 	let sym_ax = create_eq_ax_clause [neg_eq_x0_x1; eq_x1_x0] in
 	sym_ax
@@ -222,7 +222,7 @@ let typed_congruence_axiom eq_type_set symb =
 											tl
 											(fresh_var_term1:: args1)
 											(fresh_var_term2:: args2)
-											((add_typed_dis_equality
+											((add_typed_disequality_term
 														(add_fun_term h [])
 														fresh_var_term1
 														fresh_var_term2):: dis_eq_lits)
@@ -351,7 +351,7 @@ let distinct_ax_list () =
 		(
 			let dist_axioms_one_term term term_list =
 				let f rest cterm =
-					let dis_eq_term = (add_typed_dis_equality default_type_term term cterm) in
+					let dis_eq_term = (add_typed_disequality_term default_type_term term cterm) in
 					let tstp_source = Clause.tstp_source_axiom_distinct in
 					let dis_ax = create_clause tstp_source [dis_eq_term] in
 					(* Clause.assign_axiom_history Clause.Distinct_Axiom dis_ax; *)					
@@ -695,7 +695,7 @@ let flat_clause clause =
 	let dis_eq_term t s =
 		let t_type = Term.get_term_type t in 
 		let t_type_term = (add_fun_term t_type []) in
-		(add_typed_dis_equality t_type_term t s) 
+		(add_typed_disequality_term t_type_term t s) 
 	in
 	let f t x rest =
 		(dis_eq_term (flat_top renaming_env var_env t) x):: rest in

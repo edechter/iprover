@@ -1774,6 +1774,10 @@ let tstp_source_axiom_bmc1 bmc1_axiom =
 let tstp_source_assumption =
 	 (TSTP_internal_source TSTP_assumption)
 
+(* term definitions in finite_models *)
+let tstp_source_definition =
+	 (TSTP_internal_source TSTP_definition)
+
 (*---------------- end TSTP --------------------------*)
 
 

@@ -16,16 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
-(*open Simple_interface*)
-
-type symb = Symbol.symbol
-type symbol = Symbol.symbol
-type stype = Symbol.stype
-type term = Term.term
-type clause = Clause.clause
-
-let symbol_db_ref = Parser_types.symbol_db_ref
-let term_db_ref = Parser_types.term_db_ref
+open Logic_interface
 
 let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
@@ -41,13 +32,6 @@ module TermMap = Term.Map
 (* 1. all P_f are neg., 2. no x \not = y *)
 
 (*-----------Add terms, clauses--------------*)
-let add_var_term var = TermDB.add_ref (Term.create_var_term var) term_db_ref
-
-let add_fun_term symb args =
-	TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
-
-let add_neg_lit atom_symb args =
-	add_fun_term Symbol.symb_neg [(add_fun_term atom_symb args)]
 
 (* change later !!!*)
 (*
@@ -67,22 +51,24 @@ let create_symbol symb_name stype sproperty =
 	Symbol.incr_num_input_occur added_symb;
 	added_symb
 
+(*
 let equality_term eq_type t s =
 	let args = [eq_type; t; s] in
 	add_fun_term Symbol.symb_typed_equality args
 
-let equality_term_type_sym eq_type_sym t s =
+let add_typed_equality_sym eq_type_sym t s =
 	let eq_type = (add_fun_term eq_type_sym []) in
 	equality_term eq_type t s
 
-let dis_equality eq_type t s =
+let add_typed_dis_equality eq_type t s =
 	add_fun_term Symbol.symb_neg [(equality_term eq_type t s)]
 
 let dis_equality_sym eq_type_sym t s =
-	add_fun_term Symbol.symb_neg [(equality_term_type_sym eq_type_sym t s)]
+	add_fun_term Symbol.symb_neg [(add_typed_equality_sym eq_type_sym t s)]
 
 let add_clause_lits lit_list =
 	Clause.normalise term_db_ref (Clause.create lit_list)
+*)
 
 (* aux fun *)
 let get_val_type sym = Symbol.get_val_type_def sym
@@ -541,7 +527,7 @@ let flat_clause clause =
 									let fresh_var = Var.get_next_fresh_var fresh_vars_env (Symbol.get_val_type_def symb) in
 									let fresh_var_term = add_var_term fresh_var in
 									let pred_f_args = fresh_var_term:: new_args in
-									let fun_def_lit = add_neg_lit pred_f_symb pred_f_args in
+									let fun_def_lit = add_neg_atom_symb pred_f_symb pred_f_args in
 									(* add ~P_f(flat_args) to list *)
 									fun_def_lits:= fun_def_lit::!fun_def_lits;
 									(* add t -> flat_term == fresh_var *)
@@ -569,15 +555,15 @@ let flat_clause clause =
 						then
 							rest
 						else
-							(dis_equality eq_type flat_t1 flat_t2):: rest
+							(add_typed_disequality_term eq_type flat_t1 flat_t2):: rest
 					else (* pos eq *)
-					(equality_term eq_type flat_t1 flat_t2):: rest
+					(add_typed_equality_term eq_type flat_t1 flat_t2):: rest
 				else (* non eq pred *)
 				let flat_atom_args = List.map get_flat_term (Term.arg_to_list args) in
 				let new_lit =
 					if (Term.is_neg_lit lit)
 					then
-						add_neg_lit symb flat_atom_args
+						add_neg_atom_symb symb flat_atom_args
 					else
 						add_fun_term symb flat_atom_args
 				in
@@ -587,8 +573,9 @@ let flat_clause clause =
 	let flat_lits = List.fold_left get_flat_lit [] clause_lits in
 	let new_lits = flat_lits@(!fun_def_lits) in
 	let new_neg_norm_lits = List.map neg_norm_term new_lits in
-	let new_clause = add_clause_lits new_neg_norm_lits in
-	Clause.assign_tstp_source_flattening new_clause clause;
+	let tstp_source = Clause.tstp_source_flattening clause in
+	let new_clause = create_clause tstp_source new_neg_norm_lits in
+	
 (*	out_str ("     Cl: \n"^(Clause.to_string clause)^"\n");
 	out_str ("Flat Cl: \n"^(Clause.to_string new_clause)^"\n");
 	*)
@@ -671,7 +658,7 @@ else
 (* let (t1,t2) = get_pair_from_list (Term.arg_to_list args) in*)
 (* replace *)
 let (eq_type, t1, t2) = get_triple_from_list (Term.arg_to_list args) in
-(equality_term eq_type (term_to_var_term t1) (term_to_var_term t2)):: rest
+(add_typed_equality_term eq_type (term_to_var_term t1) (term_to_var_term t2)):: rest
 else
 (* non equlaity literal *)
 let new_atom =
@@ -739,7 +726,7 @@ add_clause_lits (env_part@flat_part)
 (*--------------------fix later --------------------*)
 (*let _ = out_str ("\n\n!Fix Definitions in finite_models!\n\n")*)
 
-(*this should work fo non-gound definitions but for ground should add a be better translation *)
+(*this should work for non-gound definitions but for ground should add a be better translation *)
 let get_definitions () =
 	let f t def_symb rest =
 		match t with
@@ -759,7 +746,7 @@ let get_definitions () =
 								let new_symb = TermHash.find term_def_table arg_term in
 								let new_var_term = add_var_term (Var.get_next_fresh_var var_env (Term.get_term_type arg_term)) in
 								arg_vars:= new_var_term::!arg_vars;
-								let new_lit = add_neg_lit new_symb [new_var_term] in
+								let new_lit = add_neg_atom_symb new_symb [new_var_term] in
 								new_lit:: arg_lits_rest
 							with
 								Not_found ->
@@ -772,18 +759,19 @@ let get_definitions () =
 						let val_type = Symbol.get_val_type_def symb in
 						let current_var = Var.get_next_fresh_var var_env val_type in
 						let p_f_t_lit_var = add_var_term current_var in
-						let p_f_t_lit = add_neg_lit def_symb [p_f_t_lit_var] in
+						let p_f_t_lit = add_neg_atom_symb def_symb [p_f_t_lit_var] in
 						
 						(*\neg P_f(Val,X1,..,Xn) *)
 						let current_var = Var.get_next_fresh_var var_env val_type in
 						let val_var = add_var_term current_var in
 						let p_f_symb = Symbol.get_flattening symb in
-						let p_f_lit = add_neg_lit p_f_symb (val_var:: (!arg_vars)) in
+						let p_f_lit = add_neg_atom_symb p_f_symb (val_var:: (!arg_vars)) in
 						(*Z=Val*)
-						let z_val_lit = equality_term_type_sym
+						let z_val_lit = add_typed_equality_sym
 								val_type p_f_t_lit_var val_var in
+						let tstp_source = Clause.tstp_source_definition in
 						let new_clause =
-							add_clause_lits (z_val_lit:: p_f_lit:: p_f_t_lit:: arg_lits) in
+							create_clause tstp_source (z_val_lit:: p_f_lit:: p_f_t_lit:: arg_lits) in
 						new_clause:: rest
 					)
 		
@@ -903,7 +891,11 @@ let dis_eq_axioms eq_type t term_list =
 	let f rest_f s =
 		if not (s == t)
 		then
-			(add_clause_lits [(dis_equality_sym eq_type t s)]):: rest_f
+			(let tstp_source = Clause.tstp_source_axiom_distinct in
+			 let new_clause = 
+				create_clause tstp_source [(add_typed_disequality_sym eq_type t s)] in
+				new_clause::rest_f
+			)
 		else
 			rest_f
 	in
@@ -1003,6 +995,7 @@ let axiom_dom_pred_symb bound_pred symb dom_elements =
 	let f rest dom_el =
 		(add_fun_term symb (dom_el:: var_args)):: rest
 	in
+	
 	let new_cl =
 		(add_clause_lits (bound_pred:: (List.fold_left f [] dom_elements))) in
 	new_cl

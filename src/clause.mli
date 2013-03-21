@@ -440,6 +440,8 @@ val tstp_source_axiom_less : tstp_source
 val tstp_source_axiom_range : tstp_source
 val tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> tstp_source
 val tstp_source_assumption : tstp_source
+val tstp_source_definition : tstp_source
+
 
 (*
 val tstp_source_instantiation :
