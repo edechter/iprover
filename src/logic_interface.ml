@@ -1,5 +1,6 @@
 (* to generate interface *)
 (* ocamlc -I obj/ -i src/logic_interface.ml > src/logic_interface.mli *)
+open Lib
 
 type var    = Var.var
 type symbol = Symbol.symbol
@@ -77,8 +78,30 @@ let create_clause_context context tstp_source proof_search_param lits =
 	let clause = create_clause tstp_source proof_search_param lits in
 	Clause.context_add context clause
 
+
+let create_clause_res tstp_source lits =
+  create_clause
+  	  tstp_source (Clause.Res_param(Clause.create_res_param ()))  lits	
+
+let create_clause_inst tstp_source lits =
+  create_clause
+  	 tstp_source (Clause.Inst_param(Clause.create_inst_param ()))  lits	
+  
+let create_clause_empty_param tstp_source lits =
+  create_clause
+     tstp_source (Clause.Empty_param)  lits	
+
 let get_lits c = Clause.get_lits c
-		
+
+let clause_register_subsumed_by ~by c = 
+   Clause.assign_is_dead true c;
+	 Clause.set_ps_simplifying true by;
+   Clause.assign_simplied_by (Def(Clause.Simp_by_subsumption by)) c
+	
+let normalise_blitlist_list blitlist_list = 
+	Clause.normalise_blitlist_list term_db_ref blitlist_list 		
+
+(*---------- context ----------------*)				
 let context_create = Clause.context_create
 let context_add  = Clause.context_add
 let context_remove = Clause.context_remove  

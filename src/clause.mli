@@ -236,7 +236,7 @@ val create_clause_res :
 val create_clause_inst :
    term_db_ref -> tstp_source -> literal_list -> clause
 
-val create_clause_no_param :
+val create_clause_empty_param :
    term_db_ref -> tstp_source -> literal_list -> clause
 	
 (*-----*)	
@@ -414,7 +414,8 @@ val res_sel_is_def : clause -> bool
 val get_res_sel_lits : clause -> literal_list
 val res_assign_sel_lits : literal_list -> clause -> unit
 
-val res_when_born_concl : clause list -> clause list -> 'a -> int
+(*val res_when_born_concl : clause list -> clause list -> int*)
+val res_assign_when_born : clause list -> clause list -> clause -> unit
 
 (** inst bool param *)
 (*

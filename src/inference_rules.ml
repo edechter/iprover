@@ -76,22 +76,24 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
     check_disc_time_limit ();
     let new_litlist2 = 
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
+
 		let tstp_source = Clause.tstp_source_resolution [c1;c2] [l1;l2] in  
     let conclusion = 
-		Clause.create (Clause.normalise_blitlist_list 
-	      term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)]) in
-    (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
-    Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
-    Clause.assign_when_born [c1] [c2] conclusion;
-    let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
-    Clause.assign_conjecture_distance (min_conj_dist+1) conclusion;  
+		create_clause_res tstp_source 
+	   	(normalise_blitlist_list 
+	       mgu [(1,new_litlist1);(2,new_litlist2)]) in
+      Clause.res_assign_when_born [c1] [c2] conclusion;
+
+ (*   let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
+    Clause.assign_conjecture_distance (min_conj_dist+1) conclusion; 
+*) 
     (if !current_options.res_forward_subs_resolution 
     then
       if (strict_subset_subsume conclusion c1)
       then 
-	(Clause.set_bool_param true Clause.is_dead c1;
-	 Clause.set_bool_param true Clause.res_simplifying conclusion;
-	 raise (Main_subsumed_by conclusion))
+	(
+		clause_register_subsumed_by ~by:conclusion c1;
+		raise (Main_subsumed_by conclusion))
       else ()
     else ()      
     );
@@ -99,10 +101,12 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
     then
       if (strict_subset_subsume conclusion c2)
       then 
-	(Clause.set_bool_param true Clause.res_simplifying conclusion;
-	 Clause.set_bool_param true Clause.is_dead c2)
+	  (
+		clause_register_subsumed_by ~by:conclusion c2;
+		)
       else ()
-    else ());      
+    else ()
+	);      
     conclusion::rest  in 
   List.fold_left f [] c_list2     
 
@@ -119,23 +123,25 @@ let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
   let f rest c2 = 
     let new_litlist2 = 
       Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
+		
+		let tstp_source = Clause.tstp_source_resolution [c1;c2] [l1;l2] in  
     let conclusion = 
-			Clause.create 
-			 (Clause.normalise_blitlist_list 
-	     term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)])
-		in
-    (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
-    Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
-    Clause.assign_when_born [c1] [c2] conclusion;
-    let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
-    Clause.assign_conjecture_distance (min_conj_dist+1) conclusion;
+		create_clause_res tstp_source 
+		  (normalise_blitlist_list 
+	        mgu [(1,new_litlist1);(2,new_litlist2)]) in
+		
+		Clause.res_assign_when_born [c1] [c2] conclusion;		
+  
+    (* let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
+    Clause.assign_conjecture_distance (min_conj_dist+1) conclusion;*)
     (if !current_options.res_forward_subs_resolution  
     then
       if (strict_subset_subsume conclusion c1)
       then 
-	(Clause.set_bool_param true Clause.is_dead c1;
-	 Clause.set_bool_param true Clause.res_simplifying conclusion;
-	 raise (Main_subsumed_by conclusion))
+  	(
+		clause_register_subsumed_by ~by:conclusion c1;
+		raise (Main_subsumed_by conclusion)
+		)
       else ()
     else ()      
     );
@@ -144,9 +150,8 @@ let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
       then
 	if (strict_subset_subsume conclusion c2)
 	then 
-	  (Clause.set_bool_param true Clause.is_dead c2;
-	   Clause.set_bool_param true Clause.res_simplifying conclusion;
-	   [conclusion])
+	  (clause_register_subsumed_by ~by:conclusion c2;
+		 [conclusion])
 	else []
       else []
     in      
@@ -161,7 +166,10 @@ let factoring c l1 l2 term_db_ref =
   if l1==l2 then 
    let new_litlist = 
       l1::(Clause.find_all (fun lit -> not(l1 == lit)) c) in
-    let conclusion = Clause.create new_litlist in
+			
+		let tstp_source = Clause.assign_tstp_source_factoring c [l1;l2] in
+    let conclusion = 
+			create_clause tstp_source new_litlist in
     Clause.inherit_conj_dist c conclusion;
     Clause.assign_when_born [c] [] conclusion;
     (* Clause.assign_factoring_history conclusion c [l1;l2]; *)

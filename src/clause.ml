@@ -1328,7 +1328,7 @@ let inst_assign_when_born prem1 prem2 c =
 	let inst_param = get_inst_param c in
 	inst_param.inst_when_born <- Def(inst_when_born_concl prem1 prem2 c)
 	
-let res_when_born_concl prem1 prem2 clause =
+let res_when_born_concl prem1 prem2 =
 	let born_list1 = List.map res_when_born prem1 in
 	let born_list2 = List.map res_when_born prem2 in
 	let inv_compare = compose_sign false Pervasives.compare in
@@ -1341,7 +1341,7 @@ let res_when_born_concl prem1 prem2 clause =
 	
 let res_assign_when_born prem1 prem2 c =
 	let res_param = get_res_param c in
-	res_param.res_when_born <- Def(res_when_born_concl prem1 prem2 c)
+	res_param.res_when_born <- Def(res_when_born_concl prem1 prem2)
 
 
 
@@ -1860,7 +1860,7 @@ let create_clause_inst term_db_ref tstp_source lits =
 	let inst_param = Inst_param (create_inst_param ()) in
 	create_clause term_db_ref tstp_source inst_param lits
 
-let create_clause_no_param term_db_ref tstp_source lits =
+let create_clause_empty_param term_db_ref tstp_source lits =
 	create_clause term_db_ref tstp_source Empty_param lits
 
 

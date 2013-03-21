@@ -65,7 +65,23 @@ val create_clause_context :
   proof_search_param -> 
 	lit list -> clause
 	
+val create_clause_res :
+   tstp_source -> lit list -> clause
+
+val create_clause_inst :
+     tstp_source -> lit list -> clause
+
+val create_clause_empty_param :
+    tstp_source -> lit list -> clause
+	
 val get_lits : clause -> lit list
+	
+val clause_register_subsumed_by : by:clause -> clause -> unit
+
+val normalise_blitlist_list :
+  SubstBound.bound_subst ->
+  ((lit list) Lib.bind) list -> term list
+	
 	
 (**------------clause context-------------------*)	
 (** create_context size name; size approximate initial size *)
