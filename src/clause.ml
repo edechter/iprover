@@ -82,7 +82,7 @@ let bc_is_negated_conjecture = 11 (* user *) (* TODO: change in the rest of the 
 (* context paramters are set outside of reasoning processes *)
 
 let ccp_is_dead = 0  (* user *)
-(* ccp_is_dead true the the clause is simplified in a context and replaced by other clauses *)
+(* ccp_is_dead true the the clause is replaced in a context and replaced by other clauses *)
 (* invariant: set of (not ccp_is_dead) clauses imply the set of all clauses in the context *)
 let cpp_in_prop_solver = 1 (* user *)
 
@@ -161,7 +161,12 @@ type clause =
 		mutable fast_key : int;    (* unique id  based on clause_counter *)
 (*  mutable context_id : int; *)  (* clause is identified by context_id and fast_id *)
 		mutable tstp_source : tstp_source param;
-		mutable simplified_by : simplified_by param;
+		
+(* replaced_by invariants : *)
+(* 1) in a context we can replace all clauses by replaced_by obtaining an equisat set of clauses *)
+(* 2) there is no cycles when following replaced_by *)	
+		mutable replaced_by : replaced_by param;
+
 		mutable prop_solver_id : int option; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
 		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
 		mutable proof_search_param : proof_search_param;  (* we can reassign clause paramters within the same context *)
@@ -169,37 +174,33 @@ type clause =
 	}
 
 (* clause parameters can contain clauses themselves like inst_children *)
-and inst_param =
+and proof_search_param =
 	{
-		mutable inst_bool_param : Bit_vec.bit_vec;
+		(* shared paramtes *)
+		mutable ps_bool_param : Bit_vec.bit_vec;
+	  mutable ps_when_born : int param;
+		mutable ps_children : clause list;
+
+   (* inst params *)
 		mutable inst_sel_lit : (term * sel_place) param;
 		mutable inst_dismatching : dismatching param;
-		mutable inst_when_born : int param;
-		mutable inst_children : clause list;
 		mutable inst_activity : int;
+
+	(* res params *)	
+ 	 mutable res_sel_lits : literal_list param;
 	}
 
-and res_param =
-	{
-		mutable res_bool_param : Bit_vec.bit_vec;
-		mutable res_sel_lits : literal_list param;
-		mutable res_when_born : int param;
-	}
 
-(* clause parameters can change from context to context but basic_clause will remain the same*)
-and proof_search_param =
-	| Inst_param of inst_param
-	| Res_param of res_param
-	| Empty_param
-
-and simplified_by = 
-	(* when clause got simplified we record the clauses which is got simplified by *)
+and replaced_by = 
+	(* when clause got replaced we record the clauses which is got replaced by *)
 	(* assumption are: 1) orginal cluase logically follows from the simplifed_by cluases *)
-	(* in particular we can replace the original clause by simplified_by clauses *)
-	(* there is no cyclic simplification depdendences; we can recover the leaf simplifyig clauses which are not simplified *)
-	| Simp_by_subsumption of clause
-(*	| Simp_by_global_subsumption of clause *) (* covered by subsumption witness *)
-(* in future: demodulation, others *)
+	(* in particular we can replace the original clause by replaced_by clauses *)
+	(* there is no cyclic simplification depdendences; we can recover the leaf replacing clauses*)
+	(*  which are not replaced *)
+	| RB_subsumption of clause
+	| RB_sub_typing of clause
+	| RB_splitting of clause list  
+
 
 (*-------tstp_source-----------*)
 
@@ -543,203 +544,6 @@ clause.conjecture_distance = conjecture_int
 
 (*---------------end basic clause-----------------------*)
 
-(*---------------clause params -------------------------*)
-
-let create_inst_param () =
-	{
-		inst_bool_param = Bit_vec.false_vec;
-		inst_sel_lit = Undef;
-		inst_dismatching = Undef;
-		inst_when_born = Undef;
-		inst_children = [];
-		inst_activity = 0;
-	}
-
-let create_res_param () =
-	{
-		res_bool_param = Bit_vec.false_vec;
-		res_sel_lits = Undef;
-		res_when_born = Undef;
-	}
-
-
-(*
-{
-		basic_clause : basic_clause;
-		context_id : int;       (* clause is identified by context_id and basic_clause.tag *)
-		mutable tstp_source : tstp_source param;
-		mutable simplified_by : simplified_by param;
-		mutable prop_solver_id : int param; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
-		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
-		mutable proof_search_param : proof_search_param;  (* we can reassign clause paramters within the same context *)
-		mutable clause_context_param : Bit_vec.bit_vec;
-	}
-*)
-
-(*
-(*-----------------*)
-module KeyContext = 
-	struct
-		  type t = basic_clause (* key *)
-			let hash bc = bc.tag
-			let equal bc1 bc2 = (bc1 == bc2) 
-  end
-	 
-module Context = Hashtbl.Make(KeyContext)
-
-type context = clause Context.t
-
-(* cc -- context*)
-
-(* creates context with an inital size *)
-let context_create size = Context.create size 
-
-let context_add cc c = 
-	let bc = (get_bc c) in
-	try (Context.find cc bc) 
-	with 
-	| Not_found -> 
-		(Context.add cc bc c;
-		c
-		)
-		
-let context_remove cc c = Context.remove cc (get_bc c)
-let context_mem cc c = Context.mem cc (get_bc c)
-let context_reset cc = Context.reset cc (* empties context*) 		
-let context_find cc c = Context.find cc (get_bc c)
-
-let context_iter cc f = Context.iter (fun _ c -> f c) cc
-let context_fold cc f a = Context.fold (fun _ c a -> (f c a)) cc a  
-let context_size cc = Context.length cc
-
-(** copy_context from_cxt to_contxt; if a clause in to_context it will remain and not replaced by from_cxt; *)
-(** from_cxt remains unchanged;  clauses are not renewed but added so changing paramtes in to_cxt will affect on from_cxt *)
-(* use context_reset which clears and resizes to the initial size *)
-
-let context_add_context from_cxt to_cxt =
-	let f c = 
-		 ignore (context_add to_cxt c)
-		in
-	context_iter from_cxt f
-
-let get_simplified_by c = 
-	match c.simplified_by with 
-	| Def(Simp_by_subsumption sc)-> Some(sc)
-	| Undef -> None
-	 
-(* add assert of non-cyclicity check *)		
-let get_simplifed_by_rec clause_list = 
-	let rec f to_process simp_by = 
-	match to_process with 
-	|h::tl -> 
-		(match h.simplified_by with 
-	   |Def(Simp_by_subsumption sc) -> 
-	  	(assert (get_is_dead h);
-				f (sc::tl) simp_by
-			)
-	   |Undef -> 
-		  (assert (not (get_is_dead h));
-				f tl (sc::simp_by)
-				)
-		 )		
-	|	[] -> simp_by
-	    	 
- in
-  f clause_list	[]
-	
-	
-(* replaces dead clauses with simplified *)
-let context_replace_dead cc =
-	let dead_list = 
-      let f c rest = 
-				if (is_dead c)
-        then 
-					(context_remove cc c;
-						c::rest)
-			else 
-				(
-					rest
-					)
-	in 
-	context_fold f cc []
-	in
-	let simp_by = get_simplifed_by_rec dead_list in 
-	List.iter (fun c -> ignore (context_add cc c)) simp_by
-	
-	
-	
-(* a diferent version prossible to merge from smaller to larger
-let merge_context from_cxt to_contxt = 
-
-		let (smaller_cxt,larger_cxt) = 
-		if (context_size from_cxt) < (context_size to_cxt)
-		then 
-			(from_cxt, to_cxt) 
-		else 
-			(to_cxt, from_cxt)
-	in (* move from smaller to bigger cxt*)
-	let f c = 
-		 if (context_mem larger_cxt c) 
-		 then ()
-		 else 
-*)
-
-	*)					
-(*
-(* cc -- context*)
-let cc_create size name = Context.create_name size name
-let cc_mem cc bc = Context.mem cc bc
-let cc_find cc bc = Context.find cc bc
-let cc_size cc = Context.size cc
-
-(* in cc_fold f: bc -> c -> 'a -> 'a *)
-let cc_fold f cc a = Context.fold f cc a
-
-(* in cc_iter f: bc -> c -> unit *)
-let cc_iter f cc = Context.iter f cc
-let cc_add cc clause = 
-  Context.add clause db_ref
-
-(* should be copyed since add_ref is different....*)
-let cc_add context elem =
-      let cc_ref = ref context in
-      let _ = cc_add_ref cc_ref elem in
-      !cc_ref
-
-
-let cc_remove context clause = 
-  let new_context = Context.remove clause context in
-  Clause.set_bool_param false Clause.in_clause_db clause;
-  new_db
-
-let cc_get_name = ClauseDBM.get_name
-
-let to_stream s clause_db = 
-  ClauseDBM.to_stream s Clause.to_stream ",\n" clause_db
-
-let out = to_stream stdout_stream
-
-let to_string clause_db = 
-  ClauseDBM.to_string Clause.to_stream ",\n" clause_db
-*)
-
-(*------new--------*)
-
-(*
-(* us to check whether the clause is in the *)
-let template_clause bc =
-	{
-		basic_clause = bc;
-		fast_key = 0; (* auto assigned when added to context *)
-		context_id = 0; (* auto assigned when added to context *)
-		tstp_source = Undef;
-		simplified_by = Undef;
-		prop_solver_id = Undef;
-		conjecture_distance = max_conjecture_dist;
-		proof_search_param = Empty_param;
-		ccp_bool_param = Bit_vec.false_vec
-		}
-*)
 
 
 (*------------------*)
@@ -780,20 +584,6 @@ let to_string clause =
 "{"^(list_to_string Term.to_string clause.literals ";")^"}" (*^"\n"*)
 *)
 
-(*----------------*)
-let get_proof_search_param c = c.proof_search_param
-	
-	
-let get_inst_param c = 
-	 match (get_proof_search_param c) with 
-		Inst_param p -> p 
-	| _ -> failwith "Inst_param is not defined" 
-
-let inst_get_bool_param c = 
-	let inst_param = get_inst_param c in 
-	inst_param.inst_bool_param
-	 
-	
 (*-------------------------------*)
 exception Clause_prop_solver_id_is_def
 exception Clause_prop_solver_id_is_undef
@@ -892,15 +682,6 @@ let ccp_get_bool_param param clause =
 let ccp_set_bool_param value param clause =
 	clause.ccp_bool_param <- Bit_vec.set value param clause.ccp_bool_param
 
-(*--------------*)
-let inst_get_bool_param param clause =
-	let inst_param = get_inst_param clause in
-	Bit_vec.get param inst_param.inst_bool_param
-
-let inst_set_bool_param value param clause =
-	let inst_param = get_inst_param clause in
-	inst_param.inst_bool_param <- Bit_vec.set value param inst_param.inst_bool_param
-
 
 (*--------clause bc params get/assign -------------*)
 
@@ -983,11 +764,11 @@ let assign_context_id id c =
 	c.context_id <- id
 *)
 
-let get_simplified_by c = 
-	c.simplified_by
+let get_replaced_by c = 
+	c.replaced_by
 	
-let assign_simplied_by sby c = 
-		c.simplified_by <- sby
+let assign_replaced_by sby c = 
+		c.replaced_by <- sby
 		
 let get_conjecture_distance c = 
 		c.conjecture_distance
@@ -1020,139 +801,112 @@ let in_prop_solver c =
 let assign_in_prop_solver b c = 
 	ccp_set_bool_param b cpp_in_prop_solver c
 
-(*-----proof_search param get/assign---------*)
 
-let assign_empty_ints_param c =
-	c.proof_search_param <- Inst_param(create_inst_param ()) 
 
-let assign_empty_res_param c =
-	c.proof_search_param <- Res_param(create_res_param ()) 
+(*-----proof search params-------*)
 
-let assign_empty_param c =
-  c.proof_search_param <- Empty_param
+(*--------------------------------*)
+
+let create_ps_param () =
+	{
+		ps_bool_param = Bit_vec.false_vec;
+	  ps_when_born = Undef;
+	  ps_children = [];
+
+   (* inst params *)
+		inst_sel_lit = Undef;
+		inst_dismatching = Undef;
+		inst_activity = 0;
+
+	(* res params *)	
+ 	 res_sel_lits = Undef;
+}
+
+
+(*----------------*)
+		
+let get_proof_search_param c = 	c.proof_search_param
+let get_ps_param = get_proof_search_param
+
+let clear_proof_search_param c = c.proof_search_param <- (create_ps_param ())
+			
+let get_ps_bv_param c =  	 
+	let ps_param = get_ps_param c in 
+  ps_param.ps_bool_param
+	 
+let get_ps_bool_param param c = 
+	let bv = get_ps_bv_param c in
+	Bit_vec.get param bv
+
+
+		
+let set_ps_bool_param value param c = 
+	let ps_param = get_ps_param c in 
+	 ps_param.ps_bool_param <- Bit_vec.set value param ps_param.ps_bool_param
 	
-(*-------res param get/assign -----*)
-(* res bool params *)	
-(*
-let res_sel_max = 0
-let res_pass_queue1 = 1
-let res_pass_queue2 = 2
-let res_in_sim_passive = 3
-let res_simplifying = 4
-
-*)
-
-
-let get_res_param c = 
-	 match (get_proof_search_param c) with 
-		Res_param p -> p 
-	| _ -> failwith "Res_param is not defined" 
-
-(*				  	
-let res_get_bool_param param clause =
-	let res_param = get_res_param clause in
-  Bit_vec.get param res_param.res_bool_param
-						
-let res_set_bool_param value param clause =
-	let res_param = get_res_param clause in
-	res_param.res_bool_param <- Bit_vec.set value param res_param.res_bool_param
-
-
-let get_res_sel_max c = res_get_bool_param res_sel_max c
-let set_res_sel_max v c = res_set_bool_param v res_sel_max c
-
-let get_res_pass_queue1 c = res_get_bool_param res_pass_queue1 c
-let set_res_pass_queue1 v c = res_set_bool_param v res_pass_queue1 c
-
-let get_res_pass_queue2 c = res_get_bool_param res_pass_queue2 c
-let set_res_pass_queue2 v c = res_set_bool_param v res_pass_queue2 c
-
-let get_res_in_sim_passive c = res_get_bool_param res_in_sim_passive c
-let set_res_in_sim_passive v c = res_set_bool_param v res_in_sim_passive c
-
-let get_res_simplifying c = res_get_bool_param res_simplifying c
-let set_res_simplifying v c = res_set_bool_param v res_simplifying c
-*)
-
+	
 (*---res non-boolean param--*)	
-let res_when_born c =
-	let res_param = get_res_param c in
-	match res_param.res_when_born with
+let get_ps_when_born c =
+	let ps_param = get_ps_param c in
+	match ps_param.ps_when_born with
 	| Def(n) -> n
 	| Undef ->
 			(
 				let fail_str = "Clause: res_when_born is undef for "^(to_string c) in
 				failwith fail_str
 			)
-		
+let assign_ps_when_born i c =
+	let ps_param = get_ps_param c in
+	ps_param.ps_when_born <- Def(i) 
+			
 let res_assign_sel_lits sel_lits clause =
-	let res_param = get_res_param clause in
-	res_param.res_sel_lits <- Def(sel_lits)
+	let ps_param = get_ps_param clause in
+	ps_param.res_sel_lits <- Def(sel_lits)
 
 let res_sel_is_def clause =
- let res_param = get_res_param clause in
-	match res_param.res_sel_lits with
+ let ps_param = get_ps_param clause in
+	match ps_param.res_sel_lits with
 	| Def(_) -> true
 	| Undef -> false
 	
 exception Res_sel_lits_undef
 let get_res_sel_lits clause =
-	let res_param = get_res_param clause in
-	match res_param.res_sel_lits with
+	let ps_param = get_ps_param clause in
+	match ps_param.res_sel_lits with
 	| Def(sel_lits) -> sel_lits
 	| Undef -> raise Res_sel_lits_undef
-
-(*----------inst param get/set------------------------*)
-
-(*-----proof search bool params-------*)
-let get_ps_bv_param c = 
-	match (get_proof_search_param c) with 
-	| Inst_param p -> p.inst_bool_param
-  | Res_param p ->p.res_bool_param
-  | Empty_param -> failwith "get_ps_bool_param: Empty_param does not have bool params"
-
-let ps_get_bool_param param c = 
-	let ps_bool_param = get_ps_bv_param c in
-  Bit_vec.get param ps_bool_param
-
-let ps_set_bool_param value param c = 
-	match (get_proof_search_param c) with 
-	| Inst_param p -> p.inst_bool_param <- Bit_vec.set value param p.inst_bool_param
-  | Res_param p -> p.res_bool_param <- Bit_vec.set value param p.res_bool_param
-  | Empty_param -> failwith "get_ps_bool_param: Empty_param does not have bool params"
+ 
 
 
+let get_ps_in_active c = get_ps_bool_param ps_in_active c
+let set_ps_in_active v c = set_ps_bool_param v ps_in_active c
 
+let get_ps_in_unif_index c = get_ps_bool_param ps_in_unif_index c
+let set_ps_in_unif_index v c = set_ps_bool_param v ps_in_unif_index c
 
-let get_ps_in_active c = ps_get_bool_param ps_in_active c
-let set_ps_in_active v c = ps_set_bool_param v ps_in_active c
+let get_ps_in_subset_subsumption_index c = get_ps_bool_param ps_in_subset_subsumption_index c
+let set_ps_in_subset_subsumption_index v c = set_ps_bool_param v ps_in_subset_subsumption_index c
 
-let get_ps_in_unif_index c = ps_get_bool_param ps_in_unif_index c
-let set_ps_in_unif_index v c = ps_set_bool_param v ps_in_unif_index c
+let get_ps_in_subsumption_index c = get_ps_bool_param ps_in_subsumption_index c
+let set_ps_in_subsumption_index v c = set_ps_bool_param v ps_in_subsumption_index c
 
-let get_ps_in_subset_subsumption_index c = ps_get_bool_param ps_in_subset_subsumption_index c
-let set_ps_in_subset_subsumption_index v c = ps_set_bool_param v ps_in_subset_subsumption_index c
+let get_ps_in_sim_passive c = get_ps_bool_param ps_in_sim_passive c
+let set_ps_in_sim_passive v c = set_ps_bool_param v ps_in_sim_passive c
 
-let get_ps_in_subsumption_index c = ps_get_bool_param ps_in_subsumption_index c
-let set_ps_in_subsumption_index v c = ps_set_bool_param v ps_in_subsumption_index c
+let get_ps_pass_queue1 c = get_ps_bool_param ps_pass_queue1 c
+let set_ps_pass_queue1 v c = set_ps_bool_param v ps_pass_queue1 c
 
-let get_ps_in_sim_passive c = ps_get_bool_param ps_in_sim_passive c
-let set_ps_in_sim_passive v c = ps_set_bool_param v ps_in_sim_passive c
+let get_ps_pass_queue2 c = get_ps_bool_param ps_pass_queue2 c
+let set_ps_pass_queue2 v c = set_ps_bool_param v ps_pass_queue2 c
 
-let get_ps_pass_queue1 c = ps_get_bool_param ps_pass_queue1 c
-let set_ps_pass_queue1 v c = ps_set_bool_param v ps_pass_queue1 c
+let get_ps_pass_queue3 c = get_ps_bool_param ps_pass_queue3 c
+let set_ps_pass_queue3 v c = set_ps_bool_param v ps_pass_queue3 c
 
-let get_ps_pass_queue2 c = ps_get_bool_param ps_pass_queue2 c
-let set_ps_pass_queue2 v c = ps_set_bool_param v ps_pass_queue2 c
+let get_ps_sel_max c = get_ps_bool_param ps_sel_max c
+let set_ps_sel_max v c = set_ps_bool_param v ps_sel_max c
 
-let get_ps_pass_queue3 c = ps_get_bool_param ps_pass_queue3 c
-let set_ps_pass_queue3 v c = ps_set_bool_param v ps_pass_queue3 c
-
-let get_ps_sel_max c = ps_get_bool_param ps_sel_max c
-let set_ps_sel_max v c = ps_set_bool_param v ps_sel_max c
-
-let get_ps_simplifying c = ps_get_bool_param ps_simplifying c
-let set_ps_simplifying v c = ps_set_bool_param v ps_simplifying c
+let get_ps_simplifying c = get_ps_bool_param ps_simplifying c
+let set_ps_simplifying v c = set_ps_bool_param v ps_simplifying c
 
 
 
@@ -1206,17 +960,9 @@ let set_ v c = inst_set_bool_param v c
 let get_inst_pass_queue3 c = inst_get_bool_param inst_pass_queue3 c
 let set_inst_pass_queue3 v c = inst_set_bool_param v inst_pass_queue3 c
 *)
+
 (*----inst non-boolean params -----------*)
-let inst_when_born c =
-	let inst_param = get_inst_param c in
-	match inst_param.inst_when_born with
-	| Def(n) -> n
-	| Undef ->
-			(
-				let fail_str = "Clause: res_when_born is undef for "^(to_string c) in
-				failwith fail_str
-			)
-	
+
 exception Sel_lit_not_in_cluase
 let rec inst_find_sel_place sel_lit lit_list =
 	match lit_list with
@@ -1227,7 +973,7 @@ let rec inst_find_sel_place sel_lit lit_list =
 
 let inst_assign_sel_lit sel_lit clause =
 	let sel_place = inst_find_sel_place sel_lit (get_lits clause) in
-	let inst_param = get_inst_param clause in
+	let ps_param = get_ps_param clause in
 	(* Format.eprintf
 	"Selecting literal %s in clause (%d) %s@."
 	(Term.to_string sel_lit)
@@ -1235,17 +981,17 @@ let inst_assign_sel_lit sel_lit clause =
 	| Def key -> key
 	| Undef -> -1)
 	(to_string clause); *)
-	inst_param.inst_sel_lit <- Def((sel_lit, sel_place))
+	ps_param.inst_sel_lit <- Def((sel_lit, sel_place))
 
 let inst_assign_dismatching dismatching clause =
-	let inst_param = get_inst_param clause in
-		inst_param.inst_dismatching <- Def(dismatching)
+	let ps_param = get_ps_param clause in
+	ps_param.inst_dismatching <- Def(dismatching)
 
 
 exception Inst_sel_lit_undef
 let inst_get_sel_lit clause =
-	let inst_param = get_inst_param clause in
-		match inst_param.inst_sel_lit with
+	let ps_param = get_ps_param clause in
+		match ps_param.inst_sel_lit with
 	| Def((sel_lit, _)) -> sel_lit
 	| Undef -> raise Inst_sel_lit_undef
 
@@ -1259,37 +1005,37 @@ let get_parent clause =
 | Def(p) -> p
 | Undef -> raise Parent_undef *)
 
-let res_compare_sel_place c1 c2 =
-	let c1_inst_param = get_inst_param c1 in
-	let c2_inst_param = get_inst_param c2 in
-	match (c1_inst_param.inst_sel_lit, c2_inst_param.inst_sel_lit) with
+let inst_compare_sel_place c1 c2 =
+	let c1_ps_param = get_ps_param c1 in
+	let c2_ps_param = get_ps_param c2 in
+	match (c1_ps_param.inst_sel_lit, c2_ps_param.inst_sel_lit) with
 	| (Def((_, sp1)), Def((_, sp2)))
 	-> Pervasives.compare sp1 sp2
 	| _ -> raise Inst_sel_lit_undef
 
 exception Dismatching_undef
 let get_inst_dismatching clause =
-	let inst_param = get_inst_param clause in
-	match inst_param.inst_dismatching with
+	let ps_param = get_ps_param clause in
+	match ps_param.inst_dismatching with
 	| Def(dismatching) -> dismatching
 	| Undef -> raise Dismatching_undef
 
-let inst_add_child clause child =
-	let inst_param = get_inst_param clause in
-	inst_param.inst_children <- child:: (inst_param.inst_children)
+let add_ps_child clause ~child =
+	let ps_param = get_ps_param clause in
+	ps_param.ps_children <- child:: (ps_param.ps_children)
 
-let inst_get_children clause = 
-	let inst_param = get_inst_param clause in
-	inst_param.inst_children
+let get_ps_children clause = 
+	let ps_param = get_ps_param clause in
+	ps_param.ps_children
 	
 
 let inst_get_activity clause = 
-	let inst_param = get_inst_param clause in
-	inst_param.inst_activity
+	let ps_param = get_ps_param clause in
+	ps_param.inst_activity
 
 let inst_assign_activity act clause = 
-	let inst_param = get_inst_param clause in
-	inst_param.inst_activity <- act
+	let ps_param = get_ps_param clause in
+	ps_param.inst_activity <- act
 
 (*-------inst/res when born assignments--*)
 
@@ -1297,7 +1043,7 @@ let inst_assign_activity act clause =
 (*                                    *)
 (* if the the prem1 and prem2 is [] then zero is assined (e.g. imput clauses) *)
 (* we assign when_born when 1) conclusion of an inference was generated       *)
-(* 2) clause is simplified and 3) splitting 4)model transformation/equation axiom  *)
+(* 2) clause is replaced and 3) splitting 4)model transformation/equation axiom  *)
 (* 5) it is an imput clause                                                   *)
 (* in the case 1) we calculate when born of the conclusion as  *)
 (* when_born=max(min(pem1),min(prem2)) + 1                     *)
@@ -1312,10 +1058,9 @@ let list_find_max_element_zero comp l =
 		list_find_max_element comp l
 	with Not_found -> 0
 
-
-let inst_when_born_concl prem1 prem2 clause =
-	let born_list1 = List.map inst_when_born prem1 in
-	let born_list2 = List.map inst_when_born prem2 in
+let ps_when_born_concl prem1 prem2 clause =
+	let born_list1 = List.map get_ps_when_born prem1 in
+	let born_list2 = List.map get_ps_when_born prem2 in
 	let inv_compare = compose_sign false Pervasives.compare in
 	(* finds min element *)
 	let min_prem1 = list_find_max_element_zero inv_compare born_list1 in
@@ -1324,25 +1069,10 @@ let inst_when_born_concl prem1 prem2 clause =
 	let when_cl_born = max_born + 1 in
 	when_cl_born
 
-let inst_assign_when_born prem1 prem2 c =
-	let inst_param = get_inst_param c in
-	inst_param.inst_when_born <- Def(inst_when_born_concl prem1 prem2 c)
+let assign_ps_when_born_concl ~prem1 ~prem2 ~c =
+	let ps_param = get_ps_param c in
+	ps_param.ps_when_born <- Def(ps_when_born_concl prem1 prem2 c)
 	
-let res_when_born_concl prem1 prem2 =
-	let born_list1 = List.map res_when_born prem1 in
-	let born_list2 = List.map res_when_born prem2 in
-	let inv_compare = compose_sign false Pervasives.compare in
-	(* finds min element *)
-	let min_prem1 = list_find_max_element_zero inv_compare born_list1 in
-	let min_prem2 = list_find_max_element_zero inv_compare born_list2 in
-	let max_born = list_find_max_element Pervasives.compare [min_prem1; min_prem2] in
-	let when_cl_born = max_born + 1 in
-	when_cl_born	
-	
-let res_assign_when_born prem1 prem2 c =
-	let res_param = get_res_param c in
-	res_param.res_when_born <- Def(res_when_born_concl prem1 prem2)
-
 
 
 (*--------------pp printing ------------------------------------*)
@@ -1792,7 +1522,7 @@ let get_conjecture_distance_tstp_source tstp_source =
 
 (**-------- create clause ----------------------------*)
 
-let new_clause ~is_negated_conjecture tstp_source ps_param bc = 
+let new_clause ~is_negated_conjecture tstp_source bc = 
 	 let conjecture_distance = 
 		if is_negated_conjecture
 		then 0
@@ -1801,13 +1531,14 @@ let new_clause ~is_negated_conjecture tstp_source ps_param bc =
 		in 	
 		let fast_key = !clause_counter in
 		incr_clause_counter ();
+		let ps_param = create_ps_param () in
 		let new_clause = 
 	 {
 		basic_clause = bc;
 		fast_key = fast_key; (* auto assigned when added to context *)
 (*	context_id = 0; *)(* auto assigned when added to context *)
 		tstp_source = Def(tstp_source);
-		simplified_by = Undef;
+		replaced_by = Undef;
 		prop_solver_id = None;
 		conjecture_distance = conjecture_distance;
 		proof_search_param = ps_param;
@@ -1828,41 +1559,27 @@ let fill_clause_param is_conjecture tstp_source ps_param c =
 	*)
 	
 
-let create_clause_opts ~is_negated_conjecture term_db_ref tstp_source proof_search_param lits =
+let create_clause_opts ~is_negated_conjecture term_db_ref tstp_source lits =
 	let bc = create_basic_clause (normalise_lit_list term_db_ref lits) in
-	new_clause ~is_negated_conjecture tstp_source proof_search_param bc
+	new_clause ~is_negated_conjecture tstp_source bc
 
 (*---------------*)		
 (* by default all literals in clauses are normalised *)
 (* assume clause is not a negated conjecture *)
 
-let create_clause term_db_ref tstp_source proof_search_param lits =
- create_clause_opts ~is_negated_conjecture:false term_db_ref tstp_source proof_search_param lits
-
-(* not normalised clause *)
-let create_clause_raw tstp_source proof_search_param lits = 
-	let bc = create_basic_clause lits in
-	new_clause ~is_negated_conjecture:false tstp_source proof_search_param bc
-
+let create_clause term_db_ref tstp_source lits =
+ create_clause_opts ~is_negated_conjecture:false term_db_ref tstp_source lits
 
 (* assume clause is a negate_conjecture *)
-let create_neg_conjecture term_db_ref tstp_source proof_search_param lits = 
-	create_clause_opts ~is_negated_conjecture:true term_db_ref tstp_source proof_search_param lits
+let create_neg_conjecture term_db_ref tstp_source lits = 
+	create_clause_opts ~is_negated_conjecture:true term_db_ref tstp_source lits
+
+(* clause without normalising lits *)
+let create_clause_raw tstp_source lits = 
+	let bc = create_basic_clause lits in
+	new_clause ~is_negated_conjecture:false tstp_source bc
 	
 	
-(* literals are not normalised *)
-	
-let create_clause_res term_db_ref tstp_source lits =
-	let res_param = Res_param (create_res_param ()) in (* max_conjecture_dist calculate *)
-	create_clause term_db_ref tstp_source res_param lits
-
-let create_clause_inst term_db_ref tstp_source lits =
-	let inst_param = Inst_param (create_inst_param ()) in
-	create_clause term_db_ref tstp_source inst_param lits
-
-let create_clause_empty_param term_db_ref tstp_source lits =
-	create_clause term_db_ref tstp_source Empty_param lits
-
 
 (*--------------Compare two clauses-------------------*)
 
@@ -1877,13 +1594,7 @@ let cmp_num_lits c1 c2 = cmp length c1 c2
 
 let cmp_age c1 c2 =
 	let (when_born1, when_born2) =
-	(match ((get_proof_search_param c1), (get_proof_search_param c2)) with 
-	| (Inst_param(inst_param1), Inst_param(inst_param2)) ->
-		 (inst_param1.inst_when_born, inst_param2.inst_when_born)
-  | (Res_param(inst_param1), Res_param(inst_param2)) ->
-		 (inst_param1.res_when_born, inst_param2.res_when_born)
-	| _ -> failwith (" cmp_age: when born is either not defined or not compatible in "^(to_string c1)^" "^(to_string c2)) 
-	)
+		((get_ps_when_born c1), (get_ps_when_born c2))
 	in	
 	- (Pervasives.compare (when_born1) (when_born2))
 
@@ -2089,6 +1800,11 @@ let context_add cc c =
 		(Context.add cc bc c;
 		c
 		)
+let context_add_ignore cc c = 
+	ignore (context_add cc c) 
+		
+let context_add_list cc c_list = 
+		List.iter (context_add_ignore cc) c_list 
 		
 let context_remove cc c = Context.remove cc (get_bc c)
 let context_mem cc c = Context.mem cc (get_bc c)
@@ -2111,45 +1827,42 @@ let context_add_context from_cxt to_cxt =
 
 (*
 *)
+	
+(* returns clause list with which c was replaced *)	
+let get_replaced_by_clauses c =
+ match c.replaced_by  
+ with
+	| Def(RB_subsumption by_clause) -> [by_clause]
+	| Def(RB_sub_typing by_clause) -> [by_clause]
+	| Def(RB_splitting by_clause_list) -> by_clause_list
+	| Undef -> []
 	 
 (* add assert of non-cyclicity check *)		
-let get_simplifed_by_rec clause_list = 
-	let rec f to_process simp_by = 
+let get_replaced_by_rec clause_list = 
+	let rec f to_process rep_by = 
 	match to_process with 
 	|h::tl -> 
-		(match (get_simplified_by h) with 
-	   |Def(Simp_by_subsumption sc) -> 
-	  	(assert (get_is_dead h);
-				f (sc::tl) simp_by
-			)
-	   |Undef -> 
-		  (assert (not (get_is_dead h));
-				f tl (h::simp_by)
-				)
-		 )		
-	|	[] -> simp_by
-	    	 
+		(let h_rep_by = (get_replaced_by_clauses h) in
+		 f tl (h_rep_by@rep_by)
+	  )
+	|	[] -> rep_by	    	 
  in
   f clause_list	[]
 	
 	
-(* replaces dead clauses with simplified *)
-let context_replace_dead cc =
-	let dead_list = 
-      let f c rest = 
-				if (get_is_dead c)
-        then 
-					(context_remove cc c;
-						c::rest)
-			else 
-				(
-					rest
-					)
-	in 
-	context_fold cc f []
-	in
-	let simp_by = get_simplifed_by_rec dead_list in 
-	List.iter (fun c -> ignore (context_add cc c)) simp_by
+(* replaces dead clauses with replaced *)
+let context_replace_by cc =
+ let f c = 
+	
+	 let rep_by = get_replaced_by_rec [c] in
+	 if (rep_by = [])
+	 then ()
+	 else 
+		(context_remove cc c;
+	   context_add_list cc rep_by 
+		)		
+	in	
+	context_iter cc f
 	
 	
 	

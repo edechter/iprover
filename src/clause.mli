@@ -23,15 +23,12 @@ exception Term_compare_less
 type sel_place = int
 
 type clause 
-and inst_param 
-and res_param
-and proof_search_param =
-    Inst_param of inst_param
-  | Res_param of res_param
-  | Empty_param
-and simplified_by =
-    Simp_by_subsumption of clause
- (* | Simp_by_global_subsumption of clause*)
+and proof_search_param
+and replaced_by =
+  | RB_subsumption of clause
+	| RB_sub_typing of clause
+	| RB_splitting of clause list  
+
 and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom
 and tstp_internal_source =
     TSTP_definition
@@ -147,9 +144,6 @@ val create_basic_clause :
   literal_list -> BClause_Htbl.key Hashcons.hash_consed
 *)
 
-(**--create proof search parameters---------*)
-val create_inst_param : unit -> inst_param
-val create_res_param : unit -> res_param
 
 (**)
 (* val max_conjecture_dist : int
@@ -212,8 +206,9 @@ val context_size : context -> int
 
 (* context_add_context from_cxt to_cxt *)
 val context_add_context : context -> context -> unit
-(** replaces dead with simplified_by *)
-val context_replace_dead : context -> unit
+
+(** replaces clausews with replaced_by (recusively) *)
+val context_replace_by : context -> unit
 
 
 (*val template_clause : basic_clause -> clause*)
@@ -221,23 +216,14 @@ val context_replace_dead : context -> unit
 (** creates a clause within a context; use create_neg_conjecture if a clause is a negate conjectue *)
 (** literals are normalised, use create_clause_raw for creating with literals as it is *)
 val create_clause :
-   term_db_ref -> tstp_source -> proof_search_param -> literal_list -> clause
+   term_db_ref -> tstp_source -> literal_list -> clause
+
+val create_neg_conjecture :
+  term_db_ref -> tstp_source -> literal_list -> clause
 
 (* clause with literals as it is (non-normalised)*)
 val create_clause_raw : 
-    tstp_source -> proof_search_param -> literal_list -> clause
-	
-val create_neg_conjecture :
-  term_db_ref -> tstp_source -> proof_search_param -> literal_list -> clause
-	
-val create_clause_res :
-   term_db_ref -> tstp_source -> literal_list -> clause
-
-val create_clause_inst :
-   term_db_ref -> tstp_source -> literal_list -> clause
-
-val create_clause_empty_param :
-   term_db_ref -> tstp_source -> literal_list -> clause
+    tstp_source  -> literal_list -> clause
 	
 (*-----*)	
 val get_lits : clause -> literal_list
@@ -338,8 +324,13 @@ val get_min_defined_symb : clause -> int Lib.param
 val assign_tstp_source : clause -> tstp_source -> unit
 val get_tstp_source : clause -> tstp_source
 
-val get_simplified_by : clause -> simplified_by Lib.param 
-val assign_simplied_by : simplified_by Lib.param -> clause -> unit
+(** non recursive *)
+val get_replaced_by : clause -> replaced_by Lib.param 
+
+(** recursively until non_replaced clauses *)
+val get_replaced_by_rec : clause list -> clause list
+
+val assign_replaced_by : replaced_by Lib.param -> clause -> unit
 
 val get_conjecture_distance : clause -> int
 val assign_conjecture_distance : int -> clause -> unit 
@@ -356,16 +347,6 @@ val assign_in_unsat_core : bool -> clause -> unit
 val in_prop_solver : clause -> bool
 val assign_in_prop_solver : bool -> clause -> unit
 
-val assign_empty_ints_param : clause -> unit
-val assign_empty_res_param : clause -> unit
-
-val assign_empty_param : clause -> unit
-
-(*
-val get_res_param : clause -> res_param
-val res_get_bool_param : int -> clause -> bool
-val res_set_bool_param : bool -> int -> clause -> unit
-*)
 
 (** proof search bool param*)
 val get_ps_in_active : clause -> bool
@@ -388,83 +369,45 @@ val get_ps_sel_max : clause -> bool
 val set_ps_sel_max : bool -> clause -> unit
 val get_ps_simplifying : clause -> bool
 val set_ps_simplifying : bool -> clause -> unit
-(*
-(** res bool param*)
-val get_res_sel_max : clause -> bool
-val set_res_sel_max : bool -> clause -> unit
 
-val get_res_pass_queue1 : clause -> bool
-val set_res_pass_queue1 : bool -> clause -> unit
 
-val get_res_pass_queue2 : clause -> bool
-val set_res_pass_queue2 : bool -> clause -> unit
 
-val get_res_in_sim_passive : clause -> bool
-val set_res_in_sim_passive : bool -> clause -> unit
+(** proof search non-bool param *)
 
-val get_res_simplifying : clause -> bool
-val set_res_simplifying : bool -> clause -> unit
-*)
+val clear_proof_search_param : clause -> unit
+
+val get_ps_when_born : clause -> int
+val assign_ps_when_born : int -> clause -> unit
+
+val assign_ps_when_born_concl :
+  prem1:clause list -> prem2:clause list -> c:clause -> unit
+
+val add_ps_child : clause -> child:clause -> unit
+val get_ps_children : clause -> clause list
 
 (** res non-bool param *)
-val res_when_born : clause -> int
 
 exception Res_sel_lits_undef
 val res_sel_is_def : clause -> bool
 val get_res_sel_lits : clause -> literal_list
 val res_assign_sel_lits : literal_list -> clause -> unit
 
-(*val res_when_born_concl : clause list -> clause list -> int*)
-val res_assign_when_born : clause list -> clause list -> clause -> unit
 
 (** inst bool param *)
-(*
-val get_inst_param : clause -> inst_param
-val inst_get_bool_param : int -> clause -> bool
-val inst_set_bool_param : bool -> int -> clause -> unit
-*)
-(*
-val get_inst_in_active : clause -> bool
-val set_inst_in_active : bool -> clause -> unit
-
-val get_inst_in_unif_index : clause -> bool
-val set_inst_in_unif_index : bool -> clause -> unit
-
-val get_inst_in_subset_subsumption_index : clause -> bool
-val set_inst_in_subset_subsumption_index : bool -> clause -> unit
-
-val get_inst_in_subsumption_index : clause -> bool
-val set_inst_in_subsumption_index : bool -> clause -> unit
-
-val get_inst_in_sim_passive : clause -> bool
-val set_inst_in_sim_passive : bool -> clause -> unit
-
-val get_inst_pass_queue1 : clause -> bool
-val set_inst_pass_queue1 : bool -> clause -> unit
-
-val get_inst_pass_queue2 : clause -> bool
-val set_inst_pass_queue2 : bool -> clause -> unit
-
-val get_inst_pass_queue3 : clause -> bool
-val set_inst_pass_queue3 : bool -> clause -> unit
-*)
 
 (** inst non-bool param *)
-val inst_when_born : clause -> int
+
 exception Sel_lit_not_in_cluase
 val inst_find_sel_place : 'a -> 'a list -> int
 val inst_assign_sel_lit : literal -> clause -> unit
 val inst_assign_dismatching : dismatching -> clause -> unit
 exception Inst_sel_lit_undef
 val inst_get_sel_lit : clause -> term
-val res_compare_sel_place : clause -> clause -> int
+val inst_compare_sel_place : clause -> clause -> int
 exception Dismatching_undef
 val get_inst_dismatching : clause -> dismatching
-val inst_add_child : clause -> clause -> unit
-val inst_get_children : clause -> clause list
 val inst_get_activity : clause -> int
 val inst_assign_activity : int -> clause -> unit
-val inst_assign_when_born : clause list -> clause list -> clause -> unit
 
 (**---- tstp sources -----*)
 val tstp_source_instantiation : clause -> clause list -> tstp_source
