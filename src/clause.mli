@@ -47,6 +47,7 @@ and tstp_theory_bmc1 =
 and tstp_theory =
     TSTP_equality
   | TSTP_distinct
+	| TSTP_domain 
   | TSTP_bmc1 of tstp_theory_bmc1
   | TSTP_less
   | TSTP_range
@@ -436,6 +437,7 @@ val tstp_source_grounding : (var * term) list -> clause -> tstp_source
 val tstp_source_theory_axiom : tstp_theory -> tstp_source
 val tstp_source_axiom_equality : tstp_source
 val tstp_source_axiom_distinct : tstp_source
+val tstp_source_axiom_domain : tstp_source
 val tstp_source_axiom_less : tstp_source
 val tstp_source_axiom_range : tstp_source
 val tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> tstp_source

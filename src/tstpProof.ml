@@ -235,6 +235,7 @@ let pp_tstp_theory_bmc1 ppf = function
 let pp_tstp_theory ppf = function
 	| Clause.TSTP_equality -> Format.fprintf ppf "equality"
 	| Clause.TSTP_distinct -> Format.fprintf ppf "distinct"
+	| Clause.TSTP_domain -> Format.fprintf ppf "domain"
 	| Clause.TSTP_bmc1 a -> Format.fprintf ppf "%a" pp_tstp_theory_bmc1 a
 	| Clause.TSTP_less -> Format.fprintf ppf "less"
 	| Clause.TSTP_range -> Format.fprintf ppf "range"

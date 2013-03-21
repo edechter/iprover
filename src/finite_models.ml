@@ -464,7 +464,7 @@ let order_terms t1 t2 =
 
 (* without (ground) term definitions yet !*)
 let flat_clause clause =
-	let var_env = TermHash.create 19 in
+ (*	let var_env = TermHash.create 19 in *)
 	let term_to_flat_term_env = ref TermMap.empty in
 	let clause_lits = Clause.get_literals clause in
 	
@@ -995,9 +995,9 @@ let axiom_dom_pred_symb bound_pred symb dom_elements =
 	let f rest dom_el =
 		(add_fun_term symb (dom_el:: var_args)):: rest
 	in
-	
+	let tstp_source = Clause.tstp_source_axiom_domain in
 	let new_cl =
-		(add_clause_lits (bound_pred:: (List.fold_left f [] dom_elements))) in
+		(create_clause tstp_source (bound_pred:: (List.fold_left f [] dom_elements))) in
 	new_cl
 
 let domain_pred_axioms bound_pred dom =
@@ -1037,8 +1037,9 @@ let domain_axioms_triangular_const_list bound_pred dom_elements ordered_flat_con
 					((add_fun_term symb [h]):: (i_const_lits tl (i -1) symb))
 	in
 	let get_axioms_const (rest, i) symb =
+		let tstp_source = Clause.tstp_source_axiom_domain in
 		let new_clause =
-			add_clause_lits (bound_pred:: (i_const_lits dom_elements i symb)) in
+			create_clause tstp_source (bound_pred:: (i_const_lits dom_elements i symb)) in
 		((new_clause:: rest), i +1)
 	in
 	let (axioms_const, _) =
@@ -1159,10 +1160,10 @@ let get_scc type_graph =
 	(* debug out scc *)
 	
 (*	out_str "Signatuer SCC cyclic components: \n"; *)
-	let out_scc_single tlist =
+(*	let out_scc_single tlist =
 		out_str ("["^(list_to_string Symbol.to_string tlist ";")^"]\n")
 	in
-(*	List.iter out_scc_single cyclic_scc;*)
+	List.iter out_scc_single cyclic_scc;*)
 (*	out_str "\n\n Signatuer SCC non-cyclic types: \n";
 	out_str ("["^(list_to_string Symbol.to_string non_cyclic_type_list ";")^"]\n");
 	*)

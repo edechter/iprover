@@ -15,12 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
-
-
-type symb   = Symbol.symbol
-type stype  = Symbol.stype
-type term   = Term.term 
-type clause = Clause.clause
+open Logic_interface
 
 val add_domain_constant_all_dom : int -> unit 
 

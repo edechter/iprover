@@ -230,6 +230,7 @@ and tstp_theory_bmc1 =
 and tstp_theory =
 	| TSTP_equality
 	| TSTP_distinct
+	| TSTP_domain 
 	| TSTP_bmc1 of tstp_theory_bmc1
 	| TSTP_less
 	| TSTP_range
@@ -1760,6 +1761,10 @@ let tstp_source_axiom_equality =
 (* Clause is a distinct axiom *)
 let tstp_source_axiom_distinct =
 	tstp_source_theory_axiom TSTP_distinct
+
+(* Clause is a domain axiom used in finite models *)
+let tstp_source_axiom_domain =
+	tstp_source_theory_axiom TSTP_domain
 
 (* Clause is an less axiom *)
 let tstp_source_axiom_less =
