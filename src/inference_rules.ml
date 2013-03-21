@@ -30,7 +30,6 @@ type  statistics =
      num_of_non_proper_inst    : int }
 *)
 
-
 (*
 let num_of_dismatch_blockings = ref 0 
 let num_of_non_proper_inst = ref 0
@@ -79,10 +78,10 @@ let resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
 
 		let tstp_source = Clause.tstp_source_resolution [c1;c2] [l1;l2] in  
     let conclusion = 
-		create_clause_res tstp_source 
+		create_clause tstp_source 
 	   	(normalise_blitlist_list 
 	       mgu [(1,new_litlist1);(2,new_litlist2)]) in
-      Clause.res_assign_when_born [c1] [c2] conclusion;
+      Clause.assign_ps_when_born_concl ~prem1:[c1] ~prem2:[c2] ~c:conclusion;
 
  (*   let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
     Clause.assign_conjecture_distance (min_conj_dist+1) conclusion; 
@@ -126,11 +125,11 @@ let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
 		
 		let tstp_source = Clause.tstp_source_resolution [c1;c2] [l1;l2] in  
     let conclusion = 
-		create_clause_res tstp_source 
+		create_clause tstp_source 
 		  (normalise_blitlist_list 
 	        mgu [(1,new_litlist1);(2,new_litlist2)]) in
 		
-		Clause.res_assign_when_born [c1] [c2] conclusion;		
+		Clause.assign_ps_when_born_concl ~prem1:[c1] ~prem2:[c2] ~c:conclusion;		
   
     (* let min_conj_dist = Clause.get_min_conjecture_distance [c1;c2] in
     Clause.assign_conjecture_distance (min_conj_dist+1) conclusion;*)
@@ -163,28 +162,24 @@ let subs_resolution c1 l1 compl_l1 c_list2 l2 term_db_ref =
 
 (* factors and removes all  repeated l1's in the clause *)
 let factoring c l1 l2 term_db_ref =
+	let tstp_source = Clause.tstp_source_factoring c [l1;l2] in
   if l1==l2 then 
    let new_litlist = 
-      l1::(Clause.find_all (fun lit -> not(l1 == lit)) c) in
-			
-		let tstp_source = Clause.assign_tstp_source_factoring c [l1;l2] in
-    let conclusion = 
+      l1::(Clause.find_all (fun lit -> not(l1 == lit)) c) in			
+	  let conclusion = 
 			create_clause tstp_source new_litlist in
-    Clause.inherit_conj_dist c conclusion;
-    Clause.assign_when_born [c] [] conclusion;
-    (* Clause.assign_factoring_history conclusion c [l1;l2]; *)
-    Clause.assign_tstp_source_factoring conclusion c [l1;l2];
+    Clause.assign_ps_when_born_concl ~prem1:[c] ~prem2:[] ~c:conclusion;
+		(* simplified *)
+		clause_register_subsumed_by ~by:conclusion c;
     conclusion
   else    
     let mgu =  Unif.unify_bterms (1,l1) (1,l2) in
     let new_litlist = 
       Clause.find_all (fun lit -> not(l1 == lit)) c
-    in 
-    let conclusion = Clause.create ( Clause.normalise_b_litlist term_db_ref mgu (1,new_litlist)	) in
-    Clause.inherit_conj_dist c conclusion;
-    Clause.assign_when_born [c] [] conclusion;
-    (* Clause.assign_factoring_history conclusion c [l1;l2]; *)
-    Clause.assign_tstp_source_factoring conclusion c [l1;l2];
+    in
+    let conclusion = 
+			create_clause tstp_source ( Clause.normalise_b_litlist term_db_ref mgu (1,new_litlist)	) in
+    Clause.assign_ps_when_born_concl ~prem1:[c] ~prem2:[] ~c:conclusion;
     conclusion
 
 
@@ -326,7 +321,7 @@ let is_not_redundant_inst_norm subst_norm clause =
 
 let get_dismatching_create cl = 
   try
-    Clause.get_dismatching cl 
+    Clause.get_inst_dismatching cl 
   with 
     Clause.Dismatching_undef -> 
       (Dismatching.create_constr_set ())
@@ -335,7 +330,7 @@ let get_dismatching_create cl =
 let add_to_dism_constr subst_norm clause = 
   let old_constr_set = get_dismatching_create clause in
   let new_constr_set = Dismatching.add_constr old_constr_set subst_norm in
-  Clause.assign_dismatching new_constr_set clause
+  Clause.inst_assign_dismatching new_constr_set clause
 
 
 
@@ -353,7 +348,7 @@ let is_not_redundant_inst_norm subst_norm clause =
       then      
 	try 
 	  let new_constr_set = Dismatching.check_and_add old_constr_set subst_norm in
-	  Clause.assign_dismatching new_constr_set clause;
+	  Clause.inst_assign_dismatching new_constr_set clause;
 	  true
 	with
 	  Dismatching.Constr_Not_Sat ->
@@ -362,7 +357,7 @@ let is_not_redundant_inst_norm subst_norm clause =
       else (* !current_options.sat_out_model=true and !current_options.inst_dismatching = false *)
 	(* We need to add constriant for model representation, but do not check it *)
 	let new_constr_set = Dismatching.add_constr old_constr_set subst_norm in
-	Clause.assign_dismatching new_constr_set clause;
+	Clause.inst_assign_dismatching new_constr_set clause;
 	true
     end
   in
@@ -374,7 +369,7 @@ let is_not_redundant_inst_norm subst_norm clause =
 
 let dismatching_string clause =   
   try 
-   "["^(Dismatching.to_string_constr_set (Clause.get_dismatching clause))^"]"
+   "["^(Dismatching.to_string_constr_set (Clause.get_inst_dismatching clause))^"]"
   with
     Clause.Dismatching_undef -> "[]"
 
@@ -383,21 +378,21 @@ exception Main_concl_redundant
 
 (* assume that we already added clause to db *)
 
-let assign_param_clause parent parents_side conj_dist clause = 
+let assign_param_clause parent parents_side clause = 
 (*  Clause.assign_when_born ((Clause.when_born parent)+1) clause;*)
-  Clause.assign_when_born [parent] parents_side clause;
-  Clause.assign_activity ((Clause.get_activity parent)+1) parent;
-  Clause.add_child parent clause;
 
-  if 
+  Clause.assign_ps_when_born_concl ~prem1:[parent] ~prem2:parents_side ~c:clause;
+  Clause.inst_assign_activity ((Clause.inst_get_activity parent)+1) parent;
+  Clause.add_ps_child parent ~child:clause;
+  (if 
     val_of_override !current_options.bmc1_unsat_core_children &&
-      Clause.get_bool_param Clause.in_unsat_core parent 
+      Clause.in_unsat_core parent 
   then
-    Clause.set_bool_param true Clause.in_unsat_core clause;
-
-  Clause.assign_conjecture_distance conj_dist clause;
+    (Clause.assign_in_unsat_core true clause;)
+   )
+ (* Clause.assign_conjecture_distance conj_dist clause;*)
   (* Clause.assign_instantiation_history clause parent parents_side *)
-  Clause.assign_tstp_source_instantiation clause parent parents_side 
+  (* Clause.assign_tstp_source_instantiation clause parent parents_side *)
     
 
   
@@ -406,7 +401,7 @@ let assign_param_clause parent parents_side conj_dist clause =
 
 
 let instantiation_norm_dc 
-    term_db_ref clause_db_ref c1 l1 compl_l1 c_list2 l2  =
+    term_db_ref context c1 l1 compl_l1 c_list2 l2  =
 (* if mgu is proper of c1 and the conclusion is redundant then all inference *)
 (* is redundant; similar *)
 (* if mgu is proper of list2 and *)
@@ -427,7 +422,7 @@ let instantiation_norm_dc
 		   ^"Conj Dist: "^(string_of_int (Clause.get_conjecture_distance c1))^"\n"); 
 *)
 (*  let conjecture_distance_c1 = (Clause.get_conjecture_distance c1) in  *)
-  let min_conj_dist = Clause.get_min_conjecture_distance (c1::c_list2) in
+ (* let min_conj_dist = Clause.get_min_conjecture_distance (c1::c_list2) in*)
   let main_old_dismatching_c1 = get_dismatching_create c1
   in
 (*  out_str ("Min Conj Dist: "^(string_of_int min_conj_dist)^"\n");*)
@@ -436,10 +431,12 @@ let instantiation_norm_dc
   let conc1 = 
        if (SubstBound.is_proper_instantiator mgu 1) 
 	then  
-	  let (inst_clause,subst_norm) = 
-	    (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 c1)
+	  let (inst_lits,subst_norm) = 
+	    (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 (get_lits c1))
 	  in
-	  if (ClauseAssignDB.mem inst_clause !clause_db_ref)
+		let tstp_source = Clause.tstp_source_instantiation c1 []  in 
+		let inst_clause = create_clause tstp_source inst_lits in
+	  if (context_mem context inst_clause)
 	  then 
           (
 (* adding dism. constraint is essential for correct model representation!*)
@@ -480,10 +477,12 @@ let instantiation_norm_dc
 			^"Constr: "^(dismatching_string clause)^"\n" 
    			^"Sel Lit: "^(Term.to_string l2)^"\n");
 *)
-		  let (inst_clause,subst_norm) = 
-	    Clause.apply_bsubst_norm_subst term_db_ref mgu 2 clause 
+		  let (inst_lits,subst_norm) = 
+	    Clause.apply_bsubst_norm_subst term_db_ref mgu 2 (get_lits clause) 
 	  in
-	  if (ClauseAssignDB.mem inst_clause !clause_db_ref)
+		let tstp_source = Clause.tstp_source_instantiation clause [c1] in 
+		let inst_clause = create_clause tstp_source inst_lits in	
+	  if (context_mem context inst_clause)
 	  then 
 	    (
 (* adding dism. constraint is essential for correct model representation!*)
@@ -516,13 +515,13 @@ let instantiation_norm_dc
 (*(is_not_redundant_feature subst_norm clause)*)
 	    then 
 	      (list2_concl_redundant := false;
-	       let added_clause = 
-	      ClauseAssignDB.add_ref inst_clause clause_db_ref in
+	       let added_clause = context_add context inst_clause in
 	   (* let new_conj_dist = 
 	      ( ((Clause.get_conjecture_distance clause) + 
 		  conjecture_distance_c1) lsr 2)+1 in*)
-	      let new_conj_dist = (Clause.get_min_conjecture_distance [clause;c1])+1 in
+	   (*   let new_conj_dist = (Clause.get_min_conjecture_distance [clause;c1])+1 in
 	      assign_param_clause clause [c1] new_conj_dist added_clause;
+		*)
 	      added_clause::rest)
 	  else 
 	    (
@@ -555,13 +554,13 @@ let instantiation_norm_dc
      then
       (
      (*  out_str "Side Conclusions are all redundant !\n "; *)
-       Clause.assign_dismatching main_old_dismatching_c1 c1;
+       Clause.inst_assign_dismatching main_old_dismatching_c1 c1;
        [])
       else 
       (match conc1 with 
       |Some ((conc1_cl, conc1_subst_norm)) ->
         (* note that here conc1_subst_norm is always proper *)
-	    (if (ClauseAssignDB.mem conc1_cl !clause_db_ref)
+	    (if (context_mem context conc1_cl)
             then 
             ((*out_str "inference_rules: conc1 inst is conc2 inst\n";*)
 (* adding dism. constraint is essential for correct model representation!*)
@@ -569,11 +568,10 @@ let instantiation_norm_dc
 	     incr_int_stat 1 inst_num_of_duplicates;
              conc2)
             else   
-              ( let added_conc1 = 
-	      (ClauseAssignDB.add_ref conc1_cl clause_db_ref) in
-	      let new_conj_dist = min_conj_dist +1
-		  (*((min_conj_dist_list2 + conjecture_distance_c1) lsr 2)+1*) in
-	      assign_param_clause c1 c_list2 new_conj_dist  added_conc1;
+              ( let added_conc1 = (context_add context conc1_cl) in
+	     (* let new_conj_dist = min_conj_dist +1 in *)
+		  (*((min_conj_dist_list2 + conjecture_distance_c1) lsr 2)+1*)
+	      assign_param_clause c1 c_list2 added_conc1;
        	      added_conc1::conc2)
             ) 
            (* in this case conc1 is empty*)
@@ -596,24 +594,26 @@ let instantiation_norm_dc
 (*-------------------------------------------------------------------*)
 (* instantiation first check dismatching constraints then duplicates *)
 
-let instantiation_norm_cd term_db_ref clause_db_ref c1 l1 compl_l1 c_list2 l2 =
+let instantiation_norm_cd term_db_ref context c1 l1 compl_l1 c_list2 l2 =
   let mgu = Unif.unify_bterms (1,compl_l1) (2,l2) in
 (*debug*)
   (*out_str_debug ("Main Clause:"^(Clause.to_string c1)^"\n"
 		  ^"Constr: "^(dismatching_string c1)^"\n" 
         	  ^"Sel Lit: "^(Term.to_string l1)^"\n");  *)
 (*  let conjecture_distance_c1 = (Clause.get_conjecture_distance c1) in*)
-  let min_conj_dist = Clause.get_min_conjecture_distance (c1::c_list2) in
+ (* let min_conj_dist = Clause.get_min_conjecture_distance (c1::c_list2) in*)
  try 
     let conc1 = 
       if (SubstBound.is_proper_instantiator mgu 1) 
       then  
-	let (inst_clause,subst_norm) = 
-	  (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 c1)
+	let (inst_lits,subst_norm) = 
+	  (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 (get_lits c1))
 	in
+	let tstp_source = Clause.tstp_source_instantiation c1 []  in 
+	let inst_clause = create_clause tstp_source inst_lits in
 	if (is_not_redundant_inst_norm subst_norm c1)
 	then 
-	  if (ClauseAssignDB.mem inst_clause !clause_db_ref)
+	  if (context_mem context inst_clause)
 	  then 
 	    (
 	     incr_int_stat 1 inst_num_of_duplicates;
@@ -621,11 +621,10 @@ let instantiation_norm_cd term_db_ref clause_db_ref c1 l1 compl_l1 c_list2 l2 =
 	       ^(Clause.to_string inst_clause)^"\n");*)
 	     raise Main_concl_redundant)
 	  else
-	    let added_clause = 
-	      ClauseAssignDB.add_ref inst_clause clause_db_ref in
-	    let new_conj_dist = min_conj_dist +1
-            (*((min_conj_dist_list2 + conjecture_distance_c1) lsr 2)+1*) in
-	    assign_param_clause c1 c_list2 new_conj_dist  added_clause;	    
+	    let added_clause = context_add context inst_clause in
+	    (* let new_conj_dist = min_conj_dist +1 in*)
+            (*((min_conj_dist_list2 + conjecture_distance_c1) lsr 2)+1*) 
+	    assign_param_clause c1 c_list2  added_clause;	    
 	    [added_clause]	 
 	else 
 	  (
@@ -643,22 +642,23 @@ let instantiation_norm_cd term_db_ref clause_db_ref c1 l1 compl_l1 c_list2 l2 =
 	(*out_str_debug  ("Side Clause:"^(Clause.to_string clause)^"\n"
 			^"Constr: "^(dismatching_string clause)^"\n" 
 			^"Sel Lit: "^(Term.to_string l2)^"\n"); *)
-	let (inst_clause,subst_norm) = 
-	  Clause.apply_bsubst_norm_subst term_db_ref mgu 2 clause 
+	let (inst_lits,subst_norm) = 
+	  Clause.apply_bsubst_norm_subst term_db_ref mgu 2 (get_lits clause) 
 	in
+  let tstp_source = Clause.tstp_source_instantiation clause [c1] in 
+	let inst_clause = create_clause tstp_source inst_lits in	
 	if (is_not_redundant_inst_norm subst_norm clause)
 	then 
-	  if (ClauseAssignDB.mem inst_clause !clause_db_ref)
+	  if (context_mem context inst_clause)
 	  then (
 	    incr_int_stat 1 inst_num_of_duplicates;
 		(* out_str_debug ("Clause is already In DB: "
 		   ^(Clause.to_string inst_clause)^"\n");*)
 		rest)
 	  else
-	    let added_clause = 
-	      ClauseAssignDB.add_ref inst_clause clause_db_ref in
-	    let new_conj_dist = (Clause.get_min_conjecture_distance [clause;c1])+1 in
-	    assign_param_clause clause [c1] new_conj_dist added_clause;
+	    let added_clause = context_add context inst_clause in
+	   (* let new_conj_dist = (Clause.get_min_conjecture_distance [clause;c1])+1 in *)
+	    assign_param_clause clause [c1] added_clause;
 	    added_clause::rest	
 	else 
 	  (
@@ -703,9 +703,10 @@ let resolution_dismatch
         	  ^"Sel Lit: "^(Term.to_string l1)^"\n");  *)
 
   let mgu = Unif.unify_bterms (1,compl_l1) (2,l2) in   
-  let (inst_clause,subst_norm) = 
-    (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 c1)
+  let (inst_lits,subst_norm) = 
+    (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 (get_lits c1))
   in
+	
   if (not dismatch_flag) || 
      ((Clause.length c1) <= 1) ||
     (is_not_redundant_inst_norm subst_norm c1) 
@@ -719,8 +720,8 @@ let resolution_dismatch
 		       ^"Constr: "^(dismatching_string c2)^"\n" 
         	       ^"Sel Lit: "^(Term.to_string l2)^"\n");  
 *)
-	let (inst_clause2,subst_norm2) = 
-	  (Clause.apply_bsubst_norm_subst term_db_ref mgu 2 c2)
+	let (inst_lits2,subst_norm2) = 
+	  (Clause.apply_bsubst_norm_subst term_db_ref mgu 2 (get_lits c2))
 	in  
 	if (not dismatch_flag) || (Clause.length c2) <=1 ||
 	(is_not_redundant_inst_norm subst_norm2 c2) 
@@ -728,15 +729,18 @@ let resolution_dismatch
 	  begin
 	    let new_litlist2 = 
 	      Clause.find_all (fun lit -> not(l2 == lit)) c2 in 
-	    let conclusion = 
-				Clause.create ( Clause.normalise_blitlist_list 
+			 let tstp_source = Clause.tstp_source_resolution [c1;c2] [l1;l2] in
+	     let conclusion = 
+				create_clause tstp_source 
+				(Clause.normalise_blitlist_list 
 		    term_db_ref mgu [(1,new_litlist1);(2,new_litlist2)])
 		 in
 	    (if forward_subs_resolution_flag 
 	    then
 	      if (strict_subset_subsume conclusion c1)
 	      then 
-		(Clause.set_bool_param true Clause.is_dead c1;
+		( clause_register_subsumed_by ~by:conclusion c1;
+			(* Clause.set_bool_param true Clause.is_dead c1; *)
 		 raise (Main_subsumed_by conclusion))
 	      else ()
 	    else ()      
@@ -745,12 +749,11 @@ let resolution_dismatch
 	    then
 	      if (strict_subset_subsume conclusion c2)
 	      then 
-		(Clause.set_bool_param true Clause.is_dead c2)
+		  (clause_register_subsumed_by ~by:conclusion c2)
 	      else ()
 	    else ());      
 	    (* Clause.assign_resolution_history conclusion [c1;c2] [l1;l2]; *)
-	    Clause.assign_tstp_source_resolution conclusion [c1;c2] [l1;l2];
-	    Clause.assign_when_born [c1] [c2] conclusion;
+	 	  Clause.assign_ps_when_born_concl ~prem1:[c1] ~prem2:[c2] ~c:conclusion;
 	    conclusion::rest
 	  end  
 	else (* dismatch flag and c2 is redundant *)

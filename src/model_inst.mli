@@ -19,10 +19,7 @@
 
 
 open Lib
-
-type context = Clause.context
-
-type clause = Clause.clause
+open Logic_interface
 
 type model 
 

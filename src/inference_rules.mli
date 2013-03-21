@@ -15,11 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
-
-type clause  = Clause.clause
-type literal = Clause.literal
-type term_db = TermDB.termDB
-type context = Clause.context
+open Logic_interface
 
 (*
 val num_of_dismatch_blockings    :  int ref 
@@ -38,18 +34,18 @@ val strict_subset_subsume  : clause -> clause -> bool
 
 exception Main_subsumed_by of clause
 val resolution    : clause -> literal -> literal ->
-                      clause list -> literal -> term_db ref -> clause list 
+                      clause list -> literal -> term_db_ref -> clause list 
 
 
 
 val resolution_dismatch   : bool -> bool -> bool -> clause -> literal -> literal ->
-                      clause list -> literal -> term_db ref -> clause list 
+                      clause list -> literal -> term_db_ref -> clause list 
 
 
 val subs_resolution    : clause -> literal -> literal ->
-                      clause list -> literal -> term_db ref -> clause list 
+                      clause list -> literal -> term_db_ref -> clause list 
 
-val factoring     : clause -> literal -> literal -> term_db ref -> clause
+val factoring     : clause -> literal -> literal -> term_db_ref -> clause
 
 (*
 val instantiation : term_db ref -> clause -> literal -> literal ->
@@ -57,5 +53,5 @@ val instantiation : term_db ref -> clause -> literal -> literal ->
 *)
 
 
-val instantiation_norm : term_db ref -> context -> clause -> literal -> literal ->
+val instantiation_norm : term_db_ref -> context -> clause -> literal -> literal ->
   clause list -> literal -> clause list 

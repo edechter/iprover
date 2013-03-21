@@ -6,12 +6,15 @@ type symbol = Symbol.symbol
 type stype = Symbol.stype
 type term = Term.term
 type args = Term.args
-type lit = Term.term
+type lit = term
+type lits = lit list
 type literal = lit
 type clause = Clause.clause
 type tstp_source = Clause.tstp_source
 type context = Clause.context
 type proof_search_param = Clause.proof_search_param
+type symbol_db_ref = SymbolDB.symbolDB ref
+type term_db_ref = TermDB.termDB ref
 
 (** db_refs are taken from Parser_types*)
 val symbol_db_ref : SymbolDB.symbolDB ref
@@ -79,8 +82,14 @@ val context_create : int -> context
 val context_add : context -> clause -> clause
 val context_remove : context -> clause -> unit
 val context_mem : context -> clause -> bool
+
+(* literals are not normalised unlike wnen create_clause *)
+val context_mem_lits : context -> lits -> bool
 val context_reset : context -> unit
 val context_find : context -> clause -> clause
+
+(* literals are not normalised unlike wnen create_clause *)
+val context_find_lits : context -> lits -> clause 
 val context_iter : context -> (clause -> unit) -> unit
 val context_fold : context -> (clause -> 'a -> 'a) -> 'a -> 'a
 val context_size : context -> int

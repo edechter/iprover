@@ -38,6 +38,8 @@ type sym_set = Symbol.sym_set
 type literal = Term.literal
 type literal_list = literal list
 type b_litlist = literal_list bind
+type lit = literal
+type lits = lit list
 
 exception Term_compare_greater
 exception Term_compare_less
@@ -1792,6 +1794,8 @@ type context = clause Context.t
 (* creates context with an inital size *)
 let context_create size = Context.create size 
 
+let context_reset cc = Context.reset cc (* empties context*) 		
+
 let context_add cc c = 
 	let bc = (get_bc c) in
 	try (Context.find cc bc) 
@@ -1807,9 +1811,15 @@ let context_add_list cc c_list =
 		List.iter (context_add_ignore cc) c_list 
 		
 let context_remove cc c = Context.remove cc (get_bc c)
+
 let context_mem cc c = Context.mem cc (get_bc c)
-let context_reset cc = Context.reset cc (* empties context*) 		
+
+let context_mem_lits cc lits = Context.mem cc (create_basic_clause lits)
+
+
 let context_find cc c = Context.find cc (get_bc c)
+
+let context_find_lits cc lits = Context.find cc (create_basic_clause lits)
 
 let context_iter cc f = Context.iter (fun _ c -> f c) cc
 let context_fold cc f a = Context.fold (fun _ c a -> (f c a)) cc a  

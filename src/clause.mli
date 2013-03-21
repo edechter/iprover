@@ -12,6 +12,8 @@ type bound_subst = SubstBound.bound_subst
 type symbol = Symbol.symbol
 type dismatching = Dismatching.constr_set
 type literal = Term.literal
+type lit = literal
+type lits = lit list
 type literal_list = literal list
 type b_litlist = literal_list Lib.bind
 
@@ -197,9 +199,17 @@ type context
 val context_create : int -> context
 val context_add : context -> clause -> clause
 val context_remove : context -> clause -> unit
+
 val context_mem : context -> clause -> bool
+
+(* literals are not normalised unlike wnen create_clause *)
+val context_mem_lits : context -> lits -> bool
+
 val context_reset : context -> unit
 val context_find : context -> clause -> clause
+
+(* literals are not normalised unlike wnen create_clause *)
+val context_find_lits : context -> lits -> clause 
 val context_iter : context -> (clause -> unit) -> unit
 val context_fold : context -> (clause -> 'a -> 'a) -> 'a -> 'a
 val context_size : context -> int

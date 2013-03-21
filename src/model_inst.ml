@@ -20,22 +20,15 @@ open Logic_interface
 
 let addr_split_size = 10
 
-type lit = Term.term
-type term = Term.term
-type symbol = Symbol.symbol
-type clause = Clause.clause
-type var = Var.var
+type all_clauses = context
 
-type all_clauses = ClauseAssignDB.clauseDB
-
-let term_db_ref = Parser_types.term_db_ref
-let symbol_db_ref = Parser_types.symbol_db_ref
 
 type raw_model = all_clauses
 
+(*
 let add_fun_term symb args = 
     TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
-
+*)
 
 (* model node consists of a normalised literal, list of clauses  *)
 (* where this literal is selected normalised w.r.t. the literal  *)
@@ -57,27 +50,27 @@ let build_model active_clauses = active_clauses
 (*----------------------------------------------------*)
 let raw_model_to_stream s model =
 	let f clause =
-		if not (Clause.get_bool_param Clause.in_active clause)
+		if not (Clause.get_ps_in_active clause)
 		then ()
 		else
 			begin
 				s.stream_add_str "%---------------\n";
 				Clause.to_stream s clause;
 				s.stream_add_char ' ';
-				Term.to_stream s (Clause.get_inst_sel_lit clause);
+				Term.to_stream s (Clause.inst_get_sel_lit clause);
 				s.stream_add_char '\n';
-				s.stream_add_str ("is dead: "^(string_of_bool (Clause.get_bool_param Clause.is_dead clause))^"\n");
-				s.stream_add_str ("is active: "^(string_of_bool (Clause.get_bool_param Clause.in_active clause))^"\n");
-				s.stream_add_str ("when born: "^(string_of_int (Clause.when_born clause))^"\n");
+				s.stream_add_str ("is dead: "^(string_of_bool (Clause.get_is_dead clause))^"\n");
+				s.stream_add_str ("is active: "^(string_of_bool (Clause.get_ps_in_active clause))^"\n");
+				s.stream_add_str ("when born: "^(string_of_int (Clause.get_ps_when_born clause))^"\n");
 				(try
-					Dismatching.to_stream_constr_set s (Clause.get_dismatching clause);
+					Dismatching.to_stream_constr_set s (Clause.get_inst_dismatching clause);
 					s.stream_add_char '\n';
 				with
 					Clause.Dismatching_undef ->
 						s.stream_add_str "Dism undef []\n");
 			end
 	in
-	ClauseAssignDB.iter f model;
+	context_iter model f;
 	s.stream_add_str "\n%---------------End Model--------------\n\n"
 
 let out_raw_model model =
@@ -442,7 +435,7 @@ failwith "model_inst: norm_and_flatten_atom here should be a predicate\n"
 *)
 
 let extend_model clause model =
-	let sel_lit = (Clause.get_inst_sel_lit clause) in
+	let sel_lit = (Clause.inst_get_sel_lit clause) in
 	let is_neg_lit = (Term.is_neg_lit sel_lit) in
 	let sel_atom = (Term.get_atom sel_lit) in
 	let x_var_list_ref = ref [] in
@@ -621,7 +614,7 @@ let extend_model clause model =
 			(*------------------nomr_dism_constr finished---------------*)
 			let dism_constr_list =
 				try
-					Dismatching.to_flat_subst_list_constr_set (Clause.get_dismatching clause)
+					Dismatching.to_flat_subst_list_constr_set (Clause.get_inst_dismatching clause)
 				with
 					Clause.Dismatching_undef -> []
 			in
@@ -794,17 +787,17 @@ failwith "model_inst: norm_and_flatten_atom here should be a predicate\n"
 
 let test clause model =
 	out_str "\n!!!Begin Debug!!!!!\n";
-	Dismatching.to_stream_constr_set stdout_stream (Clause.get_dismatching clause);
+	Dismatching.to_stream_constr_set stdout_stream (Clause.get_inst_dismatching clause);
 	out_str "\n!!!End Debug!!!!!\n";
 	model
 
 let test_iter clause =
-	if not (Clause.get_bool_param Clause.in_active clause)
+	if not (Clause.get_ps_in_active clause)
 	then ()
 	else
 		(
 			out_str "\n!!!Begin Debug!!!!!\n";
-			Dismatching.to_stream_constr_set stdout_stream (Clause.get_dismatching clause);
+			Dismatching.to_stream_constr_set stdout_stream (Clause.get_inst_dismatching clause);
 			out_str "\n!!!End Debug!!!!!\n"
 		)
 
@@ -892,13 +885,12 @@ let build_model all_clauses filtered_out_clauses =
 	in
 	(* extened the model to the rest of clauses *)
 	let final_model =
-		ClauseAssignDB.fold
+		context_fold all_clauses
 			(fun clause model ->
-						if (Clause.get_bool_param Clause.in_active clause)
+						if (Clause.get_ps_in_active clause)
 						then extend_model clause model
 						else model
 			)
-			all_clauses
 			model_filtered_out
 	in
 	fill_stat_model final_model;
