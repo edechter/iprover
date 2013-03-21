@@ -214,7 +214,7 @@ let ground_split_clause context proof_search_param clause =
 *)
      let tstp_source = Clause.tstp_source_split [new_split_symb] clause in
 	 
-     let split_clause = create_clause tstp_source proof_search_param  (split_neg_atom::norm_list) in
+     let split_clause = create_clause tstp_source  (split_neg_atom::norm_list) in
 		(* assign when born in the corresponding search loop *)
 
 	   split_clauses:= split_clause::(!split_clauses);
@@ -224,7 +224,7 @@ let ground_split_clause context proof_search_param clause =
     in
     List.iter create_split_clause_split_atom processed;
 		let tstp_source_ground_clause =  Clause.tstp_source_split (!split_symbols) clause in 
-    let ground_clause = create_clause tstp_source_ground_clause proof_search_param !split_ground_lits in
+    let ground_clause = create_clause tstp_source_ground_clause !split_ground_lits in
     (* Clause.inherit_param_modif clause ground_clause; *)
     (* Clause.assign_split_history ground_clause clause; *)
  
