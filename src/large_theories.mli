@@ -14,19 +14,15 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
-
-
-type symb   = Symbol.symbol
-type term   = Term.term
-type clause = Clause.clause
+open Logic_interface 
 
 
 
 val fill_tables                : clause list -> unit
 
-val get_symb_list              : clause list -> symb list
+val get_symb_list              : clause list -> symbol list
 
-val get_axioms_next_keys_all   : symb list -> (clause list)* (symb list)
+val get_axioms_next_keys_all   : symbol list -> (clause list)* (symbol list)
 
 (*
 val increase_prolific_bound_by : int -> unit 

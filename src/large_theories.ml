@@ -20,12 +20,8 @@
 
 open Lib 
 open Statistics
+open Logic_interface 
 
-type symb   = Symbol.symbol
-type term   = Term.term
-type clause = Clause.clause
-
-let symbol_db_ref  = Parser_types.symbol_db_ref
 
 let prolif_bound () = 30
 (* (get_val_stat num_of_input_clauses)/5000*)
@@ -36,7 +32,7 @@ let prolif_bound () = 30
 
 type clause_sig = 
     {         clause     : clause;
-              symb_list  : symb list; 
+              symb_list  : symbol list; 
     }
 
 (*
@@ -189,7 +185,6 @@ let symb_gr_filter symb =
   else false 
 
 let clause_gr_filter clause_sig = 
-
   if (not (Clause.get_bool_param Clause.large_ax_considered clause_sig.clause))
   then
     (
