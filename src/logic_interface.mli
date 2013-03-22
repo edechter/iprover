@@ -13,7 +13,6 @@ type clause = Clause.clause
 type tstp_source = Clause.tstp_source
 type context = Clause.context
 type proof_search_param = Clause.proof_search_param
-type prop_lit = PropSolver.lit
 
 type symbol_db_ref = SymbolDB.symbolDB ref
 type term_db_ref = TermDB.termDB ref

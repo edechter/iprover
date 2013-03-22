@@ -18,12 +18,8 @@
 
 (*val start_instantiation : unit -> unit*)
 open Lib
+open Logic_interface
 
-type clause = Clause.clause
-type lit = Term.literal
-type term = Term.term
-
-type context = Clause.context
 
 (*
 type model

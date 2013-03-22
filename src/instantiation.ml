@@ -23,6 +23,8 @@ open Options
 open Statistics
 open Logic_interface 
 
+type prop_lit = PropSolver.lit
+
 let proof = false 
     
 
@@ -120,11 +122,15 @@ module Make (InputM:InputM) =
       assign_int_stat stat_learning_restarts inst_num_of_learning_restarts
       
 
-  
-let context = context_create 21701 (* 21701 medium large prime number *)
+(* *)  
+let inst_context_create () = (context_create 21701) (* 21701 medium large prime number *)
+
+let context = ref (inst_context_create ())
+ 
+let inst_context_reset () = context :=  inst_context_create ()
 
   let ()= assign_fun_stat 
-	(fun () -> (context_size context)) inst_num_of_clauses
+	(fun () -> (context_size !context)) inst_num_of_clauses
    
 (* 
     let selection_fun = 
@@ -675,7 +681,7 @@ let prop_subsumption clause =
       eliminate_clause clause;
       incr_int_stat (-1) inst_num_child_elim;
       try      
-	(let _existing_simplified = ClauseAssignDB.find new_clause !clause_db_ref in
+	(let _existing_simplified = context_find !context new_clause in
 	incr_int_stat 1 inst_num_existing_simplified;
 (* if the existing simplified clause is not in the input_under_eq then   *)
 (* we need to make it input_under_eq, possibly remove from active *)
@@ -698,9 +704,8 @@ let prop_subsumption clause =
 	  (((*try *)
 	   Prop_solver_exchange.add_clause_to_solver new_clause
 	 (*with PropImplied -> ()*));
-	   Clause.inherit_param_modif clause new_clause;
-	  let added_clause = 
-	    ClauseAssignDB.add_ref new_clause clause_db_ref in             
+	  (* Clause.inherit_param_modif clause new_clause; *)
+	  let added_clause = context_add !context new_clause in             
 	  (*(if (PropSolver.fast_solve solver []) = PropSolver.FUnsat  
 	  then raise Unsatisfiable);*)
 	  (*add_clause_to_solver solver_sim solver gr_by added_clause;*)
@@ -744,7 +749,7 @@ let tautology_elim c =
 	     then
 	       (
 		incr_int_stat 1 inst_num_tautologies;
-		Clause.set_bool_param true Clause.is_dead c;
+		Clause.assign_is_dead true c;
 (*		out_str ("Tautology: "^(Clause.to_string c)^"\n");*)
 		raise Simplified)
 	     else ()  
@@ -812,7 +817,7 @@ let all_instantiations main_clause =
   try
     (*we assume that sel in main_clause is checked before *)
     (*on accordance with solver*)
-    let sel_lit_tmp = Clause.get_inst_sel_lit main_clause in
+    let sel_lit_tmp = Clause.inst_get_sel_lit main_clause in
     (try 
       ( (*uncommnet for lit activity!*)
 	Prop_solver_exchange.lit_activity_check 
@@ -821,7 +826,7 @@ let all_instantiations main_clause =
     with Prop_solver_exchange.Activity_Check ->  
       (Prop_solver_exchange.selection_renew 
 	 move_lit_from_active_to_passive Selection.inst_lit_sel main_clause));
-    let sel_lit = Clause.get_inst_sel_lit main_clause in
+    let sel_lit = Clause.inst_get_sel_lit main_clause in
     
 (*     out_str_debug ("all_instantiations main clause: "
         ^(Clause.to_string main_clause)^"\n");*)
@@ -862,7 +867,7 @@ let all_instantiations main_clause =
 
 	     let conclusion_list = 
 	       Inference_rules.instantiation_norm 
-		 term_db_ref clause_db_ref main_clause sel_lit compl_sel_lit 
+		 term_db_ref !context main_clause sel_lit compl_sel_lit 
 		 clause_list lit in		  
 (*	     out_str "conclusion_list after\n";*)
 	     Prop_solver_exchange.increase_lit_activity  (List.length  conclusion_list) lit;
@@ -916,8 +921,8 @@ let bmc1_bounds = ref []
     try  
       (let given_clause = remove_from_passive () in       
        if 
-	 ((Clause.get_bool_param Clause.is_dead given_clause) ||
-	 (Clause.get_bool_param Clause.in_active given_clause))
+	 ((Clause.get_is_dead given_clause) ||
+	 (Clause.get_ps_in_active given_clause))
        then () 
        else	 
 	 ( 
@@ -1015,10 +1020,9 @@ let bmc1_bounds = ref []
 		eliminate_clause simplified_given_clause;
 		let splitted_clauses = Splitting.get_split_list split_result in
 		let f new_clause = 
-		  Clause.assign_when_born 
-		    [simplified_given_clause][] new_clause;
-		  let added_clause = 
-		    ClauseAssignDB.add_ref new_clause clause_db_ref in             
+		  Clause.assign_ps_when_born_concl 
+		    ~prem1:[simplified_given_clause] ~prem2:[] ~c:new_clause;
+		  let added_clause = context_add !context new_clause in             
 (*		  Clause.assign_when_born 
 		    (get_val_stat inst_num_of_loops) added_clause;*)
 	
@@ -1155,7 +1159,7 @@ let bmc1_bounds = ref []
 
 	 if (!unprocessed_ref=[])
 	 then  
-	   raise (Satisfiable !clause_db_ref) 
+	   raise (Satisfiable !context) 
 	 else
 	   (
 	    List.iter add_new_clause_to_passive !unprocessed_ref;
@@ -1363,18 +1367,24 @@ let init_instantiation  input_clauses =
   
 let init_instantiation () = 
   let add_input_to_unprocessed clause = 
-    try
+   (* try*)
+			(*
       let added_clause = 	     
 	    ClauseAssignDB.add_ref (Clause.copy_clause clause) clause_db_ref
       in
+			*)
 	(*		out_str ("\n Added: "^(Clause.to_string added_clause)^"\n");*)
-      Clause.assign_when_born [] [] added_clause;
-      add_clause_to_unprocessed added_clause
+  (*    Clause.assign_when_born [] [] added_clause; *)
+    	Clause.clear_proof_search_param clause;
+      add_clause_to_unprocessed clause
+		 (* add_clause_to_unprocessed added_clause *)
+		
     (* Skip duplicate clauses in the input *)
-    with Clause.Clause_fast_key_is_def ->
+   (* with Clause.Clause_fast_key_is_def ->
 			(
 				(* out_str ("Failed: "^(Clause.to_string clause)^"\n"); *)
 		 failwith "init_instantiation Clause.Clause_fast_key_is_def")
+		*)
   in
 
 (*Christph added; not clear why *)
@@ -1464,10 +1474,8 @@ let clear_all () =
     inst_num_of_clauses;
 
 (* clear clause db *)
-  clause_db_ref :=  
-    (ClauseAssignDB.create_name 
-       ("Instantiation_Clauses_DB"));   
-
+  inst_context_reset ();
+  
 (* clear passive_queue *)
   passive_queue_ref:= create_passive_queue 1;
   

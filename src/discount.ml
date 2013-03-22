@@ -63,10 +63,16 @@ let compressed_subsumtion_index_flag = ref true
 (*let init_clause_list_ref = Parsed_input_to_db.clause_list_ref*)
 
 (* all clauses put into this context *)
-let context = context_create 21701 (* 21701 medium large prime number *)
+
+(* *)  
+let res_context_create () = (context_create 21701) (* 21701 medium large prime number *)
+
+let context = ref (res_context_create ())
+ 
+let res_context_reset () = context :=  res_context_create ()
 
 let () = assign_fun_stat 
-    (fun () -> context_size context) res_num_of_clauses
+    (fun () -> context_size !context) res_num_of_clauses
 
 (* susbetsubsumption index*)
 let ss_index_ref = ref (SubsetSubsume.create ())
@@ -401,7 +407,7 @@ let eliminate_clause clause =
       subsumption_index_ref (get_feature_list clause) clause
   );
   (
-    context_remove context clause
+    context_remove !context clause
   )
   
 
@@ -523,7 +529,7 @@ let preprocess_new_clause clause =
 	  |_-> ())
 	);
 	simplify_light_backward_new main_clause;        
-	let added_clause = context_add context main_clause in 
+	let added_clause = context_add !context main_clause in 
 (*	Clause.assign_when_born (get_val_stat res_num_of_loops) added_clause;*)
 	(* Clause.assign_conjecture_distance 
 	  (Clause.get_min_conjecture_distance [added_clause;main_clause])  
@@ -1062,7 +1068,7 @@ let rec discount_loop_body () =
               (*out_str_debug "\n Given_clause_is_dead \n"*)
 	)
     with 
-      Passive_Empty -> raise (Satisfiable context)
+      Passive_Empty -> raise (Satisfiable !context)
 
 
 (*-------------------- Adaptive selection ---------------------*)
@@ -1522,7 +1528,7 @@ let rec discount_change_sel_loop_body () =
     |Given_clause_is_dead -> ()
 	 (* out_str "\n Given_clause_is_dead \n" *)
 		 
-    | Passive_Empty -> raise (Satisfiable context)
+    | Passive_Empty -> raise (Satisfiable !context)
   		   
 
 (* replaced by discount_loop_exchange
@@ -1628,7 +1634,7 @@ let clear_all () =
   ss_index_ref   :=  (SubsetSubsume.create ());
   subsumption_index_ref :=  (SubsumptionIndexM.create ());
   unif_index_ref :=  (DiscrTreeM.create ());
-  context_reset context;
+  res_context_reset ();
 (* Memory is cleared separately by Lib.clear_mem ()*)
 
  (*;

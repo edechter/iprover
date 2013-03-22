@@ -19,13 +19,11 @@ open Options
 open Statistics
 open Printf
 
+open Logic_interface
 (* record backtrace for debugging          *)
 (* compile with -g option to get the trace *)
 
 
-type clause = Clause.clause
-
-let symbol_db_ref = Parser_types.symbol_db_ref
 
 (*----------------- see libs.ml for iProver version number ---------------*)
 (*let ()= out_str "\n---------------- iProver v0.7 --------------------\n"*)
@@ -650,7 +648,7 @@ let rec change_prolific_symb_input input_clauses =
 	in
 	let change_prolific_symb_clause c =
 		Clause.iter change_prolific_symb_term c;
-		Clause.assign_has_non_prolific_conj_symb c
+		Clause.reset_has_non_prolific_conj_symb c
 	in
 	List.iter change_prolific_symb_clause input_clauses
 
@@ -1052,19 +1050,19 @@ let verification_epr_schedule_tables () =
 
 (*------- out models for resolution ---------------*)
 
-let sat_out_active_clauses_db all_clauses_db filtered_out =
+let sat_out_active_clauses_db all_clauses filtered_out =
 	
 	(* Filter clause database for active clauses *)
 	let active_clauses =
-		ClauseAssignDB.fold
+		context_fold 
+		all_clauses
 			(fun c a ->
 						if
-						Clause.get_bool_param Clause.in_active c
+						Clause.get_ps_in_active c
 						then
 							c :: a
 						else
-							a)
-			all_clauses_db
+							a)			
 			[]
 	in
 	
@@ -1616,12 +1614,12 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 				
 				(* Flag all input clauses as not in unsat core *)
 				List.iter
-					(Clause.set_bool_param false Clause.in_unsat_core)
+					(Clause.assign_in_unsat_core false)
 					clauses;
 				
 				(* Flag clauses as in unsat core *)
 				List.iter
-					(Clause.set_bool_param true Clause.in_unsat_core)
+					(Clause.assign_in_unsat_core true)
 					unsat_core_parents;
 				
 				(* Extrapolated axioms from unsat core *)
@@ -1694,7 +1692,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 							(* Flag clauses extrapolated to the next bound as in
 							unsat core *)
 							List.iter
-								(Clause.set_bool_param true Clause.in_unsat_core)
+								(Clause.assign_in_unsat_core true)
 								bmc1_axioms_extrapolated;
 							
 							(* Continue with extrapolated axioms *)
@@ -1930,8 +1928,8 @@ let run_iprover () =
 			in
 			let change_conj_symb_clause is_conj c =
 				Clause.iter (change_conj_symb_term is_conj) c;
-				Clause.assign_has_conj_symb c;
-				Clause.assign_has_non_prolific_conj_symb c
+				Clause.reset_has_conj_symb c;
+				Clause.reset_has_non_prolific_conj_symb c
 			in
 			(* first need consider conjectures then the rest *)
 			List.iter (change_conj_symb_clause true) !(Parser_types.neg_conjectures);

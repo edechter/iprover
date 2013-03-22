@@ -359,6 +359,9 @@ val assign_in_unsat_core : bool -> clause -> unit
 val in_prop_solver : clause -> bool
 val assign_in_prop_solver : bool -> clause -> unit
 
+(* reevaluates has_non_prolific_conj_symb, assuming lits are already reevaluated *)
+val reset_has_non_prolific_conj_symb : clause -> unit
+val reset_has_conj_symb : clause -> unit
 
 (** proof search bool param*)
 val get_ps_in_active : clause -> bool

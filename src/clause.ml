@@ -17,8 +17,9 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 open Lib
 open Hashcons
 open Options
-module VSet = Var.VSet
+(* do not use Logic_interface since it uses this module *)
 
+module VSet = Var.VSet
 type var = Var.var
 type bound_var = Var.bound_var
 type term = Term.term
@@ -71,7 +72,7 @@ let bc_eq_axiom = 3 (* user *)
 
 let bc_has_eq_lit = 4    (* auto *)
 let bc_has_conj_symb = 5 (* auto *) (* basd on Term.has_conj_symb *)
-let bc_has_non_prolific_conj_symb = 6 (* auto *)
+let bc_has_non_prolific_conj_symb = 6 (* auto/user  can be recalculated by the user *)
 
 let bc_has_bound_constant = 7 (* auto *)
 let bc_has_next_state = 8 (* auto *)
@@ -680,6 +681,12 @@ let bc_set_bool_param value param clause =
 
 let bc_get_bool_param param clause =
 	Bit_vec.get param (get_bc_node clause).bc_bool_param
+
+let reset_has_non_prolific_conj_symb clause =  
+	bc_set_bool_param (has_non_prolific_conj_symb_lits (get_lits clause))  bc_has_non_prolific_conj_symb clause
+
+let reset_has_conj_symb clause =  
+	bc_set_bool_param (has_conj_symb_lits (get_lits clause))  bc_has_conj_symb clause
 
 (*------------- *)
 let ccp_get_bool_param param clause = 
