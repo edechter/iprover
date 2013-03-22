@@ -427,6 +427,10 @@ let pp_tstp_source clausify_proof clause ppf = function
 	| Clause.TSTP_internal_source Clause.TSTP_assumption ->
 	
 			Format.fprintf ppf "assumption"	
+	(* Auxilary clause which was  temporaly introduced; should not occur in proofs *)
+	| Clause.TSTP_internal_source Clause.TSTP_tmp ->
+	
+			Format.fprintf ppf "tmp"	
 			
 	(* Clause is from an inference *)
 	| Clause.TSTP_inference_record inference_record ->

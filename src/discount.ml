@@ -22,15 +22,11 @@
 open Lib
 open Options
 open Statistics
-
-
-type clause = Clause.clause
-type term = Term.term
-type lit  = Term.literal
+open Logic_interface
 
 (* exception Unsatisfiable *)
 
-type all_clauses = ClauseAssignDB.clauseDB
+type all_clauses = context
 
 exception Satisfiable of all_clauses
 
@@ -63,15 +59,14 @@ module Make (InputM:InputM) =
 
 let compressed_subsumtion_index_flag = ref true
 
-let symbol_db_ref  = Parser_types.symbol_db_ref
-(*let neg_symb       = Symbol.symb_neg*)
-
-let term_db_ref    = Parser_types.term_db_ref
 
 (*let init_clause_list_ref = Parsed_input_to_db.clause_list_ref*)
-let clause_db_ref = ref (ClauseAssignDB.create_name "Discount_Clauses_DB")
+
+(* all clauses put into this context *)
+let context = context_create 21701 (* 21701 medium large prime number *)
+
 let () = assign_fun_stat 
-    (fun () -> ClauseAssignDB.size !clause_db_ref) res_num_of_clauses
+    (fun () -> context_size context) res_num_of_clauses
 
 (* susbetsubsumption index*)
 let ss_index_ref = ref (SubsetSubsume.create ())
@@ -116,7 +111,7 @@ let passive_sim = Queue.create ()
 let remove_from_sim_passive () = 
   try 
     let clause = Queue.pop passive_sim in
-    Clause.set_bool_param false Clause.res_in_sim_passive clause;
+    Clause.set_ps_in_sim_passive false clause;
     incr_int_stat (-1) res_num_in_passive_sim;
     clause
   with 
@@ -124,12 +119,12 @@ let remove_from_sim_passive () =
 
 let add_to_sim_passive clause = 
   check_empty_clause clause;
-  if (Clause.get_bool_param Clause.is_dead clause)
+  if (Clause.get_is_dead clause)
   then ()
   else
     (
      Queue.push clause passive_sim;
-     Clause.set_bool_param true Clause.res_in_sim_passive clause;
+     Clause.set_ps_in_sim_passive true clause;
        incr_int_stat 1 res_num_in_passive_sim;
      (*add_passive_to_exchange clause*)
     )
@@ -175,16 +170,16 @@ module Elem =
 
     let compare1  = (Clause.cl_cmp_type_list_to_lex_fun 
 		      !current_options.res_pass_queue1)
-    let in_queue1 = Clause.get_bool_param Clause.res_pass_queue1 
+    let in_queue1 = Clause.get_ps_pass_queue1 
     let assign_in_queue1 b c = 
-      Clause.set_bool_param b Clause.res_pass_queue1 c
+      Clause.set_ps_pass_queue1 b c
     let mult1    = !current_options.res_pass_queue1_mult
 
     let compare2  = (Clause.cl_cmp_type_list_to_lex_fun 
 		      !current_options.res_pass_queue2)
-    let in_queue2 = Clause.get_bool_param Clause.res_pass_queue2 
+    let in_queue2 = Clause.get_ps_pass_queue2 
     let assign_in_queue2 b c = 
-      Clause.set_bool_param b Clause.res_pass_queue2 c
+      Clause.set_ps_pass_queue2 b c
     let mult2    = !current_options.res_pass_queue2_mult
 
 end
@@ -213,8 +208,8 @@ let clean_passive () =
 let rec remove_from_pr_passive () = 
   try 
     let clause = PassiveQueue.remove !passive_queue_ref in
-      if ((Clause.get_bool_param Clause.in_active clause) || 
-      (Clause.get_bool_param Clause.is_dead clause)) 
+      if ((Clause.get_ps_in_active clause) || 
+      (Clause.get_is_dead clause)) 
       then 
 	(remove_from_pr_passive ())
       else	
@@ -226,7 +221,7 @@ let rec remove_from_pr_passive () =
 
 let add_to_pr_passive clause =    	     
   check_empty_clause clause; 
-  if (not (Clause.get_bool_param Clause.is_dead clause))
+  if (not (Clause.get_is_dead clause))
   then 
     PassiveQueue.add !passive_queue_ref clause
   else ()
@@ -292,8 +287,8 @@ let (unif_index_ref : (unif_index_elem DiscrTreeM.index) ref )
 
 (*-------------------------------------*)
 let eliminate_from_unif_index main_clause = 
-   Clause.set_bool_param  
-     false Clause.in_unif_index main_clause ;
+   Clause.set_ps_in_unif_index   
+     false main_clause ;
    let selected_literals = 
     (try (Clause.get_res_sel_lits main_clause) 
     with Clause.Res_sel_lits_undef -> 
@@ -385,31 +380,28 @@ let eliminate_clause clause =
 (*let _=out_str "\n Eliminate in Discount Commented\n"*)
  
 let eliminate_clause clause = 
-  Clause.set_bool_param 
-    true Clause.is_dead clause;
-  (if (Clause.get_bool_param Clause.in_active clause) 
+   Clause.assign_is_dead true clause;
+  (if (Clause.get_ps_in_active clause) 
   then 
     (eliminate_from_unif_index clause;
      incr_int_stat (-1) res_num_in_active;
-     Clause.set_bool_param false Clause.in_active clause)
+     Clause.set_ps_in_active false clause)
   else ()
   );
 (* *)  
-  (if (Clause.get_bool_param  Clause.in_subset_subsumption_index clause) 
+  (if (Clause.get_ps_in_subset_subsumption_index clause) 
   then 
-    (ss_index_ref := SubsetSubsume.remove clause !ss_index_ref;
-		Clause.
+    (ss_index_ref := SubsetSubsume.remove clause !ss_index_ref		
 		)
   );
 (* *)
-  (if (Clause.get_bool_param  Clause.in_subsumption_index clause) 
+  (if (Clause.get_ps_in_subsumption_index clause) 
   then 
     SubsumptionIndexM.remove_clause 
       subsumption_index_ref (get_feature_list clause) clause
   );
-  (if (Clause.get_bool_param  Clause.in_clause_db clause) 
-  then 
-    (clause_db_ref := ClauseAssignDB.remove clause !clause_db_ref)
+  (
+    context_remove context clause
   )
   
 
@@ -419,8 +411,7 @@ let eliminate_clause clause =
 let add_to_ss_index clause = 
  (* try *)
     ss_index_ref := SubsetSubsume.add_clause clause !(ss_index_ref);    
-    Clause.set_bool_param 
-      true Clause.in_subset_subsumption_index clause
+    Clause.set_ps_in_subset_subsumption_index true clause
 (*  with
     _-> 
       failwith 
@@ -430,8 +421,8 @@ let add_to_ss_index clause =
 
 let is_subset_subsumed clause = 
   try 
-    let by_clause = SubsetSubsume.is_subsumed clause  !(ss_index_ref) in
-    Clause.set_bool_param true Clause.res_simplifying by_clause;
+    let by_clause = SubsetSubsume.is_subsumed clause !(ss_index_ref) in
+    Clause.set_ps_simplifying true by_clause;
     true
   with 
     Not_found ->
@@ -493,7 +484,7 @@ let simplify_light_backward_new main_clause =
     (if not (subsumed_clauses = []) 
     then 
       ((*out_str ("Is simpl"^(Clause.to_string main_clause)^"\n"); *)
-       Clause.set_bool_param true Clause.res_simplifying main_clause)
+       Clause.set_ps_simplifying true main_clause)
     else ());
     ss_index_ref :=  SubsetSubsume.remove_subsumed main_clause !ss_index_ref;
   with 
@@ -511,7 +502,7 @@ let simplify_light_backward_new main_clause =
 
 let preprocess_new_clause clause = 
   check_empty_clause clause;
-  if (not (Clause.get_bool_param Clause.is_dead clause))
+  if (not (Clause.get_is_dead clause))
   then 
       (    
       	(*  (if (!current_options.res_prop_simpl_new 
@@ -532,12 +523,11 @@ let preprocess_new_clause clause =
 	  |_-> ())
 	);
 	simplify_light_backward_new main_clause;        
-	let added_clause = 
-	  ClauseAssignDB.add_ref main_clause clause_db_ref in 
+	let added_clause = context_add context main_clause in 
 (*	Clause.assign_when_born (get_val_stat res_num_of_loops) added_clause;*)
-	Clause.assign_conjecture_distance 
-	  (Clause.get_min_conjecture_distance [added_clause;main_clause]) 
-	  added_clause;	
+	(* Clause.assign_conjecture_distance 
+	  (Clause.get_min_conjecture_distance [added_clause;main_clause])  
+	  added_clause;	*)
 	add_to_ss_index added_clause;
 	added_clause
 	  )
@@ -570,7 +560,7 @@ let add_inst_exchange_clause_to_passive clause =
 let add_conclusion_to_passive given_clause clause = 
   add_new_clause_to_passive clause;
 (* give_clause can be simplifed by add_new_clause_to_passive *)
-  if  (Clause.get_bool_param Clause.is_dead given_clause)
+  if  (Clause.get_is_dead given_clause)
   then 
     (* we abort all further 
 		inferences with the given clause,
@@ -585,7 +575,7 @@ let add_conclusion_to_passive given_clause clause =
 
 
 (*-----------Forward subsumption resolution---------------*)
-
+(*
 let get_compl_db lit = 
   let compl_lit = Term.compl_lit lit in 
 (* need to add new term to DB, if positive then it is a subterm of lit *)
@@ -594,7 +584,7 @@ let get_compl_db lit =
     TermDB.add_ref compl_lit term_db_ref
   else 
     compl_lit
-
+*)
 
 (* returns new list of lits which is obtained by all possible cuts*)
 (* we also keep subsumed by list to add to history later *)
@@ -603,8 +593,9 @@ let get_compl_db lit =
 let rec forward_subs_res_list subs_by_list_ref tried_lits rest = 
   match rest with 
   | h::tl -> 
-      let compl_h = get_compl_db h in  
-      let clause_to_try = Clause.create (tried_lits@(compl_h::tl)) in 
+      let compl_h = add_compl_lit h in  
+			let tstp_source = Clause.tstp_source_tmp in (* replace later with lit_list*)
+      let clause_to_try = create_clause tstp_source (tried_lits@(compl_h::tl)) in 
       let feature_list =  get_feature_list clause_to_try in 
 (*      out_str ("clause_to_try: "^(Clause.to_string clause_to_try)^" "
 	       ^(feature_list_to_string feature_list)^"\n");*)
@@ -627,20 +618,21 @@ let rec forward_subs_res_list subs_by_list_ref tried_lits rest =
 (* can rise Unsatisfiable, Eliminated*)
 let forward_subs_res clause = 
 (*  out_str ("Try: "^(Clause.to_string clause)^"\n");*)
-  let lits = Clause.get_literals clause in
+  let lits = get_lits clause in
   let subs_by_list_ref = ref []  in
   let new_lits = forward_subs_res_list subs_by_list_ref [] lits in
   if not (!subs_by_list_ref = []) 
   then
     (
-     let new_clause   = 
-       Clause.normalise term_db_ref (Clause.create new_lits) in
-     Clause.inherit_param_modif clause new_clause;
-     Clause.set_bool_param true Clause.res_simplifying new_clause;
+		 let tstp_source = Clause.tstp_source_forward_subsumption_resolution clause (!subs_by_list_ref) in 	
+     let new_clause = create_clause tstp_source new_lits in
+		 clause_register_subsumed_by ~by:(new_clause) clause;
+    (*  Clause.inherit_param_modif clause new_clause;
+     Clause.set_bool_param true Clause.res_simplifying new_clause;*)
      (* Clause.assign_forward_subsumption_resolution_history 
        new_clause clause (!subs_by_list_ref); *)
-     Clause.assign_tstp_source_forward_subsumption_resolution 
-       new_clause clause (!subs_by_list_ref);
+   (*  Clause.assign_tstp_source_forward_subsumption_resolution 
+       new_clause clause (!subs_by_list_ref); *)
 (*     out_str ("Elim: "^(Clause.to_string clause)^"\n");
      out_str ("New: "^(Clause.to_string new_clause)^"\n");
      out_str ("By: "^(Clause.clause_list_to_string !subs_by_list_ref)^"\n");*)
@@ -663,7 +655,8 @@ let forward_subs_feature feature_list clause =
   |Some((by_cl,_subst)) ->
       (
        incr_int_stat 1 res_forward_subsumed;
-       Clause.set_bool_param true Clause.res_simplifying by_cl;
+			 clause_register_subsumed_by ~by:by_cl clause;
+     (*  Clause.set_bool_param true Clause.res_simplifying by_cl;*)
 (* we can eliminate since subs. is proper since light simplifications *)
        eliminate_clause clause; 
 (*debug*)
@@ -734,15 +727,17 @@ let rec remove_lit lit lits  =
 
 
 
-let apply_lit_cut subsumed_subst_list lit = 
+let apply_lit_cut given_clause subsumed_subst_list lit = 
   let f subsumed_and_new_clause_list (subsumed,subst) = 
     incr_int_stat 1 res_backward_subsumption_resolution;
-    let lits = Clause.get_literals subsumed in 
+    let lits = get_lits subsumed in 
     let lit_to_cut = Subst.apply_subst_term term_db_ref subst lit in
     let new_lits = remove_lit lit_to_cut lits in 
-    let new_clause   = 
-      Clause.normalise term_db_ref (Clause.create new_lits) in
-    Clause.inherit_param_modif subsumed new_clause;
+		let tstp_source =  Clause.tstp_source_backward_subsumption_resolution [given_clause;subsumed] in
+    let new_clause = create_clause tstp_source new_lits in
+		clause_register_subsumed_by ~by:new_clause subsumed;
+		eliminate_clause subsumed;
+   (* Clause.inherit_param_modif subsumed new_clause;*)
     
 (*    out_str ("Back_subsed: "^(Clause.to_string subsumed)
 	     ^" Lit to cut: "^(Term.to_string lit_to_cut)
@@ -753,33 +748,34 @@ let apply_lit_cut subsumed_subst_list lit =
     
 (*(subsumed_list, new_clauses_list)*)
 
-let rec backward_subs_res_list tried_lits rest = 
+let rec backward_subs_res_list given_clause tried_lits rest = 
   match rest with 
   | h::tl -> 
-      let compl_h = get_compl_db h in  
-      let clause_to_try = Clause.create (tried_lits@(compl_h::tl)) in 
+      let compl_h = add_compl_lit h in  
+			let tstp_source = Clause.tstp_source_tmp in (* replace later with lit_list*)
+      let clause_to_try = create_clause tstp_source (tried_lits@(compl_h::tl)) in 
       let feature_list = get_feature_list clause_to_try in 
 (*      out_str ("backward clause_to_try: "^(Clause.to_string clause_to_try)^"\n");*)
       let subsumed_subst_list = 
 	(SubsumptionIndexM.find_subsumed_subst 
 	   subsumption_index_ref feature_list clause_to_try) in
       let add_subsumed_and_new_clause_list = 
-	apply_lit_cut subsumed_subst_list compl_h in
+	        apply_lit_cut given_clause subsumed_subst_list compl_h in
       let rest_subsumed_and_new_clause_list = 
-	backward_subs_res_list (tried_lits@[h]) tl in
+	        backward_subs_res_list given_clause (tried_lits@[h]) tl in
       add_subsumed_and_new_clause_list@rest_subsumed_and_new_clause_list
   | [] -> []
 
-let backward_subs_res clause = 
-  let lits = Clause.get_literals clause in
-  let subsumed_and_new_clause_list =  backward_subs_res_list [] lits in
-  let f (subsumed,new_clause) = 
-    (* Clause.assign_backward_subsumption_resolution_history 
+let backward_subs_res given_clause = 
+  let lits = get_lits given_clause in
+  let subsumed_and_new_clause_list =  backward_subs_res_list given_clause [] lits in
+  let f (_subsumed,new_clause) = 
+   (* (* Clause.assign_backward_subsumption_resolution_history 
       new_clause [clause;subsumed]; *)
     Clause.assign_tstp_source_backward_subsumption_resolution
       new_clause [clause;subsumed];
     Clause.set_bool_param true Clause.res_simplifying new_clause;
-    eliminate_clause subsumed;
+    eliminate_clause subsumed;*)
     add_new_clause_to_passive new_clause
   in
   List.iter f subsumed_and_new_clause_list
@@ -804,9 +800,13 @@ let backward_subs_full feature_list clause =
        feature_list clause subsumption_index_ref) in
   if b_subsumed_list != [] 
   then
-    (List.iter eliminate_clause b_subsumed_list;
-     Clause.set_bool_param true Clause.res_simplifying clause;
-     incr_int_stat (List.length b_subsumed_list) res_backward_subsumed)
+    (
+		 List.iter (fun subsumed ->
+			  clause_register_subsumed_by ~by:clause subsumed;
+			  eliminate_clause subsumed
+			  ) b_subsumed_list;
+		   incr_int_stat (List.length b_subsumed_list) res_backward_subsumed
+		)
   else ()
 
 let backward_subs_by_length length feature_list clause =
@@ -846,15 +846,15 @@ let orphan_elimination clause =
       (let orphan_list = Clause.get_orphans clause in
       List.iter 
 	(fun c -> 
-	  if (not (Clause.get_bool_param Clause.res_simplifying c)) && 
-	    (not (Clause.get_bool_param Clause.is_dead c))
+	  if (not (Clause.get_ps_simplifying c)) && 
+	    (not (Clause.get_is_dead c))
 	  then 
 	    (eliminate_clause c; 
 	 (*    out_str ("Orph: "^(Clause.to_string c)^"\n");*)
 	     incr_int_stat 1 res_orphan_elimination)
 	  else ()
 	) orphan_list;      
-      if (Clause.get_bool_param Clause.is_dead clause)
+      if (Clause.get_is_dead clause)
       then raise Eliminated else()
       )
     else ()
@@ -878,7 +878,7 @@ let all_simplifications clause =
   in	
   simplify_backward new_feature_list simplified_clause;
   check_disc_time_limit ();
-  if (Clause.get_bool_param Clause.is_dead simplified_clause)
+  if (Clause.get_is_dead simplified_clause)
   then 
     raise Eliminated
   else
@@ -928,7 +928,7 @@ let all_factorings main_clause =
 let rec remove_if_dead_from_active stat_entry clause_list = 
   match clause_list with 
   | c::tl ->
-      if (Clause.get_bool_param Clause.is_dead c) 
+      if (Clause.get_is_dead c) 
       then 
 	(
 	 incr_int_stat 1 stat_entry;
@@ -1008,7 +1008,7 @@ let add_to_unif_index main_clause selected_literals =
     )     
   in 
   List.iter add_lit selected_literals;
-  Clause.set_bool_param true Clause.in_unif_index main_clause
+  Clause.set_ps_in_unif_index true main_clause
     
 
 (* add_to_subsumption_index *)
@@ -1026,8 +1026,8 @@ let rec discount_loop_body () =
       passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
       let clause = remove_from_passive () in
 (*     out_str_debug ("removed form passive"^(Clause.to_string clause)^"\n");*)
-      if ((Clause.get_bool_param Clause.is_dead clause) ||
-      (Clause.get_bool_param Clause.in_active clause))
+      if ((Clause.get_is_dead clause) ||
+      (Clause.get_ps_in_active clause))
       then ()      
       else 
 	(try
@@ -1048,7 +1048,7 @@ let rec discount_loop_body () =
 	  all_factorings   given_clause;          
 	  all_resolutions  given_clause selected_literals;
 	  add_to_unif_index  given_clause  selected_literals;
-	  Clause.set_bool_param true Clause.in_active  given_clause; 
+	  Clause.set_ps_in_active true given_clause; 
 	  incr_int_stat 1 res_num_in_active;
 (* alternatively one can add all newly generated to subsumption also  *)
 	  add_to_subsumption_index feature_list given_clause;
@@ -1062,7 +1062,7 @@ let rec discount_loop_body () =
               (*out_str_debug "\n Given_clause_is_dead \n"*)
 	)
     with 
-      Passive_Empty -> raise (Satisfiable !clause_db_ref)
+      Passive_Empty -> raise (Satisfiable context)
 
 
 (*-------------------- Adaptive selection ---------------------*)
@@ -1329,7 +1329,7 @@ let resolution_change_sel main_clause =
 (*    out_str_debug ("Main Clause: "^(Clause.to_string  main_clause)
 		   ^"Selected lit: "
 		   ^(Term.term_list_to_string current_select_lits)^"\n"); *)
-       if (not (Clause.get_bool_param Clause.res_sel_max main_clause)) 
+       if (not (Clause.get_ps_sel_max main_clause)) 
        then 
 	 (* then only one lit is sel and it is neg*)
 	 let sel_lit = 
@@ -1397,7 +1397,7 @@ in
 	   DiscrTreeM.unif_candidates !unif_index_ref compl_sel_lit in
 	 let for_all_candidates (lit,clause_list) =       
 	   let prune_clause_list rest clause =
-	     if (not (Clause.get_bool_param Clause.res_sel_max clause)) 
+	     if (not (Clause.get_ps_sel_max clause)) 
 	     then 
 	      (
 	(*       out_str ("Removed from Active: "
@@ -1406,7 +1406,7 @@ in
 			      ^(Term.term_list_to_string  
 				  (Clause.get_res_sel_lits clause) )^"\n"); *)
 	       eliminate_from_unif_index clause;
-	       Clause.set_bool_param false Clause.in_active clause;
+	       Clause.set_ps_in_active false clause;
 	       incr_int_stat (-1) res_num_in_active;
 	       incr_int_stat 1 res_moves_from_active_to_pass;
 	       let _=Selection.change_sel clause in ();	     
@@ -1473,8 +1473,8 @@ let rec discount_change_sel_loop_body () =
       passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
       let clause = remove_from_passive () in
      (* out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n");*)
-      if ((Clause.get_bool_param Clause.is_dead clause) ||
-      (Clause.get_bool_param Clause.in_active clause))
+      if ((Clause.get_is_dead clause) ||
+      (Clause.get_ps_in_active clause))
       then ()      
       else 	
 	(  	
@@ -1494,7 +1494,7 @@ let rec discount_change_sel_loop_body () =
 	  in 
 	  (
 	  resolution_change_sel clause_for_inferences;  
-	   if (Clause.get_bool_param Clause.res_sel_max clause_for_inferences) 
+	   if (Clause.get_ps_sel_max clause_for_inferences) 
 	   then (* we need factoring only with max selected *)
 	     all_factorings clause_for_inferences
 	   else());	  
@@ -1505,7 +1505,7 @@ let rec discount_change_sel_loop_body () =
 		"discount_change_sel_loop_body: sel lit should be def. here \n ") 
 	  in
 	  add_to_unif_index clause_for_inferences selected_lits;
-	  Clause.set_bool_param true Clause.in_active clause_for_inferences;   
+	  Clause.set_ps_in_active true clause_for_inferences;   
 	  incr_int_stat 1 res_num_in_active;
 (*	  out_str ("given_clause: "^(Clause.to_string clause_for_inferences)
 	    ^" selected lit: "
@@ -1522,7 +1522,7 @@ let rec discount_change_sel_loop_body () =
     |Given_clause_is_dead -> ()
 	 (* out_str "\n Given_clause_is_dead \n" *)
 		 
-    | Passive_Empty -> raise (Satisfiable !clause_db_ref)
+    | Passive_Empty -> raise (Satisfiable context)
   		   
 
 (* replaced by discount_loop_exchange
@@ -1567,10 +1567,11 @@ let init_discount_input_clauses input_clauses =
 
 let init_discount () = 
   let add_input_to_passive clause = 
-    let new_clause = (Clause.copy_clause clause) in
+   (* let new_clause = (Clause.copy_clause clause) in *)
 (* when_born is 0 *)
-    Clause.assign_when_born [] [] new_clause;
-    add_new_clause_to_passive new_clause
+   (* Clause.assign_when_born [] [] new_clause;*)
+	  Clause.clear_proof_search_param clause;
+    add_new_clause_to_passive clause
   in
   List.iter add_input_to_passive input_clauses
   
@@ -1627,7 +1628,7 @@ let clear_all () =
   ss_index_ref   :=  (SubsetSubsume.create ());
   subsumption_index_ref :=  (SubsumptionIndexM.create ());
   unif_index_ref :=  (DiscrTreeM.create ());
-  clause_db_ref :=  (ClauseAssignDB.create_name "Discount_Clauses_DB");
+  context_reset context;
 (* Memory is cleared separately by Lib.clear_mem ()*)
 
  (*;

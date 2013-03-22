@@ -35,6 +35,7 @@ and replaced_by =
 and tstp_internal_source =
     TSTP_definition
   | TSTP_assumption
+	| TSTP_tmp
 and tstp_theory_bmc1 =
     TSTP_bmc1_path_axiom of int
   | TSTP_bmc1_reachable_state_axiom of int
@@ -443,6 +444,7 @@ val tstp_source_axiom_range : tstp_source
 val tstp_source_axiom_bmc1 : tstp_theory_bmc1 -> tstp_source
 val tstp_source_assumption : tstp_source
 val tstp_source_definition : tstp_source
+val tstp_source_tmp : tstp_source
 
 
 (*
@@ -478,7 +480,7 @@ val iter_sym : (Term.symbol -> unit) -> clause -> unit
 
 val cut_literal_from_list : term -> term list -> term list
 
-(*
+
 val cmp : ('a -> 'b) -> 'a -> 'a -> int
 val cmp_num_var : clause -> clause -> int
 val cmp_num_symb : clause -> clause -> int
@@ -501,7 +503,7 @@ val cl_cmp_type_to_fun : Options.cl_cmp_type -> clause -> clause -> int
 val cl_cmp_type_list_to_lex_fun :
   Options.cl_cmp_type list -> clause -> clause -> int
 exception Literal_not_found
-*)
+
 
 
 module Key :

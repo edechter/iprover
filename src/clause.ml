@@ -216,7 +216,7 @@ and axiom =
 and tstp_internal_source =
 	| TSTP_definition
 	| TSTP_assumption
-
+  | TSTP_tmp
 and tstp_theory_bmc1 =
 	| TSTP_bmc1_path_axiom of int
 	| TSTP_bmc1_reachable_state_axiom of int
@@ -1785,6 +1785,10 @@ let tstp_source_assumption =
 (* term definitions in finite_models *)
 let tstp_source_definition =
 	 (TSTP_internal_source TSTP_definition)
+
+(* in some cases we introduce auxilary clauses which are not kept *)
+let tstp_source_tmp = 
+	 (TSTP_internal_source TSTP_tmp)
 
 (*---------------- end TSTP --------------------------*)
 

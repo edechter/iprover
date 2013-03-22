@@ -17,11 +17,8 @@
 
 
 open Lib
+open Logic_interface
 
-type term   = Term.term
-type clause = Clause.clause
-
-type context = Clause.context
 
 exception Satisfiable of context
 
