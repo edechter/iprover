@@ -82,8 +82,10 @@ type bound_clause = clause Lib.bind
 (*type lits_fast_key*)
 
 val get_fast_key : clause -> int
+(*
 val compare_lits : clause -> clause -> int
 val equal_lits : clause -> clause -> bool
+*)
 
 (*
 val get_lits_fast_key : clause -> basic_clause

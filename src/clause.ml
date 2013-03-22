@@ -46,8 +46,10 @@ exception Term_compare_greater
 exception Term_compare_less
 
 
-let clause_counter = ref 0 
-let incr_clause_counter () =  (clause_counter := !clause_counter+1)
+let clause_global_counter = ref 0 
+let bc_global_counter = ref 0
+
+let incr_clause_counter () =  (clause_global_counter := !clause_global_counter+1)
 
 
 (* all boolean param of a clause stored in a bit vector (should be in 0-30 range)*)
@@ -134,12 +136,13 @@ let ps_simplifying = 10
 (*    thus sequantially the same context can be used for any number of inst/res cycles  *)
 (*    we need to copy a clause to another context only if simultaniously the same basic clause is used in more than one place *)
 
+
+
 type basic_clause =
-	basic_clause_node hash_consed
-and
-basic_clause_node =
 	{
 		lits : literal_list;
+		mutable bc_fast_key : int;
+		mutable bc_counter : int; (* when 0 we can remove clause from the bc_table *)
 		mutable bc_bool_param : Bit_vec.bit_vec;
 		mutable length : int;	(* number of all symbols in literals *)
 		mutable num_of_symb : int;
@@ -262,39 +265,41 @@ and tstp_source =
 	| TSTP_inference_record of tstp_inference_record
 
 (*--------------Consing hash tables--------------------------*)
-
-
-(* basic clause hash table *)
-(* Key for consing table *)
 module BClause_Node_Key =
 struct
-	type t = basic_clause_node
-	let equal c1 c2 =
+	type t = lits
+	let equal lits1 lits2 =
 		try
-			List.for_all2 (==) c1.lits c2.lits
+			List.for_all2 (==) lits1 lits2
 		with
 			Invalid_argument _ -> false
-	let hash c = hash_list Term.hash c.lits
+	let hash lits = hash_list Term.hash lits
 	(* alternative equal *)
 	(*	let compare =
 	list_compare_lex Term.compare cl1.literals cl2.literals
 	let equal c1 c2 =
 	if (compare c1 c2) =0
 	then true
-	else false
-	
+	else false	
 	*)
 end
 
-module BClause_Htbl = Hashcons.Make(BClause_Node_Key)
+module BC_Htbl = Hashtbl.Make(BClause_Node_Key)
+
+let bc_clause_db = BC_Htbl.create 50821 (* medium large prime number *)
+
+  	
+(* basic clause hash table *)
+(* Key for consing table *)
 
 (*---------------------------------------------*)
 (* clause db which contains all basic clauses *)
-
+(*
 let basic_clause_db = BClause_Htbl.create 50821  (* a midium size prime *)
 let add_bc_node bc_node = BClause_Htbl.hashcons basic_clause_db bc_node
+*)
 
-(*---------------------------*)
+(*-----------------------------------------*)
 
 
 (*-----------------------------------------*)
@@ -315,17 +320,21 @@ let get_fast_key c = c.fast_key
 (* by weak table since no refernce will be held *)
 (*  unique for each literal list *)
 
+let bc_get_fast_key bc = bc.bc_fast_key
+let	bc_compare bc1 bc2 = Pervasives.compare (bc_get_fast_key bc1) (bc_get_fast_key bc2)
 
 let get_lits_fast_key c = c.basic_clause
 let get_lits_hash c = c.basic_clause
-let lits_compere c1 c2 = Pervasives.compare c1.tag c2.tag
+let lits_compare c1 c2 = bc_compare (get_bc c1) (get_bc c2)
 let lits_equal c1 c2 =  c1.basic_clause == c2.basic_clause
  
 (* let get_context_id c = c.context_id *)
 	
 (*-----------------------------------------*)
+(*
 let compare_basic_clause c1 c2 =
 	Pervasives.compare c1.tag c2.tag
+*)
 
 let equal_basic_clause = (==)
 
@@ -347,18 +356,19 @@ let equal = equal_clause
 
 let compare = compare_clause 
 
+(*
 let compare_lits c1 c2 = compare_basic_clause (get_bc c1) (get_bc c2)
 
 let equal_lits c1 c2 =  equal_basic_clause (get_bc c1) (get_bc c2) 
-
+*)
 
 (*---------- filling Bool params of a basic clause ----------------------------*)
 
 let set_bool_param_bc value param bclause =
-	bclause.node.bc_bool_param <- Bit_vec.set value param bclause.node.bc_bool_param
+	bclause.bc_bool_param <- Bit_vec.set value param bclause.bc_bool_param
 
 let get_bool_param_bc param bclause =
-	Bit_vec.get param bclause.node.bc_bool_param
+	Bit_vec.get param bclause.bc_bool_param
 
 (*----------*)
 let is_ground_lits lits =
@@ -503,9 +513,11 @@ let defined_symb_enabled_check () =
 *)
 
 (* us to check whether the clause is in the *)
-let template_bc_node lits =
+let bc_template ~bc_fast_key lits =
 	{
 		lits = lits;
+		bc_fast_key = bc_fast_key;
+		bc_counter = 1;
 		bc_bool_param = Bit_vec.false_vec;
 		length = 0;
 		num_of_symb = 0; 	(* number of all symbols in literals *)
@@ -526,8 +538,22 @@ let fill_bc_auto_params bc_node =
 	bc_node.min_defined_symb <- min_defined_symb_lits lits
 
 let create_basic_clause lits =
-	let template_bc_node = template_bc_node lits in
-	let added_bc = add_bc_node template_bc_node in
+	try 		
+		let bc = BC_Htbl.find bc_clause_db lits in 	
+		bc.bc_counter <- bc.bc_counter + 1; 
+		bc
+	with
+	Not_found -> 
+		 (
+		  let bc = bc_template ~bc_fast_key:(!bc_global_counter) lits in 
+			bc_global_counter := !bc_global_counter + 1;	
+		  fill_bc_auto_params bc;		
+			BC_Htbl.add bc_clause_db lits bc;			
+			bc
+			)
+			
+	(*		
+	let added_bc = add_bc_node template in
 	let new_bc =
 		(if (added_bc.node == template_bc_node) (* there was no copy in clause cons *)
 			then
@@ -540,6 +566,7 @@ let create_basic_clause lits =
 		)
 	in
 	new_bc
+*)
 
 (*
 let is_negated_conjecture clause =
@@ -552,7 +579,7 @@ clause.conjecture_distance = conjecture_int
 
 (*------------------*)
 
-let get_lits c = c.basic_clause.node.lits 
+let get_lits c = c.basic_clause.lits 
 let get_literals = get_lits	
 		
 let compare_lits c1 c2 =
@@ -632,11 +659,11 @@ let pp_axiom ppf = function
 *)
 
 (*----------------------------*)
-let get_node c = c.node
+(*let get_node c = c.node*)
 
 let get_bc c = c.basic_clause
 	
-let get_bc_node c = c.basic_clause.node
+let get_bc_node c = c.basic_clause
 
 let equal_bc c1 c2 = (get_bc c1) == (get_bc c2)
 
@@ -1114,7 +1141,7 @@ let pp_clause ppf clause =
 
 let pp_clause_min_depth ppf clause =
 	pp_clause ppf clause;
-	let s = clause.basic_clause.node.min_defined_symb in
+	let s = clause.basic_clause.min_defined_symb in
 	(* let d = Symbol.get_defined_depth
 	(Term.lit_get_top_symb s) in
 	*)
@@ -1542,7 +1569,7 @@ let new_clause ~is_negated_conjecture tstp_source bc =
 		else
 	  	(get_conjecture_distance_tstp_source tstp_source)+1
 		in 	
-		let fast_key = !clause_counter in
+		let fast_key = !clause_global_counter in
 		incr_clause_counter ();
 		let ps_param = create_ps_param () in
 		let new_clause = 
@@ -1806,7 +1833,7 @@ let tstp_source_tmp =
 module KeyContext = 
 	struct
 		  type t = basic_clause (* key *)
-			let hash bc = bc.tag
+			let hash bc = (bc_get_fast_key bc)
 			let equal bc1 bc2 = (bc1 == bc2) 
   end
 	 
