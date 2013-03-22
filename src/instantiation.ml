@@ -21,19 +21,13 @@
 open Lib
 open Options
 open Statistics
+open Logic_interface 
 
 let proof = false 
     
-type clause  = Clause.clause
-type lit     = Term.literal
-type term    = Term.term
-type symbol  = Symbol.symbol  
-type tmp     = bool
-(*type prop_var = PropSolver.var *)
-type prop_lit = PropSolver.lit
 
 (* at the moment model will be represented as the set of all clauses *)
-type all_clauses = ClauseAssignDB.clauseDB
+type all_clauses = context
 
 (*--------------------------------*)
 exception Unsatisfiable
@@ -126,12 +120,11 @@ module Make (InputM:InputM) =
       assign_int_stat stat_learning_restarts inst_num_of_learning_restarts
       
 
-    let symbol_db_ref  = Parser_types.symbol_db_ref
-    let term_db_ref    = Parser_types.term_db_ref
+  
+let context = context_create 21701 (* 21701 medium large prime number *)
 
-    let clause_db_ref = ref (ClauseAssignDB.create_name "Instantiation_Clauses_DB")
-    let ()= assign_fun_stat 
-	(fun () -> (ClauseAssignDB.size !clause_db_ref)) inst_num_of_clauses
+  let ()= assign_fun_stat 
+	(fun () -> (context_size context)) inst_num_of_clauses
    
 (* 
     let selection_fun = 
@@ -175,7 +168,7 @@ let remove_from_simple_passive () =
   match !simple_passive_ref with 
   | clause::tl -> 
       simple_passive_ref := tl;
-      Clause.set_bool_param false Clause.inst_in_sim_passive clause;
+      Clause.set_ps_in_sim_passive false clause;
       incr_int_stat 1 inst_num_in_simple_passive;
       clause
   |[]     -> raise Passive_Simple_Empty 
@@ -183,7 +176,7 @@ let remove_from_simple_passive () =
 let add_to_simple_passive clause = 
   simple_passive_ref := clause::!simple_passive_ref;
   incr_int_stat 1 inst_num_in_simple_passive;
-  Clause.set_bool_param true Clause.inst_in_sim_passive clause (*;*)
+  Clause.set_ps_in_sim_passive true clause (*;*)
 (*  Clause.assign_when_born (get_val_stat inst_num_of_loops) clause*)
 
 (*add new clauses*)    
@@ -193,7 +186,7 @@ let add_new_clause_to_sp clause =
     ( (* Format.eprintf "Added empty clause to simple passive in instantiation@."; *)
     raise Unsatisfiable)
   else 
-    if (not (Clause.get_bool_param Clause.is_dead clause))  
+    if (not (Clause.get_is_dead clause))  
     then 
 	  add_to_simple_passive clause 
     else ()
@@ -267,9 +260,9 @@ let create_passive_queue init_capacity =
 	     c1
 	     c2)
 	 (fun c -> 
-	   Clause.get_bool_param Clause.inst_pass_queue1 c)
+	   Clause.get_ps_pass_queue1 c)
 	 (fun b c -> 
-	   Clause.set_bool_param b Clause.inst_pass_queue1 c)
+	   Clause.set_ps_pass_queue1 b c)
 	 (val_of_override !current_options.inst_pass_queue1_mult);
        
        (* Second passive queue *)
@@ -280,9 +273,9 @@ let create_passive_queue init_capacity =
 	     c1
 	     c2)
 	 (fun c -> 
-	   Clause.get_bool_param Clause.inst_pass_queue2 c)
+	   Clause.get_ps_pass_queue2 c)
 	 (fun b c -> 
-	   Clause.set_bool_param b Clause.inst_pass_queue2 c)
+	   Clause.set_ps_pass_queue2 b c)
 	 (val_of_override !current_options.inst_pass_queue2_mult);
 	 
        (* Third passive queue, use mult = 0 to deactivate a queue *)
@@ -293,9 +286,9 @@ let create_passive_queue init_capacity =
 	     c1
 	     c2)
 	 (fun c -> 
-	   Clause.get_bool_param Clause.inst_pass_queue3 c)
+	   Clause.get_ps_pass_queue3 c)
 	 (fun b c -> 
-	   Clause.set_bool_param b Clause.inst_pass_queue3 c)
+	   Clause.set_ps_pass_queue3 b c)
 	 (val_of_override !current_options.inst_pass_queue3_mult)
 	 
      ])
@@ -350,7 +343,7 @@ let clean_passive () =
 
 
 let add_to_passive clause =    	     
-  if(Clause.get_bool_param Clause.is_dead clause)
+  if(Clause.get_is_dead clause)
   then ()
   else
     PassiveQueue.add_all !passive_queue_ref clause
@@ -359,8 +352,8 @@ exception Passive_Empty
 let rec remove_from_passive () = 
   try 
     let clause = PassiveQueue.remove !passive_queue_ref in
-      if ((Clause.get_bool_param Clause.in_active clause) || 
-      (Clause.get_bool_param Clause.is_dead clause)) 
+      if ((Clause.get_ps_in_active clause) || 
+      (Clause.get_is_dead clause)) 
       then 
 	(remove_from_passive ())
       else	
@@ -377,7 +370,7 @@ let add_new_clause_to_passive clause =
     ( (* Format.eprintf "Added empty clause to passive in instantiation@."; *)
     raise Unsatisfiable)
   else 
-    if (not (Clause.get_bool_param Clause.is_dead clause))  
+    if (not (Clause.get_is_dead clause))  
     then 
 	  add_to_passive clause 
     else ()
@@ -405,9 +398,9 @@ let (unif_index_ref : (unif_index_elem DiscrTreeM.index) ref )
       
 let add_to_unif_index main_clause =
   try
-    let sel_lit = Clause.get_inst_sel_lit main_clause in
+    let sel_lit = Clause.inst_get_sel_lit main_clause in
     Term.set_fun_bool_param true  Term.inst_in_unif_index sel_lit;
-    (Clause.set_bool_param true Clause.in_active main_clause); 
+    (Clause.set_ps_in_active true main_clause); 
 (*    out_str ("Add to Unif Index: Clause: "^(Clause.to_string main_clause)); *)
 (*    out_str ("Add to Unif  literal:  "^(Term.to_string sel_lit)
 	     ^"restarts: "^(string_of_int !num_of_learning_restarts)^"\n"); *)
@@ -440,7 +433,7 @@ let add_to_unif_index main_clause =
     |Empty_Elem   -> 	 
 	ind_elem := Elem([(sel_lit,[main_clause])])
     );     
-    Clause.set_bool_param true Clause.in_unif_index main_clause
+    Clause.set_ps_in_unif_index true main_clause
   with
     Clause.Inst_sel_lit_undef -> 
       failwith "add_to_unif_index: clause should have selected literals here"
@@ -451,7 +444,7 @@ let add_to_unif_index main_clause =
 
 let eliminate_from_unif_index main_clause = 
   try
-    let sel_lit = Clause.get_inst_sel_lit main_clause in
+    let sel_lit = Clause.inst_get_sel_lit main_clause in
  (*   Term.set_fun_bool_param false  Term.in_unif_index sel_lit;*) (*see below*)
 (*    out_str ("Remove from Unif cl literal:  "^(Term.to_string sel_lit)
 	   ^"restarts: "^(string_of_int !num_of_learning_restarts)^"\n"); *)
@@ -513,8 +506,8 @@ let eliminate_from_unif_index main_clause =
 	out_str 
       ("\n Warning: eliminate_from_unif_index: the clause in not in the index!\n ")
   ); 
-    Clause.set_bool_param  
-      false Clause.in_unif_index main_clause 
+    Clause.set_ps_in_unif_index
+      false main_clause 
   with 
     Clause.Inst_sel_lit_undef -> 
       failwith "eliminate_from_unif_index: Clause.Sel_lits_undef "
@@ -542,8 +535,8 @@ let eliminate_lit_from_unif_index lit =
       let elem_f rest (lit,cl_list) = 
 	Term.set_fun_bool_param false  Term.inst_in_unif_index lit;
 	let add_cl rest' clause = 
-	  (Clause.set_bool_param  
-	     false Clause.in_unif_index clause;
+	  (Clause.set_ps_in_unif_index  
+	     false clause;
 	   clause::rest')
 	in
 	List.fold_left add_cl rest cl_list 
@@ -569,11 +562,11 @@ let dismatching_string clause =
 
 let add_to_active clause = 
   if 
-    ((not (Clause.get_bool_param Clause.in_active clause)) 
+    ((not (Clause.get_ps_in_active clause)) 
    || 
-    (not (Clause.get_bool_param Clause.is_dead clause)))
+    (not (Clause.get_is_dead clause)))
    then
-    (Clause.set_bool_param true Clause.in_active clause;
+    (Clause.set_ps_in_active true clause;
      add_to_unif_index clause;
     (* out_str ("Add to Active: "^(Clause.to_string clause));*)
     incr_int_stat 1 inst_num_in_active;
@@ -581,10 +574,10 @@ let add_to_active clause =
   else ()
 
 let remove_from_active clause =
-  if (Clause.get_bool_param Clause.in_active clause) 
+  if (Clause.get_ps_in_active clause) 
   then 
     (eliminate_from_unif_index clause;
-     Clause.set_bool_param false Clause.in_active clause;
+     Clause.set_ps_in_active false clause;
 (*     out_str ("\n Remove from Active: "^(Clause.to_string clause));*)
 (*     out_str ("Sel lit: "^(Term.to_string (Clause.get_sel_lits)))*)
      incr_int_stat (-1) inst_num_in_active
@@ -596,7 +589,7 @@ let remove_lit_from_active lit =
   let cl_list = eliminate_lit_from_unif_index lit in
   let set_param clause = 
 (*    out_str ("\n Remove from Active: "^(Clause.to_string clause));*)
-    Clause.set_bool_param false Clause.in_active clause;
+    Clause.set_ps_in_active false clause;
     incr_int_stat (-1) inst_num_in_active
 (*    out_str ("Removed from Unif: "^(Clause.to_string clause))*)
   in
@@ -665,9 +658,9 @@ let move_lit_from_active_to_passive  lit =
 let rec eliminate_clause clause = 
 (* out_str ("\n Eliminate Clause:"^(Clause.to_string clause)^"\n");*)
   remove_from_active clause;
-  Clause.set_bool_param true Clause.is_dead clause;
+  Clause.assign_is_dead true clause;
   incr_int_stat 1 inst_num_child_elim;
-  List.iter eliminate_clause (Clause.get_children clause)
+  List.iter eliminate_clause (Clause.get_ps_children clause)
 
 
 
