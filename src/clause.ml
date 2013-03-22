@@ -865,7 +865,7 @@ let get_ps_when_born c =
 	| Def(n) -> n
 	| Undef ->
 			(
-				let fail_str = "Clause: res_when_born is undef for "^(to_string c) in
+				let fail_str = "Clause: ps_when_born is undef for "^(to_string c) in
 				failwith fail_str
 			)
 let assign_ps_when_born i c =
@@ -1559,6 +1559,8 @@ let new_clause ~is_negated_conjecture tstp_source bc =
 		}
 	  in
 	 bc_set_bool_param is_negated_conjecture bc_is_negated_conjecture new_clause;
+	 let parents = get_parents tstp_source in
+	 assign_ps_when_born_concl ~prem1:parents ~prem2:[] ~c:new_clause;
 	 new_clause
    
 (*	

@@ -1574,9 +1574,9 @@ let init_discount_input_clauses input_clauses =
 let init_discount () = 
   let add_input_to_passive clause = 
    (* let new_clause = (Clause.copy_clause clause) in *)
-(* when_born is 0 *)
-   (* Clause.assign_when_born [] [] new_clause;*)
+(* when_born is 0 *) 
 	  Clause.clear_proof_search_param clause;
+		Clause.assign_ps_when_born 0 clause;
     add_new_clause_to_passive clause
   in
   List.iter add_input_to_passive input_clauses

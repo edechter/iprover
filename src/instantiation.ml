@@ -15,9 +15,6 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
-
-
-
 open Lib
 open Options
 open Statistics
@@ -705,7 +702,8 @@ let prop_subsumption clause =
 	   Prop_solver_exchange.add_clause_to_solver new_clause
 	 (*with PropImplied -> ()*));
 	  (* Clause.inherit_param_modif clause new_clause; *)
-	  let added_clause = context_add !context new_clause in             
+	  let added_clause = context_add !context new_clause in   
+		Clause.assign_ps_when_born_concl ~prem1:[clause] ~prem2:[] ~c:added_clause;          
 	  (*(if (PropSolver.fast_solve solver []) = PropSolver.FUnsat  
 	  then raise Unsatisfiable);*)
 	  (*add_clause_to_solver solver_sim solver gr_by added_clause;*)
@@ -951,13 +949,20 @@ let bmc1_bounds = ref []
 		     raise Unsatisfiable)
 	       else 	
 		 (if !current_options.inst_eager_unprocessed_to_passive then
-		   (List.iter add_new_clause_to_passive !unprocessed_ref;
+		   (
+				(* debug *)
+				(*
+					 List.iter (fun c ->
+					Format.printf "%a@." (TstpProof.pp_clause_with_source false) c;
+				 add_new_clause_to_passive c)
+		   	!unprocessed_ref; *)
+(* uncomment after debug *)
+ 				List.iter add_new_clause_to_passive !unprocessed_ref;
 		    unprocessed_ref:=[];
 		    assign_int_stat 0 inst_num_in_unprocessed)
 		 else ()
 
-		 )
-	       
+		 )	       
 	      )
        );        
 	(*if (PropSolver.solve solver) = PropSolver.Unsat 
@@ -972,11 +977,12 @@ let bmc1_bounds = ref []
 *)
              let simplified_given_clause 
 	       = simplify_given_clause  given_clause in
-(*
-      out_str("\n--------------------------\n");
+				
+     (* out_str("\n--------------------------\n");
       out_str ("\n Simpl Given Clause: "
-                     ^(Clause.to_string simplified_given_clause)^"\n");
-*)										
+                     ^(Clause.to_string simplified_given_clause)^"\n"); *)
+										
+	(*			Format.printf "%a@." (TstpProof.pp_clause_with_source false) simplified_given_clause; *)
 
 (*
   (if (not (Clause.is_ground simplified_given_clause))
@@ -1162,7 +1168,12 @@ let bmc1_bounds = ref []
 	   raise (Satisfiable !context) 
 	 else
 	   (
-	    List.iter add_new_clause_to_passive !unprocessed_ref;
+			(* debug *)
+			(* List.iter (fun c ->
+					Format.printf "%a@." (TstpProof.pp_clause_with_source false) c;
+				 add_new_clause_to_passive c)
+			!unprocessed_ref; *)
+	    List.iter add_new_clause_to_passive !unprocessed_ref; 
 	    unprocessed_ref:=[];
 	    assign_int_stat 0 inst_num_in_unprocessed
 	    )	 
@@ -1376,6 +1387,7 @@ let init_instantiation () =
 	(*		out_str ("\n Added: "^(Clause.to_string added_clause)^"\n");*)
   (*    Clause.assign_when_born [] [] added_clause; *)
     	Clause.clear_proof_search_param clause;
+		 Clause.assign_ps_when_born 0 clause;
       add_clause_to_unprocessed clause
 		 (* add_clause_to_unprocessed added_clause *)
 		

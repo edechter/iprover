@@ -381,7 +381,7 @@ exception Main_concl_redundant
 let assign_param_clause parent parents_side clause = 
 (*  Clause.assign_when_born ((Clause.when_born parent)+1) clause;*)
 
-  Clause.assign_ps_when_born_concl ~prem1:[parent] ~prem2:parents_side ~c:clause;
+  Clause.assign_ps_when_born_concl ~prem1:[parent] ~prem2:parents_side ~c:clause; 
   Clause.inst_assign_activity ((Clause.inst_get_activity parent)+1) parent;
   Clause.add_ps_child parent ~child:clause;
   (if 
@@ -454,8 +454,8 @@ let instantiation_norm_dc
 	      let new_conj_dist = min_conj_dist +1
 		  (*((min_conj_dist_list2 + conjecture_distance_c1) lsr 2)+1*) in
 	      assign_param_clause c1 new_conj_dist  added_clause;
-	      [added_clause] *)
-
+	      [added_clause] 
+*)
               Some ((inst_clause, subst_norm))
 	    else 
 	      (raise Main_concl_redundant)
@@ -519,9 +519,9 @@ let instantiation_norm_dc
 	   (* let new_conj_dist = 
 	      ( ((Clause.get_conjecture_distance clause) + 
 		  conjecture_distance_c1) lsr 2)+1 in*)
-	   (*   let new_conj_dist = (Clause.get_min_conjecture_distance [clause;c1])+1 in
-	      assign_param_clause clause [c1] new_conj_dist added_clause;
-		*)
+	   (*   let new_conj_dist = (Clause.get_min_conjecture_distance [clause;c1])+1 in *)
+	      assign_param_clause clause [c1] added_clause;
+	
 	      added_clause::rest)
 	  else 
 	    (
