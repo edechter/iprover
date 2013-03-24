@@ -82,16 +82,28 @@ let symbol_db_ref = ref (SymbolDB.create_name "Symbols_DB")
 let term_db_ref = ref (TermDB.create_name "Terms_DB")
 
 (*----------------*)
-let context = Clause.context_create 21701 (* 21701 medium large prime number *)
+(* let context = Clause.context_create 21701 (* 21701 medium large prime number; context not used at the moment *) *) 
 
+(*
 let create_clause tstp_source lits = 
 	let clause = Clause.create_clause term_db_ref tstp_source lits in 
 	Clause.context_add context clause 
+*)
+let create_clause tstp_source lits = 
+	let clause = Clause.create_clause term_db_ref tstp_source lits in
+	clause 
+(*	Clause.context_add context clause *)
 
+(*
 let create_neg_conjecture tstp_source lits = 
 	let clause = Clause.create_neg_conjecture term_db_ref tstp_source lits	in
 	Clause.context_add context clause 
+*)
 
+	let create_neg_conjecture tstp_source lits = 
+	let clause = Clause.create_neg_conjecture term_db_ref tstp_source lits	in
+	clause 
+(*	Clause.context_add context clause*) 
 
 	
 (*----------------*)	

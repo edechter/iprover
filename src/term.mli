@@ -107,7 +107,7 @@ val is_complementary : term -> term -> bool
 (* apply only to literals, returns if a literal is in EPR: all arguments are eiter constants or vars*)
 val is_epr_lit  : term -> bool
 
-exception Term_grounding_undef
+exception Term_grounding_undef of term
 val get_grounding         : term -> term
 (* only atoms get assigned groundings *)
 val get_grounding_lit: term -> term

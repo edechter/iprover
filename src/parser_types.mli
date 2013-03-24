@@ -29,7 +29,7 @@ type includes = {
   includes_file_name : string;
   include_formula_list : string list;
 }
-val context : Clause.context
+(* val context : Clause.context *)
 val symbol_db_ref : SymbolDB.symbolDB ref
 val term_db_ref : Clause.term_db ref
 val parsed_clauses : Clause.clause list ref

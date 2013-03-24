@@ -877,9 +877,7 @@ let get_ps_bv_param c =
 let get_ps_bool_param param c = 
 	let bv = get_ps_bv_param c in
 	Bit_vec.get param bv
-
-
-		
+	
 let set_ps_bool_param value param c = 
 	let ps_param = get_ps_param c in 
 	 ps_param.ps_bool_param <- Bit_vec.set value param ps_param.ps_bool_param
@@ -1846,7 +1844,7 @@ type context = clause Context.t
 (* creates context with an inital size *)
 let context_create size = Context.create size 
 
-let context_reset cc = Context.reset cc (* empties context*) 		
+(* let context_reset cc = Context.reset cc (* empties context*) *)
 
 let context_add cc c = 
 	let bc = (get_bc c) in

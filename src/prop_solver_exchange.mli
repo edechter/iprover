@@ -17,6 +17,7 @@
 
 
 open Lib
+open Logic_interface 
 
 (** Separate exception, different from PropSolver.Unsatisfiable. In
     BMC1 we must not continue after PropSolver.Unsatisfiable, since
@@ -26,12 +27,6 @@ exception Unsatisfiable
 
 
 type prop_lit = PropSolver.lit
-
-type term     = Term.term
-type lit      = Term.literal
-type symbol   = Symbol.symbol  
-type clause   = Clause.clause
-
 
 (*------------Parameters that can be changed by other modules-----------*)
 

@@ -106,7 +106,7 @@ type bound_term = term bind
 exception Term_fast_key_undef
 exception Term_db_id_undef
 exception Term_weight_undef
-exception Term_grounding_undef
+exception Term_grounding_undef of term
 exception Term_assign_fkey_to_var
 
 let create_var_term var = Var(var, (empty_var_info ()))
@@ -561,18 +561,27 @@ hash_comb rest term_hash in
 List.fold_left hash_fun init_hash term_list
 *)
 
+let is_ground t = ((get_num_of_var t) = 0)
+
 let assign_grounding ground_term term =
 	match term with
 	| Fun(_, _, fun_info) ->
+		((*out_str ("ass grounding: "^(to_string term)^"\n");*)
 			fun_info.fun_grounded <- Def(ground_term)
+			)
 	| Var(_, var_info) ->
 			var_info.var_grounded <- Def(ground_term)
 
 let get_grounding term =
+	if is_ground term 
+	then term 
+	else
+		(
 	match term with
 	| Fun(_, _,{ fun_grounded = Def(grounding) }) -> grounding
 	| Var(_,{ var_grounded = Def(grounding) }) -> grounding
-	| _ -> raise Term_grounding_undef
+	| _ -> raise (Term_grounding_undef(term))
+  )
 
 (* only atoms get assigned groundings *)
 let get_grounding_lit lit =
@@ -720,7 +729,6 @@ let () = fun_info.var_list <- Def(var_list) in
 Fun(symbol, term_list, fun_info)
 *)
 
-let is_ground t = ((get_num_of_var t) = 0)
 
 exception Term_fast_key_is_def
 

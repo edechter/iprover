@@ -19,7 +19,7 @@ type term_db_ref = TermDB.termDB ref
 
 let symbol_db_ref = Parser_types.symbol_db_ref
 let term_db_ref = Parser_types.term_db_ref
-let context = Parser_types.context
+(* let context = Parser_types.context *)
 
 (* first when term_db_ref is a parameter *)
 
@@ -108,7 +108,7 @@ let context_add  = Clause.context_add
 let context_remove = Clause.context_remove  
 let context_mem = Clause.context_mem 
 let context_mem_lits = Clause.context_mem_lits
-let context_reset = Clause.context_reset 
+(* let context_reset = Clause.context_reset *)
 let context_find = Clause.context_find
 let context_find_lits = Clause.context_find_lits
 let context_iter = Clause.context_iter 

@@ -92,7 +92,7 @@ val context_mem : context -> clause -> bool
 
 (* literals are not normalised unlike wnen create_clause *)
 val context_mem_lits : context -> lits -> bool
-val context_reset : context -> unit
+(* val context_reset : context -> unit *)
 val context_find : context -> clause -> clause
 
 (* literals are not normalised unlike wnen create_clause *)

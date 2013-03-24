@@ -41,8 +41,15 @@ let add_fun_term_args symb args =
 *)
 
 let prop_simp clause_list = 
-  List.iter 
-    Prop_solver_exchange.add_clause_to_solver clause_list;
+	(* debug *)
+	  List.iter 
+		 (fun c -> 
+					Format.printf "Prep: %a@.\n" (TstpProof.pp_clause_with_source false) c; 	
+       Prop_solver_exchange.add_clause_to_solver c;
+     )
+		clause_list;
+ (*  List.iter 
+    Prop_solver_exchange.add_clause_to_solver clause_list; *)
   (if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat)
    then 
       ((* Format.eprintf "Unsatisfiable after solve call in Preprocess.prop_sim@."; *)

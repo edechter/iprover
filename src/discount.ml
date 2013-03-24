@@ -1031,7 +1031,7 @@ let rec discount_loop_body () =
      (* let clause =  PassiveQueue.maximum !(passive_queue_ref) in 
       passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
       let clause = remove_from_passive () in
-(*     out_str_debug ("removed form passive"^(Clause.to_string clause)^"\n");*)
+  (*   out_str ("removed form passive"^(Clause.to_string clause)^"\n");*)
       if ((Clause.get_is_dead clause) ||
       (Clause.get_ps_in_active clause))
       then ()      
@@ -1044,7 +1044,7 @@ let rec discount_loop_body () =
 	  out_str ("given_clause: "^(Clause.to_string  given_clause)
 			 ^"selected lit: "
 			 ^(Term.term_list_to_string selected_literals)^"\n"); 
-	  out_str ("Born: "^( string_of_int (Clause.when_born given_clause))^"\n");
+	  out_str ("Born: "^( string_of_int (Clause.get_ps_when_born given_clause))^"\n");
 *)
 
 (*debug*)
@@ -1478,7 +1478,7 @@ let rec discount_change_sel_loop_body () =
      (* let clause =  PassiveQueue.maximum !(passive_queue_ref) in 
       passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
       let clause = remove_from_passive () in
-     (* out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n");*)
+      out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n");
       if ((Clause.get_is_dead clause) ||
       (Clause.get_ps_in_active clause))
       then ()      
@@ -1572,11 +1572,17 @@ let init_discount_input_clauses input_clauses =
 *)
 
 let init_discount () = 
+	out_str "\n init_discount\n";
+	
   let add_input_to_passive clause = 
    (* let new_clause = (Clause.copy_clause clause) in *)
 (* when_born is 0 *) 
 	  Clause.clear_proof_search_param clause;
+			(* replace with replacing dead with implied *)
+      Clause.assign_is_dead false clause;  
 		Clause.assign_ps_when_born 0 clause;
+		out_str ("\n Added: "^(Clause.to_string clause)^"\n");
+
     add_new_clause_to_passive clause
   in
   List.iter add_input_to_passive input_clauses

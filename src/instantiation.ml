@@ -699,11 +699,12 @@ let prop_subsumption clause =
       with 
 	Not_found -> (* Simplified is a new clause *)
 	  (((*try *)
-	   Prop_solver_exchange.add_clause_to_solver new_clause
+	   
 	 (*with PropImplied -> ()*));
 	  (* Clause.inherit_param_modif clause new_clause; *)
 	  let added_clause = context_add !context new_clause in   
-		Clause.assign_ps_when_born_concl ~prem1:[clause] ~prem2:[] ~c:added_clause;          
+		Clause.assign_ps_when_born_concl ~prem1:[clause] ~prem2:[] ~c:added_clause;  
+		Prop_solver_exchange.add_clause_to_solver added_clause;        
 	  (*(if (PropSolver.fast_solve solver []) = PropSolver.FUnsat  
 	  then raise Unsatisfiable);*)
 	  (*add_clause_to_solver solver_sim solver gr_by added_clause;*)
@@ -975,14 +976,13 @@ let bmc1_bounds = ref []
          out_str("\n Given Clause: "
                  ^(Clause.to_string given_clause)^"\n");
 *)
-             let simplified_given_clause 
-	       = simplify_given_clause  given_clause in
+        let simplified_given_clause = simplify_given_clause  given_clause in
 				
      (* out_str("\n--------------------------\n");
       out_str ("\n Simpl Given Clause: "
                      ^(Clause.to_string simplified_given_clause)^"\n"); *)
 										
-	(*			Format.printf "%a@." (TstpProof.pp_clause_with_source false) simplified_given_clause; *)
+	(*		Format.printf "%a@." (TstpProof.pp_clause_with_source false) simplified_given_clause; *) 
 
 (*
   (if (not (Clause.is_ground simplified_given_clause))
@@ -1387,7 +1387,9 @@ let init_instantiation () =
 	(*		out_str ("\n Added: "^(Clause.to_string added_clause)^"\n");*)
   (*    Clause.assign_when_born [] [] added_clause; *)
     	Clause.clear_proof_search_param clause;
-		 Clause.assign_ps_when_born 0 clause;
+		(* replace with replacing dead with implied *)
+      Clause.assign_is_dead false clause;   
+			Clause.assign_ps_when_born 0 clause;
       add_clause_to_unprocessed clause
 		 (* add_clause_to_unprocessed added_clause *)
 		

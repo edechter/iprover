@@ -209,7 +209,7 @@ val context_mem : context -> clause -> bool
 (* literals are not normalised unlike wnen create_clause *)
 val context_mem_lits : context -> lits -> bool
 
-val context_reset : context -> unit
+(* val context_reset : context -> unit *)
 val context_find : context -> clause -> clause
 
 (* literals are not normalised unlike wnen create_clause *)
@@ -587,8 +587,8 @@ module Hashtbl :
     type key = Key.t
     type 'a t = 'a Hashtbl.Make(Key).t
     val create : int -> 'a t
-    val clear : 'a t -> unit
-    val reset : 'a t -> unit
+(*    val clear : 'a t -> unit *)
+(*    val reset : 'a t -> unit *)
     val copy : 'a t -> 'a t
     val add : 'a t -> key -> 'a -> unit
     val remove : 'a t -> key -> unit
@@ -599,7 +599,7 @@ module Hashtbl :
     val iter : (key -> 'a -> unit) -> 'a t -> unit
     val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
     val length : 'a t -> int
-    val stats : 'a t -> Hashtbl.statistics
+ (*   val stats : 'a t -> Hashtbl.statistics *)
   end
 
 val clause_list_to_set : Set.elt list -> Set.t
