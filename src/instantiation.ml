@@ -1377,6 +1377,7 @@ let init_instantiation  input_clauses =
   
   
 let init_instantiation () = 
+	(* out_str "\n\n init instantiation\n\n"; *)
   let add_input_to_unprocessed clause = 
    (* try*)
 			(*
@@ -1386,11 +1387,12 @@ let init_instantiation () =
 			*)
 	(*		out_str ("\n Added: "^(Clause.to_string added_clause)^"\n");*)
   (*    Clause.assign_when_born [] [] added_clause; *)
-    	Clause.clear_proof_search_param clause;
+	   let new_clause = Clause.copy_clause clause in
+    (*	Clause.clear_proof_search_param clause; *)
 		(* replace with replacing dead with implied *)
-      Clause.assign_is_dead false clause;   
-			Clause.assign_ps_when_born 0 clause;
-      add_clause_to_unprocessed clause
+      Clause.assign_is_dead false new_clause;   
+			Clause.assign_ps_when_born 0 new_clause;
+      add_clause_to_unprocessed new_clause
 		 (* add_clause_to_unprocessed added_clause *)
 		
     (* Skip duplicate clauses in the input *)
@@ -1474,6 +1476,7 @@ let _ = init_instantiation ()
 
 let clear_all () = 
 
+ (* out_str "\n\n clear_all instantiation \n\n"; *)
 (* a trick to keep old value of functional statistics*)
 (* like number of clauses and number in passive*)
 
@@ -1518,6 +1521,7 @@ end (* Instantiation.Make *)
 
 
 let clear_after_inst_is_dead () = 
+	out_str "\n clear after instantiation is dead \n";
    let f t = 
     match t with 
     |Term.Fun _ ->  (Term.set_fun_bool_param false  Term.inst_in_unif_index t)

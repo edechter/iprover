@@ -23,7 +23,7 @@ open Logic_interface
 exception Satisfiable of context
 
 (* exception Unsatisfiable *)
-exception Empty_Clause of clause
+(*exception Empty_Clause of clause*)
 
 module type InputM = 
   sig

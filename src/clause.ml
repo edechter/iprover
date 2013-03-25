@@ -264,6 +264,8 @@ and tstp_source =
 	| TSTP_internal_source of tstp_internal_source
 	| TSTP_inference_record of tstp_inference_record
 
+
+
 (*--------------Consing hash tables--------------------------*)
 module BClause_Node_Key =
 struct
@@ -547,7 +549,9 @@ let create_basic_clause lits =
 		 (
 		  let bc = bc_template ~bc_fast_key:(!bc_global_counter) lits in 
 			bc_global_counter := !bc_global_counter + 1;	
-		  fill_bc_auto_params bc;		
+			(if (not (lits = [])) 
+			then 
+		   (fill_bc_auto_params bc;));		
 			BC_Htbl.add bc_clause_db lits bc;			
 			bc
 			)
@@ -589,7 +593,7 @@ let is_empty_clause c =
 	if (get_lits c) = [] then true
 	else false
 
-
+	
 (*------------output: to stream/string to_tptp is later due to dependences on getting parameters------------*)
 
 let to_stream s clause =
@@ -1573,7 +1577,7 @@ let new_clause ~is_negated_conjecture tstp_source bc =
 		let new_clause = 
 	 {
 		basic_clause = bc;
-		fast_key = fast_key; (* auto assigned when added to context *)
+		fast_key = fast_key; 
 (*	context_id = 0; *)(* auto assigned when added to context *)
 		tstp_source = Def(tstp_source);
 		replaced_by = Undef;
@@ -1619,8 +1623,17 @@ let create_clause_raw tstp_source lits =
 	let bc = create_basic_clause lits in
 	new_clause ~is_negated_conjecture:false tstp_source bc
 	
-	
-
+let copy_clause c =	
+	let fast_key = !clause_global_counter in
+	incr_clause_counter ();
+	let ps_param = create_ps_param () in
+	 let new_c = 
+		{c with 
+    fast_key = fast_key;
+		proof_search_param = ps_param
+		} 
+  in
+	new_c
 (*--------------Compare two clauses-------------------*)
 
 (* f_perv returns a value that can be compared by Pervasives.compare; ususally int or bool *)

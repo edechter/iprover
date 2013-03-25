@@ -14,6 +14,8 @@ type tstp_source = Clause.tstp_source
 type context = Clause.context
 type proof_search_param = Clause.proof_search_param
 
+exception Empty_Clause of clause 
+
 type symbol_db_ref = SymbolDB.symbolDB ref
 type term_db_ref = TermDB.termDB ref
 
@@ -62,7 +64,9 @@ val add_term_algebra_eq_term : term list -> term
 
 
 (**---------Clause-----------*)
-(** create_clause tstp_source proof_search_param lits *)
+
+
+(** create_clause tstp_source proof_search_param lits, can raise  Empty_clause (empty_clause) *)
 val create_clause :
   tstp_source -> 
 	lit list -> clause

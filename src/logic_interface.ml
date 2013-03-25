@@ -19,6 +19,10 @@ type term_db_ref = TermDB.termDB ref
 
 let symbol_db_ref = Parser_types.symbol_db_ref
 let term_db_ref = Parser_types.term_db_ref
+
+exception Empty_Clause of clause 
+
+
 (* let context = Parser_types.context *)
 
 (* first when term_db_ref is a parameter *)
@@ -85,7 +89,12 @@ let add_term_algebra_eq_term args =
 
 let create_clause tstp_source lits = 
 	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
-	Clause.create_clause term_db_ref tstp_source norm_lits	
+	let clause = Clause.create_clause term_db_ref tstp_source norm_lits	in 
+	(if (Clause.is_empty_clause clause) 
+	then 
+		raise (Empty_Clause (clause))
+	);
+	clause
 
 let create_clause_context context tstp_source lits =
 	let clause = create_clause tstp_source lits in

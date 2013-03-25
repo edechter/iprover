@@ -404,7 +404,7 @@ let full_loop prover_functions_ref input_clauses =
 											^(string_of_int (get_val_stat inst_num_of_learning_restarts)))
 									
 									(*		    let input_clauses = !current_input_clauses		  *)
-									(*		       let input_clauses = simp_input_clauses		*)
+									(*		    let input_clauses = simp_input_clauses	       	*)
 									let input_clauses = input_clauses
 								end in
 								let module InstM = Instantiation.Make (InstInput) in
@@ -1248,6 +1248,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 	with
 	| Discount.Satisfiable all_clauses
 	->
+		  
 			if !eq_axioms_are_omitted
 			then
 				when_eq_ax_ommitted ()
@@ -1274,6 +1275,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 	|
 	Instantiation.Satisfiable all_clauses
 	->
+	(*	out_str "\n\n Inst Satisfiable\n\n"; *)
 			if !eq_axioms_are_omitted
 			then
 				when_eq_ax_ommitted ()
@@ -1307,7 +1309,8 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 	| Prop_solver_exchange.Unsatisfiable
 	(* | Discount.Unsatisfiable *)
 	| Instantiation.Unsatisfiable
-	| Discount.Empty_Clause _
+	(*| Discount.Empty_Clause _*)
+	| Empty_Clause _
 	when val_of_override !current_options.bmc1_incremental ->
 	
 	(* If SAT solver reports unsatisfiable without assumptions, then
@@ -2621,8 +2624,8 @@ let run_iprover () =
 			)
 	
 	(* Unsatisfiable due to empty clause in resolution *)
-	| Discount.Empty_Clause (clause) ->
-	
+	| (*Discount.Empty_Clause (clause) ->*)
+	    Empty_Clause (clause) ->
 			(
 				out_str(" Resolution empty clause:\n");
 				
@@ -2671,7 +2674,6 @@ let run_iprover () =
 	->
 			(assert (not !eq_axioms_are_omitted);
 				out_str (satisfiable_str ());
-				
 				(* Do not output statistics in BMC1 mode with
 				-- bmc1_out_stat none *)
 				if (not (val_of_override !current_options.bmc1_incremental)) ||

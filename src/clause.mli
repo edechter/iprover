@@ -239,6 +239,8 @@ val create_neg_conjecture :
 val create_clause_raw : 
     tstp_source  -> literal_list -> clause
 	
+val copy_clause : clause -> clause
+	
 (*-----*)	
 val get_lits : clause -> literal_list
 
