@@ -885,7 +885,7 @@ struct
 		|[]-> []
 	
 	let all_resolutions main_clause selected_literals =
-		out_str ("res: main"^(Clause.to_string main_clause)^"\n");
+		(* out_str ("res: main"^(Clause.to_string main_clause)^"\n"); *)
 		try
 			(let for_all_sel_lit sel_lit =
 					let compl_sel_lit = Term.compl_lit sel_lit in
@@ -893,8 +893,9 @@ struct
 						DiscrTreeM.unif_candidates !unif_index_ref compl_sel_lit in
 					let for_all_candidates (lit, clause_list) =
 						(try
-							out_str ("res_try: "^(Clause.to_string main_clause)
+					(*		out_str ("res_try: "^(Clause.to_string main_clause)
 									^(Clause.clause_list_to_string clause_list));
+          *)
 							let new_clause_list =
 								remove_if_dead_from_active res_backward_subsumption_resolution clause_list
 							in
@@ -908,13 +909,13 @@ struct
 							(!forward_subs_resolution_flag) (!backward_subs_resolution_flag)
 							main_clause sel_lit compl_sel_lit new_clause_list lit term_db_ref in
 							*)
-							
+						(*	
 							out_str
 								("resolution: "^(Clause.to_string main_clause)
 									^"["^(Clause.clause_list_to_string new_clause_list)^"]"
 									^"conclusion: "
 									^"["^(Clause.clause_list_to_string conclusion_list)^"]");
-							
+					*)
 							(if !current_options.res_backward_subs_resolution
 								then
 									let _ =
@@ -936,7 +937,7 @@ struct
 	(* add to unif index *)
 	
 	let add_to_unif_index main_clause selected_literals =
-		out_str ("adding to unif_index: "^(Clause.to_string main_clause)^" lits: "^(Term.term_list_to_string selected_literals)^"\n");
+	(*	out_str ("adding to unif_index: "^(Clause.to_string main_clause)^" lits: "^(Term.term_list_to_string selected_literals)^"\n"); *)
 		let add_lit sel_lit =
 			let ind_elem = DiscrTreeM.add_term_path sel_lit unif_index_ref in
 			(match !ind_elem with
@@ -969,7 +970,7 @@ struct
 			(*   out_str ("removed form passive"^(Clause.to_string clause)^"\n");*)
 			if ((Clause.get_is_dead clause) ||
 				(Clause.get_ps_in_active clause))
-			then (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");)
+			then () (* (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");) *)
 			else
 				(try
 					let (feature_list, given_clause) = all_simplifications clause in
@@ -1004,8 +1005,9 @@ struct
 				)
 		with
 			Passive_Empty -> 
-				(out_str ("Satisfiable context 2 \n\n");
-		  	context_iter !context (fun c -> out_str ((Clause.to_string c)^"\n")); 
+				((* out_str ("Satisfiable context 2 \n\n");
+		  	context_iter !context (fun c -> out_str ((Clause.to_string c)^"\n"));
+				*) 
 				raise (Satisfiable !context)
 	       )
 	(*-------------------- Adaptive selection ---------------------*)
@@ -1412,11 +1414,11 @@ struct
 		(* let clause = PassiveQueue.maximum !(passive_queue_ref) in
 		passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
 			let clause = remove_from_passive () in
-			out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n");
+		(*	out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n"); *)
 			
 			if ((Clause.get_is_dead clause) ||
 				(Clause.get_ps_in_active clause))
-			then (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");)
+			then ()  (* (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");) *)
 			else
 				(
 					let clause_for_inferences =
@@ -1434,7 +1436,7 @@ struct
 							else clause)							
 					in
 					(
-						out_str ("Clause for inf: "^(Clause.to_string clause_for_inferences)^"\n");
+					(*	out_str ("Clause for inf: "^(Clause.to_string clause_for_inferences)^"\n"); *)
 						resolution_change_sel clause_for_inferences;
 						if (Clause.get_ps_sel_max clause_for_inferences)
 						then (* we need factoring only with max selected *)
@@ -1450,9 +1452,10 @@ struct
 					Clause.set_ps_in_active true clause_for_inferences;
 					incr_int_stat 1 res_num_in_active;
 					
-					out_str ("given_clause: "^(Clause.to_string clause_for_inferences)
+				(*	out_str ("given_clause: "^(Clause.to_string clause_for_inferences)
 							^" selected lit: "
 							^(Term.term_list_to_string selected_lits));
+				*)
 				)
 		
 		(* out_str_debug
@@ -1467,8 +1470,9 @@ struct
 		
 		| Passive_Empty -> 
 			(
-			out_str ("Satisfiable context\n\n");
+			 (* out_str ("Satisfiable context\n\n");
 			context_iter !context (fun c -> out_str ((Clause.to_string c)^"\n")); 
+			*)
 			raise (Satisfiable !context)
     	)
 		
@@ -1512,7 +1516,7 @@ struct
 	*)
 	
 	let init_discount () =
-		out_str "\n init_discount\n";
+	(*	out_str "\n init_discount\n"; *)
 		
 		let add_input_to_passive clause =
 		 let new_clause = (Clause.copy_clause clause) in 
@@ -1521,7 +1525,7 @@ struct
 			(* replace with replacing dead with implied *)
 			Clause.assign_is_dead false new_clause;
 			Clause.assign_ps_when_born 0 new_clause;
-			out_str ("\n Added: "^(Clause.to_string new_clause)^"\n");
+			(* out_str ("\n Added: "^(Clause.to_string new_clause)^"\n"); *)
 			add_new_clause_to_passive new_clause
 		in
 		List.iter add_input_to_passive input_clauses

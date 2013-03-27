@@ -2430,17 +2430,17 @@ let run_iprover () =
 			(*-------------------------------------------------*)
 											
 			(*	(if !current_options.instantiation_flag then *)
-(*			List.iter
+			List.iter
 				Prop_solver_exchange.add_clause_to_solver !current_clauses;
-			*)
+			
 			(*debug*)
-				List.iter
+			(*	List.iter
 				( fun c -> 
 					Format.printf "Solver: %a@.\n" (TstpProof.pp_clause_with_source false) c; 
 					Prop_solver_exchange.add_clause_to_solver c
 					)				
 					!current_clauses;
-	
+	*)
 	
 			
 			(* For incremental BMC1 we must catch this and move to the next
