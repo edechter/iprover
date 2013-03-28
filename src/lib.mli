@@ -35,8 +35,12 @@ exception None_opt
 (* get_some get option value or raises None_opt if the option is None *)
 val get_some : 'a option -> 'a
 val get_some_fun : ('b -> 'a option) -> ('b -> 'a)
+val is_some : 'a option -> bool
 
 type 'a param = Def of 'a | Undef 
+
+(* true if param is Def and false if Undef*)
+val param_is_def: 'a param -> bool
 
 exception Undef_param
 

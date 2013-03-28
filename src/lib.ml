@@ -333,6 +333,10 @@ let kill_all_child_processes () =
 
 exception None_opt
 
+let is_some = function 
+	| Some _-> true 
+	| None -> false
+	 
 let get_some = function
 	|Some x -> x
   |None -> raise  None_opt
@@ -352,6 +356,10 @@ let get_param_val p =
 let get_param_val_fun f = 
 	(fun b -> get_param_val (f b))
 
+let param_is_def p = 
+	match p with
+	| Def _ -> true
+	| Undef -> false
 
 (* outcome of  compare fun *)
 let cequal   =  0

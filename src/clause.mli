@@ -238,6 +238,11 @@ tstp_source -> literal_list -> clause
 
 val copy_clause : clause -> clause
 
+(* clears tstp_source of the clause should not be used after that     *)
+(* unless it was recoreded in propositional solver for proof purposes *)
+
+val clear_clause : clause -> unit
+
 (*-----*)
 val get_lits : clause -> literal_list
 

@@ -89,7 +89,12 @@ let bc_is_negated_conjecture = 11 (* user *) (* TODO: change in the rest of the 
 let ccp_is_dead = 0  (* user *)
 (* ccp_is_dead true the the clause is replaced in a context and replaced by other clauses *)
 (* invariant: set of (not ccp_is_dead) clauses imply the set of all clauses in the context *)
-let cpp_in_prop_solver = 1 (* user *)
+
+let cpp_in_prop_solver = 1 (* user *) 
+(* cpp_in_prop_solver means that either this clause is in prop_solver *)
+(* or there is  a clause in prop_solver which makes this clause redundant in prop_solver *)
+(* the clause itself is not necessarily in the solver *)
+(* to check wether clause itself in the solver check prop_solver_id *)
 
 let ccp_in_unsat_core = 2 (* user *)
 
@@ -1582,6 +1587,25 @@ let copy_clause c =
 		}
 	in
 	new_c
+	
+(* protected for example can be used for proof generation *)	
+let in_prop_solver_protected c =
+	is_some (c.prop_solver_id)
+	
+(* clears tstp_source of the clause should not be used after that     *)
+(* unless it was recoreded in propositional solver for proof purposes *)
+(* improve to replacing creating ps_param, may be define as Def/Undef *)
+let clear_clause c = 
+	if not (in_prop_solver_protected c) 
+	then
+		(
+		c.tstp_source <- Undef;
+		c.replaced_by <- Undef;
+		c.proof_search_param <- (create_ps_param ())
+		)
+	else ()	
+
+		
 (*--------------Compare two clauses-------------------*)
 
 (* f_perv returns a value that can be compared by Pervasives.compare; ususally int or bool *)

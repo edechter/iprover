@@ -1480,7 +1480,7 @@ let _ = init_instantiation ()
 
 let clear_all () = 
 
- (* out_str "\n\n clear_all instantiation \n\n"; *)
+(* out_str "\n\n clear_all instantiation \n\n"; *)
 (* a trick to keep old value of functional statistics*)
 (* like number of clauses and number in passive*)
 
@@ -1494,6 +1494,8 @@ let clear_all () =
     (fun () -> num_of_clauses) 
     inst_num_of_clauses;
 
+   context_iter !context Clause.clear_clause; 
+	
 (* clear clause db *)
   inst_context_reset ();
   
@@ -1517,7 +1519,6 @@ let clear_all () =
    then ( (* Format.eprintf "Unsatisfiable after solve call in Instantiation.clear_all@."; *)
 	raise Unsatisfiable));
   Prop_solver_exchange.clear_model ()
-
 
 
 (*---------------End--------------------------------*)
