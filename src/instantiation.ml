@@ -954,7 +954,7 @@ let bmc1_bounds = ref []
 				(* debug *)
 				(*
 					 List.iter (fun c ->
-					Format.printf "%a@." (TstpProof.pp_clause_with_source false) c;
+					Format.printf "%a@." (TstpProof.pp_clause_with_source_gs false) c;
 				 add_new_clause_to_passive c)
 		   	!unprocessed_ref; *)
 (* uncomment after debug *)
@@ -977,12 +977,16 @@ let bmc1_bounds = ref []
                  ^(Clause.to_string given_clause)^"\n");
 *)
         let simplified_given_clause = simplify_given_clause  given_clause in
-				
-     (* out_str("\n--------------------------\n");
+
+				(*				
+     out_str("\n--------------------------\n");
       out_str ("\n Simpl Given Clause: "
-                     ^(Clause.to_string simplified_given_clause)^"\n"); *)
-										
-	(*		Format.printf "%a@." (TstpProof.pp_clause_with_source false) simplified_given_clause; *) 
+                     ^(Clause.to_string simplified_given_clause)^"\n"); 
+			*)
+				
+			Format.printf "@[%a @]@.@[%a @]@."
+			 (TstpProof.pp_clause_with_source_gs ~clausify_proof:false ) simplified_given_clause
+			 (Clause.pp_clause_params Clause.param_out_list_all) simplified_given_clause;
 
 (*
   (if (not (Clause.is_ground simplified_given_clause))

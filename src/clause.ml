@@ -45,12 +45,12 @@ type lits = lit list
 exception Term_compare_greater
 exception Term_compare_less
 
+let fprintf = Format.fprintf
 
-let clause_global_counter = ref 0 
+let clause_global_counter = ref 0
 let bc_global_counter = ref 0
 
-let incr_clause_counter () =  (clause_global_counter := !clause_global_counter+1)
-
+let incr_clause_counter () = (clause_global_counter := !clause_global_counter +1)
 
 (* all boolean param of a clause stored in a bit vector (should be in 0-30 range)*)
 (* position of the param in the vector *)
@@ -93,7 +93,7 @@ let cpp_in_prop_solver = 1 (* user *)
 
 let ccp_in_unsat_core = 2 (* user *)
 
- (* clause was in unsat core in the last proof search run *)
+(* clause was in unsat core in the last proof search run *)
 (* used in bmc1 *)
 (*--------proof search bool params --------------------------*)
 (*--------common params for most proof search will be prefixed by ps--*)
@@ -136,8 +136,6 @@ let ps_simplifying = 10
 (*    thus sequantially the same context can be used for any number of inst/res cycles  *)
 (*    we need to copy a clause to another context only if simultaniously the same basic clause is used in more than one place *)
 
-
-
 type basic_clause =
 	{
 		lits : literal_list;
@@ -153,7 +151,6 @@ type basic_clause =
 
 type sel_place = int
 
-
 (*------------------------------------------------------------------------------*)
 (* in a given context there is at most one clause with the same by basic_clause *)
 (* we can create any number of the same contexts: Inst/Res/Empty                *)
@@ -165,14 +162,14 @@ type clause =
 	{
 		basic_clause : basic_clause;
 		mutable fast_key : int;    (* unique id  based on clause_counter *)
-(*  mutable context_id : int; *)  (* clause is identified by context_id and fast_id *)
+		(*  mutable context_id : int; *)  (* clause is identified by context_id and fast_id *)
 		mutable tstp_source : tstp_source param;
 		
-(* replaced_by invariants : *)
-(* 1) in a context we can replace all clauses by replaced_by obtaining an equisat set of clauses *)
-(* 2) there is no cycles when following replaced_by *)	
+		(* replaced_by invariants : *)
+		(* 1) in a context we can replace all clauses by replaced_by obtaining an equisat set of clauses *)
+		(* 2) there is no cycles when following replaced_by *)
 		mutable replaced_by : replaced_by param;
-
+		
 		mutable prop_solver_id : int option; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
 		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
 		mutable proof_search_param : proof_search_param;  (* we can reassign clause paramters within the same context *)
@@ -184,20 +181,19 @@ and proof_search_param =
 	{
 		(* shared paramtes *)
 		mutable ps_bool_param : Bit_vec.bit_vec;
-	  mutable ps_when_born : int param;
+		mutable ps_when_born : int param;
 		mutable ps_children : clause list;
-
-   (* inst params *)
+		
+		(* inst params *)
 		mutable inst_sel_lit : (term * sel_place) param;
 		mutable inst_dismatching : dismatching param;
 		mutable inst_activity : int;
-
-	(* res params *)	
- 	 mutable res_sel_lits : literal_list param;
+		
+		(* res params *)
+		mutable res_sel_lits : literal_list param;
 	}
 
-
-and replaced_by = 
+and replaced_by =
 	(* when clause got replaced we record the clauses which is got replaced by *)
 	(* assumption are: 1) orginal cluase logically follows from the simplifed_by cluases *)
 	(* in particular we can replace the original clause by replaced_by clauses *)
@@ -205,22 +201,21 @@ and replaced_by =
 	(*  which are not replaced *)
 	| RB_subsumption of clause
 	| RB_sub_typing of clause
-	| RB_splitting of clause list  
-
+	| RB_splitting of clause list
 
 (*-------tstp_source-----------*)
 (*
 and axiom =
-	| Eq_Axiom
-	| Distinct_Axiom
-	| Less_Axiom
-	| Range_Axiom
-	| BMC1_Axiom
+| Eq_Axiom
+| Distinct_Axiom
+| Less_Axiom
+| Range_Axiom
+| BMC1_Axiom
 *)
 and tstp_internal_source =
 	| TSTP_definition
 	| TSTP_assumption
-  | TSTP_tmp
+	| TSTP_tmp
 and tstp_theory_bmc1 =
 	| TSTP_bmc1_path_axiom of int
 	| TSTP_bmc1_reachable_state_axiom of int
@@ -234,7 +229,7 @@ and tstp_theory_bmc1 =
 and tstp_theory =
 	| TSTP_equality
 	| TSTP_distinct
-	| TSTP_domain 
+	| TSTP_domain
 	| TSTP_bmc1 of tstp_theory_bmc1
 	| TSTP_less
 	| TSTP_range
@@ -264,8 +259,6 @@ and tstp_source =
 	| TSTP_internal_source of tstp_internal_source
 	| TSTP_inference_record of tstp_inference_record
 
-
-
 (*--------------Consing hash tables--------------------------*)
 module BClause_Node_Key =
 struct
@@ -282,7 +275,7 @@ struct
 	let equal c1 c2 =
 	if (compare c1 c2) =0
 	then true
-	else false	
+	else false
 	*)
 end
 
@@ -290,7 +283,6 @@ module BC_Htbl = Hashtbl.Make(BClause_Node_Key)
 
 let bc_clause_db = BC_Htbl.create 50821 (* medium large prime number *)
 
-  	
 (* basic clause hash table *)
 (* Key for consing table *)
 
@@ -302,7 +294,6 @@ let add_bc_node bc_node = BClause_Htbl.hashcons basic_clause_db bc_node
 *)
 
 (*-----------------------------------------*)
-
 
 (*-----------------------------------------*)
 
@@ -328,25 +319,25 @@ let	bc_compare bc1 bc2 = Pervasives.compare (bc_get_fast_key bc1) (bc_get_fast_k
 let get_lits_fast_key c = c.basic_clause
 let get_lits_hash c = c.basic_clause
 let lits_compare c1 c2 = bc_compare (get_bc c1) (get_bc c2)
-let lits_equal c1 c2 =  c1.basic_clause == c2.basic_clause
- 
+let lits_equal c1 c2 = c1.basic_clause == c2.basic_clause
+
 (* let get_context_id c = c.context_id *)
-	
+
 (*-----------------------------------------*)
 (*
 let compare_basic_clause c1 c2 =
-	Pervasives.compare c1.tag c2.tag
+Pervasives.compare c1.tag c2.tag
 *)
 
 let equal_basic_clause = (==)
 
 (*
 let compare_clause c1 c2 =
-	pair_compare_lex
-		Pervasives.compare
-		Pervasives.compare
-		((get_fast_key c1), (get_context_id c1))
-		((get_fast_key c2), (get_context_id c2))
+pair_compare_lex
+Pervasives.compare
+Pervasives.compare
+((get_fast_key c1), (get_context_id c1))
+((get_fast_key c2), (get_context_id c2))
 *)
 
 let compare_clause c1 c2 =
@@ -356,12 +347,12 @@ let equal_clause = (==)
 
 let equal = equal_clause
 
-let compare = compare_clause 
+let compare = compare_clause
 
 (*
 let compare_lits c1 c2 = compare_basic_clause (get_bc c1) (get_bc c2)
 
-let equal_lits c1 c2 =  equal_basic_clause (get_bc c1) (get_bc c2) 
+let equal_lits c1 c2 = equal_basic_clause (get_bc c1) (get_bc c2)
 *)
 
 (*---------- filling Bool params of a basic clause ----------------------------*)
@@ -436,8 +427,7 @@ let has_reachable_state_lits lits =
 	List.exists Term.is_reachable_state_lit lits
 
 (*----------------------------------*)
-  
-  
+
 (*----------------------------------*)
 let length_lits lits = List.length lits
 
@@ -540,36 +530,36 @@ let fill_bc_auto_params bc_node =
 	bc_node.min_defined_symb <- min_defined_symb_lits lits
 
 let create_basic_clause lits =
-	try 		
-		let bc = BC_Htbl.find bc_clause_db lits in 	
-		bc.bc_counter <- bc.bc_counter + 1; 
+	try
+		let bc = BC_Htbl.find bc_clause_db lits in
+		bc.bc_counter <- bc.bc_counter + 1;
 		bc
 	with
-	Not_found -> 
-		 (
-		  let bc = bc_template ~bc_fast_key:(!bc_global_counter) lits in 
-			bc_global_counter := !bc_global_counter + 1;	
-			(if (not (lits = [])) 
-			then 
-		   (fill_bc_auto_params bc;));		
-			BC_Htbl.add bc_clause_db lits bc;			
-			bc
+		Not_found ->
+			(
+				let bc = bc_template ~bc_fast_key: (!bc_global_counter) lits in
+				bc_global_counter := !bc_global_counter + 1;
+				(if (not (lits = []))
+					then
+						(fill_bc_auto_params bc;));
+				BC_Htbl.add bc_clause_db lits bc;
+				bc
 			)
-			
-	(*		
-	let added_bc = add_bc_node template in
-	let new_bc =
-		(if (added_bc.node == template_bc_node) (* there was no copy in clause cons *)
-			then
-				(
-					fill_bc_auto_params added_bc.node;
-					added_bc
-				)
-			else (* there was a bc clause with these lits; so we just return it*)
-			added_bc
-		)
-	in
-	new_bc
+
+(*
+let added_bc = add_bc_node template in
+let new_bc =
+(if (added_bc.node == template_bc_node) (* there was no copy in clause cons *)
+then
+(
+fill_bc_auto_params added_bc.node;
+added_bc
+)
+else (* there was a bc clause with these lits; so we just return it*)
+added_bc
+)
+in
+new_bc
 *)
 
 (*
@@ -579,13 +569,11 @@ clause.conjecture_distance = conjecture_int
 
 (*---------------end basic clause-----------------------*)
 
-
-
 (*------------------*)
 
-let get_lits c = c.basic_clause.lits 
-let get_literals = get_lits	
-		
+let get_lits c = c.basic_clause.lits
+let get_literals = get_lits
+
 let compare_lits c1 c2 =
 	list_compare_lex Term.compare (get_lits c1) (get_lits c2)
 
@@ -593,7 +581,6 @@ let is_empty_clause c =
 	if (get_lits c) = [] then true
 	else false
 
-	
 (*------------output: to stream/string to_tptp is later due to dependences on getting parameters------------*)
 
 let to_stream s clause =
@@ -614,11 +601,6 @@ let out_clause_list = clause_list_to_stream stdout_stream
 let clause_list_to_string =
 	to_string_fun_from_to_stream_fun 300 clause_list_to_stream
 
-(*
-let to_string clause =
-"{"^(list_to_string Term.to_string clause.literals ";")^"}" (*^"\n"*)
-*)
-
 (*-------------------------------*)
 exception Clause_prop_solver_id_is_def
 exception Clause_prop_solver_id_is_undef
@@ -634,54 +616,51 @@ let get_prop_solver_id clause = clause.prop_solver_id
 
 (*
 let assign_tstp_source tstp_source c =
-	c.node.tstp_source <- tstp_source
+c.node.tstp_source <- tstp_source
 
 let get_tstp_source c =	c.node.tstp_source
 
-
 *)
-
-
 
 (*-----------------------------------------*)
 (*
 let axiom_to_string axiom =
-	match axiom with
-	| Eq_Axiom -> "Equality Axiom"
-	| Distinct_Axiom -> "Distinct Axiom"
-	| Less_Axiom -> "Less Axiom"
-	| Range_Axiom -> "Range Axiom"
-	| BMC1_Axiom -> "BMC1 Axiom"
+match axiom with
+| Eq_Axiom -> "Equality Axiom"
+| Distinct_Axiom -> "Distinct Axiom"
+| Less_Axiom -> "Less Axiom"
+| Range_Axiom -> "Range Axiom"
+| BMC1_Axiom -> "BMC1 Axiom"
 *)
 (*
 let pp_axiom ppf = function
-	| Eq_Axiom -> Format.fprintf ppf "Equality Axiom"
-	| Distinct_Axiom -> Format.fprintf ppf "Distinct Axiom"
-	| Less_Axiom -> Format.fprintf ppf "Less Axiom"
-	| Range_Axiom -> Format.fprintf ppf "Range Axiom"
-	| BMC1_Axiom -> Format.fprintf ppf "BMC1 Axiom"
+| Eq_Axiom -> Format.fprintf ppf "Equality Axiom"
+| Distinct_Axiom -> Format.fprintf ppf "Distinct Axiom"
+| Less_Axiom -> Format.fprintf ppf "Less Axiom"
+| Range_Axiom -> Format.fprintf ppf "Range Axiom"
+| BMC1_Axiom -> Format.fprintf ppf "BMC1 Axiom"
 *)
 
 (*----------------------------*)
 (*let get_node c = c.node*)
 
 let get_bc c = c.basic_clause
-	
+
 let get_bc_node c = c.basic_clause
 
 let equal_bc c1 c2 = (get_bc c1) == (get_bc c2)
 
-(* 
+(*
 let compare_in_context c1 c2 = Pervasives.compare c1.tag c2.tag
 
-let compare_globally c1 c2 = 
-	pair_compare_lex
-		Pervasives.compare
-		Pervasives.compare
-    (c1.tag, c1.node.context_id)
-		(c2.tag, c2.node.context_id)
+let compare_globally c1 c2 =
+pair_compare_lex
+Pervasives.compare
+Pervasives.compare
+(c1.tag, c1.node.context_id)
+(c2.tag, c2.node.context_id)
 
-let compare = compare_globally	
+let compare = compare_globally
 
 (* clauses with the same literals but in different contexts are not equal*)
 let equal = (==)
@@ -689,7 +668,6 @@ let equal = (==)
 (* clauses with the same literals are equal_bc *)
 let equal_bc c1 c2 = (get_bc c1) == (get_bc c2)
 *)
-
 
 (*--------------------*)
 let memq lit clause = List.memq lit (get_lits clause)
@@ -700,10 +678,7 @@ let find_all f clause = List.find_all f (get_lits clause)
 let partition f clause = List.partition f (get_lits clause)
 let iter f clause = List.iter f (get_lits clause)
 
-
-				
 (*----------------------------------------------------*)
-
 
 (*---------------------------------------------------------*)
 let bc_set_bool_param value param clause =
@@ -713,139 +688,131 @@ let bc_set_bool_param value param clause =
 let bc_get_bool_param param clause =
 	Bit_vec.get param (get_bc_node clause).bc_bool_param
 
-let reset_has_non_prolific_conj_symb clause =  
-	bc_set_bool_param (has_non_prolific_conj_symb_lits (get_lits clause))  bc_has_non_prolific_conj_symb clause
+let reset_has_non_prolific_conj_symb clause =
+	bc_set_bool_param (has_non_prolific_conj_symb_lits (get_lits clause)) bc_has_non_prolific_conj_symb clause
 
-let reset_has_conj_symb clause =  
-	bc_set_bool_param (has_conj_symb_lits (get_lits clause))  bc_has_conj_symb clause
+let reset_has_conj_symb clause =
+	bc_set_bool_param (has_conj_symb_lits (get_lits clause)) bc_has_conj_symb clause
 
 (*------------- *)
-let ccp_get_bool_param param clause = 
+let ccp_get_bool_param param clause =
 	Bit_vec.get param clause.ccp_bool_param
 
 let ccp_set_bool_param value param clause =
 	clause.ccp_bool_param <- Bit_vec.set value param clause.ccp_bool_param
 
-
 (*--------clause bc params get/assign -------------*)
 
-let is_negated_conjecture c = 
-	bc_get_bool_param bc_is_negated_conjecture c 
+let is_negated_conjecture c =
+	bc_get_bool_param bc_is_negated_conjecture c
 
 let is_ground c =
 	bc_get_bool_param bc_ground c
 
 let is_horn c =
 	bc_get_bool_param bc_horn c
-	
+
 let is_epr c =
 	bc_get_bool_param bc_epr c
-	
-let is_eq_axiom c = 
+
+let is_eq_axiom c =
 	bc_get_bool_param bc_eq_axiom c
 
 let assign_is_eq_axiom value c = (* user *) (* assign only for user parameters *)
- set_bool_param_bc value bc_eq_axiom (get_bc c)
-																														
+	set_bool_param_bc value bc_eq_axiom (get_bc c)
+
 let has_eq_lit c =
-  bc_get_bool_param bc_has_eq_lit c
+	bc_get_bool_param bc_has_eq_lit c
 
 let has_conj_symb c =
 	bc_get_bool_param bc_has_conj_symb c
-	
-let has_non_prolific_conj_symb c = 
+
+let has_non_prolific_conj_symb c =
 	bc_get_bool_param bc_has_non_prolific_conj_symb c
-		
-let has_bound_constant c = 
+
+let has_bound_constant c =
 	bc_get_bool_param bc_has_bound_constant c
 
-let has_next_state c = 
+let has_next_state c =
 	bc_get_bool_param bc_has_next_state c
-		
-let has_reachable_state c = 
-	bc_get_bool_param bc_has_reachable_state c 
-	
+
+let has_reachable_state c =
+	bc_get_bool_param bc_has_reachable_state c
+
 let num_of_symb c =
 	let bc_node = get_bc_node c in
 	bc_node.num_of_symb
-	
+
 let num_of_var c =
 	let bc_node = get_bc_node c in
 	bc_node.num_of_var
-	
+
 let length c =
 	let bc_node = get_bc_node c in
-	bc_node.length	
-	
-(* int param *)	
-let get_max_atom_input_occur c = 
+	bc_node.length
+
+(* int param *)
+let get_max_atom_input_occur c =
 	let bc_node = get_bc_node c in
 	bc_node.max_atom_input_occur
 
-(* symb param*)	
+(* symb param*)
 let	get_min_defined_symb c =
 	let bc_node = get_bc_node c in
 	bc_node.min_defined_symb
 
-	
 (*------clause params get/assign------*)
-
 
 let assign_tstp_source c tstp_source =
 	match c.tstp_source with
 	| Def _ -> raise (Failure "Clause source already assigned")
 	| Undef -> c.tstp_source <- Def(tstp_source)
 
-let get_tstp_source c =	
-	match c.tstp_source with 
-	| Def (tstp_source) -> tstp_source 
+let get_tstp_source c =
+	match c.tstp_source with
+	| Def (tstp_source) -> tstp_source
 	| Undef -> failwith ("tstp_source is not defined for clause: "^(to_string c))
 
 (*let get_context_id c = c.node.context_id*)
 
 (*
-let assign_context_id id c = 
-	c.context_id <- id
+let assign_context_id id c =
+c.context_id <- id
 *)
 
-let get_replaced_by c = 
+let get_replaced_by c =
 	c.replaced_by
-	
-let assign_replaced_by sby c = 
-		c.replaced_by <- sby
-		
-let get_conjecture_distance c = 
-		c.conjecture_distance
 
-let assign_conjecture_distance d c = 
-  c.conjecture_distance <- d
+let assign_replaced_by sby c =
+	c.replaced_by <- sby
+
+let get_conjecture_distance c =
+	c.conjecture_distance
+
+let assign_conjecture_distance d c =
+	c.conjecture_distance <- d
 
 let inherit_conj_dist from_c to_c =
 	to_c.conjecture_distance <- from_c.conjecture_distance
 
-
-
-
 (*------ccp bool params get/assign-------*)
-let get_is_dead c = 
+let get_is_dead c =
 	ccp_get_bool_param ccp_is_dead c
-	
-let assign_is_dead b c = 
-	ccp_set_bool_param b ccp_is_dead c 
 
-let in_unsat_core c = 
+let assign_is_dead b c =
+	ccp_set_bool_param b ccp_is_dead c
+
+let in_unsat_core c =
 	ccp_get_bool_param ccp_in_unsat_core c
 
-let assign_in_unsat_core b c = 
-  ccp_set_bool_param b ccp_in_unsat_core c
+let assign_in_unsat_core b c =
+	ccp_set_bool_param b ccp_in_unsat_core c
 
-let in_prop_solver c = 
-	 ccp_get_bool_param cpp_in_prop_solver c
+let in_prop_solver c =
+	ccp_get_bool_param cpp_in_prop_solver c
 
-let assign_in_prop_solver b c = 
+let assign_in_prop_solver b c =
 	ccp_set_bool_param b cpp_in_prop_solver c
-
-
 
 (*-----proof search params-------*)
 
@@ -854,40 +821,38 @@ let assign_in_prop_solver b c =
 let create_ps_param () =
 	{
 		ps_bool_param = Bit_vec.false_vec;
-	  ps_when_born = Undef;
-	  ps_children = [];
-
-   (* inst params *)
+		ps_when_born = Undef;
+		ps_children = [];
+		
+		(* inst params *)
 		inst_sel_lit = Undef;
 		inst_dismatching = Undef;
 		inst_activity = 0;
-
-	(* res params *)	
- 	 res_sel_lits = Undef;
-}
-
+		
+		(* res params *)
+		res_sel_lits = Undef;
+	}
 
 (*----------------*)
-		
-let get_proof_search_param c = 	c.proof_search_param
+
+let get_proof_search_param c = c.proof_search_param
 let get_ps_param = get_proof_search_param
 
 let clear_proof_search_param c = c.proof_search_param <- (create_ps_param ())
-			
-let get_ps_bv_param c =  	 
-	let ps_param = get_ps_param c in 
-  ps_param.ps_bool_param
-	 
-let get_ps_bool_param param c = 
+
+let get_ps_bv_param c =
+	let ps_param = get_ps_param c in
+	ps_param.ps_bool_param
+
+let get_ps_bool_param param c =
 	let bv = get_ps_bv_param c in
 	Bit_vec.get param bv
-	
-let set_ps_bool_param value param c = 
-	let ps_param = get_ps_param c in 
-	 ps_param.ps_bool_param <- Bit_vec.set value param ps_param.ps_bool_param
-	
-	
-(*---res non-boolean param--*)	
+
+let set_ps_bool_param value param c =
+	let ps_param = get_ps_param c in
+	ps_param.ps_bool_param <- Bit_vec.set value param ps_param.ps_bool_param
+
+(*---res non-boolean param--*)
 let get_ps_when_born c =
 	let ps_param = get_ps_param c in
 	match ps_param.ps_when_born with
@@ -899,26 +864,24 @@ let get_ps_when_born c =
 			)
 let assign_ps_when_born i c =
 	let ps_param = get_ps_param c in
-	ps_param.ps_when_born <- Def(i) 
-			
+	ps_param.ps_when_born <- Def(i)
+
 let res_assign_sel_lits sel_lits clause =
 	let ps_param = get_ps_param clause in
 	ps_param.res_sel_lits <- Def(sel_lits)
 
 let res_sel_is_def clause =
- let ps_param = get_ps_param clause in
+	let ps_param = get_ps_param clause in
 	match ps_param.res_sel_lits with
 	| Def(_) -> true
 	| Undef -> false
-	
+
 exception Res_sel_lits_undef
 let get_res_sel_lits clause =
 	let ps_param = get_ps_param clause in
 	match ps_param.res_sel_lits with
 	| Def(sel_lits) -> sel_lits
 	| Undef -> raise Res_sel_lits_undef
- 
-
 
 let get_ps_in_active c = get_ps_bool_param ps_in_active c
 let set_ps_in_active v c = set_ps_bool_param v ps_in_active c
@@ -950,23 +913,21 @@ let set_ps_sel_max v c = set_ps_bool_param v ps_sel_max c
 let get_ps_simplifying c = get_ps_bool_param ps_simplifying c
 let set_ps_simplifying v c = set_ps_bool_param v ps_simplifying c
 
-
-
 (*
-let get_ c = ps_get_bool_param  c
+let get_ c = ps_get_bool_param c
 let set_ v c = ps_set_bool_param v c
 *)
 
 (*
 
-let get_ c = inst_get_bool_param  c
+let get_ c = inst_get_bool_param c
 let set_ v c = inst_set_bool_param v c
 
 let inst_in_active = 1
 let inst_in_unif_index = 2
 let inst_in_subset_subsumption_index = 3
 let inst_in_subsumption_index = 4
- (* let inst_in_prop_solver = 5 *)
+(* let inst_in_prop_solver = 5 *)
 let inst_in_sim_passive = 6
 
 let inst_pass_queue1 = 7
@@ -996,7 +957,7 @@ let set_inst_pass_queue1 v c = inst_set_bool_param v inst_pass_queue1 c
 let get_inst_pass_queue2 c = inst_get_bool_param inst_pass_queue2 c
 let set_inst_pass_queue2 v c = inst_set_bool_param v inst_pass_queue2 c
 
-let get_ c = inst_get_bool_param  c
+let get_ c = inst_get_bool_param c
 let set_ v c = inst_set_bool_param v c
 
 let get_inst_pass_queue3 c = inst_get_bool_param inst_pass_queue3 c
@@ -1029,20 +990,19 @@ let inst_assign_dismatching dismatching clause =
 	let ps_param = get_ps_param clause in
 	ps_param.inst_dismatching <- Def(dismatching)
 
-
 exception Inst_sel_lit_undef
 let inst_get_sel_lit clause =
 	let ps_param = get_ps_param clause in
-		match ps_param.inst_sel_lit with
+	match ps_param.inst_sel_lit with
 	| Def((sel_lit, _)) -> sel_lit
 	| Undef -> raise Inst_sel_lit_undef
 
 (* should be changed dependeing on the tstp_source
 exception Parent_undef
 let get_parent clause =
-	clause.parent
+clause.parent
 *)
-	
+
 (* match clause.parent with
 | Def(p) -> p
 | Undef -> raise Parent_undef *)
@@ -1066,16 +1026,15 @@ let add_ps_child clause ~child =
 	let ps_param = get_ps_param clause in
 	ps_param.ps_children <- child:: (ps_param.ps_children)
 
-let get_ps_children clause = 
+let get_ps_children clause =
 	let ps_param = get_ps_param clause in
 	ps_param.ps_children
-	
 
-let inst_get_activity clause = 
+let inst_get_activity clause =
 	let ps_param = get_ps_param clause in
 	ps_param.inst_activity
 
-let inst_assign_activity act clause = 
+let inst_assign_activity act clause =
 	let ps_param = get_ps_param clause in
 	ps_param.inst_activity <- act
 
@@ -1093,7 +1052,6 @@ let inst_assign_activity act clause =
 (* is case 2),3) we use inherit  inherit_param_modif           *)
 
 (* aux: if list is empty then 0 else max element*)
-
 
 let list_find_max_element_zero comp l =
 	try
@@ -1114,8 +1072,6 @@ let ps_when_born_concl prem1 prem2 clause =
 let assign_ps_when_born_concl ~prem1 ~prem2 ~c =
 	let ps_param = get_ps_param c in
 	ps_param.ps_when_born <- Def(ps_when_born_concl prem1 prem2 c)
-	
-
 
 (*--------------pp printing ------------------------------------*)
 (* Print the name of a clause
@@ -1124,8 +1080,12 @@ Clauses are named [c_n], where [n] is the identifier (fast_key) of
 the clause. If the identifier is undefined, the clause is named
 [c_tmp].
 *)
-let pp_clause_name ppf clause = 
-	Format.fprintf ppf "c_%d" (*(get_context_id clause)*) (get_fast_key clause)
+let clause_get_name clause = 
+	"c_"^(string_of_int (get_fast_key clause))
+
+let pp_clause_name ppf clause =
+ (*	Format.fprintf ppf "c_%d" (*(get_context_id clause)*) (get_fast_key clause)*)
+	Format.fprintf ppf "%s" (clause_get_name clause)
 
 let pp_clause_with_id ppf clause =
 	Format.fprintf
@@ -1166,28 +1126,28 @@ let rec pp_literals_tptp ppf = function
 let pp_clause_literals_tptp ppf clause =
 	
 	(* Print empty clause *)
-	if (is_empty_clause clause) 
+	if (is_empty_clause clause)
 	then
-			Format.fprintf ppf "@[<h>( %a )@]" Symbol.pp_symbol Symbol.symb_false
+		Format.fprintf ppf "@[<h>( %a )@]" Symbol.pp_symbol Symbol.symb_false
 	else
-	(* Print non-empty clause as disjunction of literals *)
-			Format.fprintf
-				ppf
-				"@[<hv>( %a )@]"
-				pp_literals_tptp
-				(get_lits clause)
+		(* Print non-empty clause as disjunction of literals *)
+		Format.fprintf
+			ppf
+			"@[<hv>( %a )@]"
+			pp_literals_tptp
+			(get_lits clause)
 
 (* Output clause in TPTP format *)
 let pp_clause_tptp ppf clause =
 	Format.fprintf
 		ppf
 		"cnf(c_%d,%s,(%a))."
-	 (* (get_context_id clause) *) (get_fast_key clause)
+		(* (get_context_id clause) *) (get_fast_key clause)
 		(if (is_negated_conjecture clause)
 			then "negated_conjecture"
 			else "plain")
 		(pp_any_list Term.pp_term_tptp " | ") (get_lits clause)
-		
+
 (* Output list of clauses in TPTP format, skipping equality axioms *)
 let rec pp_clause_list_tptp ppf = function
 	
@@ -1195,8 +1155,8 @@ let rec pp_clause_list_tptp ppf = function
 	
 	(* Skip equality axioms *)
 	(*  | { history = Def (Axiom Eq_Axiom) } :: tl ->      *)
-	| c:: tl when 
-	  (get_tstp_source c) = TSTP_external_source (TSTP_theory TSTP_equality)-> 
+	| c:: tl when
+	(get_tstp_source c) = TSTP_external_source (TSTP_theory TSTP_equality) ->
 			pp_clause_list_tptp ppf tl
 	
 	(* Clause at last position in list *)
@@ -1212,7 +1172,7 @@ let rec pp_clause_list_tptp ppf = function
 let tptp_to_stream s clause =
 	begin
 		s.stream_add_str "cnf(";
-		s.stream_add_str ("id_"^(string_of_int  (get_fast_key clause)));
+		s.stream_add_str ("id_"^(string_of_int (get_fast_key clause)));
 		s.stream_add_char ',';
 		(if (is_negated_conjecture clause)
 			then
@@ -1239,7 +1199,6 @@ let out_clause_list_tptp = clause_list_tptp_to_stream stdout_stream
 let clause_list_to_tptp =
 	to_string_fun_from_to_stream_fun 300 clause_list_tptp_to_stream
 
-	
 (*----------*)
 let rec add_var_set vset cl =
 	List.fold_left Term.add_var_set vset (get_lits cl)
@@ -1248,13 +1207,10 @@ let get_var_list cl =
 	let vset = add_var_set (VSet.empty) cl in
 	VSet.elements vset
 
-
 (*
 let inherit_history from_c to_c =
 to_c.history <- from_c.history
 *)
-
-	
 
 (*--------------------------------------*)
 
@@ -1263,8 +1219,6 @@ let fold_sym f a clause =
 
 let iter_sym f clause =
 	List.iter (Term.iter_sym f) (get_lits clause)
-
-
 
 (*-------------------------------------------------------------------------------------------*)
 (*------------------------- Normalising binded lit_lists /clauses ---------------------------*)
@@ -1285,17 +1239,16 @@ let apply_bsubst_norm_subst term_db_ref bsubst bound lits =
 		SubstBound.apply_bsubst_btlist_norm_subst
 			term_db_ref bsubst bound bterm_list in
 	((new_term_list), norm_subst)
-	
+
 (*
 let apply_bsubst_norm_subst term_db_ref bsubst bound clause =
-	let bterm_list = propagate_binding_to_list (bound, clause.literals) in
-	let (new_term_list, norm_subst) =
-		SubstBound.apply_bsubst_btlist_norm_subst
-			term_db_ref bsubst bound bterm_list in
-	((create_parent clause new_term_list), norm_subst)
+let bterm_list = propagate_binding_to_list (bound, clause.literals) in
+let (new_term_list, norm_subst) =
+SubstBound.apply_bsubst_btlist_norm_subst
+term_db_ref bsubst bound bterm_list in
+((create_parent clause new_term_list), norm_subst)
 (*  (create_parent clause new_term_list,norm_subst)*)
 *)
-
 
 (* term_compare' returns cequal
 if the skeletons of terms the same or raises an exception above *)
@@ -1343,7 +1296,6 @@ let cmp_bmc1_atom_fun () = Term.lit_cmp_type_list_to_lex_fun
 		Lit_less true;
 		(* Lit_clock true;
 		Lit_eq false *)]
-
 
 let rec bterm_subst_compare' bound_t bound_s bound_subst =
 	let norm_bt = norm_bterm_wrt_subst bound_t bound_subst and
@@ -1412,8 +1364,7 @@ let rec normalise_term_var' var_table (max_var_ref : var ref) term =
 					(*  env_ref := (v,old_max_var)::(!env_ref);*)
 					max_var_ref := Var.get_next_var old_max_var;
 					Term.create_var_term old_max_var
-					
-					
+
 let normalise_bterm_list term_db_ref bsubst bterm_list =
 	let bterm_compare bt bs = bterm_subst_compare bt bs bsubst in
 	let sorted_list = List.sort bterm_compare bterm_list in
@@ -1472,11 +1423,11 @@ let normalise_b_litlist_v2 term_db_ref bsubst blit_list =
 
 (* blitlist_list -- list of bound list of literals e.g. [(1,[l1;l2]);(2,[l2])]*)
 let normalise_blitlist_list_v2 term_db_ref bsubst blitlist_list =
-			List.concat
-				(List.map
-						(fun blit_list -> normalise_b_litlist_v2' term_db_ref bsubst blit_list)
-						blitlist_list
-				)
+	List.concat
+		(List.map
+				(fun blit_list -> normalise_b_litlist_v2' term_db_ref bsubst blit_list)
+				blitlist_list
+		)
 
 (* normilse v1 is with reordering for better renaming of vars, *)
 (* normalise v2 is simply removes duplicate lits  *)
@@ -1491,21 +1442,21 @@ let normalise_blitlist_list = normalise_blitlist_list_v2
 
 (*
 let normalise_bclause term_db_ref bsubst bclause =
-	let (b_c, clause) = bclause in
-	let bterm_list = propagate_binding_to_list (b_c, (get_lits clause)) in
-	let new_term_list = normalise_bterm_list term_db_ref bsubst bterm_list in
-	create new_term_list
+let (b_c, clause) = bclause in
+let bterm_list = propagate_binding_to_list (b_c, (get_lits clause)) in
+let new_term_list = normalise_bterm_list term_db_ref bsubst bterm_list in
+create new_term_list
 *)
 
 (*
 let normalise_bclause_list term_db_ref bsubst bclause_list =
-	let bterm_list_list =
-		List.map
-			(fun (b_c, clause) ->
-						propagate_binding_to_list (b_c, (get_lits clause))) bclause_list in
-	let bterm_list = List.flatten bterm_list_list in
-	let new_term_list = normalise_bterm_list term_db_ref bsubst bterm_list in
-	create new_term_list
+let bterm_list_list =
+List.map
+(fun (b_c, clause) ->
+propagate_binding_to_list (b_c, (get_lits clause))) bclause_list in
+let bterm_list = List.flatten bterm_list_list in
+let new_term_list = normalise_bterm_list term_db_ref bsubst bterm_list in
+create new_term_list
 *)
 (* for uniformity ise normalise_bclause with empty substitution *)
 
@@ -1513,9 +1464,9 @@ let normalise_lit_list term_db_ref lit_list =
 	normalise_blitlist_list term_db_ref (SubstBound.create ()) [(1, lit_list)]
 
 (*
-let create_normalise term_db_ref context tstp_source proof_search_param lit_list = 
-  let normalised_lit_list = normalise_lit_list term_db_ref lit_list in 
-	create_clause context tstp_source proof_search_param normalised_lit_list
+let create_normalise term_db_ref context tstp_source proof_search_param lit_list =
+let normalised_lit_list = normalise_lit_list term_db_ref lit_list in
+create_clause context tstp_source proof_search_param normalised_lit_list
 *)
 
 (*----------------conjecture distance------------------------------------*)
@@ -1529,7 +1480,6 @@ let get_min_conjecture_distance_clist c_list =
 		(if d < current_min then d
 			else current_min)
 	in List.fold_left f max_conjecture_dist c_list
-
 
 let get_parents tstp_source =
 	match tstp_source with
@@ -1547,7 +1497,7 @@ let get_parents tstp_source =
 					| Splitting _ ->[]
 					| Grounding _ -> []
 					| Non_eq_to_eq -> []
-					| Subtyping  ->[]
+					| Subtyping ->[]
 					| Flattening ->[]
 				end
 			in main_parents@side_parents
@@ -1557,82 +1507,80 @@ let get_parents tstp_source =
 (* applying get_conjecture_distance_tstp_source *)
 (* this is min distance of the parents, so we would need to increase before assigning to the clause *)
 
-let get_conjecture_distance_tstp_source tstp_source = 
-	let parents = get_parents tstp_source in 
+let get_conjecture_distance_tstp_source tstp_source =
+	let parents = get_parents tstp_source in
 	get_min_conjecture_distance_clist parents
-
 
 (**-------- create clause ----------------------------*)
 
-let new_clause ~is_negated_conjecture tstp_source bc = 
-	 let conjecture_distance = 
+let new_clause ~is_negated_conjecture tstp_source bc =
+	let conjecture_distance =
 		if is_negated_conjecture
 		then 0
 		else
-	  	(get_conjecture_distance_tstp_source tstp_source)+1
-		in 	
-		let fast_key = !clause_global_counter in
-		incr_clause_counter ();
-		let ps_param = create_ps_param () in
-		let new_clause = 
-	 {
-		basic_clause = bc;
-		fast_key = fast_key; 
-(*	context_id = 0; *)(* auto assigned when added to context *)
-		tstp_source = Def(tstp_source);
-		replaced_by = Undef;
-		prop_solver_id = None;
-		conjecture_distance = conjecture_distance;
-		proof_search_param = ps_param;
-		ccp_bool_param = Bit_vec.false_vec
+			(get_conjecture_distance_tstp_source tstp_source) +1
+	in
+	let fast_key = !clause_global_counter in
+	incr_clause_counter ();
+	let ps_param = create_ps_param () in
+	let new_clause =
+		{
+			basic_clause = bc;
+			fast_key = fast_key;
+			(*	context_id = 0; *)(* auto assigned when added to context *)
+			tstp_source = Def(tstp_source);
+			replaced_by = Undef;
+			prop_solver_id = None;
+			conjecture_distance = conjecture_distance;
+			proof_search_param = ps_param;
+			ccp_bool_param = Bit_vec.false_vec
 		}
-	  in
-	 bc_set_bool_param is_negated_conjecture bc_is_negated_conjecture new_clause;
-	 let parents = get_parents tstp_source in
-	 assign_ps_when_born_concl ~prem1:parents ~prem2:[] ~c:new_clause;
-	 new_clause
-   
-(*	
+	in
+	bc_set_bool_param is_negated_conjecture bc_is_negated_conjecture new_clause;
+	let parents = get_parents tstp_source in
+	assign_ps_when_born_concl ~prem1: parents ~prem2:[] ~c: new_clause;
+	new_clause
+
+(*
 let fill_clause_param is_conjecture tstp_source ps_param c =
-	 c.tstp_source <- Def(tstp_source);
-	 c.proof_search_param <- ps_param;
-		c.conjecture_distance <- 
-		
-	 (* No auto bool context params *)
-	 (* TODO: conjecture_distance from the rest of the code to here*)
-	*)
-	
+c.tstp_source <- Def(tstp_source);
+c.proof_search_param <- ps_param;
+c.conjecture_distance <-
+
+(* No auto bool context params *)
+(* TODO: conjecture_distance from the rest of the code to here*)
+*)
 
 let create_clause_opts ~is_negated_conjecture term_db_ref tstp_source lits =
 	let bc = create_basic_clause (normalise_lit_list term_db_ref lits) in
 	new_clause ~is_negated_conjecture tstp_source bc
 
-(*---------------*)		
+(*---------------*)
 (* by default all literals in clauses are normalised *)
 (* assume clause is not a negated conjecture *)
 
 let create_clause term_db_ref tstp_source lits =
- create_clause_opts ~is_negated_conjecture:false term_db_ref tstp_source lits
+	create_clause_opts ~is_negated_conjecture: false term_db_ref tstp_source lits
 
 (* assume clause is a negate_conjecture *)
-let create_neg_conjecture term_db_ref tstp_source lits = 
-	create_clause_opts ~is_negated_conjecture:true term_db_ref tstp_source lits
+let create_neg_conjecture term_db_ref tstp_source lits =
+	create_clause_opts ~is_negated_conjecture: true term_db_ref tstp_source lits
 
 (* clause without normalising lits *)
-let create_clause_raw tstp_source lits = 
+let create_clause_raw tstp_source lits =
 	let bc = create_basic_clause lits in
-	new_clause ~is_negated_conjecture:false tstp_source bc
-	
-let copy_clause c =	
+	new_clause ~is_negated_conjecture: false tstp_source bc
+
+let copy_clause c =
 	let fast_key = !clause_global_counter in
 	incr_clause_counter ();
 	let ps_param = create_ps_param () in
-	 let new_c = 
-		{c with 
-    fast_key = fast_key;
-		proof_search_param = ps_param
-		} 
-  in
+	let new_c =
+		{ c with
+			fast_key = fast_key;
+			proof_search_param = ps_param
+		}
+	in
 	new_c
 (*--------------Compare two clauses-------------------*)
 
@@ -1642,13 +1590,13 @@ let cmp f_perv c1 c2 = Pervasives.compare (f_perv c1) (f_perv c2)
 let cmp_num_var c1 c2 = cmp num_of_var c1 c2
 
 let cmp_num_symb c1 c2 = cmp num_of_symb c1 c2
-	
+
 let cmp_num_lits c1 c2 = cmp length c1 c2
 
 let cmp_age c1 c2 =
 	let (when_born1, when_born2) =
 		((get_ps_when_born c1), (get_ps_when_born c2))
-	in	
+	in
 	- (Pervasives.compare (when_born1) (when_born2))
 
 let cmp_ground c1 c2 = cmp is_ground c1 c2
@@ -1672,7 +1620,6 @@ let cmp_has_reachable_state c1 c2 = cmp has_reachable_state c1 c2
 let cmp_has_non_prolific_conj_symb c1 c2 = cmp has_non_prolific_conj_symb c1 c2
 
 let cmp_conjecture_distance c1 c2 = cmp get_conjecture_distance c1 c2
-	
 
 let cmp_max_atom_input_occur c1 c2 =
 	let d1 = get_max_atom_input_occur c1 in
@@ -1727,79 +1674,75 @@ let rec cut_literal_from_list literal list =
 			else h:: (cut_literal_from_list literal tl)
 	|[] -> raise Literal_not_found
 
-
 (*
 let cut_literal literal lit_list =
 *)
 
-
-
 (* ------------ TSTP source  ----------------------- *)
-
 
 (*  *)
 (*
 let assign_tstp_source clause source =
-	
-	match clause.tstp_source with
-	
-	(* Fail if source already defined *)
-	| Def _ -> raise (Failure "Clause source already assigned")
-	
-	(* Only if source undefined *)
-	| Undef -> clause.tstp_source <- Def source
+
+match clause.tstp_source with
+
+(* Fail if source already defined *)
+| Def _ -> raise (Failure "Clause source already assigned")
+
+(* Only if source undefined *)
+| Undef -> clause.tstp_source <- Def source
 *)
 
 (* Clause is generated in an instantiation inference *)
-let tstp_source_instantiation parent parents_side =	
-  (TSTP_inference_record ((Instantiation parents_side), [parent]))
+let tstp_source_instantiation parent parents_side =
+	(TSTP_inference_record ((Instantiation parents_side), [parent]))
 
 (* Clause is generated in a resolution inference *)
-let tstp_source_resolution parents upon_literals =	
-		(TSTP_inference_record ((Resolution upon_literals), parents))
+let tstp_source_resolution parents upon_literals =
+	(TSTP_inference_record ((Resolution upon_literals), parents))
 
 (* Clause is generated in a factoring inference *)
 let tstp_source_factoring parent upon_literals =
-		(TSTP_inference_record ((Factoring upon_literals), [parent]))
+	(TSTP_inference_record ((Factoring upon_literals), [parent]))
 
 let tstp_source_subtyping parent =
-		(TSTP_inference_record ((Subtyping), [parent]))
+	(TSTP_inference_record ((Subtyping), [parent]))
 
 (* Clause is in input *)
 let tstp_source_input file name =
-		(TSTP_external_source (TSTP_file_source (file, name)))
+	(TSTP_external_source (TSTP_file_source (file, name)))
 
 (* Clause is generated in a global propositional subsumption *)
 let tstp_source_global_subsumption max_clause_id parent =
-		(TSTP_inference_record (Global_subsumption max_clause_id, [parent]))
+	(TSTP_inference_record (Global_subsumption max_clause_id, [parent]))
 
 (* Clause is generated in a translation to purely equational problem *)
 let tstp_source_non_eq_to_eq parent =
-		(TSTP_inference_record (Non_eq_to_eq,[parent]))
+	(TSTP_inference_record (Non_eq_to_eq,[parent]))
 
 (* Clause is generated in a forward subsumption resolution *)
 let tstp_source_forward_subsumption_resolution main_parent parents =
-		(TSTP_inference_record
-			(Forward_subsumption_resolution, (main_parent :: parents)))
+	(TSTP_inference_record
+		(Forward_subsumption_resolution, (main_parent :: parents)))
 
 (* Clause is generated in a backward subsumption resolution *)
 let tstp_source_backward_subsumption_resolution parents =
-		(TSTP_inference_record (Backward_subsumption_resolution, parents))
+	(TSTP_inference_record (Backward_subsumption_resolution, parents))
 
 (* Clause is generated in splitting *)
 let tstp_source_split symbols parent =
-		(TSTP_inference_record (Splitting symbols, [parent]))
+	(TSTP_inference_record (Splitting symbols, [parent]))
 
 let tstp_source_flattening parent =
-		(TSTP_inference_record (Flattening, [parent]))
+	(TSTP_inference_record (Flattening, [parent]))
 
 (* Clause is generated in grounding *)
 let tstp_source_grounding grounding parent =
-		(TSTP_inference_record (Grounding grounding, [parent]))
+	(TSTP_inference_record (Grounding grounding, [parent]))
 
 (* Clause is a theory axiom *)
 let tstp_source_theory_axiom theory =
-		(TSTP_external_source (TSTP_theory theory))
+	(TSTP_external_source (TSTP_theory theory))
 
 (* Clause is an equality axiom *)
 let tstp_source_axiom_equality =
@@ -1827,27 +1770,26 @@ let tstp_source_axiom_bmc1 bmc1_axiom =
 
 (* Clause is generated in grounding *)
 let tstp_source_assumption =
-	 (TSTP_internal_source TSTP_assumption)
+	(TSTP_internal_source TSTP_assumption)
 
 (* term definitions in finite_models *)
 let tstp_source_definition =
-	 (TSTP_internal_source TSTP_definition)
+	(TSTP_internal_source TSTP_definition)
 
 (* in some cases we introduce auxilary clauses which are not kept *)
-let tstp_source_tmp = 
-	 (TSTP_internal_source TSTP_tmp)
+let tstp_source_tmp =
+	(TSTP_internal_source TSTP_tmp)
 
 (*---------------- end TSTP --------------------------*)
 
-
 (*-----------------*)
-module KeyContext = 
-	struct
-		  type t = basic_clause (* key *)
-			let hash bc = (bc_get_fast_key bc)
-			let equal bc1 bc2 = (bc1 == bc2) 
-  end
-	 
+module KeyContext =
+struct
+	type t = basic_clause (* key *)
+	let hash bc = (bc_get_fast_key bc)
+	let equal bc1 bc2 = (bc1 == bc2)
+end
+
 module Context = Hashtbl.Make(KeyContext)
 
 type context = clause Context.t
@@ -1855,37 +1797,36 @@ type context = clause Context.t
 (* cc -- context*)
 
 (* creates context with an inital size *)
-let context_create size = Context.create size 
+let context_create size = Context.create size
 
 (* let context_reset cc = Context.reset cc (* empties context*) *)
 
-let context_add cc c = 
+let context_add cc c =
 	let bc = (get_bc c) in
-	try (Context.find cc bc) 
-	with 
-	| Not_found -> 
-		(Context.add cc bc c;
-		c
-		)
-let context_add_ignore cc c = 
-	ignore (context_add cc c) 
-		
-let context_add_list cc c_list = 
-		List.iter (context_add_ignore cc) c_list 
-		
+	try (Context.find cc bc)
+	with
+	| Not_found ->
+			(Context.add cc bc c;
+				c
+			)
+let context_add_ignore cc c =
+	ignore (context_add cc c)
+
+let context_add_list cc c_list =
+	List.iter (context_add_ignore cc) c_list
+
 let context_remove cc c = Context.remove cc (get_bc c)
 
 let context_mem cc c = Context.mem cc (get_bc c)
 
 let context_mem_lits cc lits = Context.mem cc (create_basic_clause lits)
 
-
 let context_find cc c = Context.find cc (get_bc c)
 
 let context_find_lits cc lits = Context.find cc (create_basic_clause lits)
 
 let context_iter cc f = Context.iter (fun _ c -> f c) cc
-let context_fold cc f a = Context.fold (fun _ c a -> (f c a)) cc a  
+let context_fold cc f a = Context.fold (fun _ c a -> (f c a)) cc a
 let context_size cc = Context.length cc
 
 (** copy_context from_cxt to_contxt; if a clause in to_context it will remain and not replaced by from_cxt; *)
@@ -1893,69 +1834,65 @@ let context_size cc = Context.length cc
 (* use context_reset which clears and resizes to the initial size *)
 
 let context_add_context from_cxt to_cxt =
-	let f c = 
-		 ignore (context_add to_cxt c)
-		in
+	let f c =
+		ignore (context_add to_cxt c)
+	in
 	context_iter from_cxt f
 
 (*
 *)
-	
-(* returns clause list with which c was replaced *)	
+
+(* returns clause list with which c was replaced *)
 let get_replaced_by_clauses c =
- match c.replaced_by  
- with
+	match c.replaced_by
+	with
 	| Def(RB_subsumption by_clause) -> [by_clause]
 	| Def(RB_sub_typing by_clause) -> [by_clause]
 	| Def(RB_splitting by_clause_list) -> by_clause_list
 	| Undef -> []
-	 
-(* add assert of non-cyclicity check *)		
-let get_replaced_by_rec clause_list = 
-	let rec f to_process rep_by = 
-	match to_process with 
-	|h::tl -> 
-		(let h_rep_by = (get_replaced_by_clauses h) in
-		 f tl (h_rep_by@rep_by)
-	  )
-	|	[] -> rep_by	    	 
- in
-  f clause_list	[]
-	
-	
+
+(* add assert of non-cyclicity check *)
+let get_replaced_by_rec clause_list =
+	let rec f to_process rep_by =
+		match to_process with
+		| h:: tl ->
+				(let h_rep_by = (get_replaced_by_clauses h) in
+					f tl (h_rep_by@rep_by)
+				)
+		|	[] -> rep_by
+	in
+	f clause_list	[]
+
 (* replaces dead clauses with replaced *)
 let context_replace_by cc =
- let f c = 
-	
-	 let rep_by = get_replaced_by_rec [c] in
-	 if (rep_by = [])
-	 then ()
-	 else 
-		(context_remove cc c;
-	   context_add_list cc rep_by 
-		)		
-	in	
+	let f c =
+		
+		let rep_by = get_replaced_by_rec [c] in
+		if (rep_by = [])
+		then ()
+		else
+			(context_remove cc c;
+				context_add_list cc rep_by
+			)
+	in
 	context_iter cc f
-	
-	
-	
-(* a diferent version prossible to merge from smaller to larger
-let merge_context from_cxt to_contxt = 
 
-		let (smaller_cxt,larger_cxt) = 
-		if (context_size from_cxt) < (context_size to_cxt)
-		then 
-			(from_cxt, to_cxt) 
-		else 
-			(to_cxt, from_cxt)
-	in (* move from smaller to bigger cxt*)
-	let f c = 
-		 if (context_mem larger_cxt c) 
-		 then ()
-		 else 
+(* a diferent version prossible to merge from smaller to larger
+let merge_context from_cxt to_contxt =
+
+let (smaller_cxt, larger_cxt) =
+if (context_size from_cxt) < (context_size to_cxt)
+then
+(from_cxt, to_cxt)
+else
+(to_cxt, from_cxt)
+in (* move from smaller to bigger cxt*)
+let f c =
+if (context_mem larger_cxt c)
+then ()
+else
 *)
 
-						
 (*
 (* cc -- context*)
 let cc_create size name = Context.create_name size name
@@ -1968,38 +1905,36 @@ let cc_fold f cc a = Context.fold f cc a
 
 (* in cc_iter f: bc -> c -> unit *)
 let cc_iter f cc = Context.iter f cc
-let cc_add cc clause = 
-  Context.add clause db_ref
+let cc_add cc clause =
+Context.add clause db_ref
 
 (* should be copyed since add_ref is different....*)
 let cc_add context elem =
-      let cc_ref = ref context in
-      let _ = cc_add_ref cc_ref elem in
-      !cc_ref
+let cc_ref = ref context in
+let _ = cc_add_ref cc_ref elem in
+!cc_ref
 
-
-let cc_remove context clause = 
-  let new_context = Context.remove clause context in
-  Clause.set_bool_param false Clause.in_clause_db clause;
-  new_db
+let cc_remove context clause =
+let new_context = Context.remove clause context in
+set_bool_param false in_clause_db clause;
+new_db
 
 let cc_get_name = ClauseDBM.get_name
 
-let to_stream s clause_db = 
-  ClauseDBM.to_stream s Clause.to_stream ",\n" clause_db
+let to_stream s clause_db =
+ClauseDBM.to_stream s to_stream ",\n" clause_db
 
 let out = to_stream stdout_stream
 
-let to_string clause_db = 
-  ClauseDBM.to_string Clause.to_stream ",\n" clause_db
-*)
-		 
-(*
-let normalise term_db_ref clause =
-	normalise_bclause term_db_ref (SubstBound.create ()) (1, clause)
+let to_string clause_db =
+ClauseDBM.to_string to_stream ",\n" clause_db
 *)
 
-										
+(*
+let normalise term_db_ref clause =
+normalise_bclause term_db_ref (SubstBound.create ()) (1, clause)
+*)
+
 (*----Orphan Search Not Finished--------------*)
 
 let get_non_simplifying_parents clause =
@@ -2046,13 +1981,11 @@ let get_skolem_bound_clause clause =
 			else None
 	| _ -> None
 
-
 let replace_subterm termdb_ref subterm byterm lits =
 	normalise_lit_list
 		termdb_ref
-				(List.map (Term.replace subterm byterm) lits)
+		(List.map (Term.replace subterm byterm) lits)
 
-																														
 (*------------ clause signature --------------------*)																																																												(*------------------*)
 type clause_signature =
 	{
@@ -2104,19 +2037,17 @@ let clause_list_signature clause_list =
 	let cl_sig = create_clause_sig () in
 	extend_clause_list_signature cl_sig clause_list;
 	cl_sig
-																														
-
 
 (*-------------- Hash/Map/Set -------------------------*)
 
-module Key = 
-	struct
-  type t = clause
+module Key =
+struct
+	type t = clause
 	let equal = (==)
-	let hash c =  (get_fast_key c) 
-(*	let hash c = hash_sum (get_fast_key c) (get_context_id c)*)
+	let hash c = (get_fast_key c)
+	(*	let hash c = hash_sum (get_fast_key c) (get_context_id c)*)
 	let compare = compare
-	end
+end
 
 module Map = Map.Make(Key)
 
@@ -2127,4 +2058,465 @@ module Hashtbl = Hashtbl.Make(Key)
 
 let clause_list_to_set clause_list =
 	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
+
+(*---------------------------------------------------*)
+
+let pp_bind ppf (var, term) =
+	Format.fprintf
+		ppf
+		"@[<h>bind(%a,$fot(%a))@]"
+		Var.pp_var var
+		Term.pp_term_tptp term
+
+let pp_clause_name_bind bind ppf clause =
+	Format.fprintf ppf "@[<hov>%a:[%a]@]"
+		pp_clause_name clause
+		(pp_any_list pp_bind ",") bind
+
+(* Print the name of the BMC1 theory axiom *)
+let pp_tstp_theory_bmc1 ppf = function
+	
+	| TSTP_bmc1_path_axiom b ->
+			Format.fprintf ppf "bmc1,[path(%d)]" b
+	
+	| TSTP_bmc1_reachable_state_axiom b ->
+			Format.fprintf ppf "bmc1,[reachable_state(%d)]" b
+	
+	| TSTP_bmc1_reachable_state_on_bound_axiom b ->
+			Format.fprintf ppf "bmc1,[reachable_state_(%d)]" b
+	
+	| TSTP_bmc1_reachable_sk_replacement (b, c) ->
+			Format.fprintf
+				ppf "bmc1,[reachable_sk_replacement(%a,%d)]"
+				pp_clause_name c
+				b
+	
+	| TSTP_bmc1_reachable_state_conj_axiom b ->
+			Format.fprintf ppf "bmc1,[reachable_state_conj(%d)]" b
+	
+	| TSTP_bmc1_only_bound_reachable_state_axiom b ->
+			Format.fprintf ppf "bmc1,[only_bound_reachable(%d)]" b
+	
+	| TSTP_bmc1_clock_axiom (b, s, _) ->
+			Format.fprintf ppf "bmc1,[clock(%a,%d)]" Symbol.pp_symbol s b
+	
+	| TSTP_bmc1_instantiated_clause (b, c) ->
+			Format.fprintf
+				ppf "bmc1,[bound_instantiate_clause(%a,%d)]"
+				pp_clause_name c
+				b
+
+(* Print the name of a theory *)
+let pp_tstp_theory ppf = function
+	| TSTP_equality -> Format.fprintf ppf "equality"
+	| TSTP_distinct -> Format.fprintf ppf "distinct"
+	| TSTP_domain -> Format.fprintf ppf "domain"
+	| TSTP_bmc1 a -> Format.fprintf ppf "%a" pp_tstp_theory_bmc1 a
+	| TSTP_less -> Format.fprintf ppf "less"
+	| TSTP_range -> Format.fprintf ppf "range"
+
+(* Print name of inference rule and its useful info *)
+let pp_inference_rule parents ppf = function
+	
+	(* Useful info for instantiation are side parent clauses *)
+	| Instantiation side_parents ->
+	
+			Format.fprintf
+				ppf
+				"instantiation,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* Useful info for resolution are resolved literals *)
+	| Resolution literals ->
+	
+			Format.fprintf
+				ppf
+				"resolution,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* Useful info for factoring are factored literals *)
+	| Factoring literals ->
+	
+			Format.fprintf
+				ppf
+				"factoring,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* No useful info for global propositional subsumption *)
+	| Global_subsumption _ ->
+	
+			Format.fprintf
+				ppf
+				"global_propositional_subsumption,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* No useful info for forward subsumption resolution *)
+	| Forward_subsumption_resolution ->
+	
+			Format.fprintf
+				ppf
+				"forward_subsumption_resolution,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* No useful info for backward subsumption resolution *)
+	| Backward_subsumption_resolution ->
+	
+			Format.fprintf
+				ppf
+				"backward_subsumption_resolution,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* No useful info for splitting *)
+	| Splitting symbols ->
+	
+			Format.fprintf
+				ppf
+				"splitting,@,[splitting(split),new_symbols(definition,[%a])],@,@[<hov 1>[%a]@]"
+				(pp_any_list Symbol.pp_symbol_tptp ",")
+				symbols
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* No useful info for splitting *)
+	| Grounding bindings ->
+	
+			Format.fprintf
+				ppf
+				"grounding,@,[status(thm)],@,@[<hov 1>[%a]@]"
+				(pp_any_list (pp_clause_name_bind bindings) ",")
+				parents
+	
+	| Subtyping ->
+			Format.fprintf
+				ppf
+				"subtyping,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	(* Clause is from translation to purely equational clauses *)
+	| Non_eq_to_eq ->
+			Format.fprintf
+				ppf
+				"non_eq_to_eq,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	
+	| Flattening ->
+			Format.fprintf
+				ppf
+				"flattening,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+
+(* Print an inference record
+
+An inference record is a pair of the inference rule with some useful
+information dependent on the rule and a set of parent clauses
+*)
+let pp_tstp_inference_record global_subsumption_justification_fun clause ppf = function
+	
+	(* Must get justification for global propositional subsumption here *)
+	| Global_subsumption max_clause_id, [parent] ->
+	
+			(match global_subsumption_justification_fun with
+				| Some (gs_just_fun) ->
+				
+				(* Get justification for simplification of clause *)
+						let parents' = gs_just_fun
+								max_clause_id
+								parent
+								clause
+						in
+						Format.fprintf
+							ppf
+							"global_propositional_subsumption,@,[status(thm)],@,@[<hov 1>[%a,@,%a]@]"
+							pp_clause_name
+							parent
+							(pp_any_list pp_clause_name ",")
+							(List.filter ((!=) parent) parents')
+				
+				| None ->
+				(* output without global subsumtion justification *)
+						Format.fprintf
+							ppf
+							"global_propositional_subsumption_main_parent,@,[status(thm)],@,@[<hov 1>[%a]@]"
+							pp_clause_name
+							parent
+			)
+	
+	(*
+	
+	(* Simplified clause as first parent, then other parent clauses *)
+	Format.fprintf
+	ppf
+	"global_propositional_subsumption,@,[status(thm)],@,@[<hov 1>[%a,@,%a]@]"
+	pp_clause_name
+	parent
+	(pp_any_list pp_clause_name ",")
+	(List.filter ((!=) parent) parents')
+	*)
+	
+	(* Must get justification for global propositional subsumption here *)
+	| Global_subsumption _, _ ->
+	
+			raise
+				(Failure
+					"Global propositional subsumption of more than one parent clause")
+	
+	(* No special processing for remaining inference rules *)
+	| inference_rule, parents ->
+	
+			Format.fprintf
+				ppf
+				"%a"
+				(pp_inference_rule parents)
+				inference_rule
+
+(* Print source of a clause *)
+let pp_tstp_source global_subsumption_justification_fun clausify_proof clause ppf = function
+	
+	(* Clause is from a file *)
+	| TSTP_external_source (TSTP_file_source (file, name)) ->
+	
+	(* Rewrite source to match clausification proof? *)
+			if clausify_proof then
+				
+				try
+				
+				(* Scan name of clause into u<n> *)
+					let fof_id = Scanf.sscanf name "u%d" (function i -> i) in
+					
+					(* Output name of fof formula *)
+					Format.fprintf
+						ppf
+						"inference(cnf_transformation,[],[f%d])"
+						fof_id
+				
+				(* Name of clause is not u<n> *)
+				with Scanf.Scan_failure _ ->
+				
+				(* Print source as it is *)
+						Format.fprintf ppf "file('%s', %s)" file name
+			
+			else
+				
+				(* Print source as it is *)
+				Format.fprintf ppf "file('%s', %s)" file name
+	
+	(* Clause is from a theory *)
+	| TSTP_external_source (TSTP_theory theory) ->
+	
+			Format.fprintf ppf "theory(%a)" pp_tstp_theory theory
+	
+	(* Clause is from an internal definition *)
+	| TSTP_internal_source TSTP_definition ->
+	
+			Format.fprintf ppf "definition"
+	
+	(* Clause is from an internal assumption *)
+	| TSTP_internal_source TSTP_assumption ->
+	
+			Format.fprintf ppf "assumption"
+	(* Auxilary clause which was  temporaly introduced; should not occur in proofs *)
+	| TSTP_internal_source TSTP_tmp ->
+	
+			Format.fprintf ppf "tmp"
+	
+	(* Clause is from an inference *)
+	| TSTP_inference_record inference_record ->
+	
+			Format.fprintf
+				ppf
+				"@[<hv 10>inference(%a)@]"
+				(pp_tstp_inference_record global_subsumption_justification_fun clause)
+				inference_record
+
+(* Print clause with source in TSTP format *)
+let pp_clause_with_source ppf ?(global_subsumption_justification_fun = None) ?(clausify_proof = false) clause =
+	
+	Format.fprintf
+		ppf
+		"@[<hv 4>cnf(%a,plain,@,@[<hv 2>%a,@]@,%a ).@]@\n@."
+		pp_clause_name clause
+		pp_clause_literals_tptp clause
+		(pp_tstp_source global_subsumption_justification_fun clausify_proof clause)
+		(get_tstp_source clause)
+
+let pp_clause_list_with_source ppf ?(global_subsumption_justification_fun = None) ?(clausify_proof = false) clause_list =
+	List.iter (pp_clause_with_source ppf ~global_subsumption_justification_fun ~clausify_proof) clause_list
+
+(*-------clause output with all params-----*)
+
+type 'a fun_type =
+		FInt of ('a -> int)
+	| FStr of ('a -> string)
+	| FFloat of ('a -> float)
+	| FBool of ('a -> bool)
+	| FTerm of ('a -> term)
+	| FTerm_list of ('a -> (term list))
+	| FSymb of ('a -> symbol)
+	| FClause of ('a -> clause)
+	| FClause_list of ('a -> (clause list))
+	| FReplaced_by of ('a -> replaced_by)
+(*|FDInt of ('a -> int param) *)
+
+type clause_fun_type = clause fun_type
+	
+let pp_lib_param pp_a_fun ppf x =
+	match x with
+	| Def a ->
+			fprintf ppf "%a"
+				pp_a_fun a
+	| Undef ->
+			fprintf ppf "Undef"
+
+let pp_clause_name_list ppf c_list =
+	fprintf ppf "@[<hov>%a@]" (pp_any_list pp_clause_name ";") c_list
+
+let pp_term_list ppf t_list =
+	fprintf ppf "@[%a@]" (pp_any_list Term.pp_term ",") t_list
+
+let pp_replaced_by ppf rb =
+	match rb with
+	| RB_subsumption c -> fprintf ppf "%a" pp_clause_name c
+	| RB_sub_typing c -> fprintf ppf "%a" pp_clause_name c
+	| RB_splitting c_list -> pp_clause_name_list ppf c_list
+
+let pp_fun f ppf a =
+	try
+		match f with
+		| FInt (f) -> fprintf ppf "%i" (f a)
+		| FStr (f) -> fprintf ppf "%s" (f a)
+		| FFloat (f) -> fprintf ppf "%f" (f a)
+		| FBool (f) -> fprintf ppf "%b" (f a)
+		| FTerm (f) -> Term.pp_term ppf (f a)
+		| FTerm_list (f) -> pp_term_list ppf (f a)
+		| FSymb (f) -> Symbol.pp_symbol ppf (f a)
+		| FClause (f) -> pp_clause_name ppf (f a)
+		| FClause_list (f) -> pp_clause_name_list ppf (f a)
+		| FReplaced_by (f) -> pp_replaced_by ppf (f a)
+	with
+	| Undef_param -> fprintf ppf "Undef"
+	| None_opt -> fprintf ppf "None_opt"
+	| Res_sel_lits_undef -> fprintf ppf "Res_sel_lits_undef"
+	| Inst_sel_lit_undef -> fprintf ppf "Inst_sel_lit_undef"
+
+let comp_f f1 f2 x = f1 (f2 x)
+
+type param_out_list = (string * (clause_fun_type)) list
+
+let param_out_list_gen =
+	[
+	("name",FStr(clause_get_name));
+	("fast_key", FInt(get_fast_key));
+	("num_of_symb", FInt(num_of_symb));
+	("num_of_var", FInt(num_of_var));
+	("length", FInt(length));
+	("prop_solver_id", FInt(get_some_fun get_prop_solver_id));
+	("is_dead", FBool(get_is_dead));
+	("replaced_by", FReplaced_by(get_param_val_fun get_replaced_by));
+	("in_unsat_core", FBool(in_unsat_core));
+	("in_prop_solver", FBool(in_prop_solver));
+	("is_negated_conjecture", FBool(is_negated_conjecture));
+	("conjecture_distance", FInt(get_conjecture_distance));
+	("is_ground", FBool(is_ground));
+	("is_horn", FBool(is_horn));
+	("is_epr", FBool(is_epr));
+	("is_eq_axiom", FBool(is_eq_axiom));
+	("has_eq_lit", FBool(has_eq_lit));
+	("has_conj_symb", FBool(has_conj_symb));
+	("has_non_prolific_conj_symb", FBool(has_non_prolific_conj_symb));
+	("get_max_atom_input_occur", FSymb(get_param_val_fun get_max_atom_input_occur));
+	]
+
+let param_out_list_bmc1 =
+	[
+	("has_bound_constant", FBool(has_bound_constant));
+	("has_next_state", FBool(has_next_state));
+	("has_reachable_state", FBool(has_reachable_state));
+	("get_min_defined_symb", FInt(get_param_val_fun get_min_defined_symb));
+	]
+
+let param_out_list_ps =
+	[
+	("ps_in_active", FBool(get_ps_in_active));
+	("ps_in_unif_index", FBool(get_ps_in_unif_index));
+	("ps_in_subset_subsumption_index", FBool(get_ps_in_subset_subsumption_index));
+	("ps_in_subsumption_index", FBool(get_ps_in_subsumption_index));
+	("ps_in_sim_passive", FBool(get_ps_in_sim_passive));
+	("ps_pass_queue1", FBool(get_ps_pass_queue1));
+	("ps_pass_queue2", FBool(get_ps_pass_queue2));
+	("ps_pass_queue3", FBool(get_ps_pass_queue3));
+	("ps_sel_max", FBool(get_ps_sel_max));
+	("ps_simplifying", FBool(get_ps_simplifying));
+	
+	(* non bool proof search param *)
+	("ps_when_born", FInt(get_ps_when_born));
+	("ps_childern", FClause_list(get_ps_children));
+	]
+
+let param_out_list_res =
+	[("res_sel_lits", FTerm_list (get_res_sel_lits));
+	]
+
+let param_out_list_inst =
+	[ ("inst_get_sel_lit", FTerm (inst_get_sel_lit));
+	("inst_activity", FInt(inst_get_activity));
+	(*	("dismatching:", FDismatching(get_inst_dismatching)); *) (* TODO: add dismatching output*)
+	]
+
+let param_out_list_all =
+	param_out_list_gen@param_out_list_bmc1@param_out_list_ps@param_out_list_res@param_out_list_inst
+
+let pp_clause_params param_out_list ppf c =
+	let param_name p = (get_pair_first p) in
+	let param_fun p = (get_pair_second p) in
+	let max_param_length =
+		let max_pair =
+			list_find_max_element
+				(fun p1 p2 -> Pervasives.compare (String.length (param_name p1)) (String.length (param_name p2)))
+				param_out_list
+		in
+		String.length (param_name max_pair)
+	in
+	let val_dist = max_param_length + 5 in
+	
+	let param_name_padded p =
+		(space_padding_str_sep '.' val_dist ((tptp_safe_str ((param_name p)^":")))) in
+	
+	let pp_param ppf p =
+		fprintf ppf "@[<v>%s %a @,@]"
+			(param_name_padded p)
+			(pp_fun (param_fun p))
+			c
+	in
+	let pp_param_list ppf list = 
+		List.iter (pp_param ppf) list
+	in	
+	fprintf ppf "@[<v>%a@]"
+	pp_param_list param_out_list
+  
+
+
+
+
+(*
+[
+("",);
+("",);
+("",);
+("",);
+("",);
+("",);
+]
+*)
+
+
+
 

@@ -29,17 +29,32 @@ val debug : bool
 val iprover_exe_name : unit -> string
 val iprover_exe_path : unit -> string
 
+(*---------------*)
+exception None_opt
+
+(* get_some get option value or raises None_opt if the option is None *)
+val get_some : 'a option -> 'a
+val get_some_fun : ('b -> 'a option) -> ('b -> 'a)
+
 type 'a param = Def of 'a | Undef 
+
+exception Undef_param
+
+(* get_param_val gets prameter value or raises Undef is the paramter is Undef *)
+val get_param_val : 'a param -> 'a 
+val get_param_val_fun : ('b -> 'a param) -> ('b -> 'a) 
 
 (* elements and ref to elem of indexies and all others*)
 
   type 'a elem = Elem of 'a | Empty_Elem
   type 'a ref_elem = ('a elem) ref
 
-val get_some : 'a option -> 'a
 
 exception Not_a_pair
 val get_pair_from_list  : 'a list -> 'a * 'a
+val get_pair_first : 'a * 'b -> 'a 
+val get_pair_second : 'a * 'b -> 'b 
+
 
 exception Not_a_triple
 val get_triple_from_list  : 'a list -> 'a * 'a * 'a
@@ -397,14 +412,19 @@ val string_of_string_option : string -> string option -> string
 
 (*string filled with n spaces *)
 val space_str        :  int -> string 
+val space_str_sep    : char -> int -> string 
+
 
 val to_stream_space : 'a string_stream -> int -> unit
+val to_stream_space_sep : char -> 'a string_stream -> int -> unit
+
 
 (* add spaces to str to reach distance *)
 (*if the distance is less than or equal to str then just one space is added*)
 (*(used for formatting output) *)
 val space_padding_str :  int -> string -> string
 
+val space_padding_str_sep : char -> int -> string -> string
 
 (*--------Named modules----------------------*)
 

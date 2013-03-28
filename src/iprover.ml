@@ -227,7 +227,7 @@ let init_sched_time time_limit =
 (* the time out, this can be used to determinise the run of the iProver *)
 (* so one can reconstruct exactly the same behaviour *)
 (* (the current schedule behaviour is dependent on time and therefore *)
-(* on the environment but can be recostructed independent of time *)
+(* on the environment but can be reconstructed independent of time *)
 (* based on full_loop_counter)*)
 exception Sched_Time_Out of int
 let check_sched_time full_loop_counter =
@@ -1475,7 +1475,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 						List.iter
 							(Format.printf
 									"%a@."
-									(TstpProof.pp_clause_with_source false))
+									(TstpProof.pp_clause_with_source_gs ~clausify_proof:false))
 							unsat_core_parents;
 						
 						(* End proof output *)

@@ -85,6 +85,28 @@ val clause_register_subsumed_by : by:clause -> clause -> unit
 val normalise_blitlist_list :
   SubstBound.bound_subst ->
   ((lit list) Lib.bind) list -> term list
+
+	
+(**--- pretty printing clause ----*)		
+
+val pp_clause_with_source :
+  Format.formatter ->
+			(* function for global justification of global subsumption, default is None, see tstpProof for such function *)
+  ?global_subsumption_justification_fun:(int ->
+                                         clause -> clause -> clause list)
+                                        option ->
+(* default is false *)																											
+  ?clausify_proof:bool -> 
+	clause -> unit
+
+val pp_clause_list_with_source :
+  Format.formatter ->
+  ?global_subsumption_justification_fun:(int ->
+                                         clause -> clause -> clause list)
+                                        option ->													
+  ?clausify_proof:bool -> 
+	clause list -> unit
+
 	
 	
 (**------------clause context-------------------*)	

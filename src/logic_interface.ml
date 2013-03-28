@@ -111,6 +111,11 @@ let clause_register_subsumed_by ~by c =
    Clause.assign_replaced_by (Def(Clause.RB_subsumption by)) c
 	
 
+let pp_clause_with_source = Clause.pp_clause_with_source
+ 
+let pp_clause_list_with_source = Clause.pp_clause_list_with_source
+ 
+
 (*---------- context ----------------*)				
 let context_create = Clause.context_create
 let context_add  = Clause.context_add

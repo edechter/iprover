@@ -16,6 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
+(*open Logic_interface *)
 
 module ClauseHashtbl=Clause.Hashtbl
 
@@ -186,271 +187,21 @@ let get_parents clause_list =
 	List.rev
 		(get_parents' (ClauseHashtbl.create 101) [] clause_list)
 
-let pp_bind ppf (var, term) =
-	Format.fprintf
-		ppf
-		"@[<h>bind(%a,$fot(%a))@]"
-		Var.pp_var var
-		Term.pp_term_tptp term
 
-let pp_clause_name_bind bind ppf clause =
-	Format.fprintf ppf "@[<hov>%a:[%a]@]"
-		Clause.pp_clause_name clause
-		(pp_any_list pp_bind ",") bind
+let global_subsumption_justification_fun max_clause_id parent clause =
+  let parents' =
+    Prop_solver_exchange.justify_prop_subsumption
+                                        max_clause_id
+                                        parent
+                                        clause
+    in
+		parents'
 
-(* Print the name of the BMC1 theory axiom *)
-let pp_tstp_theory_bmc1 ppf = function
-	
-	| Clause.TSTP_bmc1_path_axiom b ->
-			Format.fprintf ppf "bmc1,[path(%d)]" b
-	
-	| Clause.TSTP_bmc1_reachable_state_axiom b ->
-			Format.fprintf ppf "bmc1,[reachable_state(%d)]" b
-	
-	| Clause.TSTP_bmc1_reachable_state_on_bound_axiom b ->
-			Format.fprintf ppf "bmc1,[reachable_state_(%d)]" b
-	
-	| Clause.TSTP_bmc1_reachable_sk_replacement (b, c) ->
-			Format.fprintf
-				ppf "bmc1,[reachable_sk_replacement(%a,%d)]"
-				Clause.pp_clause_name c
-				b
-	
-	| Clause.TSTP_bmc1_reachable_state_conj_axiom b ->
-			Format.fprintf ppf "bmc1,[reachable_state_conj(%d)]" b
-	
-	| Clause.TSTP_bmc1_only_bound_reachable_state_axiom b ->
-			Format.fprintf ppf "bmc1,[only_bound_reachable(%d)]" b
-	
-	| Clause.TSTP_bmc1_clock_axiom (b, s, _) ->
-			Format.fprintf ppf "bmc1,[clock(%a,%d)]" Symbol.pp_symbol s b
-	
-	| Clause.TSTP_bmc1_instantiated_clause (b, c) ->
-			Format.fprintf
-				ppf "bmc1,[bound_instantiate_clause(%a,%d)]"
-				Clause.pp_clause_name c
-				b
+let pp_clause_with_source_gs ?(clausify_proof = false) ppf clause	=
+  Clause.pp_clause_with_source ppf 
+	~global_subsumption_justification_fun:(Some(global_subsumption_justification_fun)) 
+	~clausify_proof clause
 
-(* Print the name of a theory *)
-let pp_tstp_theory ppf = function
-	| Clause.TSTP_equality -> Format.fprintf ppf "equality"
-	| Clause.TSTP_distinct -> Format.fprintf ppf "distinct"
-	| Clause.TSTP_domain -> Format.fprintf ppf "domain"
-	| Clause.TSTP_bmc1 a -> Format.fprintf ppf "%a" pp_tstp_theory_bmc1 a
-	| Clause.TSTP_less -> Format.fprintf ppf "less"
-	| Clause.TSTP_range -> Format.fprintf ppf "range"
-
-(* Print name of inference rule and its useful info *)
-let pp_inference_rule parents ppf = function
-	
-	(* Useful info for instantiation are side parent clauses *)
-	| Clause.Instantiation side_parents ->
-	
-			Format.fprintf
-				ppf
-				"instantiation,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* Useful info for resolution are resolved literals *)
-	| Clause.Resolution literals ->
-	
-			Format.fprintf
-				ppf
-				"resolution,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* Useful info for factoring are factored literals *)
-	| Clause.Factoring literals ->
-	
-			Format.fprintf
-				ppf
-				"factoring,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* No useful info for global propositional subsumption *)
-	| Clause.Global_subsumption _ ->
-	
-			Format.fprintf
-				ppf
-				"global_propositional_subsumption,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* No useful info for forward subsumption resolution *)
-	| Clause.Forward_subsumption_resolution ->
-	
-			Format.fprintf
-				ppf
-				"forward_subsumption_resolution,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* No useful info for backward subsumption resolution *)
-	| Clause.Backward_subsumption_resolution ->
-	
-			Format.fprintf
-				ppf
-				"backward_subsumption_resolution,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* No useful info for splitting *)
-	| Clause.Splitting symbols ->
-	
-			Format.fprintf
-				ppf
-				"splitting,@,[splitting(split),new_symbols(definition,[%a])],@,@[<hov 1>[%a]@]"
-				(pp_any_list Symbol.pp_symbol_tptp ",")
-				symbols
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	(* No useful info for splitting *)
-	| Clause.Grounding bindings ->
-	
-			Format.fprintf
-				ppf
-				"grounding,@,[status(thm)],@,@[<hov 1>[%a]@]"
-				(pp_any_list (pp_clause_name_bind bindings) ",")
-				parents
-	
-	| Clause.Subtyping ->
-			Format.fprintf
-				ppf
-				"subtyping,@,[status(esa)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-
-	(* Clause is from translation to purely equational clauses *)
-	| Clause.Non_eq_to_eq ->
-		Format.fprintf
-				ppf
-				"non_eq_to_eq,@,[status(esa)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-	
-	| Clause.Flattening ->
-			Format.fprintf
-				ppf
-				"flattening,@,[status(esa)],@,@[<hov 1>[%a]@]"
-				(pp_any_list Clause.pp_clause_name ",")
-				parents
-
-(* Print an inference record
-
-An inference record is a pair of the inference rule with some useful
-information dependent on the rule and a set of parent clauses
-*)
-let pp_tstp_inference_record clause ppf = function
-	
-	(* Must get justification for global propositional subsumption here *)
-	| Clause.Global_subsumption max_clause_id, [parent] ->
-	
-	(* Get justification for simplification of clause *)
-			let parents' =
-				Prop_solver_exchange.justify_prop_subsumption
-					max_clause_id
-					parent
-					clause
-			in
-			
-			(* Simplified clause as first parent, then other parent clauses *)
-			Format.fprintf
-				ppf
-				"global_propositional_subsumption,@,[status(thm)],@,@[<hov 1>[%a,@,%a]@]"
-				Clause.pp_clause_name
-				parent
-				(pp_any_list Clause.pp_clause_name ",")
-				(List.filter ((!=) parent) parents')
-	
-	(* Must get justification for global propositional subsumption here *)
-	| Clause.Global_subsumption _, _ ->
-	
-			raise
-				(Failure
-					"Global propositional subsumption of more than one parent clause")
-	
-	(* No special processing for remaining inference rules *)
-	| inference_rule, parents ->
-	
-			Format.fprintf
-				ppf
-				"%a"
-				(pp_inference_rule parents)
-				inference_rule
-
-(* Print source of a clause *)
-let pp_tstp_source clausify_proof clause ppf = function
-	
-	(* Clause is from a file *)
-	| Clause.TSTP_external_source (Clause.TSTP_file_source (file, name)) ->
-	
-	(* Rewrite source to match clausification proof? *)
-			if clausify_proof then
-				
-				try
-				
-				(* Scan name of clause into u<n> *)
-					let fof_id = Scanf.sscanf name "u%d" (function i -> i) in
-					
-					(* Output name of fof formula *)
-					Format.fprintf
-						ppf
-						"inference(cnf_transformation,[],[f%d])"
-						fof_id
-				
-				(* Name of clause is not u<n> *)
-				with Scanf.Scan_failure _ ->
-				
-				(* Print source as it is *)
-						Format.fprintf ppf "file('%s', %s)" file name
-			
-			else
-				
-				(* Print source as it is *)
-				Format.fprintf ppf "file('%s', %s)" file name
-	
-	(* Clause is from a theory *)
-	| Clause.TSTP_external_source (Clause.TSTP_theory theory) ->
-	
-			Format.fprintf ppf "theory(%a)" pp_tstp_theory theory
-	
-	(* Clause is from an internal definition *)
-	| Clause.TSTP_internal_source Clause.TSTP_definition ->
-	
-			Format.fprintf ppf "definition"
-	
-	(* Clause is from an internal assumption *)
-	| Clause.TSTP_internal_source Clause.TSTP_assumption ->
-	
-			Format.fprintf ppf "assumption"	
-	(* Auxilary clause which was  temporaly introduced; should not occur in proofs *)
-	| Clause.TSTP_internal_source Clause.TSTP_tmp ->
-	
-			Format.fprintf ppf "tmp"	
-			
-	(* Clause is from an inference *)
-	| Clause.TSTP_inference_record inference_record ->
-	
-			Format.fprintf
-				ppf
-				"@[<hv 10>inference(%a)@]"
-				(pp_tstp_inference_record clause)
-				inference_record
-
-(* Print clause with source in TSTP format *)
-let pp_clause_with_source clausify_proof ppf clause =
-	
-	Format.fprintf
-		ppf
-		"@[<hv 4>cnf(%a,plain,@,@[<hv 2>%a,@]@,%a ).@]@\n@."
-		Clause.pp_clause_name clause
-		Clause.pp_clause_literals_tptp clause
-		(pp_tstp_source clausify_proof clause)
-		(Clause.get_tstp_source clause)
 
 (* Output a list of integers *)
 let rec pp_clausify_proof_parents ppf = function
@@ -673,7 +424,7 @@ let pp_clauses_with_clausification ppf clauses =
 			(* Print derivation of clauses in unsat core with rewriting
 			of input clauses *)
 			List.iter
-				(pp_clause_with_source true ppf)
+				(pp_clause_with_source_gs ~clausify_proof:true ppf)
 				parent_clauses;
 			
 		)
@@ -683,7 +434,7 @@ let pp_clauses_with_clausification ppf clauses =
 		(
 			
 			(* Print derivation of clauses in unsat core *)
-			List.iter (pp_clause_with_source false ppf) parent_clauses;
+			List.iter (pp_clause_with_source_gs ppf) parent_clauses;
 			
 		)
 
@@ -717,7 +468,7 @@ let pp_tstp_proof_unsat_core ppf clauses =
 	
 	(* Print grounding of non-ground clauses in unsat core *)
 	List.iter
-		(pp_clause_with_source false ppf)
+		(pp_clause_with_source_gs ppf)
 		non_gnd_clauses';
 	
 	(* Replace a non ground clause with its ground clause in the list *)

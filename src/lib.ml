@@ -329,13 +329,28 @@ let kill_all_child_processes () =
   List.iter kill_process_group !child_processes_list_ref;
   List.iter kill_child_process_channels !child_channels_list_ref
 
-(*--------------------*)
+(*------option/param--------------*)
 
-let get_some = function 
-  |None -> failwith "get_some: None"
-  |Some x -> x
+exception None_opt
+
+let get_some = function
+	|Some x -> x
+  |None -> raise  None_opt
+
+let get_some_fun f = 
+	 (fun b -> get_some (f b))
 
 type 'a param = Def of 'a | Undef 
+
+exception Undef_param
+
+let get_param_val p = 
+	match p with 
+  |Def(p') -> p'
+ 	|Undef  -> raise Undef_param
+
+let get_param_val_fun f = 
+	(fun b -> get_param_val (f b))
 
 
 (* outcome of  compare fun *)
@@ -392,6 +407,10 @@ let get_pair_from_list  = function
   |[a1;a2] -> (a1,a2)
   |_-> raise Not_a_pair
 
+let get_pair_first (a1,_a2) = a1
+
+let get_pair_second (_a1,a2) = a2
+	
 exception Not_a_triple
 let get_triple_from_list = function 
   |[a1;a2;a3] -> (a1,a2,a3)
@@ -1026,27 +1045,33 @@ let param_to_stream el_to_stream s elp =
 
 (*---------strings-----------*)
 
-(*string filled with n spaces *)
-let space_str n = 
+(*string filled with n sep_chars *)
+let space_str_sep sep_char n = 
   if n>0 
   then
-    (String.make n ' ')
-  else " "
+    (String.make n sep_char)
+  else (string_of_char sep_char)
 
-let to_stream_space s n = 
+let space_str n = space_str_sep ' ' n
+
+let to_stream_space_sep sep_char s n = 
   for j=1 to n
   do 
-    s.stream_add_char ' '
+    s.stream_add_char sep_char
   done
+
+let to_stream_space s n =  to_stream_space_sep ' ' s n
 
 
 (* add spaces to str to reach distance *)
 (*if the distance is less than or equal to str then just one space is added*)
 (*(used for formatting output) *)
 
-let space_padding_str distance str =
+let space_padding_str_sep sep_char distance str =
   let name_ln = String.length str in
-  str^(space_str (distance - name_ln))
+  str^(space_str_sep sep_char (distance - name_ln))
+
+let space_padding_str distance str = space_padding_str_sep ' ' distance str
 
 let rec list_to_string to_str_el l separator_str =
   match l with
