@@ -1578,6 +1578,9 @@ struct
 		ss_index_ref := (SubsetSubsume.create ());
 		subsumption_index_ref := (SubsumptionIndexM.create ());
 		unif_index_ref := (DiscrTreeM.create ());
+		
+	 context_iter !context Clause.clear_clause; 
+
 		res_context_reset ();
 	(* Memory is cleared separately by Lib.clear_mem ()*)
 	
