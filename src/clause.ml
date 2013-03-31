@@ -98,6 +98,11 @@ let cpp_in_prop_solver = 1 (* user *)
 
 let ccp_in_unsat_core = 2 (* user *)
 
+(* if a clause is added to a solver all its parents should be recursively protected from *)
+(* clearing tstp_source since they can participate in a proof/unsat core *)
+let ccp_solver_protected = 3 (* user *)
+	
+	
 (* clause was in unsat core in the last proof search run *)
 (* used in bmc1 *)
 (*--------proof search bool params --------------------------*)
@@ -177,7 +182,7 @@ type clause =
 		
 		mutable prop_solver_id : int option; (* prop_solver_id is used in uc_solver for djoining special literls for unsat cores/proof recontruction*)
 		mutable conjecture_distance : int; (* can be changed when tstp_source is reassigned *)
-		mutable proof_search_param : proof_search_param;  (* we can reassign clause paramters within the same context *)
+		mutable proof_search_param : proof_search_param param;  (* we can reassign clause paramters within the same context *)
 		mutable ccp_bool_param : Bit_vec.bit_vec;
 	}
 
@@ -606,16 +611,6 @@ let out_clause_list = clause_list_to_stream stdout_stream
 let clause_list_to_string =
 	to_string_fun_from_to_stream_fun 300 clause_list_to_stream
 
-(*-------------------------------*)
-exception Clause_prop_solver_id_is_def
-exception Clause_prop_solver_id_is_undef
-
-let assign_prop_solver_id c id =
-	match c.prop_solver_id with
-	| None -> c.prop_solver_id <- Some (id)
-	| Some _ -> raise Clause_prop_solver_id_is_def
-
-let get_prop_solver_id clause = clause.prop_solver_id
 
 (*-------------------------------*)
 
@@ -819,8 +814,79 @@ let in_prop_solver c =
 let assign_in_prop_solver b c =
 	ccp_set_bool_param b cpp_in_prop_solver c
 
-(*-----proof search params-------*)
+let is_solver_protected c = 
+		ccp_get_bool_param ccp_solver_protected c
 
+let assign_solver_protected b c = 
+		ccp_set_bool_param b ccp_solver_protected c
+
+
+(*-------------------------------*)
+
+let get_main_parents tstp_source = 
+	match tstp_source with
+	| TSTP_inference_record
+	(_tstp_inference_rule, main_parents) ->
+  main_parents
+  |_->[]
+
+let get_parents tstp_source =
+	match tstp_source with
+	| TSTP_inference_record
+	(tstp_inference_rule, main_parents) ->
+			let side_parents =
+				begin
+					match tstp_inference_rule with
+					| Instantiation side_parents -> side_parents
+					| Resolution _ -> []
+					| Factoring _ -> []
+					| Global_subsumption _ -> []
+					| Forward_subsumption_resolution -> []
+					| Backward_subsumption_resolution -> []
+					| Splitting _ ->[]
+					| Grounding _ -> []
+					| Non_eq_to_eq -> []
+					| Subtyping ->[]
+					| Flattening ->[]
+				end
+			in main_parents@side_parents
+	| _ ->	[] (* other tstp_sources*)
+
+
+exception Clause_prop_solver_id_is_def
+exception Clause_prop_solver_id_is_undef
+
+let rec protect_solver_clist clist = 
+	match clist with 
+ |c::tl ->
+	(
+	if (not (is_solver_protected c)) 
+	then 
+	  (assign_solver_protected true c;
+	  let main_parents = get_main_parents (get_tstp_source c) in
+		let to_protect =  (main_parents@tl) in
+		protect_solver_clist to_protect
+		)
+  else 
+		(protect_solver_clist tl)
+		)
+ | [] -> ()
+				
+let protect_solver clause = 
+	protect_solver_clist [clause]
+	
+let assign_prop_solver_id c id =
+	match c.prop_solver_id with
+	| None -> 
+		 (c.prop_solver_id <- Some (id);
+		 protect_solver c
+		 )
+	| Some _ -> raise Clause_prop_solver_id_is_def
+
+let get_prop_solver_id clause = clause.prop_solver_id
+
+
+(*-----proof search params-------*)
 (*--------------------------------*)
 
 let create_ps_param () =
@@ -840,10 +906,12 @@ let create_ps_param () =
 
 (*----------------*)
 
-let get_proof_search_param c = c.proof_search_param
+let get_proof_search_param c = 
+	get_param_val c.proof_search_param
+
 let get_ps_param = get_proof_search_param
 
-let clear_proof_search_param c = c.proof_search_param <- (create_ps_param ())
+let clear_proof_search_param c = c.proof_search_param <- Def(create_ps_param ())
 
 let get_ps_bv_param c =
 	let ps_param = get_ps_param c in
@@ -1486,27 +1554,6 @@ let get_min_conjecture_distance_clist c_list =
 			else current_min)
 	in List.fold_left f max_conjecture_dist c_list
 
-let get_parents tstp_source =
-	match tstp_source with
-	| TSTP_inference_record
-	(tstp_inference_rule, main_parents) ->
-			let side_parents =
-				begin
-					match tstp_inference_rule with
-					| Instantiation side_parents -> side_parents
-					| Resolution _ -> []
-					| Factoring _ -> []
-					| Global_subsumption _ -> []
-					| Forward_subsumption_resolution -> []
-					| Backward_subsumption_resolution -> []
-					| Splitting _ ->[]
-					| Grounding _ -> []
-					| Non_eq_to_eq -> []
-					| Subtyping ->[]
-					| Flattening ->[]
-				end
-			in main_parents@side_parents
-	| _ ->	[] (* other tstp_sources*)
 
 (* we assume that the check if the clause is a conjecture is done before*)
 (* applying get_conjecture_distance_tstp_source *)
@@ -1537,7 +1584,7 @@ let new_clause ~is_negated_conjecture tstp_source bc =
 			replaced_by = Undef;
 			prop_solver_id = None;
 			conjecture_distance = conjecture_distance;
-			proof_search_param = ps_param;
+			proof_search_param = Def(ps_param);
 			ccp_bool_param = Bit_vec.false_vec
 		}
 	in
@@ -1577,13 +1624,13 @@ let create_clause_raw tstp_source lits =
 	new_clause ~is_negated_conjecture: false tstp_source bc
 
 let copy_clause c =
-	let fast_key = !clause_global_counter in
+	let new_fast_key = !clause_global_counter in
 	incr_clause_counter ();
 	let ps_param = create_ps_param () in
 	let new_c =
 		{ c with
-			fast_key = fast_key;
-			proof_search_param = ps_param
+			fast_key = new_fast_key;
+			proof_search_param = Def(ps_param)
 		}
 	in
 	new_c
@@ -1596,12 +1643,12 @@ let in_prop_solver_protected c =
 (* unless it was recoreded in propositional solver for proof purposes *)
 (* improve to replacing creating ps_param, may be define as Def/Undef *)
 let clear_clause c = 
-	if not (in_prop_solver_protected c) 
+	if not (is_solver_protected c) 
 	then
 		(
 		c.tstp_source <- Undef;
 		c.replaced_by <- Undef;
-		c.proof_search_param <- (create_ps_param ())
+		c.proof_search_param <- Undef (* (create_ps_param ()) *)
 		)
 	else ()	
 

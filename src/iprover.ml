@@ -23,8 +23,6 @@ open Logic_interface
 (* record backtrace for debugging          *)
 (* compile with -g option to get the trace *)
 
-
-
 (*----------------- see libs.ml for iProver version number ---------------*)
 (*let ()= out_str "\n---------------- iProver v0.7 --------------------\n"*)
 
@@ -257,7 +255,10 @@ Discount.clear_all();
 clear_memory ()
 *)
 
-(*----------------------Full Loop--------------------------------------*)
+(*----------------Register of prover functions-----------------------------------*)
+
+(*------------Create Provers-------------------------*)
+
 
 type prover_functions = {
 	mutable inst_lazy_loop_body : (int ref -> int ref -> unit) param;
@@ -280,7 +281,97 @@ let clear_all_provers prover_functions =
 	apply_fun_if_def prover_functions.inst_clear_all ();
 	apply_fun_if_def prover_functions.res_clear_all ()
 
-let full_loop prover_functions_ref input_clauses =
+let provers_list = ref []
+
+let provers_register pf =
+	provers_list:= pf:: (!provers_list)
+
+let provers_clear_and_remove_all () =
+  List.iter 
+	(fun pf -> 
+	 clear_all_provers pf; 
+	 pf.inst_lazy_loop_body <- Undef;
+	 pf.inst_clear_all <- Undef;
+	 pf.res_discount_loop_exchange <- Undef; 
+   pf.res_clear_all <- Undef; 
+)
+	!provers_list; 
+	provers_list := []
+
+let provers_clear_and_remove_top () =
+	match !provers_list with
+	| h:: tl ->
+			clear_all_provers h;
+			provers_list:= tl
+	|[] -> ()
+
+let get_inst_name_param_from_options () = 
+	if !current_options.instantiation_flag 
+	then
+	 Def("Inst")
+	else 
+		Undef		
+
+let get_res_name_param_from_options () = 
+	if !current_options.resolution_flag 
+	then
+	 Def("Res")
+	else 
+		Undef		
+				
+				
+let create_provers ~inst_name_param ~res_name_param input_clauses =
+	let prover_functions = {
+		inst_lazy_loop_body = Undef;
+		inst_clear_all = Undef;
+		res_discount_loop_exchange = Undef;
+		res_clear_all = Undef
+	} in
+	(
+	(*if !current_options.instantiation_flag 
+		then*)
+		match inst_name_param with 
+		| Def(inst_name) ->
+			let module InstInput =
+			struct
+				let inst_module_name = inst_name
+				let input_clauses = input_clauses
+			end in
+			let module InstM = Instantiation.Make (InstInput) in
+			prover_functions.inst_lazy_loop_body <- Def(InstM.lazy_loop_body);
+			prover_functions.inst_clear_all <- Def(InstM.clear_all);
+		| Undef ->	()
+	(*	else ()*)
+	);
+	((*if !current_options.resolution_flag
+		then *)
+		match res_name_param with 
+		| Def(res_name) ->
+	
+			let module ResInput =
+			struct
+				let inst_module_name = res_name
+				let input_clauses = input_clauses
+			end in
+			let module ResM = Discount.Make (ResInput) in
+			prover_functions.res_discount_loop_exchange <- Def(ResM.discount_loop_exchange);
+			prover_functions.res_clear_all <- Def(ResM.clear_all)
+		| Undef ->	()
+	(*	else()*)
+	);
+	provers_register prover_functions;
+	prover_functions
+
+let create_provers_current_options input_clauses = 
+	create_provers 
+	 ~inst_name_param:(get_inst_name_param_from_options ())
+   ~res_name_param:(get_res_name_param_from_options ())
+	  input_clauses
+	
+	
+(*----------------------Full Loop--------------------------------------*)
+
+let full_loop prover_functions input_clauses =
 	(* let current_input_clauses = ref input_clauses in
 	(* debug *)
 	out_str ("\n Input Clauses: "
@@ -308,17 +399,15 @@ let full_loop prover_functions_ref input_clauses =
 					(try
 						assign_discount_time_limit (!current_options.res_time_limit);
 						assign_discount_start_time ();
-						apply_fun !prover_functions_ref.res_discount_loop_exchange
+						apply_fun prover_functions.res_discount_loop_exchange
 							();
 					with Timeout ->
 							if (!current_options.instantiation_flag) then
 								( out_str (pref_str^"Switching off resolution: loop timeout \n");
 									!current_options.resolution_flag <- false;
-									apply_fun !prover_functions_ref.res_clear_all ();
-									prover_functions_ref:=
-									{!prover_functions_ref with
-										res_discount_loop_exchange = Undef;
-										res_clear_all = Undef };
+									apply_fun prover_functions.res_clear_all ();
+									prover_functions.res_discount_loop_exchange <- Undef;
+									prover_functions.res_clear_all <- Undef;
 									clear_memory ()
 								)
 							(* switching_off_discount ()*)
@@ -349,7 +438,7 @@ let full_loop prover_functions_ref input_clauses =
 							(
 								learning_counter:=!learning_counter +1;
 								incr_int_stat 1 inst_num_of_loops;
-								apply_fun !prover_functions_ref.inst_lazy_loop_body
+								apply_fun prover_functions.inst_lazy_loop_body
 									solver_counter solver_clause_counter;
 							)
 						else
@@ -367,7 +456,7 @@ let full_loop prover_functions_ref input_clauses =
 										raise Prop_solver_exchange.Unsatisfiable
 								);
 								
-								apply_fun !prover_functions_ref.inst_clear_all ();
+								apply_fun prover_functions.inst_clear_all ();
 								(* simplify current_input_clauses with the new solver state *)
 								(* when simpl. given and new are switched off *)
 								(* not very good?  *)
@@ -408,10 +497,8 @@ let full_loop prover_functions_ref input_clauses =
 									let input_clauses = input_clauses
 								end in
 								let module InstM = Instantiation.Make (InstInput) in
-								prover_functions_ref:=
-								{ !prover_functions_ref with
-									inst_lazy_loop_body = Def(InstM.lazy_loop_body);
-									inst_clear_all = Def(InstM.clear_all) };
+								prover_functions.inst_lazy_loop_body <- Def(InstM.lazy_loop_body);
+								prover_functions.inst_clear_all <-Def(InstM.clear_all);
 								(*	      prover_functions.inst_learning_restart input_clauses;*)
 								clear_memory ()
 							)
@@ -425,40 +512,6 @@ let full_loop prover_functions_ref input_clauses =
 		)
 	done
 
-(*------------Create Provers-------------------------*)
-
-let create_provers inst_name res_name input_clauses =
-	let prover_functions = {
-		inst_lazy_loop_body = Undef;
-		inst_clear_all = Undef;
-		res_discount_loop_exchange = Undef;
-		res_clear_all = Undef
-	} in
-	(if !current_options.instantiation_flag
-		then
-			let module InstInput =
-			struct
-				let inst_module_name = inst_name
-				let input_clauses = input_clauses
-			end in
-			let module InstM = Instantiation.Make (InstInput) in
-			prover_functions.inst_lazy_loop_body <- Def(InstM.lazy_loop_body);
-			prover_functions.inst_clear_all <- Def(InstM.clear_all);
-		else ()
-	);
-	(if !current_options.resolution_flag
-		then
-			let module ResInput =
-			struct
-				let inst_module_name = res_name
-				let input_clauses = input_clauses
-			end in
-			let module ResM = Discount.Make (ResInput) in
-			prover_functions.res_discount_loop_exchange <- Def(ResM.discount_loop_exchange);
-			prover_functions.res_clear_all <- Def(ResM.clear_all)
-		else()
-	);
-	prover_functions
 
 (*---------------Finite Models-------------------------------*)
 
@@ -486,7 +539,7 @@ let no_input_eq () =
 
 let finite_models clauses =
 	!current_options.resolution_flag <- false;
-	let model_bound = 500 in
+	let model_bound = 1000 in
 	out_str (pref_str^"Finite Models:\n");
 	let prep_clauses = Preprocess.preprocess clauses in
 	
@@ -499,23 +552,24 @@ let finite_models clauses =
 	
 	Finite_models.init_finite_models prep_clauses;
 	let flat_clauses = (Finite_models.flat_clause_list prep_clauses) in
-	let eq_axioms = 
+	let eq_axioms =
 		if (!current_options.sat_epr_types) || (!current_options.sat_non_cyclic_types)
 		then
 			(Finite_models.get_non_flat_eq_axioms ())
-		else	
+		else
 			[]
 	in
+	(*
 	out_str ("\n---------Eq Axioms------------------\n"
 	^(Clause.clause_list_to_tptp eq_axioms)
 	^"\n------------------------\n");
-
+	
 	out_str ("\n---------Flat clauses------------------\n"
 	^(Clause.clause_list_to_tptp flat_clauses)
 	^"\n------------------------\n");
-	
-		let init_clauses =
-	  eq_axioms@flat_clauses
+	*)
+	let init_clauses =
+		eq_axioms@flat_clauses
 	in
 	(*
 	out_str ("\n---------Init clauses------------------\n"
@@ -572,11 +626,11 @@ let finite_models clauses =
 				(*can use  Finite_models.domain_pred_axioms_all_dom new_bound_pred *)
 				Finite_models.domain_axioms_triangular new_bound_pred
 			in
-
+			(*
 			out_str ("\n---------Domain Axioms------------------\n"
 			^(Clause.clause_list_to_tptp domain_axioms)
 			^"\n------------------------\n");
- 
+			*)
 			let dis_eq_axioms =
 				if no_input_eq ()
 				then []
@@ -584,11 +638,11 @@ let finite_models clauses =
 					(* can have Finite_models.dis_eq_axioms_all_dom () for exp. *)
 					Finite_models.dis_eq_axioms_all_dom_sym ()
 			in
-	(*		
+			(*
 			out_str ("\n---------Diseq Axioms------------------\n"
 			^(Clause.clause_list_to_tptp dis_eq_axioms)
 			^"\n------------------------\n");
-  *)			
+			*)
 			(*
 			let domain_axioms =
 			if no_input_eq ()
@@ -605,26 +659,24 @@ let finite_models clauses =
 			*)
 			List.iter
 				Prop_solver_exchange.add_clause_to_solver axioms;
-			let neg_bound_pred =
-				TermDB.add_ref
-					(Term.create_fun_term Symbol.symb_neg [new_bound_pred])
-					Parser_types.term_db_ref in
+			let neg_bound_pred = add_neg_atom new_bound_pred in					
+			
 			Prop_solver_exchange.assign_solver_assumptions (neg_bound_pred::!bound_preds);
 			
 			(* new_dom_pred is added for all simplified claues *)
 			Prop_solver_exchange.assign_adjoint_preds [new_bound_pred];
 			(*(neg_domain_pred::(!domain_preds));*)
 			bound_preds := new_bound_pred::!bound_preds;
-			let prover_functions_ref =
-				ref (create_provers "Inst" "Res" clauses) in
-			full_loop prover_functions_ref clauses
+			let prover_functions = create_provers_current_options clauses in
+			full_loop prover_functions clauses
 		with
 		(* |Discount.Unsatisfiable *)
 		| Instantiation.Unsatisfiable
 		| Prop_solver_exchange.Unsatisfiable
 		| PropSolver.Unsatisfiable
-		-> (Instantiation.clear_after_inst_is_dead ();
-		(* since all inferred types are monotone, we can increase all domains simultaniously (other stratagies can be also worth trying) *)
+		-> ((* Instantiation.clear_after_inst_is_dead (); *)
+		       provers_clear_and_remove_all ();
+					(* since all inferred types are monotone, we can increase all domains simultaniously (other stratagies can be also worth trying) *)
 					model_size:=!model_size +1;
 					Finite_models.add_domain_constant_all_dom !model_size;
 					(* let new_dom_const =
@@ -704,16 +756,16 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 					out_str ("\n current options: "^(options_to_str !current_options)^"\n");
 					*)
 					init_sched_time time_limit;
-					let prover_functions_ref =
-						ref (create_provers "Inst Sched" "Res Sched" input_clauses) in
+					let prover_functions = create_provers_current_options input_clauses in
 					(try
-						full_loop prover_functions_ref input_clauses
+						full_loop prover_functions input_clauses
 					with
 						Sched_Time_Out(full_loop_counter) ->
 							(out_str ("Time Out after: "
 										^(string_of_int full_loop_counter)
 										^" full_loop iterations\n");
-								clear_all_provers !prover_functions_ref;
+								provers_clear_and_remove_all ();
+								(* clear_all_provers prover_functions;*)
 								clear_memory ();
 								schedule_run input_clauses finite_model_clauses tl)
 					(* One should be careful here,                     *)
@@ -721,7 +773,9 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 					(* and resolution empty clause, proof  is passed, clearing provers should not *)
 					(* destroy models/proofs (at the moment it does not) *)
 					| x ->
-							(clear_all_provers !prover_functions_ref;
+							( (* cannot clear since exception can return context as model or unsat core *)
+								(*provers_clear_and_remove_all ();*)
+								(* clear_all_provers prover_functions; *)
 								raise x)
 					
 					)
@@ -1054,15 +1108,15 @@ let sat_out_active_clauses_db all_clauses filtered_out =
 	
 	(* Filter clause database for active clauses *)
 	let active_clauses =
-		context_fold 
-		all_clauses
+		context_fold
+			all_clauses
 			(fun c a ->
 						if
 						Clause.get_ps_in_active c
 						then
 							c :: a
 						else
-							a)			
+							a)
 			[]
 	in
 	
@@ -1208,9 +1262,8 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 					| Schedule_verification_epr_tables ->
 							sched_run (verification_epr_schedule_tables ())
 					| Schedule_none ->
-							let prover_functions_ref =
-								ref (create_provers "Inst" "Res" clauses) in
-							full_loop prover_functions_ref clauses
+							let prover_functions = create_provers_current_options clauses in
+							full_loop prover_functions clauses
 					| Schedule_sat ->
 							sched_run (sat_schedule ())
 				end
@@ -1248,7 +1301,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 	with
 	| Discount.Satisfiable all_clauses
 	->
-		  
+	
 			if !eq_axioms_are_omitted
 			then
 				when_eq_ax_ommitted ()
@@ -1356,15 +1409,13 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 				
 				then
 					
-					(
-						
+					(						
 						(* Print unsat core *)
 						Format.printf
 							"@\n%sUnsat core has size %d@\n@\n%a@."
 							pref_str
 							(List.length unsat_core_clauses)
-							(pp_any_list Clause.pp_clause_min_depth "\n") unsat_core_clauses;
-						
+							(pp_any_list Clause.pp_clause_min_depth "\n") unsat_core_clauses;						
 					);
 				
 				(* Output proof from instantiation? *)
@@ -1464,10 +1515,8 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 				(* Verbose output for BMC1?*)
 				val_of_override !current_options.bmc1_out_unsat_core
 				
-				then
-					
-					(
-						
+				then					
+					(						
 						(* Start proof output *)
 						Format.printf "@\n%% SZS output start ListOfCNF@\n@.";
 						
@@ -1475,12 +1524,11 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 						List.iter
 							(Format.printf
 									"%a@."
-									(TstpProof.pp_clause_with_source_gs ~clausify_proof:false))
+									(TstpProof.pp_clause_with_source_gs ~clausify_proof: false))
 							unsat_core_parents;
 						
 						(* End proof output *)
-						Format.printf "%% SZS output end ListOfCNF@\n@."
-						
+						Format.printf "%% SZS output end ListOfCNF@\n@."						
 					);
 				
 				if
@@ -1595,7 +1643,8 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 					next_bound;
 				
 				(* Clear properties of terms before running again *)
-				Instantiation.clear_after_inst_is_dead ();
+				(* Instantiation.clear_after_inst_is_dead (); *) 
+				provers_clear_and_remove_all ();
 				
 				(* Add axioms for next bound *)
 				let next_bound_axioms =
@@ -2428,20 +2477,19 @@ let run_iprover () =
 			(*-------------------------------------------------*)
 			out_str (pref_str^"Proving...\n");
 			(*-------------------------------------------------*)
-											
+			
 			(*	(if !current_options.instantiation_flag then *)
 			List.iter
 				Prop_solver_exchange.add_clause_to_solver !current_clauses;
 			
 			(*debug*)
 			(*	List.iter
-				( fun c -> 
-					Format.printf "Solver: %a@.\n" (TstpProof.pp_clause_with_source false) c; 
-					Prop_solver_exchange.add_clause_to_solver c
-					)				
-					!current_clauses;
-	*)
-	
+			( fun c ->
+			Format.printf "Solver: %a@.\n" (TstpProof.pp_clause_with_source false) c;
+			Prop_solver_exchange.add_clause_to_solver c
+			)
+			!current_clauses;
+			*)
 			
 			(* For incremental BMC1 we must catch this and move to the next
 			bound. The solver call is moved to the main function. *)
@@ -2625,7 +2673,7 @@ let run_iprover () =
 	
 	(* Unsatisfiable due to empty clause in resolution *)
 	| (*Discount.Empty_Clause (clause) ->*)
-	    Empty_Clause (clause) ->
+	Empty_Clause (clause) ->
 			(
 				out_str(" Resolution empty clause:\n");
 				

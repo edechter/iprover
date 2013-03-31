@@ -1519,7 +1519,10 @@ struct
 	(*	out_str "\n init_discount\n"; *)
 		
 		let add_input_to_passive clause =
-		 let new_clause = (Clause.copy_clause clause) in 
+	
+		  let copied_clause = Clause.copy_clause clause in
+	  	 let new_clause = context_add !context copied_clause in
+			
 			(* when_born is 0 *)
 		(*	Clause.clear_proof_search_param new_clause; *)
 			(* replace with replacing dead with implied *)
@@ -1579,7 +1582,7 @@ struct
 		subsumption_index_ref := (SubsumptionIndexM.create ());
 		unif_index_ref := (DiscrTreeM.create ());
 		
-	 context_iter !context Clause.clear_clause; 
+	  context_iter !context Clause.clear_clause; 
 
 		res_context_reset ();
 	(* Memory is cleared separately by Lib.clear_mem ()*)

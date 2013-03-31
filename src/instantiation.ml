@@ -983,10 +983,12 @@ let bmc1_bounds = ref []
       out_str ("\n Simpl Given Clause: "
                      ^(Clause.to_string simplified_given_clause)^"\n"); 
 			*)
-				
+		
+	(*					
 			Format.printf "@[%a @]@.@[%a @]@."
 			 (TstpProof.pp_clause_with_source_gs ~clausify_proof:false ) simplified_given_clause
 			 (Clause.pp_clause_params Clause.param_out_list_all) simplified_given_clause;
+*)
 
 (*
   (if (not (Clause.is_ground simplified_given_clause))
@@ -1391,12 +1393,14 @@ let init_instantiation () =
 			*)
 	(*		out_str ("\n Added: "^(Clause.to_string added_clause)^"\n");*)
   (*    Clause.assign_when_born [] [] added_clause; *)
-	   let new_clause = Clause.copy_clause clause in
+	   let copied_clause = Clause.copy_clause clause in
+		 let new_clause = context_add !context copied_clause in
     (*	Clause.clear_proof_search_param clause; *)
 		(* replace with replacing dead with implied *)
       Clause.assign_is_dead false new_clause;   
 			Clause.assign_ps_when_born 0 new_clause;
-      add_clause_to_unprocessed new_clause
+      add_clause_to_unprocessed new_clause;
+			
 		 (* add_clause_to_unprocessed added_clause *)
 		
     (* Skip duplicate clauses in the input *)
@@ -1505,7 +1509,6 @@ let clear_all () =
  (* empty unif index *)
   unif_index_ref  :=  (DiscrTreeM.create ());
   
-
   let f t = 
     match t with 
     |Term.Fun _ ->  (Term.set_fun_bool_param false  Term.inst_in_unif_index t)
@@ -1514,12 +1517,12 @@ let clear_all () =
   TermDB.iter f  !term_db_ref;
   
 (* refresh the model *)
-
+(*
   (if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat)
    then ( (* Format.eprintf "Unsatisfiable after solve call in Instantiation.clear_all@."; *)
 	raise Unsatisfiable));
+	*)
   Prop_solver_exchange.clear_model ()
-
 
 (*---------------End--------------------------------*)
 end (* Instantiation.Make *)
@@ -1532,7 +1535,7 @@ let clear_after_inst_is_dead () =
     |Term.Fun _ ->  (Term.set_fun_bool_param false  Term.inst_in_unif_index t)
     |_->() 
   in
-  TermDB.iter f  !Parser_types.term_db_ref;
+  TermDB.iter f !Parser_types.term_db_ref;
   
 (* refresh the model *)
 
