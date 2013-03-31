@@ -689,10 +689,7 @@ let pre_inst_reachable_state_clauses b clauses =
 				(* out_str "TSTP_bmc1_reachable_sk_replacement Has SK \n ";
 				(Format.printf "%a@." (TstpProof.pp_clause_with_source false) cl);*)
 					match (Clause.get_tstp_source cl) with
-					| Clause.TSTP_external_source
-					(Clause.TSTP_theory
-					(Clause.TSTP_bmc1
-					(Clause.TSTP_bmc1_reachable_sk_replacement (_old_bound, parent_cl)))) ->
+					| Clause.TSTP_inference_record (Clause.TSTP_bmc1_reachable_sk_replacement (_old_bound) ,[parent_cl]) -> 
 					(* if this clause got already sK replaced on an old bound, then get the parent and replace in the parent *)
 					(*			out_str ("TSTP_bmc1_reachable_sk_replacement Parent: "^(Clause.to_string parent_cl)^"\n");*)
 							Some (parent_cl)
@@ -718,8 +715,7 @@ let pre_inst_reachable_state_clauses b clauses =
 							let repl_cl_lits =
 								Clause.replace_subterm term_db_ref sk_term state_term_b (get_lits cl) in
 							let tstp_source = 	
-								Clause.tstp_source_axiom_bmc1
-								(Clause.TSTP_bmc1_reachable_sk_replacement (b, cl))
+								Clause.TSTP_inference_record (Clause.TSTP_bmc1_reachable_sk_replacement (b) ,[cl]) 
 							in
 							let pre_inst_cl =
 							create_clause	tstp_source  (bound_literal:: (repl_cl_lits))
@@ -1183,8 +1179,7 @@ let bound_instantiate_clause bound clause =
 		List.map (bound_instantiate_term bound) clause_literals
 	in
 	let tstp_source = 
-		Clause.tstp_source_axiom_bmc1
-		(Clause.TSTP_bmc1_instantiated_clause (bound, clause))
+		(Clause.TSTP_inference_record (Clause.TSTP_bmc1_instantiated_clause (bound), [clause]))
 	in
 	(* Create new clause of instantiated literals *)
 	let instantiated_clause =
@@ -1769,10 +1764,8 @@ let rec extrapolate_to_bound' bound accum = function
 						( create_clock_axiom bound clock pattern) :: accum
 				
 				(* Clause is a BMC1 reachable state axiom for the previous bound *)
-				| Clause.TSTP_external_source
-				(Clause.TSTP_theory
-				(Clause.TSTP_bmc1
-				(Clause.TSTP_bmc1_instantiated_clause (b, clause))))
+				| Clause.TSTP_inference_record
+				      (Clause.TSTP_bmc1_instantiated_clause (b), [clause])
 				when b = (pred bound) ->
 				
 				(* Add reachable state axiom for current bound *)

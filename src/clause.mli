@@ -41,10 +41,10 @@ and tstp_theory_bmc1 =
 	| TSTP_bmc1_reachable_state_axiom of int
 	| TSTP_bmc1_reachable_state_conj_axiom of int
 	| TSTP_bmc1_reachable_state_on_bound_axiom of int
-	| TSTP_bmc1_reachable_sk_replacement of int * clause
+(*	|  TSTP_bmc1_reachable_sk_replacement of int * clause *)
 	| TSTP_bmc1_only_bound_reachable_state_axiom of int
 	| TSTP_bmc1_clock_axiom of int * Symbol.symbol * int list
-	| TSTP_bmc1_instantiated_clause of int * clause
+(*	| TSTP_bmc1_instantiated_clause of int * clause *)
 and tstp_theory =
 		TSTP_equality
 	| TSTP_distinct
@@ -67,6 +67,9 @@ and tstp_inference_rule =
 	| Non_eq_to_eq
 	| Subtyping
 	| Flattening
+  | TSTP_bmc1_instantiated_clause of int 
+  | TSTP_bmc1_reachable_sk_replacement of int (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
+
 and tstp_inference_record = tstp_inference_rule * clause list
 and tstp_source =
 		TSTP_external_source of tstp_external_source

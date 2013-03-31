@@ -231,10 +231,10 @@ and tstp_theory_bmc1 =
 	| TSTP_bmc1_reachable_state_axiom of int
 	| TSTP_bmc1_reachable_state_conj_axiom of int
 	| TSTP_bmc1_reachable_state_on_bound_axiom of int
-	| TSTP_bmc1_reachable_sk_replacement of int * clause  (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
+(*	| TSTP_bmc1_reachable_sk_replacement of int * clause *) (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
 	| TSTP_bmc1_only_bound_reachable_state_axiom of int
 	| TSTP_bmc1_clock_axiom of int * Symbol.symbol * (int list)
-	| TSTP_bmc1_instantiated_clause of int * clause
+(*	| TSTP_bmc1_instantiated_clause of int * clause *)
 
 and tstp_theory =
 	| TSTP_equality
@@ -247,7 +247,9 @@ and tstp_theory =
 and tstp_external_source =
 	| TSTP_file_source of string * string
 	| TSTP_theory of tstp_theory
-
+	 
+(* if clause is not at a leaf of an inference it should be obtained by an inference rule *)
+(* important for clause_protect; get_parents; etc. *)
 and tstp_inference_rule =
 	| Instantiation of clause list (* side clauses *)
 	| Resolution of literal list
@@ -260,6 +262,8 @@ and tstp_inference_rule =
 	| Non_eq_to_eq
 	| Subtyping
 	| Flattening
+	| TSTP_bmc1_instantiated_clause of int 
+  | TSTP_bmc1_reachable_sk_replacement of int (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
 
 and tstp_inference_record =
 	tstp_inference_rule * clause list
@@ -848,6 +852,8 @@ let get_parents tstp_source =
 					| Non_eq_to_eq -> []
 					| Subtyping ->[]
 					| Flattening ->[]
+				  | TSTP_bmc1_instantiated_clause _ -> [] 
+          | TSTP_bmc1_reachable_sk_replacement _ -> []
 				end
 			in main_parents@side_parents
 	| _ ->	[] (* other tstp_sources*)
@@ -2155,12 +2161,14 @@ let pp_tstp_theory_bmc1 ppf = function
 	
 	| TSTP_bmc1_reachable_state_on_bound_axiom b ->
 			Format.fprintf ppf "bmc1,[reachable_state_(%d)]" b
-	
+
+	(*	
 	| TSTP_bmc1_reachable_sk_replacement (b, c) ->
 			Format.fprintf
 				ppf "bmc1,[reachable_sk_replacement(%a,%d)]"
 				pp_clause_name c
 				b
+	*)
 	
 	| TSTP_bmc1_reachable_state_conj_axiom b ->
 			Format.fprintf ppf "bmc1,[reachable_state_conj(%d)]" b
@@ -2170,12 +2178,14 @@ let pp_tstp_theory_bmc1 ppf = function
 	
 	| TSTP_bmc1_clock_axiom (b, s, _) ->
 			Format.fprintf ppf "bmc1,[clock(%a,%d)]" Symbol.pp_symbol s b
-	
+
+	(*	
 	| TSTP_bmc1_instantiated_clause (b, c) ->
 			Format.fprintf
 				ppf "bmc1,[bound_instantiate_clause(%a,%d)]"
 				pp_clause_name c
 				b
+*)
 
 (* Print the name of a theory *)
 let pp_tstp_theory ppf = function
@@ -2284,6 +2294,29 @@ let pp_inference_rule parents ppf = function
 				"flattening,@,[status(esa)],@,@[<hov 1>[%a]@]"
 				(pp_any_list pp_clause_name ",")
 				parents
+				
+	| TSTP_bmc1_instantiated_clause b ->
+			Format.fprintf
+				ppf "bmc1_instantiate_clause_bound_%i,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				b
+				(pp_any_list pp_clause_name ",")
+				parents				
+				
+	| TSTP_bmc1_reachable_sk_replacement b ->
+		Format.fprintf
+				ppf
+				"bmc1_reachable_sk_replacement_bound_%i,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				b
+				(pp_any_list pp_clause_name ",")
+				parents
+	(*	
+	| TSTP_bmc1_reachable_sk_replacement (b, c) ->
+			Format.fprintf
+				ppf "bmc1,[reachable_sk_replacement(%a,%d)]"
+				pp_clause_name c
+				b
+	*)
+	
 
 (* Print an inference record
 
