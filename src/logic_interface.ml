@@ -106,10 +106,14 @@ let normalise_blitlist_list blitlist_list =
 let get_lits c = Clause.get_lits c
 
 let clause_register_subsumed_by ~by c = 
-   Clause.assign_is_dead true c;
+  (if (not (by == c)) then Clause.assign_is_dead true c);
+	if (Clause.lits_equal by c )
+	then ()
+	else
+		( 
 	 Clause.set_ps_simplifying true by;
    Clause.assign_replaced_by (Def(Clause.RB_subsumption by)) c
-	
+	)
 
 let pp_clause_with_source = Clause.pp_clause_with_source
  

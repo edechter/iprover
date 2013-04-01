@@ -358,7 +358,7 @@ let create_provers ~inst_name_param ~res_name_param input_clauses =
 			end in
 			let module ResM = Discount.Make (ResInput) in
 			prover_functions.res_discount_loop_exchange <- Def(ResM.discount_loop_exchange);
-			prover_functions.res_simplified_input <- Def(ResM.simplified_input);
+			prover_functions.res_simplified_input <- Def(!ResM.simplified_input);
 			prover_functions.res_clear_all <- Def(ResM.clear_all)
 		| Undef ->	()
 	(*	else()*)

@@ -73,7 +73,7 @@ val discount_loop_exchange     :  unit -> unit
 val add_new_clause_to_passive  : clause -> unit
 *)
 
-val simplified_input : context
+val simplified_input : context ref
 
 
 (* unassigns all structures related to discount and runs GC.full_major*)

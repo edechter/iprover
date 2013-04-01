@@ -254,7 +254,8 @@ val get_lits : clause -> literal_list
 (** get_literals = get_lits *)
 val get_literals : clause -> literal_list
 
-val compare_lits : clause -> clause -> int
+val lits_equal : clause -> clause -> bool	
+(*val compare_lits : clause -> clause -> int*)
 
 val is_empty_clause : clause -> bool
 

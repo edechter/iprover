@@ -591,9 +591,11 @@ clause.conjecture_distance = conjecture_int
 
 let get_lits c = c.basic_clause.lits
 let get_literals = get_lits
-
+(*
 let compare_lits c1 c2 =
+	bc_get_fast_key bc_fast_key
 	list_compare_lex Term.compare (get_lits c1) (get_lits c2)
+*)
 
 let is_empty_clause c =
 	if (get_lits c) = [] then true
@@ -1928,7 +1930,18 @@ let context_add_context from_cxt to_cxt =
 let get_replaced_by_clauses c =
 	match c.replaced_by
 	with
-	| Def(RB_subsumption by_clause) -> Def([by_clause])
+	| Def(RB_subsumption by_clause) -> 
+		(*if (lits_equal by_clause c) 
+		then 
+			Undef
+		else	
+		  ( 
+			Format.printf "\n Clause:\n %a\n" pp_clause c;
+		  Format.printf "\n Subsumed by\n: %a\n" pp_clause by_clause;
+  *)
+	(
+			Def([by_clause])
+	   )
 	| Def(RB_sub_typing by_clause) -> Def([by_clause])
 	| Def(RB_splitting by_clause_list) -> Def(by_clause_list)
 	| Def(RB_tautology_elim) -> Def([])
@@ -1959,7 +1972,11 @@ let context_replace_by context c =
 		let replaced_by = get_replaced_by_rec [(context_find context c)] 
 		in 
 		incr_int_stat 1 simp_replaced_by;
-		List.map copy_clause replaced_by 
+  	let repl_by = List.map copy_clause replaced_by in
+	(*	Format.printf "\n Clause:\n %a\n" pp_clause c;
+		Format.printf "\n Replaced by\n: %a\n" pp_clause_list_tptp repl_by;
+		*)
+		repl_by 
 	with 
   Not_found -> [c]
 		  

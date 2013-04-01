@@ -49,17 +49,31 @@ struct
 		let cc = context_create (List.length input_clauses) 
 		in
 		List.iter (fun clause -> ignore (context_add cc clause)) input_clauses;
-		cc 
+		ref cc 
 		
 	(* replace with watched later *)
-  let simplified_input = context_create (List.length input_clauses)
+  let simplified_input = ref (context_create (List.length input_clauses))
 	
 	let record_simplified clause  = 
-		if (context_mem input_clauses_context clause) 
+		if (context_mem !input_clauses_context clause) 
 		then 
-		  ignore (context_add simplified_input clause) 	
+			(
+				(*out_str "\n Record Simplified:\n";
+			 Format.printf "@[%a @]@.@[%a @]@."
+			 (TstpProof.pp_clause_with_source_gs ~clausify_proof:false ) clause
+			 (Clause.pp_clause_params Clause.param_out_list_gen) clause;
+       *)
+		  ignore (context_add !simplified_input clause) 	
+			)
   	else 
 			()
+			
+	let res_clause_register_subsumed_by ~by c =
+		clause_register_subsumed_by by c;
+		if (Clause.lits_equal by c )
+	  then ()
+	  else
+	  (	record_simplified c )
 		
 	let _ = clear_res_stat ()
 	
@@ -414,7 +428,7 @@ struct
 			let by_clause = SubsetSubsume.is_subsumed clause !(ss_index_ref) in
 			Clause.set_ps_simplifying true by_clause;
 			Clause.assign_replaced_by (Def(Clause.RB_subsumption (by_clause))) clause; 
-			record_simplified clause;
+			res_clause_register_subsumed_by ~by:by_clause clause;
 			true
 		with
 			Not_found ->
@@ -479,7 +493,8 @@ struct
 						List.iter
 						 (fun c -> 
 							Clause.assign_replaced_by (Def(Clause.RB_subsumption (main_clause))) c; 
-							record_simplified c) subsumed_clauses; 
+							res_clause_register_subsumed_by ~by:main_clause c
+							) subsumed_clauses; 
 						)
 				else ());
 			ss_index_ref := SubsetSubsume.remove_subsumed main_clause !ss_index_ref;
@@ -617,8 +632,7 @@ struct
 			(
 				let tstp_source = Clause.tstp_source_forward_subsumption_resolution clause (!subs_by_list_ref) in
 				let new_clause = create_clause tstp_source new_lits in
-				clause_register_subsumed_by ~by:new_clause clause;
-				record_simplified clause;
+				res_clause_register_subsumed_by ~by:new_clause clause;
 				(* Clause.inherit_param_modif clause new_clause;
 				Clause.set_bool_param true Clause.res_simplifying new_clause;*)
 				(* Clause.assign_forward_subsumption_resolution_history
@@ -645,8 +659,8 @@ struct
 		| Some((by_cl, _subst)) ->
 				(
 					incr_int_stat 1 res_forward_subsumed;
-					clause_register_subsumed_by ~by: by_cl clause;
-					record_simplified clause;
+					res_clause_register_subsumed_by ~by: by_cl clause;
+					
 					(*  Clause.set_bool_param true Clause.res_simplifying by_cl;*)
 					(* we can eliminate since subs. is proper since light simplifications *)
 					eliminate_clause clause;
@@ -686,9 +700,8 @@ struct
 					if (not (new_clause == clause))
 					then
 						(eliminate_clause clause;
-						clause_register_subsumed_by ~by:new_clause clause;
-						record_simplified clause;
-							preprocess_new_clause new_clause
+						res_clause_register_subsumed_by ~by:new_clause clause;						
+					  preprocess_new_clause new_clause
 						)
 					else clause
 				)
@@ -724,8 +737,7 @@ struct
 			let new_lits = remove_lit lit_to_cut lits in
 			let tstp_source = Clause.tstp_source_backward_subsumption_resolution [given_clause; subsumed] in
 			let new_clause = create_clause tstp_source new_lits in
-			clause_register_subsumed_by ~by: new_clause subsumed;
-			record_simplified subsumed;
+			res_clause_register_subsumed_by ~by:new_clause subsumed;	
 			eliminate_clause subsumed;
 			(* Clause.inherit_param_modif subsumed new_clause;*)
 			
@@ -790,8 +802,7 @@ struct
 		then
 			(
 				List.iter (fun subsumed ->
-								clause_register_subsumed_by ~by: clause subsumed;
-								record_simplified subsumed;
+								res_clause_register_subsumed_by ~by:clause subsumed;					
 								eliminate_clause subsumed
 					) b_subsumed_list;
 				incr_int_stat (List.length b_subsumed_list) res_backward_subsumed
@@ -1618,9 +1629,13 @@ struct
 		unif_index_ref := (DiscrTreeM.create ());
 		
 	  context_iter !context Clause.clear_clause; 
-
 		res_context_reset ();
-	(* Memory is cleared separately by Lib.clear_mem ()*)
+ 
+    input_clauses_context:= context_create 2;
+		context_iter !simplified_input Clause.clear_clause; 
+		simplified_input := context_create 2;
+		
+		(* Memory is cleared separately by Lib.clear_mem ()*)
 	
 	(*;
 	out_str "\n--------------------\n";
