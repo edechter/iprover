@@ -1098,9 +1098,14 @@ let dynamic_sched_5 () =
 			(schedule_to_many_axioms_schedule (init_schedule5_no_res_last ()))
 			*)
 			
+				strip_conj_schedule
+				(schedule_to_many_axioms_schedule (init_schedule5 ()))
+	
+			(* -2012: init_schedule5_inst_first () *)
+		(*	
 			strip_conj_schedule
 				(schedule_to_many_axioms_schedule (init_schedule5_inst_first ()))
-			
+			*)
 		)
 
 let default_schedule () =
