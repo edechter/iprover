@@ -164,6 +164,12 @@ let sat_num_of_non_cyclic_types =
    value = 0;
  }
 
+let simp_replaced_by =
+	 {
+   int_entry_name  = "simp_replaced_by";
+   value = 0;
+ }
+
    
 let forced_gc_time = 
   {
@@ -579,6 +585,7 @@ let gen_int_stat_list =
    num_of_subtypes;
    sat_num_of_epr_types;
 	 sat_num_of_non_cyclic_types;
+	 simp_replaced_by;
    forced_gc_time;
  ]
 

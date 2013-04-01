@@ -30,6 +30,8 @@ and replaced_by =
 	| RB_subsumption of clause
 	| RB_sub_typing of clause
 	| RB_splitting of clause list
+  | RB_tautology_elim
+	| RB_orphan_elim of clause (* is not used  for replacements *)
 
 (*and axiom = Eq_Axiom | Distinct_Axiom | Less_Axiom | Range_Axiom | BMC1_Axiom*)
 and tstp_internal_source =
@@ -223,8 +225,8 @@ val context_size : context -> int
 val context_add_context : context -> context -> unit
 
 (** replaces clausews with replaced_by (recusively) *)
-val context_replace_by : context -> unit
-
+val context_replace_by : context -> clause -> clause list
+val context_replace_by_clist :  context -> clause list -> clause list
 (*val template_clause : basic_clause -> clause*)
 
 (** creates a clause within a context; use create_neg_conjecture if a clause is a negate conjectue *)

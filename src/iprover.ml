@@ -264,6 +264,7 @@ type prover_functions = {
 	mutable inst_lazy_loop_body : (int ref -> int ref -> unit) param;
 	mutable inst_clear_all : (unit -> unit) param;
 	mutable res_discount_loop_exchange : (unit -> unit) param;
+	mutable res_simplified_input : context param;
 	mutable res_clear_all : (unit -> unit) param
 }
 
@@ -293,6 +294,7 @@ let provers_clear_and_remove_all () =
 	 pf.inst_lazy_loop_body <- Undef;
 	 pf.inst_clear_all <- Undef;
 	 pf.res_discount_loop_exchange <- Undef; 
+	 pf.res_simplified_input <- Undef;
    pf.res_clear_all <- Undef; 
 )
 	!provers_list; 
@@ -318,13 +320,14 @@ let get_res_name_param_from_options () =
 	 Def("Res")
 	else 
 		Undef		
-				
+			
 				
 let create_provers ~inst_name_param ~res_name_param input_clauses =
 	let prover_functions = {
 		inst_lazy_loop_body = Undef;
 		inst_clear_all = Undef;
 		res_discount_loop_exchange = Undef;
+		res_simplified_input = Undef;
 		res_clear_all = Undef
 	} in
 	(
@@ -355,6 +358,7 @@ let create_provers ~inst_name_param ~res_name_param input_clauses =
 			end in
 			let module ResM = Discount.Make (ResInput) in
 			prover_functions.res_discount_loop_exchange <- Def(ResM.discount_loop_exchange);
+			prover_functions.res_simplified_input <- Def(ResM.simplified_input);
 			prover_functions.res_clear_all <- Def(ResM.clear_all)
 		| Undef ->	()
 	(*	else()*)
@@ -368,7 +372,12 @@ let create_provers_current_options input_clauses =
    ~res_name_param:(get_res_name_param_from_options ())
 	  input_clauses
 	
-	
+let simplify_input prover_functions clauses =
+	match	prover_functions.res_simplified_input with 
+	| Def (simplified_input) -> 
+		Clause.context_replace_by_clist simplified_input clauses
+ |Undef -> clauses
+ 
 (*----------------------Full Loop--------------------------------------*)
 
 let full_loop prover_functions input_clauses =
@@ -385,6 +394,7 @@ let full_loop prover_functions input_clauses =
 	let resolution_counter = ref 0 in
 	let instantiation_counter = ref 0 in
 	let full_loop_counter = ref 0 in
+	let current_input_clauses = ref input_clauses in
 	while true do
 		(
 			
@@ -405,6 +415,7 @@ let full_loop prover_functions input_clauses =
 							if (!current_options.instantiation_flag) then
 								( out_str (pref_str^"Switching off resolution: loop timeout \n");
 									!current_options.resolution_flag <- false;
+									current_input_clauses := simplify_input prover_functions !current_input_clauses;
 									apply_fun prover_functions.res_clear_all ();
 									prover_functions.res_discount_loop_exchange <- Undef;
 									prover_functions.res_clear_all <- Undef;
@@ -486,6 +497,7 @@ let full_loop prover_functions input_clauses =
 								out_str ("done\n");
 								*)
 								(* end debug *)
+								current_input_clauses := simplify_input prover_functions !current_input_clauses;
 								let module InstInput =
 								struct
 									let inst_module_name =
@@ -494,7 +506,7 @@ let full_loop prover_functions input_clauses =
 									
 									(*		    let input_clauses = !current_input_clauses		  *)
 									(*		    let input_clauses = simp_input_clauses	       	*)
-									let input_clauses = input_clauses
+									let input_clauses = !current_input_clauses
 								end in
 								let module InstM = Instantiation.Make (InstInput) in
 								prover_functions.inst_lazy_loop_body <- Def(InstM.lazy_loop_body);
@@ -764,10 +776,12 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 							(out_str ("Time Out after: "
 										^(string_of_int full_loop_counter)
 										^" full_loop iterations\n");
+									let	new_input_clauses = simplify_input prover_functions input_clauses in
+									let new_finite_model_clauses  = simplify_input prover_functions finite_model_clauses in
 								provers_clear_and_remove_all ();
 								(* clear_all_provers prover_functions;*)
 								clear_memory ();
-								schedule_run input_clauses finite_model_clauses tl)
+								schedule_run new_input_clauses new_finite_model_clauses tl)
 					(* One should be careful here,                     *)
 					(* since if Inst.  Satisfiable the model is passed *)
 					(* and resolution empty clause, proof  is passed, clearing provers should not *)

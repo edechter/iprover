@@ -45,12 +45,27 @@ struct
 	let inst_module_name = InputM.inst_module_name
 	let input_clauses = InputM.input_clauses
 	
+	let input_clauses_context = 
+		let cc = context_create (List.length input_clauses) 
+		in
+		List.iter (fun clause -> ignore (context_add cc clause)) input_clauses;
+		cc 
+		
+	(* replace with watched later *)
+  let simplified_input = context_create (List.length input_clauses)
+	
+	let record_simplified clause  = 
+		if (context_mem input_clauses_context clause) 
+		then 
+		  ignore (context_add simplified_input clause) 	
+  	else 
+			()
+		
 	let _ = clear_res_stat ()
 	
 	let compressed_subsumtion_index_flag = ref true
-	
-	(*let init_clause_list_ref = Parsed_input_to_db.clause_list_ref*)
-	
+
+	(*let init_clause_list_ref = Parsed_input_to_db.clause_list_ref*)	
 	(* all clauses put into this context *)
 	
 	(* *)
@@ -245,7 +260,14 @@ struct
 	
 	let is_tautology clause =
 		let lit_list = Clause.get_literals clause in
-		coml_in_list lit_list
+		if (coml_in_list lit_list) 
+		then
+			(Clause.assign_replaced_by (Def(Clause.RB_tautology_elim)) clause; 
+			record_simplified clause;		
+			true
+			)
+		else 
+			false
 	
 	(*-----------------Unification Index------------------------------------*)
 	
@@ -391,6 +413,8 @@ struct
 		try
 			let by_clause = SubsetSubsume.is_subsumed clause !(ss_index_ref) in
 			Clause.set_ps_simplifying true by_clause;
+			Clause.assign_replaced_by (Def(Clause.RB_subsumption (by_clause))) clause; 
+			record_simplified clause;
 			true
 		with
 			Not_found ->
@@ -451,7 +475,12 @@ struct
 			(if not (subsumed_clauses = [])
 				then
 					((*out_str ("Is simpl"^(Clause.to_string main_clause)^"\n"); *)
-						Clause.set_ps_simplifying true main_clause)
+						Clause.set_ps_simplifying true main_clause;
+						List.iter
+						 (fun c -> 
+							Clause.assign_replaced_by (Def(Clause.RB_subsumption (main_clause))) c; 
+							record_simplified c) subsumed_clauses; 
+						)
 				else ());
 			ss_index_ref := SubsetSubsume.remove_subsumed main_clause !ss_index_ref;
 		with
@@ -588,7 +617,8 @@ struct
 			(
 				let tstp_source = Clause.tstp_source_forward_subsumption_resolution clause (!subs_by_list_ref) in
 				let new_clause = create_clause tstp_source new_lits in
-				clause_register_subsumed_by ~by: (new_clause) clause;
+				clause_register_subsumed_by ~by:new_clause clause;
+				record_simplified clause;
 				(* Clause.inherit_param_modif clause new_clause;
 				Clause.set_bool_param true Clause.res_simplifying new_clause;*)
 				(* Clause.assign_forward_subsumption_resolution_history
@@ -616,6 +646,7 @@ struct
 				(
 					incr_int_stat 1 res_forward_subsumed;
 					clause_register_subsumed_by ~by: by_cl clause;
+					record_simplified clause;
 					(*  Clause.set_bool_param true Clause.res_simplifying by_cl;*)
 					(* we can eliminate since subs. is proper since light simplifications *)
 					eliminate_clause clause;
@@ -655,6 +686,8 @@ struct
 					if (not (new_clause == clause))
 					then
 						(eliminate_clause clause;
+						clause_register_subsumed_by ~by:new_clause clause;
+						record_simplified clause;
 							preprocess_new_clause new_clause
 						)
 					else clause
@@ -692,6 +725,7 @@ struct
 			let tstp_source = Clause.tstp_source_backward_subsumption_resolution [given_clause; subsumed] in
 			let new_clause = create_clause tstp_source new_lits in
 			clause_register_subsumed_by ~by: new_clause subsumed;
+			record_simplified subsumed;
 			eliminate_clause subsumed;
 			(* Clause.inherit_param_modif subsumed new_clause;*)
 			
@@ -757,6 +791,7 @@ struct
 			(
 				List.iter (fun subsumed ->
 								clause_register_subsumed_by ~by: clause subsumed;
+								record_simplified subsumed;
 								eliminate_clause subsumed
 					) b_subsumed_list;
 				incr_int_stat (List.length b_subsumed_list) res_backward_subsumed

@@ -17,6 +17,8 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 open Lib
 open Hashcons
 open Options
+open Statistics
+
 (* do not use Logic_interface since it uses this module *)
 
 module VSet = Var.VSet
@@ -212,6 +214,8 @@ and replaced_by =
 	| RB_subsumption of clause
 	| RB_sub_typing of clause
 	| RB_splitting of clause list
+	| RB_tautology_elim
+	| RB_orphan_elim of clause (* is not used as for replacements at the moment *)
 
 (*-------tstp_source-----------*)
 (*
@@ -1920,30 +1924,51 @@ let context_add_context from_cxt to_cxt =
 *)
 
 (* returns clause list with which c was replaced *)
+(* returns Undef if the clause should be kept as it is *)
 let get_replaced_by_clauses c =
 	match c.replaced_by
 	with
-	| Def(RB_subsumption by_clause) -> [by_clause]
-	| Def(RB_sub_typing by_clause) -> [by_clause]
-	| Def(RB_splitting by_clause_list) -> by_clause_list
-	| Undef -> []
+	| Def(RB_subsumption by_clause) -> Def([by_clause])
+	| Def(RB_sub_typing by_clause) -> Def([by_clause])
+	| Def(RB_splitting by_clause_list) -> Def(by_clause_list)
+	| Def(RB_tautology_elim) -> Def([])
+	| Def(RB_orphan_elim _) -> Undef (* do not replace clause if it is dead because of orphan elimination *)
+	| Undef -> Undef
 
 (* add assert of non-cyclicity check *)
 let get_replaced_by_rec clause_list =
-	let rec f to_process rep_by =
+	let rec f to_process keep_as_is =
 		match to_process with
 		| h:: tl ->
-				(let h_rep_by = (get_replaced_by_clauses h) in
-					f tl (h_rep_by@rep_by)
+				(
+					match get_replaced_by_clauses h with
+					| Def rep_c_by_list -> 
+						let new_to_process = rep_c_by_list@tl in
+						f new_to_process keep_as_is
+					| Undef -> 	
+						let new_keep_as_is = h::keep_as_is in 
+						f tl 	new_keep_as_is
 				)
-		|	[] -> rep_by
+		|	[] -> keep_as_is
 	in
 	f clause_list	[]
 
 (* replaces dead clauses with replaced *)
-let context_replace_by cc =
-	let f c =
-		
+let context_replace_by context c =
+  try
+		let replaced_by = get_replaced_by_rec [(context_find context c)] 
+		in 
+		incr_int_stat 1 simp_replaced_by;
+		List.map copy_clause replaced_by 
+	with 
+  Not_found -> [c]
+		  
+let context_replace_by_clist context clist = 
+	List.fold_left (fun rest c ->  (context_replace_by context c)@rest) [] clist
+	
+
+						
+(*	let f c =
 		let rep_by = get_replaced_by_rec [c] in
 		if (rep_by = [])
 		then ()
@@ -1953,6 +1978,7 @@ let context_replace_by cc =
 			)
 	in
 	context_iter cc f
+*)
 
 (* a diferent version prossible to merge from smaller to larger
 let merge_context from_cxt to_contxt =
@@ -2488,9 +2514,11 @@ let pp_term_list ppf t_list =
 
 let pp_replaced_by ppf rb =
 	match rb with
-	| RB_subsumption c -> fprintf ppf "%a" pp_clause_name c
-	| RB_sub_typing c -> fprintf ppf "%a" pp_clause_name c
-	| RB_splitting c_list -> pp_clause_name_list ppf c_list
+	| RB_subsumption c -> fprintf ppf "RB_subsumption(%a)" pp_clause_name c
+	| RB_sub_typing c -> fprintf ppf "RB_sub_typing(%a)" pp_clause_name c
+	| RB_splitting c_list ->fprintf ppf "RB_splitting(%a)" pp_clause_name_list c_list
+  | RB_tautology_elim -> fprintf ppf "RB_tautology_elim"
+	| RB_orphan_elim c -> fprintf ppf "RB_orphan_elim(%a)" pp_clause_name c
 
 let pp_fun f ppf a =
 	try

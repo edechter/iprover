@@ -130,6 +130,6 @@ val context_size : context -> int
 (* context_add_context from_cxt to_cxt *)
 val context_add_context : context -> context -> unit
 (** replaces dead with simplified_by *)
-val context_replace_by : context -> unit
+val context_replace_by : context -> clause -> clause list
 	
 		
