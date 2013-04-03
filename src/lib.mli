@@ -68,6 +68,9 @@ val get_last_pair_from_triple_list : 'a list -> 'a * 'a
 exception Empty_list
 val split_list : 'a list -> 'a * ('a list) 
 
+(* adds element to a list reference *)
+val add_list_ref: 'a list ref ->  'a -> unit
+
 (* does nothing *)
 val clear_memory : unit -> unit 
 

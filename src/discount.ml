@@ -44,16 +44,15 @@ module Make (InputM: InputM) =
 struct
 	let inst_module_name = InputM.inst_module_name
 	let input_clauses = InputM.input_clauses
+	let is_usable = ref true
 	
-	let input_clauses_context = 
-		let cc = context_create (List.length input_clauses) 
-		in
-		List.iter (fun clause -> ignore (context_add cc clause)) input_clauses;
-		ref cc 
-		
+	let input_clauses_context = ref (context_create (List.length input_clauses)) 
+	
 	(* replace with watched later *)
   let simplified_input = ref (context_create (List.length input_clauses))
-	
+	let prep_input = ref (context_create (List.length input_clauses))
+ 
+		
 	let record_simplified clause  = 
 		if (context_mem !input_clauses_context clause) 
 		then 
@@ -87,7 +86,7 @@ struct
 	
 	let context = ref (res_context_create ())
 	
-	let res_context_reset () = context := res_context_create ()
+	let res_context_reset () = context := context_create 1
 	
 	let () = assign_fun_stat
 			(fun () -> context_size !context) res_num_of_clauses
@@ -1455,6 +1454,7 @@ struct
 	(*-----------------------Adaptive Selection Loop Body----------------------*)
 	
 	let rec discount_change_sel_loop_body () =
+		assert !is_usable;
 		incr_int_stat 1 res_num_of_loops;
 		try
 		(* let clause = PassiveQueue.maximum !(passive_queue_ref) in
@@ -1561,6 +1561,77 @@ struct
 	Gc.finalise f tmp_cl *)
 	*)
 	
+	(*
+	(*-------------------Preprocessing only--------------------------*)
+	
+	let rec res_prep () =
+		try
+		while true
+		do
+		begin
+		incr_int_stat 1 res_num_of_loops;
+		try
+		(* let clause = PassiveQueue.maximum !(passive_queue_ref) in
+		passive_queue_ref := PassiveQueue.remove !(passive_queue_ref);*)
+			let clause = remove_from_passive () in
+		(*	out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n"); *)
+			
+			if (Clause.get_is_dead clause)
+			then ()  (* (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");) *)
+			else
+				(
+					let given_clause =
+						(
+								let (feature_list, given_clause) = all_simplifications clause in
+								add_to_subsumption_index feature_list given_clause;
+								(* prop solver exchange with instantiation *)
+								add_active_to_exchange given_clause;
+								given_clause
+							)
+													
+					in
+					(
+					(*	out_str ("Clause for inf: "^(Clause.to_string clause_for_inferences)^"\n"); *)
+				(*	
+					let selected_lits =
+						(try (Clause.get_res_sel_lits clause_for_inferences)
+						with Clause.Res_sel_lits_undef ->
+								failwith
+									"discount_change_sel_loop_body: sel lit should be def. here \n ")
+					in
+					add_to_unif_index clause_for_inferences selected_lits;
+					Clause.set_ps_in_active true clause_for_inferences;
+					*)
+					incr_int_stat 1 res_num_in_active;
+					prep_input
+				(*	out_str ("given_clause: "^(Clause.to_string clause_for_inferences)
+							^" selected lit: "
+							^(Term.term_list_to_string selected_lits));
+				*)
+				)
+				)
+		
+		(* out_str_debug
+		("\n In Active: "^(Clause.to_string given_clause)) *)
+		(* else () *)
+		
+		with
+		
+		| Eliminated -> ()
+		| Given_clause_is_dead -> ()
+		(* out_str "\n Given_clause_is_dead \n" *)
+	end
+	done 
+	with 	
+		| Passive_Empty -> 
+			()
+	(*		 (* out_str ("Satisfiable context\n\n");
+			context_iter !context (fun c -> out_str ((Clause.to_string c)^"\n")); 
+			*)
+			Prep_finished !prep_context)
+    	)
+	*)
+	*)
 	let init_discount () =
 	(*	out_str "\n init_discount\n"; *)
 		
@@ -1574,7 +1645,8 @@ struct
 			(* replace with replacing dead with implied *)
 			Clause.assign_is_dead false new_clause;
 			Clause.assign_ps_when_born 0 new_clause;
-			(* out_str ("\n Added: "^(Clause.to_string new_clause)^"\n"); *)
+		(*	out_str ("\n Discount Added: \n"^(Clause.to_string new_clause)^"\n"); *)
+			ignore (context_add (!input_clauses_context) new_clause);
 			add_new_clause_to_passive new_clause
 		in
 		List.iter add_input_to_passive input_clauses
@@ -1606,7 +1678,9 @@ struct
 	(* unassigns all structures related to discount and runs GC.full_major*)
 	let clear_all () =
 		
-		(* a trick to keep old value of functional statistics*)
+		is_usable := false;
+
+				(* a trick to keep old value of functional statistics*)
 		(* like number of clauses and number in passive*)
 		
 		let num_in_passive = (get_val_stat_fun res_num_in_passive) in
@@ -1628,11 +1702,12 @@ struct
 		subsumption_index_ref := (SubsumptionIndexM.create ());
 		unif_index_ref := (DiscrTreeM.create ());
 		
-	  context_iter !context Clause.clear_clause; 
+	 (* context_iter !context Clause.clear_clause; *) 
 		res_context_reset ();
  
-    input_clauses_context:= context_create 2;
-		context_iter !simplified_input Clause.clear_clause; 
+
+    input_clauses_context:= context_create 1;
+		(* context_iter !simplified_input Clause.clear_clause; *)
 		simplified_input := context_create 2;
 		
 		(* Memory is cleared separately by Lib.clear_mem ()*)
@@ -1645,6 +1720,9 @@ struct
 	
 	(*-----------------End--------------------------*)
 end
+
+
+
 
 (* -------------------Commented--------------*)
 (*

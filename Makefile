@@ -1,5 +1,6 @@
 # first run './configure' to create Makefile.extras
 # 'make' for standard version
+# make ASSERT=-noassert to switch off asserts which can be more efficient
 # 'make CPP=true' for c++ version of minisat
 # 'make LGL=true' lingeling for solving/for proofs/unsat cores minisat will still be used
 # 'make PicoSAT=true' PicoSAT version
@@ -43,7 +44,8 @@ OCAMLGRAPH_PATH=./ocamlgraph
 CSOLVER=solver
 #CSOLVER=solver_basic
 
-OCAMLFLAGS=-inline 10 -noassert -I obj/ -I util/lib  -I ocamlgraph/
+ASSERT=
+OCAMLFLAGS=-inline 10 $(ASSERT) -I obj/ -I util/lib  -I ocamlgraph/
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
 
@@ -104,8 +106,8 @@ else
 endif
 
 ifeq ($(PROFILE),true)
-  OCAMLFLAGS= -p -I obj/ -I util/lib 
-  C_PROFFLAGS = -p 
+  OCAMLFLAGS= -p -g -I obj/ -I util/lib -I ocamlgraph
+  C_PROFFLAGS = -p -g 
   ADDTONAME=prof
 
 endif

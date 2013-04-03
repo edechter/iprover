@@ -835,8 +835,8 @@ let domain_table = TDomainH.create 101
 let init_domains () =
 	let f flat_pred =
 		let val_type = get_val_pred_type flat_pred in
-	   out_str ("dom pred "^(Symbol.to_string flat_pred)
-		^" domain type: "^(Symbol.to_string val_type)^"\n");		
+	 (*  out_str ("dom pred "^(Symbol.to_string flat_pred)
+		^" domain type: "^(Symbol.to_string val_type)^"\n");		*)
 	 try
 
 			let dom = TDomainH.find domain_table val_type in

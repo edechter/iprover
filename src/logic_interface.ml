@@ -137,6 +137,6 @@ let context_size = Clause.context_size
 let context_add_context = Clause.context_add_context
  
 (** replaces dead with simplified_by *)
-let context_replace_by = Clause.context_replace_by 	
+let context_replace_by_clist = Clause.context_replace_by_clist 	
 		
 

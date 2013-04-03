@@ -99,14 +99,13 @@ let cpp_in_prop_solver = 1 (* user *)
 (* to check wether clause itself in the solver check prop_solver_id *)
 
 let ccp_in_unsat_core = 2 (* user *)
+(* clause was in unsat core in the last proof search run *)
+(* used in bmc1 *)
 
 (* if a clause is added to a solver all its parents should be recursively protected from *)
 (* clearing tstp_source since they can participate in a proof/unsat core *)
 let ccp_solver_protected = 3 (* user *)
 	
-	
-(* clause was in unsat core in the last proof search run *)
-(* used in bmc1 *)
 (*--------proof search bool params --------------------------*)
 (*--------common params for most proof search will be prefixed by ps--*)
 
@@ -1226,7 +1225,7 @@ let pp_clause_literals_tptp ppf clause =
 let pp_clause_tptp ppf clause =
 	Format.fprintf
 		ppf
-		"cnf(c_%d,%s,(%a))."
+		"@[<hov>cnf(c_%d,%s,@,@[<hov>(%a)@]).@]"
 		(* (get_context_id clause) *) (get_fast_key clause)
 		(if (is_negated_conjecture clause)
 			then "negated_conjecture"
@@ -1635,34 +1634,11 @@ let create_clause_raw tstp_source lits =
 	let bc = create_basic_clause lits in
 	new_clause ~is_negated_conjecture: false tstp_source bc
 
-let copy_clause c =
-	let new_fast_key = !clause_global_counter in
-	incr_clause_counter ();
-	let ps_param = create_ps_param () in
-	let new_c =
-		{ c with
-			fast_key = new_fast_key;
-			proof_search_param = Def(ps_param)
-		}
-	in
-	new_c
-	
+
 (* protected for example can be used for proof generation *)	
 let in_prop_solver_protected c =
 	is_some (c.prop_solver_id)
 	
-(* clears tstp_source of the clause should not be used after that     *)
-(* unless it was recoreded in propositional solver for proof purposes *)
-(* improve to replacing creating ps_param, may be define as Def/Undef *)
-let clear_clause c = 
-	if not (is_solver_protected c) 
-	then
-		(
-		c.tstp_source <- Undef;
-		c.replaced_by <- Undef;
-		c.proof_search_param <- Undef (* (create_ps_param ()) *)
-		)
-	else ()	
 
 		
 (*--------------Compare two clauses-------------------*)
@@ -1925,65 +1901,6 @@ let context_add_context from_cxt to_cxt =
 (*
 *)
 
-(* returns clause list with which c was replaced *)
-(* returns Undef if the clause should be kept as it is *)
-let get_replaced_by_clauses c =
-	match c.replaced_by
-	with
-	| Def(RB_subsumption by_clause) -> 
-		(*if (lits_equal by_clause c) 
-		then 
-			Undef
-		else	
-		  ( 
-			Format.printf "\n Clause:\n %a\n" pp_clause c;
-		  Format.printf "\n Subsumed by\n: %a\n" pp_clause by_clause;
-  *)
-	(
-			Def([by_clause])
-	   )
-	| Def(RB_sub_typing by_clause) -> Def([by_clause])
-	| Def(RB_splitting by_clause_list) -> Def(by_clause_list)
-	| Def(RB_tautology_elim) -> Def([])
-	| Def(RB_orphan_elim _) -> Undef (* do not replace clause if it is dead because of orphan elimination *)
-	| Undef -> Undef
-
-(* add assert of non-cyclicity check *)
-let get_replaced_by_rec clause_list =
-	let rec f to_process keep_as_is =
-		match to_process with
-		| h:: tl ->
-				(
-					match get_replaced_by_clauses h with
-					| Def rep_c_by_list -> 
-						let new_to_process = rep_c_by_list@tl in
-						f new_to_process keep_as_is
-					| Undef -> 	
-						let new_keep_as_is = h::keep_as_is in 
-						f tl 	new_keep_as_is
-				)
-		|	[] -> keep_as_is
-	in
-	f clause_list	[]
-
-(* replaces dead clauses with replaced *)
-let context_replace_by context c =
-  try
-		let replaced_by = get_replaced_by_rec [(context_find context c)] 
-		in 
-		incr_int_stat 1 simp_replaced_by;
-  	let repl_by = List.map copy_clause replaced_by in
-	(*	Format.printf "\n Clause:\n %a\n" pp_clause c;
-		Format.printf "\n Replaced by\n: %a\n" pp_clause_list_tptp repl_by;
-		*)
-		repl_by 
-	with 
-  Not_found -> [c]
-		  
-let context_replace_by_clist context clist = 
-	List.fold_left (fun rest c ->  (context_replace_by context c)@rest) [] clist
-	
-
 						
 (*	let f c =
 		let rep_by = get_replaced_by_rec [c] in
@@ -2160,6 +2077,24 @@ let clause_list_signature clause_list =
 
 (*-------------- Hash/Map/Set -------------------------*)
 
+(* first BMap/BSet/BHashtbl where clauses are uniquely defined by literals (basic clauses) *)
+module BKey =
+struct
+	type t = clause
+	let equal = lits_equal
+	let hash c = (bc_get_fast_key (get_bc c))
+	(*	let hash c = hash_sum (get_fast_key c) (get_context_id c)*)
+	let compare = lits_compare 
+end
+
+module BMap = Map.Make(BKey)
+
+module BSet = Set.Make(BKey)
+type bclause_set = BSet.t
+
+module BHashtbl = Hashtbl.Make(BKey)
+
+(* Map/Set/Hashtbl can contain different clauses with the same lits (basic_clauses) *)
 module Key =
 struct
 	type t = clause
@@ -2168,6 +2103,7 @@ struct
 	(*	let hash c = hash_sum (get_fast_key c) (get_context_id c)*)
 	let compare = compare
 end
+
 
 module Map = Map.Make(Key)
 
@@ -2178,6 +2114,8 @@ module Hashtbl = Hashtbl.Make(Key)
 
 let clause_list_to_set clause_list =
 	List.fold_left (fun set cl -> Set.add cl set) Set.empty clause_list
+
+
 
 (*---------------------------------------------------*)
 
@@ -2485,7 +2423,7 @@ let pp_tstp_source global_subsumption_justification_fun clausify_proof clause pp
 				inference_record
 
 (* Print clause with source in TSTP format *)
-let pp_clause_with_source ppf ?(global_subsumption_justification_fun = None) ?(clausify_proof = false) clause =
+let pp_clause_with_source ?(global_subsumption_justification_fun = None) ?(clausify_proof = false)  ppf clause =
 	
 	Format.fprintf
 		ppf
@@ -2495,7 +2433,7 @@ let pp_clause_with_source ppf ?(global_subsumption_justification_fun = None) ?(c
 		(pp_tstp_source global_subsumption_justification_fun clausify_proof clause)
 		(get_tstp_source clause)
 
-let pp_clause_list_with_source ppf ?(global_subsumption_justification_fun = None) ?(clausify_proof = false) clause_list =
+let pp_clause_list_with_source ?(global_subsumption_justification_fun = None) ?(clausify_proof = false)  ppf clause_list =
 	List.iter (pp_clause_with_source ppf ~global_subsumption_justification_fun ~clausify_proof) clause_list
 
 (*-------clause output with all params-----*)
@@ -2650,9 +2588,150 @@ let pp_clause_params param_out_list ppf c =
 	in	
 	fprintf ppf "@[<v>%a@]"
 	pp_param_list param_out_list
+
+(*----------------copy/clear clause--------------------------*)
+
+let copy_clause c =
+	let new_fast_key = !clause_global_counter in
+	incr_clause_counter ();
+	let ps_param = create_ps_param () in
+	let new_c =
+		{ c with
+			fast_key = new_fast_key;
+			proof_search_param = Def(ps_param)
+		}
+	in
+(*
+	(if (c.fast_key = 557) 
+	then 
+		Format.printf "@[%a @]@.@[%a @]@."
+			 (*(pp_clause_with_source ?global_subsumption_justification_fun:None ?clausify_proof:None) clause*)
+			 pp_clause c
+			 (pp_clause_params param_out_list_all) c
+	);
+*)
+	new_c
+
+(*
+		(* clears tstp_source of the clause should not be used after that     *)
+(* unless it was recoreded in propositional solver for proof purposes *)
+(* improve to replacing creating ps_param, may be define as Def/Undef *)
+let clear_clause c = 
+ (*(if (c.fast_key = 557) 
+	then 
+		Format.printf "@[%a @]@.@[%a @]@."
+			 (*(pp_clause_with_source ?global_subsumption_justification_fun:None ?clausify_proof:None) clause*)
+			 pp_clause c
+			 (pp_clause_params param_out_list_all) c
+	);
+ *)
+	if not (is_solver_protected c) 
+	then
+		(
+		c.tstp_source <- Undef;
+		c.replaced_by <- Undef;
+		c.proof_search_param <- Undef (* (create_ps_param ()) *)
+		)
+	else ()	
+	*)  
+
+(*----------------Replaced by-------------------------------------*)
+
+(* returns clause list with which c was replaced *)
+(* returns Undef if the clause should be kept as it is *)
+let get_replaced_by_clauses c =
+	match c.replaced_by
+	with
+	| Def(RB_subsumption by_clause) -> 
+		(*if (lits_equal by_clause c) 
+		then 
+			Undef
+		else	
+		  ( 
+			Format.printf "\n Clause:\n %a\n" pp_clause c;
+		  Format.printf "\n Subsumed by\n: %a\n" pp_clause by_clause;
+  *)
+	(
+			Def([by_clause])
+	   )
+	| Def(RB_sub_typing by_clause) -> Def([by_clause])
+	| Def(RB_splitting by_clause_list) -> Def(by_clause_list)
+	| Def(RB_tautology_elim) -> Def([])
+	| Def(RB_orphan_elim _) -> Undef (* do not replace clause if it is dead because of orphan elimination *)
+	| Undef -> Undef
+
+let refresh_clause clause = 
+			let new_clause = copy_clause clause in
+			(* replace with assert *)    
+			(*assign_is_dead false new_clause; *)
+		(*	(if  (get_is_dead clause) 
+			then 
+			(	
+				Format.printf "@[%a @]@.@[%a @]@."
+			 (*(pp_clause_with_source ?global_subsumption_justification_fun:None ?clausify_proof:None) clause*)
+			 pp_clause clause
+			 (pp_clause_params param_out_list_all) clause;
+			)
+			else ());*)
+			assert (not (get_is_dead clause));  
+			assign_ps_when_born 0 new_clause; 
+			new_clause 
   
 
+(* add assert of non-cyclicity check *)
+let get_replaced_by_rec current_replace_set clause_list =
+	let rec f visited to_process keep_as_is =
+		match to_process with
+		| h:: tl ->
+				(
+					if (BSet.mem h visited) 
+				  then
+					 f visited tl keep_as_is
+					else
+					begin
+						let new_visited = BSet.add h visited in 
+					match get_replaced_by_clauses h with
+					| Def rep_c_by_list -> 
+						let new_to_process = rep_c_by_list@tl in
+						f new_visited new_to_process keep_as_is
+					| Undef -> 	
+						(* let new_keep_as_is = h::keep_as_is in *)
+						let new_h = (refresh_clause h) in
+			(*				Format.printf "Replaced_by: @, %a\n @." pp_clause_tptp new_h;
+          		Format.print_flush ();
+							*)
+						let new_keep_as_is = BSet.add new_h keep_as_is in
+						f new_visited tl new_keep_as_is
+					end					 							
+				)
+		|	[] -> keep_as_is
+	in
+	f BSet.empty clause_list current_replace_set
 
+(* replaces dead clauses with replaced *)
+let context_replace_by context current_replace_set c =
+	try
+		let found_c =  (context_find context c) in
+	(*	Format.print_flush ();
+		Format.printf "Clause: @, %a\n @." pp_clause_tptp found_c;
+		Format.print_flush ();
+		*)
+		let replaced_by = get_replaced_by_rec current_replace_set [found_c] 
+		in 
+		incr_int_stat 1 simp_replaced_by;
+		
+	(*
+		Format.printf "\n Replaced by:\n %a\n@." pp_clause_list_tptp (BSet.elements replaced_by);
+		Format.print_flush ();
+		*)
+		replaced_by
+	with 
+  Not_found -> BSet.add (refresh_clause c)  current_replace_set
+		  
+let context_replace_by_clist context clist = 
+	let replace_set = 
+	List.fold_left (fun rest c ->  (context_replace_by context rest c)) BSet.empty clist in
+	BSet.elements replace_set
 
 
 (*

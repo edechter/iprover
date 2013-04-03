@@ -393,6 +393,7 @@ let split_list l =
   |h::tl -> (h,tl)
   |[] -> raise Empty_list
 
+let add_list_ref l_ref x = l_ref:=x::(!l_ref)
 
 let add_param_str str = 
   param_str_ref := (!param_str_ref)^pref_str^str^"\n"

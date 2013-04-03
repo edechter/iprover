@@ -380,7 +380,7 @@ let simplify_input prover_functions clauses =
  
 (*----------------------Full Loop--------------------------------------*)
 
-let full_loop prover_functions input_clauses =
+let full_loop prover_functions input_clauses_ref =
 	(* let current_input_clauses = ref input_clauses in
 	(* debug *)
 	out_str ("\n Input Clauses: "
@@ -394,7 +394,6 @@ let full_loop prover_functions input_clauses =
 	let resolution_counter = ref 0 in
 	let instantiation_counter = ref 0 in
 	let full_loop_counter = ref 0 in
-	let current_input_clauses = ref input_clauses in
 	while true do
 		(
 			
@@ -414,9 +413,10 @@ let full_loop prover_functions input_clauses =
 					with Timeout ->
 							if (!current_options.instantiation_flag) then
 								( out_str (pref_str^"Switching off resolution: loop timeout \n");
-									!current_options.resolution_flag <- false;
-									current_input_clauses := simplify_input prover_functions !current_input_clauses;
+									!current_options.resolution_flag <- false;								
+									input_clauses_ref := simplify_input prover_functions !input_clauses_ref;
 									apply_fun prover_functions.res_clear_all ();
+									prover_functions.res_simplified_input <- Undef;
 									prover_functions.res_discount_loop_exchange <- Undef;
 									prover_functions.res_clear_all <- Undef;
 									clear_memory ()
@@ -497,7 +497,7 @@ let full_loop prover_functions input_clauses =
 								out_str ("done\n");
 								*)
 								(* end debug *)
-								current_input_clauses := simplify_input prover_functions !current_input_clauses;
+								input_clauses_ref := simplify_input prover_functions !input_clauses_ref;
 								let module InstInput =
 								struct
 									let inst_module_name =
@@ -506,7 +506,7 @@ let full_loop prover_functions input_clauses =
 									
 									(*		    let input_clauses = !current_input_clauses		  *)
 									(*		    let input_clauses = simp_input_clauses	       	*)
-									let input_clauses = !current_input_clauses
+									let input_clauses = !input_clauses_ref
 								end in
 								let module InstM = Instantiation.Make (InstInput) in
 								prover_functions.inst_lazy_loop_body <- Def(InstM.lazy_loop_body);
@@ -549,11 +549,11 @@ let no_input_eq () =
 	false
 (*  (Symbol.get_num_input_occur Symbol.symb_equality) = 0 *)
 
-let finite_models clauses =
+let finite_models input_clauses =
 	!current_options.resolution_flag <- false;
 	let model_bound = 1000 in
 	out_str (pref_str^"Finite Models:\n");
-	let prep_clauses = Preprocess.preprocess clauses in
+	let prep_clauses = Preprocess.preprocess input_clauses in
 	
 	(* out_str ("\n\n DEBUG \n\n");
 	out_str ("\n\n"^pref_str^"Finite Model on Clauses:\n");
@@ -665,7 +665,7 @@ let finite_models clauses =
 			*)
 			
 			let axioms = domain_axioms@dis_eq_axioms in
-			let clauses = axioms@init_clauses in
+		  let clauses_ref = ref (axioms@init_clauses) in
 			(* out_str ("\n-----------------------------\n"
 			^(Clause.clause_list_to_tptp clauses)^"\n");
 			*)
@@ -679,8 +679,8 @@ let finite_models clauses =
 			Prop_solver_exchange.assign_adjoint_preds [new_bound_pred];
 			(*(neg_domain_pred::(!domain_preds));*)
 			bound_preds := new_bound_pred::!bound_preds;
-			let prover_functions = create_provers_current_options clauses in
-			full_loop prover_functions clauses
+			let prover_functions = create_provers_current_options !clauses_ref in
+			full_loop prover_functions clauses_ref
 		with
 		(* |Discount.Unsatisfiable *)
 		| Instantiation.Unsatisfiable
@@ -734,7 +734,7 @@ type schedule = (named_options * time) list
 
 (* setting hard time limit is problematic since the SAT solver can be interrupted*)
 exception Schedule_Terminated
-let rec schedule_run input_clauses finite_model_clauses schedule =
+let rec schedule_run input_clauses_ref finite_model_clauses_ref schedule =
 	
 	match schedule with
 	| (named_options, time_limit) :: tl ->
@@ -743,7 +743,7 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 				((* current_options:= named_options.options; *)
 					set_new_current_options named_options.options;
 					init_sched_time time_limit;
-					finite_models finite_model_clauses)
+					finite_models !finite_model_clauses_ref)
 			else
 				begin
 					(* Moved down to output the actual options
@@ -755,7 +755,7 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 					*)
 					(if not (!current_options.prolific_symb_bound =
 								named_options.options.prolific_symb_bound)
-						then change_prolific_symb_input input_clauses);
+						then change_prolific_symb_input !input_clauses_ref);
 					(* current_options:= named_options.options; *)
 					set_new_current_options named_options.options;
 					print_string ((s_pref_str ())^named_options.options_name
@@ -768,20 +768,22 @@ let rec schedule_run input_clauses finite_model_clauses schedule =
 					out_str ("\n current options: "^(options_to_str !current_options)^"\n");
 					*)
 					init_sched_time time_limit;
-					let prover_functions = create_provers_current_options input_clauses in
+					let prover_functions = create_provers_current_options !input_clauses_ref in
 					(try
-						full_loop prover_functions input_clauses
+						full_loop prover_functions input_clauses_ref
 					with
 						Sched_Time_Out(full_loop_counter) ->
 							(out_str ("Time Out after: "
 										^(string_of_int full_loop_counter)
 										^" full_loop iterations\n");
-									let	new_input_clauses = simplify_input prover_functions input_clauses in
-									let new_finite_model_clauses  = simplify_input prover_functions finite_model_clauses in
+									input_clauses_ref := simplify_input prover_functions !input_clauses_ref;
+									finite_model_clauses_ref  := simplify_input prover_functions !finite_model_clauses_ref;
 								provers_clear_and_remove_all ();
 								(* clear_all_provers prover_functions;*)
 								clear_memory ();
-								schedule_run new_input_clauses new_finite_model_clauses tl)
+								schedule_run input_clauses_ref finite_model_clauses_ref tl
+								
+								)
 					(* One should be careful here,                     *)
 					(* since if Inst.  Satisfiable the model is passed *)
 					(* and resolution empty clause, proof  is passed, clearing provers should not *)
@@ -1231,21 +1233,25 @@ let out_bmc1_unsat_result bmc1_cur_bound =
 
 (* clauses used for finite model finding need not contain eq axioms *)
 
-let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clauses =
+let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_out_clauses =
 	let when_eq_ax_ommitted () =
 		assert !eq_axioms_are_omitted;
 		out_str ("\n"^pref_str^("Adding Equality Axioms\n"));
-		if !current_options.brand_transform then
-			main bmc1_for_pre_inst_cl (Eq_axioms.eq_axioms_flatting clauses) finite_model_clauses filtered_out_clauses
+		if !current_options.brand_transform 
+		then
+		(	clauses_ref:=(Eq_axioms.eq_axioms_flatting !clauses_ref);
+			main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_out_clauses
+			)
 		else
-			let equality_axioms = Eq_axioms.eq_axiom_list clauses in
+			let equality_axioms = Eq_axioms.eq_axiom_list !clauses_ref in
 			List.iter
 				Prop_solver_exchange.add_clause_to_solver equality_axioms;
 			eq_axioms_are_omitted:= false;
 			let perp_eq_axs = Preprocess.preprocess equality_axioms in
-			main bmc1_for_pre_inst_cl (perp_eq_axs@clauses) finite_model_clauses filtered_out_clauses
+			clauses_ref := (perp_eq_axs@(!clauses_ref));
+			main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_out_clauses
 	in
-	let sched_run sched = schedule_run clauses finite_model_clauses sched in
+	let sched_run sched = schedule_run clauses_ref finite_model_clauses_ref sched in
 	(if (not !current_options.instantiation_flag)
 		&& (not !current_options.resolution_flag)
 		then
@@ -1269,7 +1275,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 			then
 				(* we use input clauses rather than clauses + eq axioms*)
 				(* schedule is ignored for pure finite_model_finder *)
-				finite_models finite_model_clauses
+				finite_models !finite_model_clauses_ref
 			else
 				(* usual mode *)
 				begin
@@ -1281,8 +1287,8 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 					| Schedule_verification_epr_tables ->
 							sched_run (verification_epr_schedule_tables ())
 					| Schedule_none ->
-							let prover_functions = create_provers_current_options clauses in
-							full_loop prover_functions clauses
+							let prover_functions = create_provers_current_options !clauses_ref in
+							full_loop prover_functions clauses_ref
 					| Schedule_sat ->
 							sched_run (sat_schedule ())
 				end
@@ -1686,7 +1692,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 				(* Flag all input clauses as not in unsat core *)
 				List.iter
 					(Clause.assign_in_unsat_core false)
-					clauses;
+					!clauses_ref;
 				
 				(* Flag clauses as in unsat core *)
 				List.iter
@@ -1797,14 +1803,14 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 				
 				(* Input clauses for next bound *)
 				let all_clauses =
-					let curr_cls = next_bound_axioms' @ unsat_core_clauses' @ clauses in
+					let curr_cls = next_bound_axioms' @ unsat_core_clauses' @ !clauses_ref in
 					if !current_options.bmc1_pre_inst_state
 					then
 						let to_pre_instantiate = (bmc1_for_pre_inst_cl)@next_bound_axioms' @ unsat_core_clauses' in
 						(*	out_str ("\n\nBefore pre inst \n\n"^(Clause.clause_list_to_string to_pre_instantiate)^"\n\n");*)
 						let pre_inst = Bmc1Axioms.pre_instantiate_state_var_clauses_range !bmc1_cur_bound !bmc1_cur_bound to_pre_instantiate in
 						(*	out_str ("\n\n After pre inst \n\n"^(Clause.clause_list_to_string pre_inst)^"\n\n"); *)
-						let joint_clauses = pre_inst@clauses in
+						let joint_clauses = pre_inst@(!clauses_ref) in
 						if !current_options.bmc1_pre_inst_reach_state
 						then
 							Bmc1Axioms.pre_inst_reachable_state_clauses	!bmc1_cur_bound joint_clauses
@@ -1813,7 +1819,7 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 					else
 						curr_cls
 				in
-				
+				let all_clauses_ref = ref all_clauses in
 				if
 				
 				(* Dump clauses to TPTP format? *)
@@ -1841,8 +1847,8 @@ let rec main bmc1_for_pre_inst_cl clauses finite_model_clauses filtered_out_clau
 				(* Run again for next bound *)
 				main
 					bmc1_for_pre_inst_cl
-					all_clauses
-					finite_model_clauses
+					all_clauses_ref
+					finite_model_clauses_ref
 					filtered_out_clauses
 			)
 
@@ -2519,8 +2525,8 @@ let run_iprover () =
 						raise Prop_solver_exchange.Unsatisfiable);
 			
 			(* Clause.out_clause_list_tptp !current_clauses; *)
-			let finite_models_clauses = !current_clauses_no_eq in
-			main !bmc1_for_pre_inst_cl !current_clauses finite_models_clauses !filtered_out_clauses_ref
+			let finite_models_clauses_ref = current_clauses_no_eq in
+			main !bmc1_for_pre_inst_cl current_clauses finite_models_clauses_ref !filtered_out_clauses_ref
 		end
 	with
 	

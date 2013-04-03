@@ -90,21 +90,21 @@ val normalise_blitlist_list :
 (**--- pretty printing clause ----*)		
 
 val pp_clause_with_source :
-  Format.formatter ->
 			(* function for global justification of global subsumption, default is None, see tstpProof for such function *)
   ?global_subsumption_justification_fun:(int ->
                                          clause -> clause -> clause list)
                                         option ->
 (* default is false *)																											
   ?clausify_proof:bool -> 
+  Format.formatter ->
 	clause -> unit
 
 val pp_clause_list_with_source :
-  Format.formatter ->
   ?global_subsumption_justification_fun:(int ->
                                          clause -> clause -> clause list)
                                         option ->													
   ?clausify_proof:bool -> 
+	Format.formatter ->
 	clause list -> unit
 
 	
@@ -130,6 +130,6 @@ val context_size : context -> int
 (* context_add_context from_cxt to_cxt *)
 val context_add_context : context -> context -> unit
 (** replaces dead with simplified_by *)
-val context_replace_by : context -> clause -> clause list
+val context_replace_by_clist : context -> clause list -> clause list
 	
 		

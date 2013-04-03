@@ -1498,7 +1498,7 @@ let clear_all () =
     (fun () -> num_of_clauses) 
     inst_num_of_clauses;
 
-   context_iter !context Clause.clear_clause; 
+ (* context_iter !context Clause.clear_clause; *)
 	
 (* clear clause db *)
   inst_context_reset ();

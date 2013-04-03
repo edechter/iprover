@@ -225,7 +225,7 @@ val context_size : context -> int
 val context_add_context : context -> context -> unit
 
 (** replaces clausews with replaced_by (recusively) *)
-val context_replace_by : context -> clause -> clause list
+(*val context_replace_by : context -> clause -> clause list*)
 val context_replace_by_clist :  context -> clause list -> clause list
 (*val template_clause : basic_clause -> clause*)
 
@@ -246,7 +246,7 @@ val copy_clause : clause -> clause
 (* clears tstp_source of the clause should not be used after that     *)
 (* unless it was recoreded in propositional solver for proof purposes *)
 
-val clear_clause : clause -> unit
+(*val clear_clause : clause -> unit*)
 
 (*-----*)
 val get_lits : clause -> literal_list
@@ -294,21 +294,22 @@ val pp_clause_tptp : Format.formatter -> clause -> unit
 val pp_clause_list_tptp : Format.formatter -> clause list -> unit
 
 val pp_clause_with_source :
-Format.formatter ->
+
 (* function for global justification of global subsumption, default is None, see tstpProof for such function *)
 ?global_subsumption_justification_fun: (int ->
 clause -> clause -> clause list)
 option ->
 (* default is false *)
 ?clausify_proof: bool ->
+	Format.formatter ->
 clause -> unit
 
 val pp_clause_list_with_source :
-Format.formatter ->
 ?global_subsumption_justification_fun: (int ->
 clause -> clause -> clause list)
 option ->
 ?clausify_proof: bool ->
+	Format.formatter ->
 clause list -> unit
 
 (* output of parameters of a clause *)
@@ -414,7 +415,7 @@ val get_tstp_source : clause -> tstp_source
 val get_replaced_by : clause -> replaced_by Lib.param
 
 (** recursively until non_replaced clauses *)
-val get_replaced_by_rec : clause list -> clause list
+(*val get_replaced_by_rec : clause list -> clause list*)
 
 val assign_replaced_by : replaced_by Lib.param -> clause -> unit
 
