@@ -170,6 +170,12 @@ let simp_replaced_by =
    value = 0;
  }
 
+let res_preprocessed =
+	 {
+   int_entry_name  = "res_preprocessed";
+   value = 0;
+ }
+
    
 let forced_gc_time = 
   {
@@ -586,6 +592,7 @@ let gen_int_stat_list =
    sat_num_of_epr_types;
 	 sat_num_of_non_cyclic_types;
 	 simp_replaced_by;
+	 res_preprocessed;
    forced_gc_time;
  ]
 

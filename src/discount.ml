@@ -31,18 +31,22 @@ exception DontKnow
 
 module type InputM =
 sig
-	val inst_module_name : string
+	val res_module_name : string
 	(* we assume that input clauses are normalised with terms in *)
 	(* Parsed_input_to_db.term_db_ref *)
 	(* clauses are copied, but terms are not some paremters of terms such as *)
 	(* inst_in_unif_index can be changed *)
 	(* one should run clear_all () which also clears term parameters *)
 	val input_clauses : clause list
+	
+	(* this insance is used only for res_preprocessing clauses *)
+	val is_res_prepocessing : bool
+	
 end
 
 module Make (InputM: InputM) =
 struct
-	let inst_module_name = InputM.inst_module_name
+	let res_module_name = InputM.res_module_name
 	let input_clauses = InputM.input_clauses
 	let is_usable = ref true
 	
@@ -52,6 +56,7 @@ struct
   let simplified_input = ref (context_create (List.length input_clauses))
 	let prep_input = ref (context_create (List.length input_clauses))
  
+  let is_res_prepocessing = InputM.is_res_prepocessing
 		
 	let record_simplified clause  = 
 		if (context_mem !input_clauses_context clause) 
@@ -554,7 +559,7 @@ struct
 		Clause.set_bool_param true Clause.in_passive added_clause;*)
 		(* one might also add to full subsumption index*)
 		with
-			Eliminated -> ()
+			Eliminated -> (if is_res_prepocessing then (incr_int_stat 1 res_preprocessed))
 	
 	(*
 	let add_inst_exchange_clause_to_passive clause =
@@ -1561,7 +1566,7 @@ struct
 	Gc.finalise f tmp_cl *)
 	*)
 	
-	(*
+	
 	(*-------------------Preprocessing only--------------------------*)
 	
 	let rec res_prep () =
@@ -1577,10 +1582,10 @@ struct
 		(*	out_str ("Discount: removed form passive: "^(Clause.to_string clause)^"\n"); *)
 			
 			if (Clause.get_is_dead clause)
-			then ()  (* (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");) *)
+			then (incr_int_stat 1 res_preprocessed;)  (* (out_str ("is dead or in active"^(Clause.to_string clause)^"\n");) *)
 			else
 				(
-					let given_clause =
+					let _given_clause =
 						(
 								let (feature_list, given_clause) = all_simplifications clause in
 								add_to_subsumption_index feature_list given_clause;
@@ -1603,35 +1608,53 @@ struct
 					Clause.set_ps_in_active true clause_for_inferences;
 					*)
 					incr_int_stat 1 res_num_in_active;
-					prep_input
+					(*add_list_ref prep_input given_clause; *)
 				(*	out_str ("given_clause: "^(Clause.to_string clause_for_inferences)
 							^" selected lit: "
-							^(Term.term_list_to_string selected_lits));
+							^(Term.term_list_to_string selected_lits));			
 				*)
 				)
-				)
-		
+		)
 		(* out_str_debug
 		("\n In Active: "^(Clause.to_string given_clause)) *)
 		(* else () *)
 		
 		with
 		
-		| Eliminated -> ()
-		| Given_clause_is_dead -> ()
+		| Eliminated -> (incr_int_stat 1 res_preprocessed)
+		| Given_clause_is_dead -> (incr_int_stat 1 res_preprocessed)
 		(* out_str "\n Given_clause_is_dead \n" *)
 	end
-	done 
+	done;
+	failwith "res_prep: should not happen" 
 	with 	
 		| Passive_Empty -> 
-			()
+			(
+				context_fold 
+				!context 
+				(fun c rest ->
+					if (not (Clause.get_is_dead c)) 
+					then 
+					  ((Clause.copy_clause c)::rest)
+					else
+						(
+						incr_int_stat 1 res_preprocessed;
+						rest			
+						)	
+				 )
+				[]
+			)
+				
+				
 	(*		 (* out_str ("Satisfiable context\n\n");
 			context_iter !context (fun c -> out_str ((Clause.to_string c)^"\n")); 
 			*)
 			Prep_finished !prep_context)
     	)
 	*)
-	*)
+	
+	
+
 	let init_discount () =
 	(*	out_str "\n init_discount\n"; *)
 		

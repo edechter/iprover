@@ -2601,6 +2601,8 @@ let copy_clause c =
 			proof_search_param = Def(ps_param)
 		}
 	in
+	assign_ps_when_born (get_ps_when_born c) new_c;
+	
 (*
 	(if (c.fast_key = 557) 
 	then 

@@ -129,7 +129,51 @@ let pred_to_fun_clause pred_to_fun_htbl clause =
   (* Clause.assign_non_eq_to_eq_history new_clause clause; *)
   
   new_clause
-      
+
+(* *)
+let res_prep_options () = 
+	{!current_options
+	with 
+	(*----Resolution---------*)
+	resolution_flag = true;
+	
+	res_prop_simpl_new = true;
+	res_prop_simpl_given = true;
+	(*switch between simpl and priority queues*)
+	(* TO DO  Queues options like in Inst. *)
+	res_passive_queue_flag = true;
+	res_pass_queue1 = [Cl_Num_of_Lits false; Cl_Num_of_Symb false];
+	res_pass_queue2 = [Cl_Num_of_Lits false; Cl_Num_of_Symb false];
+	res_pass_queue1_mult = 150;
+	res_pass_queue2_mult = 150;
+	
+	res_forward_subs = Subs_Full;
+	res_backward_subs = Subs_Full;
+	res_forward_subs_resolution = true;
+	(*  res_forward_subs_resolution    = true; exp later for sat *)
+	(* res_backward_subs_resolution   = false; *)
+	res_backward_subs_resolution = true;
+	res_time_limit = 60.0;
+	}
+	
+	
+let res_prep clause_list = 
+	let old_options = !current_options in 
+	current_options := res_prep_options ();
+	let module ResInput =
+	    struct
+				let res_module_name = "Res prep"
+				let input_clauses = clause_list
+				let is_res_prepocessing = true 
+			end 
+	 in
+			let module ResM = Discount.Make (ResInput) in
+			let new_clauses = ResM.res_prep () in 
+			ResM.clear_all ();
+			current_options := old_options;
+			new_clauses
+			
+			    
 let preprocess clause_list =
   let current_list = ref clause_list in
   (if !current_options.non_eq_to_eq 
@@ -144,6 +188,7 @@ let preprocess clause_list =
  (if  !current_options.prep_gs_sim 
  then current_list := prop_simp !current_list
  else ());  
+ current_list := res_prep clause_list;
  (match !current_options.ground_splitting with
   |Split_Input |Split_Full ->    
       let split_result = 

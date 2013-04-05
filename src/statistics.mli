@@ -50,6 +50,7 @@ val num_of_subtypes : stat_int_entry
 val sat_num_of_epr_types : stat_int_entry
 val sat_num_of_non_cyclic_types : stat_int_entry
 val simp_replaced_by : stat_int_entry
+val res_preprocessed : stat_int_entry
 
 
 val parsing_time         : stat_float_entry 

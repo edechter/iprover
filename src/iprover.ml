@@ -353,8 +353,9 @@ let create_provers ~inst_name_param ~res_name_param input_clauses =
 	
 			let module ResInput =
 			struct
-				let inst_module_name = res_name
+				let res_module_name = res_name
 				let input_clauses = input_clauses
+				let is_res_prepocessing = false
 			end in
 			let module ResM = Discount.Make (ResInput) in
 			prover_functions.res_discount_loop_exchange <- Def(ResM.discount_loop_exchange);
@@ -1099,15 +1100,15 @@ let dynamic_sched_5 () =
 			strip_conj_schedule
 			(schedule_to_many_axioms_schedule (init_schedule5_no_res_last ()))
 			*)
-			
+			(*
 				strip_conj_schedule
 				(schedule_to_many_axioms_schedule (init_schedule5 ()))
-	
+	*)
 			(* -2012: init_schedule5_inst_first () *)
-		(*	
+			
 			strip_conj_schedule
 				(schedule_to_many_axioms_schedule (init_schedule5_inst_first ()))
-			*)
+			
 		)
 
 let default_schedule () =

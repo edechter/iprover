@@ -27,13 +27,16 @@ exception Satisfiable of context
 
 module type InputM = 
   sig
-    val inst_module_name : string
+    val res_module_name : string
 (* we assume that input clauses are normalised with terms in *)
 (* Parsed_input_to_db.term_db_ref *)
 (* clauses are copied, but terms are not some paremters of terms such as *)
 (* inst_in_unif_index can be changed *)
 (* one should run clear_all () which also clears term parameters *)
     val input_clauses    : clause list
+		
+(* this insance is used only for preprocessing clauses *)		
+		val is_res_prepocessing : bool
   end
 
 
@@ -75,6 +78,7 @@ val add_new_clause_to_passive  : clause -> unit
 
 val simplified_input : context ref
 
+val res_prep: unit -> clause list
 
 (* unassigns all structures related to discount and runs GC.full_major*)
 val clear_all                  : unit -> unit
