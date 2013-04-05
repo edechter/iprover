@@ -609,6 +609,7 @@ type options = {
 	mutable ground_splitting : ground_splitting_type;
 	mutable non_eq_to_eq : bool;
 	mutable prep_gs_sim : bool;
+	mutable prep_res_sim : bool;
 	mutable symbol_type_check : bool;
 	mutable clausify_out : bool;
 	mutable prep_sem_filter : prep_sem_filter_type;
@@ -724,6 +725,7 @@ let default_options () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = false;
 	clausify_out = false;
 	(*  prep_sem_filter         = Sem_Filter_None;*)
@@ -1180,6 +1182,17 @@ let prep_gs_sim_fun b =
 let prep_gs_sim_inf =
 	bool_str^
 	inf_pref^"simplify input first-order clauses using propositional solver by global subsumption\n"
+
+(*--------*)
+let prep_res_sim_str = "--prep_res_sim" 
+let prep_res_sim_fun b = 
+  !current_options.prep_res_sim <- b
+	
+let prep_res_sim_inf =
+	bool_str^
+	inf_pref^"preprocess simplification using resolution type simplifications such as subsumtion, subsumption resolution, etc."
+ 
+
 
 (*--------*)
 let symbol_type_check_str = "--symbol_type_check"
@@ -2202,6 +2215,7 @@ let spec_list =
 	(ground_splitting_str, Arg.String(ground_splitting_fun), ground_splitting_inf);
 	(non_eq_to_eq_str, Arg.Bool(non_eq_to_eq_fun), non_eq_to_eq_inf);
 	(prep_gs_sim_str, Arg.Bool(prep_gs_sim_fun), prep_gs_sim_inf);
+	(prep_res_sim_str, Arg.Bool(prep_res_sim_fun), prep_res_sim_inf);
 	(symbol_type_check_str, Arg.Bool(symbol_type_check_fun), symbol_type_check_inf);
 	(clausify_out_str, Arg.Bool(clausify_out_fun), clausify_out_inf);
 	(prep_sem_filter_str, Arg.String(prep_sem_filter_fun), prep_sem_filter_inf);
@@ -2412,6 +2426,7 @@ let general_options_str_list opt =
 	(ground_splitting_str, (ground_splitting_type_to_str opt.ground_splitting));
 	(non_eq_to_eq_str, (string_of_bool opt.non_eq_to_eq));
 	(prep_gs_sim_str, (string_of_bool opt.prep_gs_sim));
+	(prep_res_sim_str, (string_of_bool opt.prep_res_sim)); 
 	(symbol_type_check_str, (string_of_bool opt.symbol_type_check));
 	(clausify_out_str, (string_of_bool opt.clausify_out));
 	(large_theory_mode_str, (string_of_bool opt.large_theory_mode));
@@ -2591,6 +2606,7 @@ let prop_solver_is_on () =
 	!current_options.res_prop_simpl_new ||
 	!current_options.res_prop_simpl_given ||
 	!current_options.prep_gs_sim ||
+	!current_options.prep_res_sim ||
 	(match !current_options.res_to_prop_solver with
 			Res_to_Solver_Active | Res_to_Solver_Passive -> true
 		| Res_to_Solver_None -> false)
@@ -2868,6 +2884,7 @@ let option_1 () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	large_theory_mode = true;
@@ -3044,6 +3061,7 @@ let option_2 () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3188,6 +3206,7 @@ let option_3 () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3327,6 +3346,7 @@ let option_4 () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3471,6 +3491,7 @@ let option_finite_models () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3614,6 +3635,7 @@ let option_epr_non_horn () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3872,6 +3894,7 @@ let option_epr_horn () = {
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
+	prep_res_sim = true;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -4129,6 +4152,7 @@ let option_verification_epr ver_epr_opt =
 				ground_splitting = Split_Input;
 				non_eq_to_eq = false;
 				prep_gs_sim = true;
+				prep_res_sim = true;
 				symbol_type_check = !current_options.symbol_type_check;
 				clausify_out = false;
 				
@@ -4278,6 +4302,7 @@ let option_verification_epr ver_epr_opt =
 				ground_splitting = Split_Off;
 				non_eq_to_eq = false;
 				prep_gs_sim = true;
+				prep_res_sim = true;
 				symbol_type_check = !current_options.symbol_type_check;
 				clausify_out = false;
 				
@@ -4438,6 +4463,7 @@ let option_verification_epr ver_epr_opt =
 				ground_splitting = Split_Input;
 				non_eq_to_eq = false;
 				prep_gs_sim = true;
+				prep_res_sim = true;
 				symbol_type_check = !current_options.symbol_type_check;
 				clausify_out = false;
 				
