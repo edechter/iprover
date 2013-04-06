@@ -374,11 +374,15 @@ let create_provers_current_options input_clauses =
 	  input_clauses
 	
 let simplify_input prover_functions clauses =
+	if !current_options.res_sim_input
+	then
 	match	prover_functions.res_simplified_input with 
 	| Def (simplified_input) -> 
 		Clause.context_replace_by_clist simplified_input clauses
  |Undef -> clauses
- 
+ else 
+	 clauses 
+	
 (*----------------------Full Loop--------------------------------------*)
 
 let full_loop prover_functions input_clauses_ref =

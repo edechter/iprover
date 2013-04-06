@@ -610,6 +610,7 @@ type options = {
 	mutable non_eq_to_eq : bool;
 	mutable prep_gs_sim : bool;
 	mutable prep_res_sim : bool;
+	mutable res_sim_input : bool;
 	mutable symbol_type_check : bool;
 	mutable clausify_out : bool;
 	mutable prep_sem_filter : prep_sem_filter_type;
@@ -726,6 +727,7 @@ let default_options () = {
 	non_eq_to_eq = false;
 	prep_gs_sim = true;
 	prep_res_sim = true;
+	res_sim_input = true;
 	symbol_type_check = false;
 	clausify_out = false;
 	(*  prep_sem_filter         = Sem_Filter_None;*)
@@ -1185,13 +1187,23 @@ let prep_gs_sim_inf =
 
 (*--------*)
 let prep_res_sim_str = "--prep_res_sim" 
+
 let prep_res_sim_fun b = 
   !current_options.prep_res_sim <- b
 	
 let prep_res_sim_inf =
 	bool_str^
-	inf_pref^"preprocess simplification using resolution type simplifications such as subsumtion, subsumption resolution, etc."
+	inf_pref^"preprocess simplification using resolution type simplifications such as subsumtion, subsumption resolution, etc.\n"
  
+(*--------*)
+let res_sim_input_str = "--res_sim_input"
+
+let res_sim_input_fun b = 
+	!current_options.res_sim_input <- b
+	
+let res_sim_input_inf =
+	bool_str^
+	inf_pref^"after a reseolution run, simplify input clauses for the next iterations of inst/res\n"
 
 
 (*--------*)
@@ -2216,6 +2228,7 @@ let spec_list =
 	(non_eq_to_eq_str, Arg.Bool(non_eq_to_eq_fun), non_eq_to_eq_inf);
 	(prep_gs_sim_str, Arg.Bool(prep_gs_sim_fun), prep_gs_sim_inf);
 	(prep_res_sim_str, Arg.Bool(prep_res_sim_fun), prep_res_sim_inf);
+	(res_sim_input_str, Arg.Bool(res_sim_input_fun), res_sim_input_inf);
 	(symbol_type_check_str, Arg.Bool(symbol_type_check_fun), symbol_type_check_inf);
 	(clausify_out_str, Arg.Bool(clausify_out_fun), clausify_out_inf);
 	(prep_sem_filter_str, Arg.String(prep_sem_filter_fun), prep_sem_filter_inf);
@@ -2427,6 +2440,7 @@ let general_options_str_list opt =
 	(non_eq_to_eq_str, (string_of_bool opt.non_eq_to_eq));
 	(prep_gs_sim_str, (string_of_bool opt.prep_gs_sim));
 	(prep_res_sim_str, (string_of_bool opt.prep_res_sim)); 
+	(res_sim_input_str, (string_of_bool opt.res_sim_input));
 	(symbol_type_check_str, (string_of_bool opt.symbol_type_check));
 	(clausify_out_str, (string_of_bool opt.clausify_out));
 	(large_theory_mode_str, (string_of_bool opt.large_theory_mode));
@@ -2883,8 +2897,9 @@ let option_1 () = {
 	schedule = !current_options.schedule;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	large_theory_mode = true;
@@ -3060,8 +3075,9 @@ let option_2 () = {
 	schedule = !current_options.schedule;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3205,8 +3221,9 @@ let option_3 () = {
 	schedule = !current_options.schedule;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3345,8 +3362,9 @@ let option_4 () = {
 	schedule = !current_options.schedule;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3490,8 +3508,9 @@ let option_finite_models () = {
 	schedule = Schedule_none;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3634,8 +3653,9 @@ let option_epr_non_horn () = {
 	schedule = !current_options.schedule;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -3893,8 +3913,9 @@ let option_epr_horn () = {
 	schedule = !current_options.schedule;
 	ground_splitting = Split_Input;
 	non_eq_to_eq = false;
-	prep_gs_sim = true;
-	prep_res_sim = true;
+	prep_gs_sim = !current_options.prep_gs_sim;
+	prep_res_sim = !current_options.prep_res_sim;
+	res_sim_input = !current_options.res_sim_input;
 	symbol_type_check = !current_options.symbol_type_check;
 	clausify_out = false;
 	
@@ -4151,8 +4172,9 @@ let option_verification_epr ver_epr_opt =
 				schedule = !current_options.schedule;
 				ground_splitting = Split_Input;
 				non_eq_to_eq = false;
-				prep_gs_sim = true;
-				prep_res_sim = true;
+				prep_gs_sim = !current_options.prep_gs_sim;
+				prep_res_sim = !current_options.prep_res_sim;
+				res_sim_input = !current_options.res_sim_input;
 				symbol_type_check = !current_options.symbol_type_check;
 				clausify_out = false;
 				
@@ -4301,8 +4323,9 @@ let option_verification_epr ver_epr_opt =
 				schedule = !current_options.schedule;
 				ground_splitting = Split_Off;
 				non_eq_to_eq = false;
-				prep_gs_sim = true;
-				prep_res_sim = true;
+				prep_gs_sim = !current_options.prep_gs_sim;
+				prep_res_sim = !current_options.prep_res_sim;
+				res_sim_input = !current_options.res_sim_input;
 				symbol_type_check = !current_options.symbol_type_check;
 				clausify_out = false;
 				
@@ -4462,8 +4485,9 @@ let option_verification_epr ver_epr_opt =
 				schedule = !current_options.schedule;
 				ground_splitting = Split_Input;
 				non_eq_to_eq = false;
-				prep_gs_sim = true;
-				prep_res_sim = true;
+				prep_gs_sim = !current_options.prep_gs_sim;
+				prep_res_sim = !current_options.prep_res_sim;
+				res_sim_input = !current_options.res_sim_input;
 				symbol_type_check = !current_options.symbol_type_check;
 				clausify_out = false;
 				

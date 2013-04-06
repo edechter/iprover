@@ -179,6 +179,7 @@ type options = {
     mutable non_eq_to_eq          : bool;
     mutable prep_gs_sim           : bool;
 		mutable prep_res_sim          : bool;
+		mutable res_sim_input         : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
     mutable prep_sem_filter       : prep_sem_filter_type;

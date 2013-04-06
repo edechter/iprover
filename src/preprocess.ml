@@ -192,7 +192,7 @@ let preprocess clause_list =
  (if !current_options.prep_res_sim 
  then
   current_list := res_prep !current_list
-	else ()
+ else ()
 	);
  (match !current_options.ground_splitting with
   |Split_Input |Split_Full ->    
