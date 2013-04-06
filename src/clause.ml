@@ -277,6 +277,11 @@ and tstp_source =
 	| TSTP_inference_record of tstp_inference_record
 
 (*--------------Consing hash tables--------------------------*)
+
+
+(* replaced with Weak*)
+
+(*
 module BClause_Node_Key =
 struct
 	type t = lits
@@ -296,9 +301,34 @@ struct
 	*)
 end
 
-module BC_Htbl = Hashtbl.Make(BClause_Node_Key)
+module BC_Htbl = Hashtbl.Make(BClause_Node_Key) 
+*) 
 
-let bc_clause_db = BC_Htbl.create 50821 (* medium large prime number *)
+let bc_get_lits bc = bc.lits 
+
+module BClause_Weak_Key =
+struct
+	type t = basic_clause 
+	let equal  bc1 bc2 =
+		try
+			List.for_all2 (==) (bc_get_lits bc1) (bc_get_lits bc2)
+		with
+			Invalid_argument _ -> false
+	let hash bc = hash_list Term.hash (bc_get_lits bc)
+	(* alternative equal *)
+	(*	let compare =
+	list_compare_lex Term.compare cl1.literals cl2.literals
+	let equal c1 c2 =
+	if (compare c1 c2) =0
+	then true
+	else false
+	*)
+end
+
+
+module BC_WHtbl = Weak.Make(BClause_Weak_Key)
+
+let bc_clause_db = BC_WHtbl.create 50821 (* medium large prime number *)
 
 (* basic clause hash table *)
 (* Key for consing table *)
@@ -313,15 +343,14 @@ let add_bc_node bc_node = BClause_Htbl.hashcons basic_clause_db bc_node
 (*-----------------------------------------*)
 
 (*-----------------------------------------*)
-
-type bound_clause = clause Lib.bind
-
-type bound_bclause = basic_clause Lib.bind
-
 let get_bclause c =
 	c.basic_clause
 
 let get_bc = get_bclause (* shorthand *)
+
+type bound_clause = clause Lib.bind
+
+type bound_bclause = basic_clause Lib.bind
 
 (* fast_key is unique for each generated clause  *)
 let get_fast_key c = c.fast_key
@@ -546,6 +575,8 @@ let fill_bc_auto_params bc_node =
 	bc_node.max_atom_input_occur <- Def(max_atom_input_occur_lits lits);
 	bc_node.min_defined_symb <- min_defined_symb_lits lits
 
+(* Non Weak Hashtbl *)
+(*
 let create_basic_clause lits =
 	try
 		let bc = BC_Htbl.find bc_clause_db lits in
@@ -561,6 +592,25 @@ let create_basic_clause lits =
 						(fill_bc_auto_params bc;));
 				BC_Htbl.add bc_clause_db lits bc;
 				bc
+			)
+*)
+
+let create_basic_clause lits =
+	let bc_template = bc_template ~bc_fast_key: (!bc_global_counter) lits in
+	try
+		let bc = BC_WHtbl.find bc_clause_db bc_template in
+		bc.bc_counter <- bc.bc_counter + 1;
+		bc
+	with
+		Not_found ->
+			(
+			(*	let bc = bc_template ~bc_fast_key: (!bc_global_counter) lits in *)
+				bc_global_counter := !bc_global_counter + 1;
+				(if (not (lits = []))
+					then
+						(fill_bc_auto_params bc_template;));
+				BC_WHtbl.add bc_clause_db bc_template;
+				bc_template
 			)
 
 (*
