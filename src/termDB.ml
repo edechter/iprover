@@ -78,15 +78,18 @@ module TermDBM = Weak.Make (TermKey)
 type termDB = TermDBM.t
 *)
 
-module TermDBM = Hashtbl.Make (TermKey)
+(* module TermDBM = Hashtbl.Make (TermKey) *)
 
-type termDB = (term TermDBM.t)
+module TermDBM = Weak.Make (TermKey)
+
+type termDB = ((*term *) TermDBM.t)
 
 
 let name_ref = ref ""
 let size_ref = ref 0
 
 let create () = TermDBM.create(1000001)
+
 let create_name name = 
   name_ref:=name; 
   create ()
@@ -126,15 +129,18 @@ let size term_db  = !size_ref
 
 let get_name term_db = !name_ref
 
+
 let fold f term_db a = 
  (* try *)
-  TermDBM.fold (fun term_key term a -> (f term a)) term_db a  
+  TermDBM.fold (fun (*_term_key*) term a -> (f term a)) term_db a  
 (*  with Term.Term_hash_undef -> failwith "termDB: Term_hash_undef1"*)
 
 let iter f term_db  = 
 (*  try *)
-  (TermDBM.iter (fun term_key term -> (f term)) term_db)  
+  (TermDBM.iter (fun (*_term_key*) term -> (f term)) term_db)  
 (*  with  Term.Term_hash_undef -> failwith "termDB: Term_hash_undef2"*)
+
+
 
 
 (*-----------------------------*)
@@ -144,7 +150,7 @@ let to_stream s term_db =
      s.stream_add_str "%Term DB ";
      s.stream_add_str ":\n";
      (TermDBM.iter
-	(fun key elem -> 	 
+	(fun (*key*) elem -> 	 
 	  (Term.to_stream s elem);
 	  s.stream_add_char '\n')
 	term_db);
@@ -183,7 +189,7 @@ let rec add_ref t db_ref =
 	      (Term.assign_fun_all new_term;
 	       Term.assign_fast_key new_term !size_ref;
 	       size_ref:=!size_ref+1;
-	       TermDBM.add !db_ref new_term new_term;
+	       TermDBM.add !db_ref (*new_term*) new_term;
 	       new_term)
 	  )
       |Term.Var _ ->
@@ -192,7 +198,7 @@ let rec add_ref t db_ref =
 	       TermDBM.find !db_ref t 
 	    with 	 
 	      Not_found->    
-		(TermDBM.add !db_ref t t;
+		(TermDBM.add !db_ref (*t*) t;
 		 Term.assign_var_all t;
 		 Term.assign_fast_key t !size_ref;
 		 size_ref:=!size_ref+1;
