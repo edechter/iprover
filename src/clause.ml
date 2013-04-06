@@ -279,9 +279,8 @@ and tstp_source =
 (*--------------Consing hash tables--------------------------*)
 
 
-(* replaced with Weak*)
+(* non-Weak basic clause hash table *)
 
-(*
 module BClause_Node_Key =
 struct
 	type t = lits
@@ -298,11 +297,14 @@ struct
 	if (compare c1 c2) =0
 	then true
 	else false
-	*)
+*)	
 end
 
 module BC_Htbl = Hashtbl.Make(BClause_Node_Key) 
-*) 
+ 
+let bc_clause_db = BC_Htbl.create 50821 (* medium large prime number *)
+
+(* Weak basic clause hash table *)
 
 let bc_get_lits bc = bc.lits 
 
@@ -328,7 +330,7 @@ end
 
 module BC_WHtbl = Weak.Make(BClause_Weak_Key)
 
-let bc_clause_db = BC_WHtbl.create 50821 (* medium large prime number *)
+let bc_clause_db_weak = BC_WHtbl.create 50821 (* medium large prime number *)
 
 (* basic clause hash table *)
 (* Key for consing table *)
@@ -576,8 +578,8 @@ let fill_bc_auto_params bc_node =
 	bc_node.min_defined_symb <- min_defined_symb_lits lits
 
 (* Non Weak Hashtbl *)
-(*
-let create_basic_clause lits =
+
+let create_basic_clause_non_weak lits =
 	try
 		let bc = BC_Htbl.find bc_clause_db lits in
 		bc.bc_counter <- bc.bc_counter + 1;
@@ -593,12 +595,12 @@ let create_basic_clause lits =
 				BC_Htbl.add bc_clause_db lits bc;
 				bc
 			)
-*)
 
-let create_basic_clause lits =
+(* Weak Hashtbl *)
+let create_basic_clause_weak lits =
 	let bc_template = bc_template ~bc_fast_key: (!bc_global_counter) lits in
 	try
-		let bc = BC_WHtbl.find bc_clause_db bc_template in
+		let bc = BC_WHtbl.find bc_clause_db_weak bc_template in
 		bc.bc_counter <- bc.bc_counter + 1;
 		bc
 	with
@@ -609,10 +611,31 @@ let create_basic_clause lits =
 				(if (not (lits = []))
 					then
 						(fill_bc_auto_params bc_template;));
-				BC_WHtbl.add bc_clause_db bc_template;
+				BC_WHtbl.add bc_clause_db_weak bc_template;
 				bc_template
 			)
 
+let incr_gc_bc_elim _c = 
+  incr_int_stat 1 gc_basic_clause_elim
+	
+(*------weak/non-weak should be choosen only once------------------*)
+(* i.e.!current_options.clauses_weak_htbl should not change during execution *)	
+
+let create_basic_clause lits = 
+	if !current_options.clause_weak_htbl 
+	then 
+		let new_clause = 
+		create_basic_clause_weak lits
+		in 
+		if !current_options.gc_record_bc_elim 
+		then 
+			(Gc.finalise incr_gc_bc_elim new_clause;
+			new_clause)
+		else 
+			new_clause
+	else
+	 create_basic_clause_non_weak lits
+	
 (*
 let added_bc = add_bc_node template in
 let new_bc =

@@ -183,6 +183,12 @@ let forced_gc_time =
    value = 0;
  }
 
+let gc_basic_clause_elim =
+	{
+  int_entry_name  = "gc_basic_clause_elim";
+	value =0
+}
+
 let total_time = 
   {
    float_entry_name  = "total_time";
@@ -594,6 +600,7 @@ let gen_int_stat_list =
 	 simp_replaced_by;
 	 res_preprocessed;
    forced_gc_time;
+	 gc_basic_clause_elim;
  ]
 
 let gen_float_stat_list = 

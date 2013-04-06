@@ -180,6 +180,8 @@ type options = {
     mutable prep_gs_sim           : bool;
 		mutable prep_res_sim          : bool;
 		mutable res_sim_input         : bool;
+		mutable clause_weak_htbl      : bool;
+		mutable gc_record_bc_elim     : bool;
     mutable symbol_type_check     : bool;
     mutable clausify_out          : bool;
     mutable prep_sem_filter       : prep_sem_filter_type;
