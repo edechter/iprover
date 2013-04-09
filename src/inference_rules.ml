@@ -395,7 +395,13 @@ let assign_param_clause parent parents_side clause =
   (* Clause.assign_tstp_source_instantiation clause parent parents_side *)
     
 
-  
+let select_a_side_clause c_list = 
+	list_find_min_element 
+	(fun c1 c2 ->
+		Pervasives.compare (Clause.get_conjecture_distance c1) (Clause.get_conjecture_distance c2)
+	)	 
+		c_list
+	  
 (*---------------------------------------------------------------------------*)  
 (*------instantiation first check duplicates then dismatching constraints----*)
 
@@ -434,7 +440,7 @@ let instantiation_norm_dc
 	  let (inst_lits,subst_norm) = 
 	    (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 (get_lits c1))
 	  in
-		let tstp_source = Clause.tstp_source_instantiation c1 []  in 
+		let tstp_source = Clause.tstp_source_instantiation c1 [(select_a_side_clause c_list2)]  in 
 		let inst_clause = create_clause tstp_source inst_lits in
 	  if (context_mem context inst_clause)
 	  then 

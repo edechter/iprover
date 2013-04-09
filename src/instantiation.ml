@@ -984,12 +984,11 @@ let bmc1_bounds = ref []
                      ^(Clause.to_string simplified_given_clause)^"\n"); 
 			*)
 		
-	(*					
+(*					
 			Format.printf "@[%a @]@.@[%a @]@."
 			 (TstpProof.pp_clause_with_source_gs ~clausify_proof:false ) simplified_given_clause
 			 (Clause.pp_clause_params Clause.param_out_list_all) simplified_given_clause;
 *)
-
 (*
   (if (not (Clause.is_ground simplified_given_clause))
   then
