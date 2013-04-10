@@ -69,6 +69,7 @@ and tstp_inference_rule =
 	| Non_eq_to_eq
 	| Subtyping
 	| Flattening
+	| Eq_res_simp
   | TSTP_bmc1_instantiated_clause of int 
   | TSTP_bmc1_reachable_sk_replacement of int (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
 

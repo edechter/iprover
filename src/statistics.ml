@@ -389,6 +389,12 @@ let inst_num_existing_simplified  =
    value = 0;
  }
 
+let inst_num_eq_res_simplified =
+	{
+   int_entry_name  = "inst_num_eq_res_simplified" ;
+   value = 0;
+}
+
 let inst_num_from_inst_to_res  = 
   {
    int_entry_name  = "inst_inst_num_from_inst_to_res" ;
@@ -661,6 +667,7 @@ let inst_int_stat_list =
    inst_num_tautologies;
    inst_num_prop_implied;
    inst_num_existing_simplified;
+	 inst_num_eq_res_simplified;
    inst_num_child_elim;
    inst_num_of_dismatching_blockings;
    inst_num_of_non_proper_insts;

@@ -71,6 +71,46 @@ let add_neg_atom_symb symb args =
 let add_compl_lit lit = 
 	TermDB.add_ref (Term.compl_lit lit) term_db_ref 
 	
+(*-----------term views----------*)	
+type eq_view_type_term = 
+	 Eq_type_term of term * term * term
+
+type eq_view_type_symb = 
+	| Eq_type_symb of symbol * term * term 
+
+ 
+let term_eq_view_type_term t = 
+		match t with
+		|Term.Fun (sym, args, _info) ->
+	   	if (sym == Symbol.symb_typed_equality)
+			then 
+				let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
+	      Def(Eq_type_term (type_term_eq, t, s))
+			else
+	    Undef
+	 |_-> Undef
+	
+(* should be used with care since assume that eq type is not a variable here *)	
+let term_eq_view_type_symb t = 
+		match t with
+		|Term.Fun (sym, args, _info) ->
+	   	if (sym == Symbol.symb_typed_equality)
+			then 
+				let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
+				let eq_type_symb = 
+						try
+			 			Term.get_top_symb type_term_eq
+				  	with 
+						 Term.Var_term ->
+							failwith
+								("term_eq_view_type_symb: equality type is a variable in"^(Term.to_string t))
+				in				
+	      Def(Eq_type_symb (eq_type_symb, t, s))
+			else
+	    Undef
+	 |_-> Undef
+		
+	
 (*
 let dis_equality t s =
 	neg_atom (equality_term t s)

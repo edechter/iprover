@@ -52,6 +52,7 @@ val instantiation : term_db ref -> clause -> literal -> literal ->
                       clause list -> literal -> clause list 
 *)
 
+val equality_resolution_simp: clause -> clause
 
 val instantiation_norm : term_db_ref -> context -> clause -> literal -> literal ->
   clause list -> literal -> clause list 

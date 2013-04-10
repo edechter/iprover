@@ -178,8 +178,40 @@ let factoring c l1 l2 term_db_ref =
     Clause.assign_ps_when_born_concl ~prem1:[c] ~prem2:[] ~c:conclusion;
     conclusion
 
+(*-----equality resolution simplification---------*)
+(* t!=t \/ C -> C*)
 
+let is_trivial_diseq_lit lit =  
+  if (Term.is_neg_lit lit) 
+	then
+		let atom = Term.get_atom lit in  
+		match (term_eq_view_type_term atom) with 
+		| Def(Eq_type_term(_eq_type_term, t,s)) -> 
+			t == s
+	  | Undef -> false
+	else 
+		false
 
+(* if not simplified the clause remains the same and not otherwise *)		
+let equality_resolution_simp c = 
+	if (Clause.has_eq_lit c)
+	then
+	let lits = get_lits c in
+	let new_lits = 
+  List.find_all (fun l -> (not (is_trivial_diseq_lit l))) lits in 
+	if ((List.length lits) = (List.length new_lits))
+	 then c 
+	 else 
+		(
+		let tstp_source = Clause.TSTP_inference_record (Clause.Eq_res_simp, [c]) in
+		let new_clause = create_clause tstp_source new_lits in 
+		clause_register_subsumed_by ~by: new_clause c;
+		new_clause
+		)
+	else 
+		()
+		
+	
 (* could be more efficient but messier
 
 (* literals l1 l2 are already CUT  from  c1 and c2 *)

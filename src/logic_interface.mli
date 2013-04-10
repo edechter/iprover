@@ -1,6 +1,8 @@
 (* Logical interface *)
 (* shorthands for frequently used functions: building terms, clauses, equiations etc. *)
 
+open Lib
+
 type var    = Var.var
 type symbol = Symbol.symbol
 type stype = Symbol.stype
@@ -61,6 +63,18 @@ val add_typed_disequality_sym :
 	
 (** add_term_algebra_eq_term args *)
 val add_term_algebra_eq_term : term list -> term
+
+(*-----------term views----------*)
+(* term_eq_view_type_term decomposes equational term into *)
+(* Def(Eq_type_term(equality_type_term, t,s)) or Undef if term is not equality  *)
+
+type eq_view_type_term = Eq_type_term of term * term * term
+val term_eq_view_type_term : Term.term -> eq_view_type_term param
+
+(* term_eq_view_type_symb is similar only equality_type_symb in place of  equality_type_term *)
+(* should be used with care since we assume that eq type is not a variable here *)	
+type eq_view_type_symb = Eq_type_symb of symbol * term * term
+val term_eq_view_type_symb : Term.term -> eq_view_type_symb param
 
 
 (**---------Clause-----------*)

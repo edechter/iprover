@@ -265,6 +265,7 @@ and tstp_inference_rule =
 	| Non_eq_to_eq
 	| Subtyping
 	| Flattening
+	| Eq_res_simp 
 	| TSTP_bmc1_instantiated_clause of int 
   | TSTP_bmc1_reachable_sk_replacement of int (* replacing c(sK) by c($constBN) where sK occured in $reachable(sK)*)
 
@@ -930,6 +931,7 @@ let get_parents tstp_source =
 					| Non_eq_to_eq -> []
 					| Subtyping ->[]
 					| Flattening ->[]
+					| Eq_res_simp -> []
 				  | TSTP_bmc1_instantiated_clause _ -> [] 
           | TSTP_bmc1_reachable_sk_replacement _ -> []
 				end
@@ -2346,6 +2348,12 @@ let pp_inference_rule parents ppf = function
 			Format.fprintf
 				ppf
 				"flattening,@,[status(esa)],@,@[<hov 1>[%a]@]"
+				(pp_any_list pp_clause_name ",")
+				parents
+	| Eq_res_simp ->
+	 Format.fprintf
+				ppf
+				"equality_resolution_simp,@,[status(esa)],@,@[<hov 1>[%a]@]"
 				(pp_any_list pp_clause_name ",")
 				parents
 				

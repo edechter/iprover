@@ -95,6 +95,7 @@ val inst_num_tautologies           : stat_int_entry
 val inst_num_of_duplicates         : stat_int_entry 
 val inst_num_prop_implied          : stat_int_entry 
 val inst_num_existing_simplified   : stat_int_entry 
+val inst_num_eq_res_simplified     : stat_int_entry
 val inst_num_child_elim            : stat_int_entry 
 val inst_num_of_dismatching_blockings : stat_int_entry 
 val inst_dismatching_checking_time     : stat_float_entry 
