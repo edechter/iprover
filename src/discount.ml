@@ -438,6 +438,20 @@ struct
 		with
 			Not_found ->
 				false
+
+	(*-------- equality resolution simplification -------*)
+	
+	let equality_resolution_simp clause =
+		let new_clause = (Inference_rules.equality_resolution_simp clause) in
+		if (new_clause == clause)
+		then
+			clause
+		else
+			begin
+				incr_int_stat 1 res_num_eq_res_simplified;
+			  new_clause
+			end
+		
 	
 	(* since the clause is not in the db we do not need to mark it as dead *)
 	let simplify_light_forward_new clause =
@@ -449,6 +463,7 @@ struct
 				incr_int_stat 1 res_tautology_del;
 				raise Eliminated)
 		else
+		let clause = equality_resolution_simp clause in
 		if (is_subset_subsumed clause)
 		then
 			((* out_str

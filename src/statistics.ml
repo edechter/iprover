@@ -522,6 +522,12 @@ let res_tautology_del =
    value = 0;
  }
 
+let res_num_eq_res_simplified =
+	{
+   int_entry_name  = "res_num_eq_res_simplified" ;
+   value = 0;
+}
+
 let res_num_sel_changes = 
   {
    int_entry_name  = "res_num_sel_changes";
@@ -699,6 +705,7 @@ let res_int_stat_list =
    res_clause_to_clause_subsumption;
    res_orphan_elimination;
    res_tautology_del; 
+	 res_num_eq_res_simplified;
    res_num_sel_changes;
    res_moves_from_active_to_pass;
  ]

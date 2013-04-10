@@ -203,9 +203,10 @@ let equality_resolution_simp c =
 	 then c 
 	 else 
 		(
-		let tstp_source = Clause.TSTP_inference_record (Clause.Eq_res_simp, [c]) in
+		let tstp_source = Clause.TSTP_inference_record (Clause.Eq_res_simp, [c]) in	
 		let new_clause = create_clause tstp_source new_lits in 
 		clause_register_subsumed_by ~by: new_clause c;
+		Clause.assign_ps_when_born_concl ~prem1:[c] ~prem2:[] ~c:new_clause;		
 		new_clause
 		)
 	else 

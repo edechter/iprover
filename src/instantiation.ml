@@ -712,7 +712,9 @@ struct
 					)
 			| _ -> failwith "Tautology_elim: this shouldn't happen"
 	
-	(*---------------*)
+	
+	(*-------- equality resolution simplification -------*)
+	
 	let equality_resolution_simp clause =
 		let new_clause = (Inference_rules.equality_resolution_simp clause) in
 		if (new_clause == clause)
@@ -733,7 +735,7 @@ struct
 					Not_found -> (* Simplified is a new clause *)
 						(
 							let added_clause = context_add !context new_clause in
-							Clause.assign_ps_when_born_concl ~prem1:[clause] ~prem2:[] ~c: added_clause;
+							(* Clause.assign_ps_when_born_concl ~prem1:[clause] ~prem2:[] ~c: added_clause; *)
 							Prop_solver_exchange.add_clause_to_solver added_clause;
 							added_clause)
 			end
@@ -754,7 +756,7 @@ struct
 	(* can raise Simplified_exists Simplified*)
 	let simplify_given_clause clause =
 		tautology_elim clause;
-		let new_clause_1 = equality_resolution_simp clause in
+		let new_clause_1 =   equality_resolution_simp clause in
 		let new_clause_2 =
 			if !current_options.inst_prop_sim_given &&
 			((get_val_stat inst_num_of_learning_restarts) >= !current_options.inst_start_prop_sim_after_learn)
@@ -917,6 +919,7 @@ struct
 								(* solve_num_deb:= !solve_num_deb +1;
 								out_str ("Solve not forced "^(string_of_int !solve_num_deb)^"\n");
 								*)
+								
 								(* adding unprocessd to solver before solving and moving to passive *)
 								(if !current_options.inst_eager_unprocessed_to_passive then
 										(List.iter Prop_solver_exchange.add_clause_to_solver !unprocessed_ref)
@@ -937,7 +940,8 @@ struct
 												add_new_clause_to_passive c)
 												!unprocessed_ref; *)
 												(* uncomment after debug *)
-												List.iter add_new_clause_to_passive !unprocessed_ref;
+										
+													List.iter add_new_clause_to_passive !unprocessed_ref; 
 												unprocessed_ref:=[];
 												assign_int_stat 0 inst_num_in_unprocessed)
 										else ()
@@ -1143,7 +1147,8 @@ struct
 							raise (Satisfiable !context)
 						else
 							(
-								List.iter Prop_solver_exchange.add_clause_to_solver !unprocessed_ref;
+								 List.iter Prop_solver_exchange.add_clause_to_solver !unprocessed_ref; 
+								
 								(* debug *)
 								(* List.iter (fun c ->
 								Format.printf "%a@." (TstpProof.pp_clause_with_source false) c;

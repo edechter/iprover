@@ -120,6 +120,7 @@ val res_backward_subsumption_resolution  : stat_int_entry
 val res_clause_to_clause_subsumption     : stat_int_entry 
 val res_orphan_elimination               : stat_int_entry 
 val res_tautology_del                    : stat_int_entry 
+val res_num_eq_res_simplified            : stat_int_entry
 val res_num_sel_changes                  : stat_int_entry 
 val res_moves_from_active_to_pass        : stat_int_entry 
 
