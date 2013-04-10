@@ -209,7 +209,7 @@ let equality_resolution_simp c =
 		new_clause
 		)
 	else 
-		()
+		(c)
 		
 	
 (* could be more efficient but messier
