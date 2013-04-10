@@ -615,7 +615,7 @@ let instantiation_norm_cd term_db_ref context c1 l1 compl_l1 c_list2 l2 =
 	let (inst_lits,subst_norm) = 
 	  (Clause.apply_bsubst_norm_subst term_db_ref mgu 1 (get_lits c1))
 	in
-	let tstp_source = Clause.tstp_source_instantiation c1 []  in 
+	let tstp_source = Clause.tstp_source_instantiation c1 [(select_a_side_clause c_list2)]  in 
 	let inst_clause = create_clause tstp_source inst_lits in
 	if (is_not_redundant_inst_norm subst_norm c1)
 	then 
