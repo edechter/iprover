@@ -191,7 +191,7 @@ let init_gr_by () =
 
 let init_solver_exchange () =
 	(*gr_by := (get_term_for_grounding ());*)
-	init_gr_by () 
+	init_gr_by ()
 
 
 

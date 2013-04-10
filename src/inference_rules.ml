@@ -14,10 +14,6 @@
    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
-
-
-
-
 open Lib
 open Options
 open Statistics

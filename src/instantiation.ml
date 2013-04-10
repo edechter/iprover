@@ -944,6 +944,12 @@ let bmc1_bounds = ref []
 	(*       solve_num_deb:= !solve_num_deb +1;
 	       out_str ("Solve not forced "^(string_of_int !solve_num_deb)^"\n");
           *)    
+					(* adding unprocessd to solver before solving and moving to passive *)
+				(if  !current_options.inst_eager_unprocessed_to_passive then
+					(List.iter Prop_solver_exchange.add_clause_to_solver !unprocessed_ref)
+					else 
+					()
+				);
 	       if ((Prop_solver_exchange.solve ()) = PropSolver.Unsat) 		 
 		   (* || (PropSolver.solve solver_sim) = PropSolver.Unsat)*)
 	       then ( (* Format.eprintf "Unsatisfiable after solve call in lazy_loop_body in instantiation@."; *)
@@ -984,11 +990,11 @@ let bmc1_bounds = ref []
                      ^(Clause.to_string simplified_given_clause)^"\n"); 
 			*)
 		
-(*					
+					
 			Format.printf "@[%a @]@.@[%a @]@."
 			 (TstpProof.pp_clause_with_source_gs ~clausify_proof:false ) simplified_given_clause
 			 (Clause.pp_clause_params Clause.param_out_list_all) simplified_given_clause;
-*)
+
 (*
   (if (not (Clause.is_ground simplified_given_clause))
   then
@@ -1070,10 +1076,10 @@ let bmc1_bounds = ref []
 
 	(* out_str_debug (model_sel_to_string solver); *)
 	
-(*
-	   out_str ("Sel in Given: "^ 
-			  (Term.to_string (Clause.get_inst_sel_lit simplified_given_clause)^"\n"));
-*)
+
+	   out_str ("\nSel in Given: "^ 
+			  (Term.to_string (Clause.inst_get_sel_lit simplified_given_clause)^"\n"));
+
 
 (*  out_str("Clauses in DB: "^(string_of_int (ClauseAssignDB.size !clause_db_ref))^"\n");*)
 (*Debug*)
@@ -1173,6 +1179,7 @@ let bmc1_bounds = ref []
 	   raise (Satisfiable !context) 
 	 else
 	   (
+			List.iter Prop_solver_exchange.add_clause_to_solver !unprocessed_ref;
 			(* debug *)
 			(* List.iter (fun c ->
 					Format.printf "%a@." (TstpProof.pp_clause_with_source false) c;
@@ -1409,7 +1416,8 @@ let init_instantiation () =
 		 failwith "init_instantiation Clause.Clause_fast_key_is_def")
 		*)
   in
-
+  List.iter add_input_to_unprocessed input_clauses
+	
 (*Christph added; not clear why *)
 (* commented for now *)
 (*
@@ -1455,8 +1463,6 @@ let init_instantiation () =
     List.iter add_input_to_unprocessed input_clauses'
 *)
 
-  List.iter add_input_to_unprocessed input_clauses
-	
 (* 
  (*----------debug----------*)
    let out_cl c = 
