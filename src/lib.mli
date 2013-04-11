@@ -465,4 +465,6 @@ exception Timeout
 
 val assign_discount_time_limit :float -> unit 
 val assign_discount_start_time : unit -> unit
+val unassign_discount_time_limit : unit -> unit
+
 val check_disc_time_limit : unit -> unit

@@ -413,9 +413,10 @@ let full_loop prover_functions input_clauses_ref =
 					(try
 						assign_discount_time_limit (!current_options.res_time_limit);
 						assign_discount_start_time ();
-						apply_fun prover_functions.res_discount_loop_exchange
-							();
-					with Timeout ->
+						apply_fun prover_functions.res_discount_loop_exchange	();
+            unassign_discount_time_limit ();
+						with Timeout ->
+							unassign_discount_time_limit ();
 							if (!current_options.instantiation_flag) then
 								( out_str (pref_str^"Switching off resolution: loop timeout \n");
 									!current_options.resolution_flag <- false;								

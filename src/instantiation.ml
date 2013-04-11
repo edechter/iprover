@@ -966,11 +966,11 @@ struct
 						out_str ("\n Simpl Given Clause: "
 						^(Clause.to_string simplified_given_clause)^"\n");
 						*)
-		(*				
+	(*					
 						Format.printf "@[%a @]@.@[%a @]@."
 							(TstpProof.pp_clause_with_source_gs ~clausify_proof: false ) simplified_given_clause
 							(Clause.pp_clause_params Clause.param_out_list_all) simplified_given_clause;
-			*)			
+		*)		
 						(*
 						(if (not (Clause.is_ground simplified_given_clause))
 						then
@@ -1045,10 +1045,11 @@ struct
 						^(string_of_int(!num_of_instantiation_loops - (Clause.when_born new_clause)))); *)
 						
 						(* out_str_debug (model_sel_to_string solver); *)
-	(*					
+		(*			
 						out_str ("\nSel in Given: "^
 								(Term.to_string (Clause.inst_get_sel_lit simplified_given_clause)^"\n"));
-		*)				
+			*)
+					
 						(*  out_str("Clauses in DB: "^(string_of_int (ClauseAssignDB.size !clause_db_ref))^"\n");*)
 						(*Debug*)
 						(* let lits_consist_model =

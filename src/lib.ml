@@ -1129,7 +1129,9 @@ exception Timeout
 let discount_time_limit  = ref Undef
 let start_discount_time  = ref Undef
 
-let assign_discount_time_limit (x:float) =   discount_time_limit := Def(x)
+let assign_discount_time_limit (x:float) = discount_time_limit := Def(x)
+let unassign_discount_time_limit () = discount_time_limit := Undef
+	 
 let assign_discount_start_time () = 
   start_discount_time := Def((Unix.gettimeofday ()))
 
