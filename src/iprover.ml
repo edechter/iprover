@@ -2089,7 +2089,25 @@ let run_iprover () =
 		(* At the moment Parsed_input_to_db.input_clauses_ref are not memory released! *)
 		(* we can replace Parsed_input_to_db.input_clauses_ref with *)
 		(* global  Parsed_input_to_db.current_clauses, which are gradually replaced by preprocessing but should be carefull how intput caluses are used below: finite_models eq_axioms etc. *)
-		
+
+		(*-------sybtyping-------------*)		
+			let sub_type_is_on () =
+				!current_options.sub_typing
+				&&
+				(match !current_options.schedule with
+					| Schedule_verification_epr
+					| Schedule_verification_epr_tables
+					-> false
+					| _ -> true
+				)
+			in
+			
+			(if (sub_type_is_on ())
+				then
+					((*out_str "\n\n Subtypng\n\n";*)
+						current_clauses := Type_inf.sub_type_inf !current_clauses;)
+				else ());
+
 		(*-------------------------------*)
 		Prop_solver_exchange.init_solver_exchange ();
 		(*-------------------------------*)
@@ -2303,7 +2321,9 @@ let run_iprover () =
 			(* debug! *)
 			
 			(* sub_type_inf should be before adding eq axioms*)
-			
+		
+				(* moved to before init_solver for correct grounding assignment*)
+		(*	
 			(* sub_typing  *)
 			(* sub_typing swtich inside the schedule options does not get effect until proving *)
 			let sub_type_is_on () =
@@ -2322,7 +2342,7 @@ let run_iprover () =
 					((*out_str "\n\n Subtypng\n\n";*)
 						current_clauses := Type_inf.sub_type_inf !current_clauses;)
 				else ());
-			
+			*)
 			let current_clauses_no_eq = ref (!current_clauses) in
 			
 			(*
