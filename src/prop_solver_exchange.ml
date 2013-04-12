@@ -193,13 +193,11 @@ let init_solver_exchange () =
 	(*gr_by := (get_term_for_grounding ());*)
 	
  (* (out_str "\n !!! init_gr_by is bot !!!\n\n")	*)
- 	init_gr_by (); 
-
-
-
-(* *)
+ 	init_gr_by ()
 (* debug*)
+(* ;
 
+ out_str "\n\n----Default Grounding------\n\n*)";
 let f stype gr_term =
  
  let num_of_occ = Symbol.get_num_input_occur (Term.get_top_symb gr_term)
@@ -208,12 +206,8 @@ let f stype gr_term =
    ^(Symbol.to_string stype)^" term: "^(Term.to_string gr_term)^" num of occ: "^(string_of_int num_of_occ)^"\n")
 in	
  SMap.iter f !gr_by_map
-
-(* match !gr_by with
-| Term.Fun(symb, _, _) ->
-out_str ("Number of occ_new: "^( string_of_int (Symbol.get_num_input_occur symb))^"\n")
-| _ -> ()
 *)
+
 
 (*--------------Init Solvers-----------------------------*)
 

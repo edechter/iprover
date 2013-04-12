@@ -727,6 +727,9 @@ let rec change_prolific_symb_input input_clauses =
 let assign_is_essential_input_symb c_list =
 	List.iter (Clause.iter_sym (Symbol.assign_is_essential_input true)) c_list
 
+let unassign_is_essential_input_symb c_list =
+	List.iter (Clause.iter_sym (Symbol.assign_is_essential_input false)) c_list
+
 (*--------------Schedule-----------------------------*)
 
 (* Current bound for BMC1 *)
@@ -2090,6 +2093,9 @@ let run_iprover () =
 		(* we can replace Parsed_input_to_db.input_clauses_ref with *)
 		(* global  Parsed_input_to_db.current_clauses, which are gradually replaced by preprocessing but should be carefull how intput caluses are used below: finite_models eq_axioms etc. *)
 
+(* need to assign os essential input before subtyping *)
+	assign_is_essential_input_symb !current_clauses;
+	
 		(*-------sybtyping-------------*)		
 			let sub_type_is_on () =
 				!current_options.sub_typing
@@ -2107,7 +2113,14 @@ let run_iprover () =
 					((*out_str "\n\n Subtypng\n\n";*)
 						current_clauses := Type_inf.sub_type_inf !current_clauses;)
 				else ());
-
+		(*debug *)
+	(*	
+			out_str "\n-----------After Subtyping:---------\n";
+			out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
+			out_str "\n--------------------\n";
+	*)		
+		(*debug *)
+			
 		(*-------------------------------*)
 		Prop_solver_exchange.init_solver_exchange ();
 		(*-------------------------------*)
@@ -2122,6 +2135,8 @@ let run_iprover () =
 		else
 		*)
 		begin
+		(* temporarily unassign_is_essential_input_symb before preprocessing *)	
+			unassign_is_essential_input_symb !current_clauses;
 			current_clauses := Preprocess.preprocess !current_clauses;
 			assign_is_essential_input_symb !current_clauses;
 			let distinct_ax_list = Eq_axioms.distinct_ax_list () in
@@ -2322,9 +2337,9 @@ let run_iprover () =
 			
 			(* sub_type_inf should be before adding eq axioms*)
 		
-				(* moved to before init_solver for correct grounding assignment*)
-		(*	
-			(* sub_typing  *)
+			(* sub_typing was moved to before init_solver for correct grounding assignment*)
+	(*
+			(*---------sub_typing----------*)
 			(* sub_typing swtich inside the schedule options does not get effect until proving *)
 			let sub_type_is_on () =
 				!current_options.sub_typing
@@ -2342,7 +2357,8 @@ let run_iprover () =
 					((*out_str "\n\n Subtypng\n\n";*)
 						current_clauses := Type_inf.sub_type_inf !current_clauses;)
 				else ());
-			*)
+	*)
+		
 			let current_clauses_no_eq = ref (!current_clauses) in
 			
 			(*
