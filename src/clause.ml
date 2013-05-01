@@ -193,12 +193,12 @@ and proof_search_param =
 		(* shared paramtes *)
 		mutable ps_bool_param : Bit_vec.bit_vec;
 		mutable ps_when_born : int param;
-		mutable ps_children : clause list;
 		
 		(* inst params *)
 		mutable inst_sel_lit : (term * sel_place) param;
 		mutable inst_dismatching : dismatching param;
 		mutable inst_activity : int;
+		mutable inst_children : clause list;
 		
 		(* res params *)
 		mutable res_sel_lits : literal_list param;
@@ -979,12 +979,13 @@ let create_ps_param () =
 	{
 		ps_bool_param = Bit_vec.false_vec;
 		ps_when_born = Undef;
-		ps_children = [];
 		
 		(* inst params *)
 		inst_sel_lit = Undef;
 		inst_dismatching = Undef;
 		inst_activity = 0;
+		inst_children = [];
+	
 		
 		(* res params *)
 		res_sel_lits = Undef;
@@ -1181,13 +1182,13 @@ let get_inst_dismatching clause =
 	| Def(dismatching) -> dismatching
 	| Undef -> raise Dismatching_undef
 
-let add_ps_child clause ~child =
+let add_inst_child clause ~child =
 	let ps_param = get_ps_param clause in
-	ps_param.ps_children <- child:: (ps_param.ps_children)
+	ps_param.inst_children <- child:: (ps_param.inst_children)
 
-let get_ps_children clause =
+let get_inst_children clause =
 	let ps_param = get_ps_param clause in
-	ps_param.ps_children
+	ps_param.inst_children
 
 let inst_get_activity clause =
 	let ps_param = get_ps_param clause in
@@ -2626,7 +2627,7 @@ let param_out_list_ps =
 	
 	(* non bool proof search param *)
 	("ps_when_born", FInt(get_ps_when_born));
-	("ps_childern", FClause_list(get_ps_children));
+	("inst_childern", FClause_list(get_inst_children));
 	]
 
 let param_out_list_res =
@@ -2682,6 +2683,7 @@ let copy_clause c =
 			proof_search_param = Def(ps_param)
 		}
 	in
+	set_ps_simplifying (get_ps_simplifying c) new_c;
 	assign_ps_when_born (get_ps_when_born c) new_c;
 	
 (*
@@ -2735,10 +2737,25 @@ let get_replaced_by_clauses c =
 		  Format.printf "\n Subsumed by\n: %a\n" pp_clause by_clause;
   *)
 	(
+		(*
+		Format.printf "\n Clause:\n %a\n" pp_clause c;
+		  Format.printf "\n Replaced_by RB_subsumption \n: %a\n" pp_clause by_clause;
+			*)
 			Def([by_clause])
 	   )
-	| Def(RB_sub_typing by_clause) -> Def([by_clause])
-	| Def(RB_splitting by_clause_list) -> Def(by_clause_list)
+	| Def(RB_sub_typing by_clause) ->
+  	(*
+				Format.printf "\n Clause:\n %a\n" pp_clause c;
+		   Format.printf "\n Replaced_by  RB_sub_typing \n: %a\n" pp_clause by_clause;
+ *)
+		   Def([by_clause])
+			
+	| Def(RB_splitting by_clause_list) ->
+		(*
+	 	 Format.printf "\n Clause:\n %a\n" pp_clause c;
+		 Format.printf "\n Replaced_by RB_splitting  \n: %a\n" pp_clause_list_tptp by_clause_list;
+ *)
+		 Def(by_clause_list)
 	| Def(RB_tautology_elim) -> Def([])
 	| Def(RB_orphan_elim _) -> Undef (* do not replace clause if it is dead because of orphan elimination *)
 	| Undef -> Undef
@@ -2796,17 +2813,16 @@ let context_replace_by context current_replace_set c =
 	try
 		let found_c =  (context_find context c) in
 	(*	Format.print_flush ();
-		Format.printf "Clause: @, %a\n @." pp_clause_tptp found_c;
+		Format.printf "Init Clause: @, %a\n @." pp_clause_tptp found_c;
 		Format.print_flush ();
-		*)
+*)
 		let replaced_by = get_replaced_by_rec current_replace_set [found_c] 
 		in 
 		incr_int_stat 1 simp_replaced_by;
-		
-	(*
-		Format.printf "\n Replaced by:\n %a\n@." pp_clause_list_tptp (BSet.elements replaced_by);
+(*			
+		Format.printf "\n Final Replaced by:\n %a\n@." pp_clause_list_tptp (BSet.elements replaced_by);
 		Format.print_flush ();
-		*)
+*)	
 		replaced_by
 	with 
   Not_found -> BSet.add (refresh_clause c)  current_replace_set

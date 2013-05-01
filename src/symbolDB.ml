@@ -111,7 +111,7 @@ let create_new_split_symb symb_db_ref stype =
   (* Increment counter for split symbols *)
   !symb_db_ref.unused_split_symb_number <- 
     succ !symb_db_ref.unused_split_symb_number;
-  
+  Symbol.assign_is_essential_input true new_symb; 
   (* Add symbol to symbol database *)
   add_ref new_symb symb_db_ref 
 

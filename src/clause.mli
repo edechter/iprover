@@ -471,8 +471,8 @@ val assign_ps_when_born : int -> clause -> unit
 val assign_ps_when_born_concl :
 prem1: clause list -> prem2: clause list -> c: clause -> unit
 
-val add_ps_child : clause -> child: clause -> unit
-val get_ps_children : clause -> clause list
+val add_inst_child : clause -> child: clause -> unit
+val get_inst_children : clause -> clause list
 
 (** res non-bool param *)
 

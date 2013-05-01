@@ -58,6 +58,8 @@ struct
 	(*	let prep_input = ref (context_create (List.length input_clauses))*)
  
   let is_res_prepocessing = InputM.is_res_prepocessing
+
+	
 		
 	let record_simplified clause  = 
 		if !current_options.res_sim_input && (context_mem !input_clauses_context clause) 

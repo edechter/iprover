@@ -179,7 +179,14 @@ let factoring c l1 l2 term_db_ref =
     conclusion
 
 (*-----equality resolution simplification---------*)
-(* t!=t \/ C -> C*)
+
+
+(* One should be careful since in general x!=t \/ C [x] => C[t] *)
+(* is not a vaild simplification since eq is not built in and therefore *)
+(* congurence axioms x!=y \/ ~P(x) \/ P(y) would be simplified into tautologies! *)
+
+(* we restrict to a simple case when *)
+(* t!=t \/ C => C*)
 
 let is_trivial_diseq_lit lit =  
   if (Term.is_neg_lit lit) 
@@ -412,7 +419,10 @@ let assign_param_clause parent parents_side clause =
 
   Clause.assign_ps_when_born_concl ~prem1:[parent] ~prem2:parents_side ~c:clause; 
   Clause.inst_assign_activity ((Clause.inst_get_activity parent)+1) parent;
-  Clause.add_ps_child parent ~child:clause;
+	(if (!current_options.inst_orphan_elimination) 
+		then
+     (Clause.add_inst_child parent ~child:clause;)
+	else ());	
   (if 
     val_of_override !current_options.bmc1_unsat_core_children &&
       Clause.in_unsat_core parent 

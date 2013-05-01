@@ -377,8 +377,9 @@ let sub_type_inf clause_list =
 		st_nf_table;
 	
 	(*------------ Add this output and an option ----------*)
+
 	(* debug *)
-	(*
+(*	
 	out_str "Inferred Subtypes:\n";
 	STypeTable.iter
 	(fun nf st_list ->
@@ -392,7 +393,8 @@ let sub_type_inf clause_list =
 	(fun sym ->
 	out_str ((Symbol.to_string sym)^", ")) context.collapsed_types;
 	
-	*)
+*)
+	
 	(* end debug *)
 	
 	let typed_symbs_set_ref = ref SymSet.empty in
@@ -497,7 +499,7 @@ let sub_type_inf clause_list =
 						Clause.assign_replaced_by (Def(Clause.RB_sub_typing new_clause)) clause;	
 			(*			Clause.inherit_param_modif clause new_clause; *)
 			
-						Prop_solver_exchange.add_clause_to_solver new_clause;
+					
 					(*		out_str ("Typed: "^(Clause.to_string new_clause)^"\n"); *)
 						new_clause:: rest
 					)

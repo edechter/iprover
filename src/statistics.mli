@@ -49,6 +49,9 @@ val num_of_sem_filtered_clauses : stat_int_entry
 val num_of_subtypes : stat_int_entry
 val sat_num_of_epr_types : stat_int_entry
 val sat_num_of_non_cyclic_types : stat_int_entry
+val is_epr     : stat_int_entry
+val is_horn    : stat_int_entry
+val has_eq     : stat_int_entry
 val simp_replaced_by : stat_int_entry
 val res_preprocessed : stat_int_entry
 val gc_basic_clause_elim : stat_int_entry

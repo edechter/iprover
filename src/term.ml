@@ -534,6 +534,29 @@ let get_num_of_var_term_list term_list =
 	let f rest term = rest + (get_num_of_var term) in
 	List.fold_left f 0 term_list
 
+(* can be expensive since we do not store term depth *)
+(* term depth of vars/constants is 1 *)
+let rec get_term_depth_list term_list = 
+	List.fold_left
+	 (fun current_max term ->
+		  let new_max = get_term_depth term in 
+			if (current_max >= new_max) 
+			then 
+				current_max 
+			else 
+			new_max
+		) 
+		 0 term_list 
+ and 
+  get_term_depth term = 
+		match term with 
+		| Fun(_s, args,_inf) -> 
+		 let args_depth = get_term_depth_list args in 
+		 (args_depth + 1) 
+		| Var _ -> 1
+
+
+		
 (*
 let get_has_conj_symb_term_list term_list =
 List.exists has_conj_symb_fun term_list
@@ -1113,6 +1136,12 @@ let cmp_num_symb t1 t2 =
 let cmp_num_var t1 t2 =
 	Pervasives.compare (get_num_of_var t1) (get_num_of_var t2)
 
+(* neg is excluded in depth *)
+let cmp_atom_depth t1 t2 = 
+	let atom1 = get_atom t1 in 
+	let atom2 = get_atom t2  in
+	Pervasives.compare (get_term_depth atom1) (get_term_depth atom2) 
+
 (*pos bigger than neg*)
 let cmp_sign t1 t2 =
 	- (Pervasives.compare (is_neg_lit t1) (is_neg_lit t2))
@@ -1163,6 +1192,7 @@ let lit_cmp_type_to_fun t =
 	| Options.Lit_Ground b -> compose_sign b cmp_ground
 	| Options.Lit_Num_of_Var b -> compose_sign b cmp_num_var
 	| Options.Lit_Num_of_Symb b -> compose_sign b cmp_num_symb
+	| Options.Lit_Atom_depth b -> compose_sign b cmp_atom_depth
 	| Options.Lit_Split b -> compose_sign b cmp_split
 	| Options.Lit_has_conj_symb b -> compose_sign b cmp_has_conj_symb
 	| Options.Lit_has_bound_constant b -> compose_sign b cmp_has_bound_constant

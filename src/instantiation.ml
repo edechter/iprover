@@ -111,6 +111,7 @@ struct
 			get_val_stat inst_num_of_learning_restarts
 		in
 		clear_inst_stat ();
+		
 		assign_int_stat stat_learning_restarts inst_num_of_learning_restarts
 	
 	(* *)
@@ -623,9 +624,13 @@ struct
 		remove_from_active clause;
 		Clause.assign_is_dead true clause;
 		incr_int_stat 1 inst_num_child_elim;
-		List.iter eliminate_clause (Clause.get_ps_children clause)
-	
-	exception Simplified_exists
+		(if (!current_options.inst_orphan_elimination) 
+		then
+		 (List.iter eliminate_clause (Clause.get_inst_children clause))
+	  else ()
+	  )
+
+		exception Simplified_exists
 	
 	let prop_subsumption clause =
 		let new_clause = Prop_solver_exchange.prop_subsumption clause in
@@ -961,16 +966,21 @@ struct
 						*)
 						let simplified_given_clause = simplify_given_clause given_clause in
 						
-						(*
+				(*		
 						out_str("\n--------------------------\n");
 						out_str ("\n Simpl Given Clause: "
 						^(Clause.to_string simplified_given_clause)^"\n");
-						*)
-(*						
-						Format.printf "@[%a @]@.@[%a @]@."
+					*)
+			(*								
+            Format.printf "@[%a @]@."
+						(TstpProof.pp_clause_with_source_gs ~clausify_proof: false ) simplified_given_clause;
+				*)		
+
+(*
+						 Format.printf "@[%a @]@.@[%a @]@."
 							(TstpProof.pp_clause_with_source_gs ~clausify_proof: false ) simplified_given_clause
 							(Clause.pp_clause_params Clause.param_out_list_all) simplified_given_clause;
-*)			
+	*)		
 						(*
 						(if (not (Clause.is_ground simplified_given_clause))
 						then
@@ -1009,9 +1019,11 @@ struct
 										(Splitting.ground_split_clause simplified_given_clause) in
 									if (Splitting.get_num_of_splits split_result) >0
 									then
-										((*out_str "Eliminate Cl Splitting";*)
+										( 
+										(*	 out_str ("Eliminate Cl Splitting: \n"^(Clause.to_string simplified_given_clause)^"\n"); *) 
 											eliminate_clause simplified_given_clause;
 											let splitted_clauses = Splitting.get_split_list split_result in
+											assert ( (List.length splitted_clauses) > 1);
 											let f new_clause =
 												Clause.assign_ps_when_born_concl
 													~prem1:[simplified_given_clause] ~prem2:[] ~c: new_clause;
@@ -1021,14 +1033,15 @@ struct
 												
 												Prop_solver_exchange.add_clause_to_solver added_clause;
 												add_clause_to_unprocessed added_clause;
-											(*  out_str ("Splitted_clause: "^(Clause.to_string added_clause)^"\n")*)
+										(*	 out_str ("Splitted_clause: "^(Clause.to_string added_clause)^"\n") *) 
 											in
 											List.iter f splitted_clauses;
 											incr_int_stat
 												(Splitting.get_num_of_splits split_result) num_of_splits;
 											incr_int_stat
 												(Splitting.get_num_of_split_atoms split_result) num_of_split_atoms;
-											raise Given_Splitted)
+											raise Given_Splitted
+										 )
 							| _ -> ()
 						);
 						
@@ -1045,10 +1058,10 @@ struct
 						^(string_of_int(!num_of_instantiation_loops - (Clause.when_born new_clause)))); *)
 						
 						(* out_str_debug (model_sel_to_string solver); *)
-	(*				
+					(*
 						out_str ("\nSel in Given: "^
 								(Term.to_string (Clause.inst_get_sel_lit simplified_given_clause)^"\n"));
-		*)	
+	*)
 					
 						(*  out_str("Clauses in DB: "^(string_of_int (ClauseAssignDB.size !clause_db_ref))^"\n");*)
 						(*Debug*)
@@ -1334,8 +1347,8 @@ struct
 	let init_instantiation input_clauses =
 	let add_input_to_unprocessed clause =
 	let added_clause =
-	(ClauseAssignDB.add_ref clause clause_db_ref) in
-	Clause.set_bool_param true Clause.input_under_eq added_clause;
+	      (ClauseAssignDB.add_ref clause clause_db_ref) in
+	      Clause.set_bool_param true Clause.input_under_eq added_clause;
 	(* for restarts we need to add input_under_eq for clauses ib init_clause_list*)
 	Clause.set_bool_param true Clause.input_under_eq clause;
 	Clause.assign_when_born 0 added_clause;
@@ -1348,7 +1361,7 @@ struct
 	
 	let init_instantiation () =
 		(* out_str "\n\n init instantiation\n\n"; *)
-		let add_input_to_unprocessed clause =
+	  let add_input_to_unprocessed clause =
 			(* try*)
 			(*
 			let added_clause =

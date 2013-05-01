@@ -279,6 +279,7 @@ type lit_cmp_type =
 	| Lit_Ground of bool
 	| Lit_Num_of_Var of bool
 	| Lit_Num_of_Symb of bool
+	| Lit_Atom_depth of bool
 	| Lit_Split of bool
 	| Lit_has_conj_symb of bool
 	| Lit_has_bound_constant of bool
@@ -297,6 +298,7 @@ let lit_cmp_type_to_str par =
 	| Lit_Ground b -> if b then "+ground" else "-ground"
 	| Lit_Num_of_Var b -> if b then "+num_var" else "-num_var"
 	| Lit_Num_of_Symb b -> if b then "+num_symb" else "-num_symb"
+	| Lit_Atom_depth b -> if b then "+depth" else "-depth"
 	| Lit_Split b -> if b then "+split" else "-split"
 	| Lit_has_conj_symb b -> if b then "+conj_symb" else "-conj_symb"
 	| Lit_has_bound_constant b -> if b then "+has_bound_constant" else "-has_bound_constant"
@@ -320,6 +322,8 @@ let str_to_lit_cmp_type str =
 	| "-num_var" -> Lit_Num_of_Var false
 	| "+num_symb" -> Lit_Num_of_Symb true
 	| "-num_symb" -> Lit_Num_of_Symb false
+	| "+depth" -> Lit_Atom_depth true
+	| "-depth" -> Lit_Atom_depth false
 	| "+split" -> Lit_Split true
 	| "-split" -> Lit_Split false
 	| "+conj_symb" -> Lit_has_conj_symb true
@@ -342,7 +346,7 @@ let str_to_lit_cmp_type str =
 	| "-range" -> Lit_range false
 	| _ -> raise Unknown_lit_cmp_type
 
-let lit_cmp_type_list_str = "<[((+|-)(sign|ground|num_var|num_symb|split|conj_symb|non_prol_conj_symb|eq|clock|less|range|has_bound_constant|next_state|reachable_state)^+]>"
+let lit_cmp_type_list_str = "<[((+|-)(sign|ground|num_var|num_symb|depth|split|conj_symb|non_prol_conj_symb|eq|clock|less|range|has_bound_constant|next_state|reachable_state)^+]>"
 
 (* if there is no conjectures then we can to remove corresponding comparisons*)
 
@@ -600,6 +604,7 @@ type options = {
 	mutable dbg_backtrace : bool;
 	mutable dbg_dump_prop_clauses : bool;
 	mutable dbg_dump_prop_clauses_file : string;
+	mutable dbg_out_stat : bool;
 	
 	(*----General--------*)
 	mutable fof : bool;
@@ -671,6 +676,7 @@ type options = {
 	mutable inst_eager_unprocessed_to_passive : bool;
 	mutable inst_prop_sim_given : bool;
 	mutable inst_prop_sim_new : bool;
+	mutable inst_orphan_elimination : bool;
 	mutable inst_learning_loop_flag : bool;
 	mutable inst_learning_start : int;
 	mutable inst_learning_factor : int;
@@ -719,6 +725,7 @@ let default_options () = {
 	dbg_backtrace = false;
 	dbg_dump_prop_clauses = false;
 	dbg_dump_prop_clauses_file = "-";
+	dbg_out_stat = false; 
 	
 	(*----General--------*)
 	fof = false;
@@ -731,7 +738,7 @@ let default_options () = {
 	prep_res_sim = true;
 	res_sim_input = true;
 	clause_weak_htbl = true;
-	gc_record_bc_elim = true;
+	gc_record_bc_elim = false;
 	symbol_type_check = false;
 	clausify_out = false;
 	(*  prep_sem_filter         = Sem_Filter_None;*)
@@ -809,6 +816,7 @@ let default_options () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = true;
+	inst_orphan_elimination = true;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -1098,6 +1106,15 @@ let dbg_dump_prop_clauses_file_fun b =
 let dbg_dump_prop_clauses_file_inf =
 	bool_str^
 	inf_pref^"debug: file to dump propositional clauses tp, use - for stdout\n"
+
+(*--------*)
+let dbg_out_stat_str = "--dbg_out_stat"
+
+let dbg_out_stat_fun b =
+	!current_options.dbg_out_stat <- b 
+
+let dbg_out_stat_inf =  
+  "debug: output statistics before proving \n"
 
 (*----General--------*)
 
@@ -1871,6 +1888,18 @@ let inst_prop_sim_new_inf =
 
 (*--------*)
 
+let inst_orphan_elimination_str = "--inst_orphan_elimination"
+
+let inst_orphan_elimination_fun b = 
+	!current_options.inst_orphan_elimination <- b 
+
+let inst_orphan_elimination_inf = 
+		bool_str^
+	inf_pref^"eliminates children if the parent gets eliminated; here only children obtained by instantiation are considered\n"
+
+
+(*--------*)
+
 let inst_learning_loop_flag_str = "--inst_learning_loop_flag"
 
 let inst_learning_loop_flag_fun b =
@@ -2242,6 +2271,7 @@ let spec_list =
 	(dbg_dump_prop_clauses_file_str,
 		Arg.String(dbg_dump_prop_clauses_file_fun),
 		dbg_dump_prop_clauses_file_inf);
+	(dbg_out_stat_str, Arg.Bool(dbg_out_stat_fun), dbg_out_stat_inf);
 	
 	(*------General-------*)
 	(fof_str, Arg.Bool(fof_fun), fof_inf);
@@ -2377,6 +2407,7 @@ let spec_list =
 	(inst_prop_sim_given_str,
 		Arg.Bool(inst_prop_sim_given_fun), inst_prop_sim_given_inf);
 	(inst_prop_sim_new_str, Arg.Bool(inst_prop_sim_new_fun), inst_prop_sim_new_inf);
+	(inst_orphan_elimination_str, Arg.Bool(inst_orphan_elimination_fun), inst_orphan_elimination_inf);
 	(inst_learning_loop_flag_str,
 		Arg.Bool(inst_learning_loop_flag_fun), inst_learning_loop_flag_inf);
 	(inst_learning_start_str,
@@ -2454,6 +2485,7 @@ let input_options_str_list opt =
 	(dbg_dump_prop_clauses_str, (string_of_bool opt.dbg_dump_prop_clauses));
 	(dbg_dump_prop_clauses_file_str,
 		opt.dbg_dump_prop_clauses_file);
+	(dbg_out_stat_str, (string_of_bool opt.dbg_out_stat))
 	]
 
 let general_options_str_list opt =
@@ -2549,6 +2581,7 @@ let inst_options_str_list opt =
 	(inst_eager_unprocessed_to_passive_str, (string_of_bool opt.inst_eager_unprocessed_to_passive));
 	(inst_prop_sim_given_str, (string_of_bool opt.inst_prop_sim_given));
 	(inst_prop_sim_new_str, (string_of_bool opt.inst_prop_sim_new));
+	(inst_orphan_elimination_str, (string_of_bool opt.inst_orphan_elimination));
 	(inst_learning_loop_flag_str, (string_of_bool opt.inst_learning_loop_flag));
 	(inst_learning_start_str, (string_of_int opt.inst_learning_start));
 	(inst_learning_factor_str, (string_of_int opt.inst_learning_factor));
@@ -2834,6 +2867,7 @@ let named_opt_to_many_axioms_named_opt2 opt =
 			
 			inst_prop_sim_given = false;
 			inst_prop_sim_new = false;
+			inst_orphan_elimination = !current_options.inst_orphan_elimination;
 			inst_learning_start = 3000000;
 			inst_learning_factor = 2;
 			
@@ -2917,13 +2951,14 @@ let option_1 () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
-	
+	 dbg_out_stat = !current_options.dbg_out_stat;
+
 	(*----General--------*)
 	fof = false;
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = !current_options.schedule;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting;
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -3000,6 +3035,7 @@ let option_1 () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = true;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -3097,13 +3133,14 @@ let option_2 () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
+	dbg_out_stat = !current_options.dbg_out_stat;
 	
 	(*----General--------*)
 	fof = false;
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = !current_options.schedule;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting;
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -3179,6 +3216,7 @@ let option_2 () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = true;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -3245,13 +3283,14 @@ let option_3 () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
+	dbg_out_stat = !current_options.dbg_out_stat;
 	
 	(*----General--------*)
 	fof = false;
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = !current_options.schedule;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting;
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -3325,6 +3364,7 @@ let option_3 () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = true;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -3388,13 +3428,14 @@ let option_4 () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
+	dbg_out_stat = !current_options.dbg_out_stat;
 	
 	(*----General--------*)
 	fof = false;
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = !current_options.schedule;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting;
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -3465,6 +3506,7 @@ let option_4 () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = true;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -3536,13 +3578,14 @@ let option_finite_models () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
+	dbg_out_stat = !current_options.dbg_out_stat;
 	
 	(*----General--------*)
 	fof = false;
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = Schedule_none;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting; (* input_options.ground_splitting;*)
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -3626,6 +3669,7 @@ let option_finite_models () = {
 	(* should not prop simplify! can lead to inconsistency  *)
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = false;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -3683,13 +3727,14 @@ let option_epr_non_horn () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
+	dbg_out_stat = !current_options.dbg_out_stat;
 	
 	(*----General--------*)
 	fof = false;
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = !current_options.schedule;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting;
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -3777,6 +3822,7 @@ let option_epr_non_horn () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = false;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -3944,6 +3990,7 @@ let option_epr_horn () = {
 	dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 	dbg_dump_prop_clauses_file =
 		!current_options.dbg_dump_prop_clauses_file;
+	dbg_out_stat = !current_options.dbg_out_stat;
 	
 	(*----General--------*)
 	
@@ -3951,7 +3998,7 @@ let option_epr_horn () = {
 	time_out_real = -1.;
 	time_out_virtual = -1.;
 	schedule = !current_options.schedule;
-	ground_splitting = Split_Input;
+	ground_splitting = !current_options.ground_splitting;
 	non_eq_to_eq = false;
 	prep_gs_sim = !current_options.prep_gs_sim;
 	prep_res_sim = !current_options.prep_res_sim;
@@ -4030,6 +4077,7 @@ let option_epr_horn () = {
 	inst_eager_unprocessed_to_passive = true;
 	inst_prop_sim_given = false;
 	inst_prop_sim_new = true;
+	inst_orphan_elimination = !current_options.inst_orphan_elimination;
 	inst_learning_loop_flag = true;
 	inst_learning_start = 3000;
 	inst_learning_factor = 2;
@@ -4206,13 +4254,14 @@ let option_verification_epr ver_epr_opt =
 				dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 				dbg_dump_prop_clauses_file =
 					!current_options.dbg_dump_prop_clauses_file;
+				dbg_out_stat = !current_options.dbg_out_stat;
 				
 				(*----General--------*)
 				fof = false;
 				time_out_real = -1.;
 				time_out_virtual = -1.;
 				schedule = !current_options.schedule;
-				ground_splitting = Split_Input;
+				ground_splitting = !current_options.ground_splitting;
 				non_eq_to_eq = false;
 				prep_gs_sim = !current_options.prep_gs_sim;
 				prep_res_sim = !current_options.prep_res_sim;
@@ -4307,6 +4356,7 @@ let option_verification_epr ver_epr_opt =
 				inst_eager_unprocessed_to_passive = true;
 				inst_prop_sim_given = false;
 				inst_prop_sim_new = false;
+				inst_orphan_elimination = !current_options.inst_orphan_elimination;
 				inst_learning_loop_flag = true;
 				inst_learning_start = 3000;
 				inst_learning_factor = 2;
@@ -4359,6 +4409,7 @@ let option_verification_epr ver_epr_opt =
 				dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 				dbg_dump_prop_clauses_file =
 					!current_options.dbg_dump_prop_clauses_file;
+				dbg_out_stat = !current_options.dbg_out_stat;
 				
 				(*----General--------*)
 				fof = false;
@@ -4469,6 +4520,7 @@ let option_verification_epr ver_epr_opt =
 				inst_eager_unprocessed_to_passive = true;
 				inst_prop_sim_given = false;
 				inst_prop_sim_new = false;
+				inst_orphan_elimination = !current_options.inst_orphan_elimination;
 				inst_learning_loop_flag = true;
 				(* inst_learning_start               = 1000;*)
 				inst_learning_start = 100000;
@@ -4523,6 +4575,7 @@ let option_verification_epr ver_epr_opt =
 				dbg_dump_prop_clauses = !current_options.dbg_dump_prop_clauses;
 				dbg_dump_prop_clauses_file =
 					!current_options.dbg_dump_prop_clauses_file;
+				dbg_out_stat = !current_options.dbg_out_stat;
 				
 				(*----General--------*)
 				fof = false;
@@ -4630,10 +4683,11 @@ let option_verification_epr ver_epr_opt =
 					[
 					Cl_in_unsat_core true;
 					(*	     Cl_has_reachable_state true;*)
-					Cl_min_defined_symb false;
+				(*	Cl_min_defined_symb false; *)
 					(* Cl_has_next_state true;
 					Cl_has_reachable_state true;*)
 					(*	     Cl_Has_Eq_Lit false;*)
+					Cl_Conj_Dist false;
 					Cl_Age true;
 					Cl_Num_of_Symb false];
 				
@@ -4653,11 +4707,12 @@ let option_verification_epr ver_epr_opt =
 					ValueDefault
 					[
 					
-					Cl_min_defined_symb false;
+			(*		Cl_min_defined_symb false;*)
 					Cl_Conj_Dist false;
-					Cl_Has_Conj_Symb true;
+					Cl_Has_Eq_Lit false;
+				(*	Cl_Has_Conj_Symb true; *)
 					Cl_has_bound_constant true;
-					(*	     Cl_Has_Eq_Lit false;*)
+					     
 					(* Cl_Ground true;*)
 					Cl_Num_of_Var false;
 					(* Cl_min_defined_symb false;*)
@@ -4694,6 +4749,7 @@ let option_verification_epr ver_epr_opt =
 				inst_prop_sim_given = false;
 				
 				inst_prop_sim_new = false;
+				inst_orphan_elimination = !current_options.inst_orphan_elimination;
 				(*     inst_prop_sim_new                 = true;*)
 				inst_learning_loop_flag = true;
 				(*       inst_learning_loop_flag           = false; *)

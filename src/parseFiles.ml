@@ -92,7 +92,8 @@ let clausifier_cmd_options () =
     (!current_options.schedule = Options.Schedule_sat))
     then
       begin 
-      " --mode clausify  --equality_propagation on --predicate_equivalence_discovery all_atoms --predicate_definition_inlining non_growing --epr_restoring_inlining on --predicate_definition_merging on -fde none "^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+      " --mode clausify  --equality_propagation on --predicate_equivalence_discovery all_atoms --predicate_definition_inlining non_growing --epr_restoring_inlining on --predicate_definition_merging on -fde none "
+			  ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
       end
     else
       begin

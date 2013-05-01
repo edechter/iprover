@@ -91,6 +91,7 @@ type lit_cmp_type =
   | Lit_Ground  of bool
   | Lit_Num_of_Var  of bool
   | Lit_Num_of_Symb of bool
+	| Lit_Atom_depth of bool
   | Lit_Split       of bool 
   | Lit_has_conj_symb of bool 
   | Lit_has_bound_constant of bool
@@ -169,6 +170,7 @@ type options = {
     mutable dbg_backtrace         : bool;
     mutable dbg_dump_prop_clauses : bool;
     mutable dbg_dump_prop_clauses_file : string;
+		mutable dbg_out_stat          : bool;
 
 (*----General--------*)
     mutable fof                   : bool;    
@@ -240,6 +242,7 @@ type options = {
     mutable inst_eager_unprocessed_to_passive : bool;
     mutable inst_prop_sim_given               : bool;
     mutable inst_prop_sim_new                 : bool;
+		mutable inst_orphan_elimination           : bool;
     mutable inst_learning_loop_flag           : bool;
     mutable inst_learning_start               : int;
     mutable inst_learning_factor              : int;

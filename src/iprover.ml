@@ -128,6 +128,11 @@ let problem_props_to_string props =
 	in
 	Options.opt_val_list_to_str props_list
 
+let problem_props_to_statistics props = 
+   assign_int_stat (bool_to_int props.epr) is_epr;
+	 assign_int_stat (bool_to_int props.horn) is_horn;
+	 assign_int_stat (bool_to_int props.has_eq) has_eq
+
 let get_problem_props clause_list =
 	let props = empty_problem_props () in
 	let f cl =
@@ -503,7 +508,8 @@ let full_loop prover_functions input_clauses_ref =
 								out_str ("done\n");
 								*)
 								(* end debug *)
-								input_clauses_ref := simplify_input prover_functions !input_clauses_ref;
+								
+								input_clauses_ref := simplify_input prover_functions !input_clauses_ref; 
 								let module InstInput =
 								struct
 									let inst_module_name =
@@ -577,7 +583,7 @@ let finite_models input_clauses =
 		else
 			[]
 	in
-	(*
+(*	
 	out_str ("\n---------Eq Axioms------------------\n"
 	^(Clause.clause_list_to_tptp eq_axioms)
 	^"\n------------------------\n");
@@ -644,11 +650,11 @@ let finite_models input_clauses =
 				(*can use  Finite_models.domain_pred_axioms_all_dom new_bound_pred *)
 				Finite_models.domain_axioms_triangular new_bound_pred
 			in
-			(*
+		(*	
 			out_str ("\n---------Domain Axioms------------------\n"
 			^(Clause.clause_list_to_tptp domain_axioms)
 			^"\n------------------------\n");
-			*)
+		*)	
 			let dis_eq_axioms =
 				if no_input_eq ()
 				then []
@@ -656,11 +662,11 @@ let finite_models input_clauses =
 					(* can have Finite_models.dis_eq_axioms_all_dom () for exp. *)
 					Finite_models.dis_eq_axioms_all_dom_sym ()
 			in
-			(*
+	(*		
 			out_str ("\n---------Diseq Axioms------------------\n"
 			^(Clause.clause_list_to_tptp dis_eq_axioms)
 			^"\n------------------------\n");
-			*)
+	*)		
 			(*
 			let domain_axioms =
 			if no_input_eq ()
@@ -692,9 +698,38 @@ let finite_models input_clauses =
 		| Instantiation.Unsatisfiable
 		| Prop_solver_exchange.Unsatisfiable
 		| PropSolver.Unsatisfiable
-		-> ((* Instantiation.clear_after_inst_is_dead (); *)
+		-> (
+			
+			   (* Instantiation.clear_after_inst_is_dead (); *)
 		       provers_clear_and_remove_all ();
-					(* since all inferred types are monotone, we can increase all domains simultaniously (other stratagies can be also worth trying) *)
+					
+		(*........unsat cores unfinished yet......*)			
+		(*			
+				let unsat_core_clauses =	Prop_solver_exchange.unsat_core ()	
+				in
+						
+					(						
+						(* Print unsat core *)
+						Format.printf
+							"@\n%sUnsat core has size %d@\n@\n%a\n\n@."
+							pref_str
+							(List.length unsat_core_clauses)
+							(pp_any_list Clause.pp_clause_tptp "\n") unsat_core_clauses;						
+						
+					);
+					(* let unsat_core_leaves = TstpProof.get_leaves unsat_core_clauses in *)
+					let unsat_core_all_parents = TstpProof.get_parents unsat_core_clauses in
+						(						
+						(* Print unsat core *)
+						Format.printf
+							"@\n%sUnsat leaves have size %d@\n@\n%a\n\n@."
+							pref_str
+							(List.length unsat_core_clauses)
+							(pp_clause_list_with_source ~global_subsumption_justification_fun:None ~clausify_proof:false) unsat_core_all_parents;						
+					);
+			*)
+			
+				(* since all inferred types are monotone, we can increase all domains simultaniously (other stratagies can be also worth trying) *)
 					model_size:=!model_size +1;
 					Finite_models.add_domain_constant_all_dom !model_size;
 					(* let new_dom_const =
@@ -750,8 +785,14 @@ let rec schedule_run input_clauses_ref finite_model_clauses_ref schedule =
 			if (named_options.options.sat_mode && named_options.options.sat_finite_models)
 			then
 				((* current_options:= named_options.options; *)
+				
 					set_new_current_options named_options.options;
 					init_sched_time time_limit;
+						print_string ((s_pref_str ())^named_options.options_name
+							^" Time Limit: "^(time_to_string time_limit)^"\n"^
+							(options_to_str !current_options)^"\n\n"
+							^(s_pref_str ())^"\n");						
+					flush stdout;
 					finite_models !finite_model_clauses_ref)
 			else
 				begin
@@ -767,10 +808,12 @@ let rec schedule_run input_clauses_ref finite_model_clauses_ref schedule =
 						then change_prolific_symb_input !input_clauses_ref);
 					(* current_options:= named_options.options; *)
 					set_new_current_options named_options.options;
+					
 					print_string ((s_pref_str ())^named_options.options_name
 							^" Time Limit: "^(time_to_string time_limit)^"\n"^
 							(options_to_str !current_options)^"\n\n"
 							^(s_pref_str ())^"Proving...");
+							
 					flush stdout;
 					(* debug *)
 					(* !current_options.out_options <- Out_All_Opt;
@@ -786,7 +829,10 @@ let rec schedule_run input_clauses_ref finite_model_clauses_ref schedule =
 										^(string_of_int full_loop_counter)
 										^" full_loop iterations\n");
 									input_clauses_ref := simplify_input prover_functions !input_clauses_ref;
-									finite_model_clauses_ref  := simplify_input prover_functions !finite_model_clauses_ref;
+									
+							out_str (" \n\n commented: finite_model_clauses_ref  := simplify_input prover_functions !finite_model_clauses_ref \n\n");		
+							 (* finite_model_clauses_ref  := simplify_input prover_functions !finite_model_clauses_ref; *)
+									
 								provers_clear_and_remove_all ();
 								(* clear_all_provers prover_functions;*)
 								clear_memory ();
@@ -2097,6 +2143,7 @@ let run_iprover () =
 	assign_is_essential_input_symb !current_clauses;
 	
 		(*-------sybtyping-------------*)		
+		
 			let sub_type_is_on () =
 				!current_options.sub_typing
 				&&
@@ -2113,17 +2160,18 @@ let run_iprover () =
 					((*out_str "\n\n Subtypng\n\n";*)
 						current_clauses := Type_inf.sub_type_inf !current_clauses;)
 				else ());
-		(*debug *)
-	(*	
+(*
+			(*debug *)	
 			out_str "\n-----------After Subtyping:---------\n";
 			out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
 			out_str "\n--------------------\n";
-	*)		
-		(*debug *)
-			
+			(*debug *)
+*)
+	
 		(*-------------------------------*)
 		Prop_solver_exchange.init_solver_exchange ();
 		(*-------------------------------*)
+		List.iter	Prop_solver_exchange.add_clause_to_solver !current_clauses;
 		
 		(* with sat_mode one should be careful with options!*)
 		(* switch off resolution! *)
@@ -2136,12 +2184,23 @@ let run_iprover () =
 		*)
 		begin
 		(* temporarily unassign_is_essential_input_symb before preprocessing *)	
-			unassign_is_essential_input_symb !current_clauses;
-			current_clauses := Preprocess.preprocess !current_clauses;
+     unassign_is_essential_input_symb !current_clauses; 			
+			current_clauses := Preprocess.preprocess !current_clauses;  
 			assign_is_essential_input_symb !current_clauses;
-			let distinct_ax_list = Eq_axioms.distinct_ax_list () in
+		
+		 let distinct_ax_list = Eq_axioms.distinct_ax_list () in
 			(* Clauses are input clauses *)
 			assign_is_essential_input_symb distinct_ax_list;
+				
+  		current_clauses := distinct_ax_list@(!current_clauses);
+			
+			let less_range_axioms = Eq_axioms.less_range_axioms () in
+			
+			current_clauses := less_range_axioms@(!current_clauses);
+			
+			assign_is_essential_input_symb less_range_axioms;
+
+	
 			
 			(*debug *)
 			(*	out_str "\n-----------Distinct Axioms:---------\n";
@@ -2149,15 +2208,7 @@ let run_iprover () =
 			out_str "\n--------------------\n";
 			*)
 			(*debug *)
-			
-			current_clauses := distinct_ax_list@(!current_clauses);
-			
-			let less_range_axioms = Eq_axioms.less_range_axioms () in
-			
-			current_clauses := less_range_axioms@(!current_clauses);
-			
-			assign_is_essential_input_symb less_range_axioms;
-			
+								
 			(*debug *)
 			(*
 			out_str "\n-----------Less Range Axioms:---------\n";
@@ -2338,7 +2389,8 @@ let run_iprover () =
 			(* sub_type_inf should be before adding eq axioms*)
 		
 			(* sub_typing was moved to before init_solver for correct grounding assignment*)
-	(*
+
+	(*	
 			(*---------sub_typing----------*)
 			(* sub_typing swtich inside the schedule options does not get effect until proving *)
 			let sub_type_is_on () =
@@ -2357,16 +2409,21 @@ let run_iprover () =
 					((*out_str "\n\n Subtypng\n\n";*)
 						current_clauses := Type_inf.sub_type_inf !current_clauses;)
 				else ());
+
+(* debug *)
+
+  out_str "\n-----------After sub_type_inf ---------\n";
+  out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
+	out_str "\n--------------------\n";
+	
+(* debug *)		
 	*)
-		
+	
 			let current_clauses_no_eq = ref (!current_clauses) in
 			
-			(*
-			out_str "\n-----------After sub_type_inf ---------\n";
-			out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
-			out_str "\n--------------------\n";
 			
-			*)
+			
+			
 			let gen_equality_axioms = ref [] in
 			
 			(if (not (omit_eq_axioms ()))
@@ -2376,16 +2433,16 @@ let run_iprover () =
 						then
 							(
 								(*debug *)
-								(* out_str "\n-----------Before Brand transform:---------\n";
+								 out_str "\n-----------Before Brand transform:---------\n";
 								out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
 								out_str "\n--------------------\n";
-								*)
+								
 								current_clauses := (Eq_axioms.eq_axioms_flatting !current_clauses);
-								(*
+								
 								out_str "\n-----------After Brand transform:---------\n";
 								out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
 								out_str "\n--------------------\n";
-								*)
+								
 								(*debug *)
 							)
 						else
@@ -2532,6 +2589,7 @@ let run_iprover () =
 			
 			(*--------------End sem filter---------------------------*)
 			input_problem_props:= get_problem_props !current_clauses;
+			problem_props_to_statistics !input_problem_props;
 			out_str (pref_str^"Problem Properties \n");
 			out_str ("\n"^(problem_props_to_string !input_problem_props)^"\n");
 			
@@ -2541,6 +2599,16 @@ let run_iprover () =
 			out_str (Clause.clause_list_to_tptp !current_clauses);
 			*)
 			
+			(
+			if (!current_options.dbg_out_stat) (* && (not !input_problem_props.epr) *)
+			then 
+				(* get statistics on non-cyclic/epr subtyping without taking into account pure EPR *)
+			 Finite_models.init_finite_models  !current_clauses_no_eq;
+			);
+			(if (!current_options.dbg_out_stat)
+			then
+				failwith "Output satistics";
+			);	 
 			(*-------------------------------------------------*)
 			out_str (pref_str^"Proving...\n");
 			(*-------------------------------------------------*)

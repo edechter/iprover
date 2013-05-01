@@ -19,7 +19,11 @@
 open Logic_interface 
 
 type split_map
+
+val reset_splitting: unit -> unit
+
 val create_split_map : unit -> split_map
+
 
 type split_result 
    

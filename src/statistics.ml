@@ -164,6 +164,24 @@ let sat_num_of_non_cyclic_types =
    value = 0;
  }
 
+let is_epr = 
+	{
+		int_entry_name  = "is_epr";
+		value = 0;
+		}
+		
+let is_horn = 
+	{
+	int_entry_name  = "is_horn";
+	value = 0;
+		}
+		
+let has_eq = 
+			{
+	int_entry_name  = "has_eq";
+	value = 0;
+	}
+
 let simp_replaced_by =
 	 {
    int_entry_name  = "simp_replaced_by";
@@ -609,6 +627,9 @@ let gen_int_stat_list =
    num_of_subtypes;
    sat_num_of_epr_types;
 	 sat_num_of_non_cyclic_types;
+	 is_epr;
+	 is_horn;
+	 has_eq;
 	 simp_replaced_by;
 	 res_preprocessed;
    forced_gc_time;

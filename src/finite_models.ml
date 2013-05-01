@@ -573,10 +573,15 @@ let flat_clause clause =
 	let flat_lits = List.fold_left get_flat_lit [] clause_lits in
 	let new_lits = flat_lits@(!fun_def_lits) in
 	let new_neg_norm_lits = List.map neg_norm_term new_lits in
+	
 	let tstp_source = Clause.tstp_source_flattening clause in
 	let new_clause = create_clause tstp_source new_neg_norm_lits in
-	
-(*	out_str ("     Cl: \n"^(Clause.to_string clause)^"\n");
+(*
+	Format.printf "Flat clause: \n @[%a @]@."
+							(TstpProof.pp_clause_with_source_gs ~clausify_proof: false ) new_clause;
+*)
+	(*	
+	out_str ("     Cl: \n"^(Clause.to_string clause)^"\n");
 	out_str ("Flat Cl: \n"^(Clause.to_string new_clause)^"\n");
 	*)
 	new_clause
@@ -1159,14 +1164,15 @@ let get_scc type_graph =
 	
 	(* debug out scc *)
 	
-(*	out_str "Signatuer SCC cyclic components: \n"; *)
+(*	out_str "Signature SCC cyclic components: \n"; *)
 (*	let out_scc_single tlist =
 		out_str ("["^(list_to_string Symbol.to_string tlist ";")^"]\n")
 	in
 	List.iter out_scc_single cyclic_scc;*)
-(*	out_str "\n\n Signatuer SCC non-cyclic types: \n";
+(*
+	out_str "\n\n Signature SCC non-cyclic types: \n";
 	out_str ("["^(list_to_string Symbol.to_string non_cyclic_type_list ";")^"]\n");
-	*)
+*)	
 	
 	(* debug *)
 	{ cyclic_types = cyclic_type_set; non_cyclic_types = non_cyclic_type_set }
@@ -1197,7 +1203,9 @@ let init_finite_models clauses =
 	out_str " \n\n Finite Models raising SZS_Unknown after cyc_non_cyc_types_init ();\n ";
 	raise SZS_Unknown;
 	*)
-	
+
+(*--------------------Type otput---------------------*)
+(*	
 	out_str ("EPR types: ");
 	
 	(SymSet.iter
@@ -1211,18 +1219,19 @@ let init_finite_models clauses =
 	out_str "\n" ;
 	
 	
-	out_str ("Non cycling types: ");
+	out_str ("Non cyclic types: ");
 	
 	(SymSet.iter
 	(fun s -> (out_str ((Symbol.to_string s)^", "))) !cyc_non_cyc_types.non_cyclic_types);
 	out_str "\n" ;
 	
-	out_str ("Cycling types: ");
+	out_str ("Cyclic types: ");
 	
 	(SymSet.iter
 	(fun s -> (out_str ((Symbol.to_string s)^", "))) !cyc_non_cyc_types.cyclic_types);
 	out_str "\n" ;
-	
+*)	
+
 	init_domains ()
 
 (*

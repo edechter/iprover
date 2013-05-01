@@ -1385,11 +1385,11 @@ let add_clause_to_solver clause =
 	else
 		
 		(
-		(*	
+	(*
 			Format.printf
 			"Adding clause %a to solver@."
 			Clause.pp_clause clause;
-			*)
+		*)	
 			
 			(* Dump propositional clause *)
 			if !current_options.dbg_dump_prop_clauses then
