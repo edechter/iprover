@@ -26,6 +26,8 @@ type var   = Var.var
 
 type flat_subst = (var*term) list
 
+val flat_subst_to_string : flat_subst -> string
+
 exception Subst_var_already_def
 
 val create : unit -> subst

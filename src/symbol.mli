@@ -230,6 +230,7 @@ val is_address_const_symb  : symbol -> bool
 val is_a_state_pred_symb   : symbol -> bool
 val is_a_memory_pred_symb  : symbol -> bool
 val is_a_bitvec_pred_symb  : symbol -> bool
+val is_a_bitvec_unary_pred_symb : symbol -> bool
 (*module type TMap = SMap*)
 
 (** t is a subtype of s; currently all types are incoparable except symb_type_types being a supertype of all types *)

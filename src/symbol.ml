@@ -996,6 +996,15 @@ let is_a_bitvec_pred_symb symb =
       )      
   | _-> false
 
+let is_a_bitvec_unary_pred_symb symb = 	
+  match (get_stype_args_val symb) with 
+  | Def([state_type], val_type) -> 
+      ((val_type == symb_bool_type) &&    
+       (is_state_type_symb state_type)
+      )      
+  | _-> false
+
+
 
 (*-----------------------------------------------------*)
 

@@ -1262,7 +1262,7 @@ let ground_pred_value_to_str model pred_term =
 		match (get_ground_pred_value model pred_term) with
 		| Def true -> "1"
 		| Def false -> "0"
-		| Undef -> "Undef"
+		| Undef -> "X"
 	in
 	(Term.to_string pred_term)^":"^val_str
 
@@ -1270,10 +1270,11 @@ let ground_pred_value_to_str model pred_term =
 
 let get_bitindex_from_str str =
 	try
-		let name = Str.string_before str 8 in
+		let name = Str.string_before str 10 in
+		out_str ("bit str name: "^(name)^"\n");
 		match name with
 		|"$$bitIndex" ->
-				Def((int_of_string (Str.string_after str 8)))
+				Def((int_of_string (Str.string_after str 10)))
 		| _ -> Undef
 	with
 	(* Str.string_before can raise Invalid_argument and int_of_string can rise Failure *)
@@ -1450,16 +1451,20 @@ let get_value_type_term symb =
 	match (Symbol.get_stype_args_val symb) with
 	| Def((_, ctype)) ->
 			(
+				add_fun_term ctype [];
+				(*
 				try
 					TermDB.find (Term.create_fun_term ctype []) !term_db_ref
 				with
 					Not_found ->
-						failwith ("get_value_type_term: ctype term does not exist")
+						failwith ("get_value_type_term: ctype term does not exist in term db: "^(Symbol.to_string ctype)^"\n");
+						*)
 			)
 	| Undef -> failwith ("get_value_type_term: type  was not defined")
 
 let constant_val model const_term =
 	let const_symb = Term.get_top_symb const_term in
+(*	try *)
 	let const_type = get_value_type_term const_symb in
 	let eq_model_node = NModel.find Symbol.symb_typed_equality model in
 	let eq_pos_lit_def = eq_model_node.pos_lit_def in
@@ -1481,6 +1486,9 @@ let constant_val model const_term =
 	in
 	FSVMap.iter f eq_model_lit_def_body;
 	!const_val_ref
+(* with 
+ | Not_found -> None
+*)
 
 (*returns (skolem_bound, value) pair *)
 let get_counter_ex_bound model =
@@ -1490,10 +1498,11 @@ let get_counter_ex_bound model =
 		with
 		| Some(sk_bound) ->
 				(match (constant_val model sk_bound) with
+				
 					| Some(sk_val) ->
 							counter_ex_bound := Some ((sk_bound, sk_val));
 							true
-					| None -> failwith ("No value for state skolem constant"^(Term.to_string sk_bound)^"is found")
+					| None -> failwith ("No value for state skolem constant: "^(Term.to_string sk_bound)^"is found")
 				)
 		| None -> false
 	in
@@ -1501,7 +1510,12 @@ let get_counter_ex_bound model =
 	!counter_ex_bound
 
 let term_value_pair_to_string (t, s) =
-	(Term.to_string t)^" = "^(Term.to_string s)
+	let val_str = 
+		match s with
+		| Some(v) -> (Term.to_string v) 
+		| None -> "X" 
+	in			
+	(Term.to_string t)^" = "^val_str
 
 (* returns list of ground (with skolem constants) *)
 (* memories and bitvector predicates occuring in conjectures *)
@@ -1514,6 +1528,7 @@ let list_add_new list e =
 let get_conj_ground_mem_bitvec_preds () =
 	let mem_list_ref = ref [] in
 	let bitvec_pred_ref = ref [] in
+	let bitvec_unary_pred_ref = ref [] in
 	let f_clause clause =
 		let f_lit lit =
 			if (Term.is_ground lit)
@@ -1527,12 +1542,16 @@ let get_conj_ground_mem_bitvec_preds () =
 				if (Symbol.is_a_bitvec_pred_symb top_symb)
 				then
 					(bitvec_pred_ref:= list_add_new (!bitvec_pred_ref) atom)
+				else 
+				if (Symbol.is_a_bitvec_unary_pred_symb top_symb)
+				then
+				 (bitvec_unary_pred_ref := list_add_new (!bitvec_unary_pred_ref) atom)
 				else ()
 		in
 		Clause.iter f_lit clause
 	in
 	List.iter f_clause !neg_conjectures_ref;
-	(!mem_list_ref, !bitvec_pred_ref)
+	(!mem_list_ref, !bitvec_pred_ref, !bitvec_unary_pred_ref)
 
 (*
 let get_states_addr_bitindex_sk_from_clauses clause_list =
@@ -1641,8 +1660,8 @@ let get_max_length_addr_map addr_map =
 (* if state and addr is a fixed constant then the pred. value (depending on i) *)
 (* can be represented as an bit-vector 0100101.. similar as we do with addresses *)
 
-(* is order to collect such preds/values from the model we use a map:    *)
-(* (mem_name* [state_term; addr_term]) | (bv_name* [state_term]) -> [2;3;33] *)
+(* in order to collect such preds/values from the model we use a map:    *)
+(* (mem_name, [state_term; addr_term]) | (bv_name, [state_term]) -> [2;3;33] *)
 (* -- map from pre_terms to list of bitIndecies where this pred is true *)
 (* this map is called ptv_map *)
 (* later we make the inverse map [2;3;33] -> ref [pre_term_1; ...;pre_term]*)
@@ -1664,6 +1683,7 @@ module PTMap = Map.Make(PTKey)
 type ptv_map = ((int list) ref) PTMap.t
 
 let get_pre_term_pos_bit_ind symb flat_subst =
+	out_str ("symb: "^(Symbol.to_string symb)^" "^(Subst.flat_subst_to_string flat_subst)^"\n");
 	if (Symbol.is_a_memory_pred_symb symb)
 	then
 		(
@@ -1686,14 +1706,29 @@ let get_pre_term_pos_bit_ind symb flat_subst =
 				)
 		| _ -> Undef
 	else
+	(*	Undef *)
+	if (Symbol.is_a_bitvec_unary_pred_symb symb)
+	then
+		match flat_subst with
+		|[(_, state)] ->
+			Def (((symb,[state]), 0))
+			(*	(match (get_ind_from_bit_ind_term bit_ind) with
+					| Def (i) -> Def (((symb,[state]), i))
+					| Undef -> Undef
+				)
+			*)	
+		| _ -> Undef
+	else
 		Undef
+		
 
 (* returns ptv_map *)
 let fill_ptv_map model =
 	let f_model symb model_node model_ptv_map =
-		if ((Symbol.is_a_memory_pred_symb symb) || (Symbol.is_a_bitvec_pred_symb symb))
+		if ((Symbol.is_a_memory_pred_symb symb) || (Symbol.is_a_bitvec_pred_symb symb) || (Symbol.is_a_bitvec_unary_pred_symb symb) )
 		then
 			begin
+					out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n");
 				let pos_lit_def = model_node.pos_lit_def in
 				if (pos_lit_def.model_lit_undef)
 				then
@@ -1772,7 +1807,7 @@ let out_vpt_map vpt_map =
 (*--------------------------*)
 
 let out_memory_ver model =
-	let (conj_mem_pred_list, conj_bitvec_pred_list) =
+	let (conj_mem_pred_list, conj_bitvec_pred_list, conj_bitvec_unary_pred_list) =
 		get_conj_ground_mem_bitvec_preds () in
 	
 	out_str "\n\n---------------------memory verification candidate counterexample----------------\n\n";
@@ -1803,7 +1838,16 @@ let out_memory_ver model =
 				List.iter f_bitvec conj_bitvec_pred_list;
 			)
 	);
-	
+ (if (conj_bitvec_unary_pred_list = [])
+		then ()
+		else
+			(out_str "\n---------------------\n";
+				out_str "Counterexample unary bit vector values:\n";
+				let f_bitvec bitvec =
+					out_str ((ground_pred_value_to_str model bitvec)^"\n") in
+				List.iter f_bitvec conj_bitvec_unary_pred_list;
+			)
+	);
 	(
 		if (conj_mem_pred_list = [])
 		then ()
@@ -1819,12 +1863,15 @@ let out_memory_ver model =
 	);
 	
 	out_str "\n---------------------\n";
-	out_str "Counterexample states: ";
+	out_str "Counterexample states: \n ";
 	let f_state state =
-		match (constant_val model state) with
+	(*	match (constant_val model state) with
 		| Some(state_val) ->
 				out_str ((term_value_pair_to_string (state, state_val)));
-		| None -> failwith ("No value for state skolem constant"^(Term.to_string state)^"is found")
+		| None -> failwith ("No value for state skolem constant: "^(Term.to_string state)^"is found")
+	*) 
+	let state_val = (constant_val model state) in 
+	out_str ((term_value_pair_to_string (state, state_val)));
 	in
 	List.iter f_state conj_state_list;
 	(*------------------*)
@@ -1841,7 +1888,7 @@ let out_memory_ver model =
 	let addr_map = get_all_addresses () in
 	let max_addr_length = get_max_length_addr_map addr_map in
 	out_str ("\n max addr length: "^(string_of_int max_addr_length));
-	List.iter f_state conj_state_list;
+	(* List.iter f_state conj_state_list; *)
 	out_str "\n---------------------\n";
 	out_str "Counterexample addresses:\n";
 	let f_addr addr =
@@ -1867,11 +1914,13 @@ let out_memory_ver model =
 	out_str "\n---------------------\n";
 	out_str "Counterexample bit-indices:\n";
 	let f_bitind bitind =
-		match (constant_val model bitind) with
-		| Some(bitind_val) ->
+(*		match (constant_val model bitind) with
+	| Some(bitind_val) -> 
 				out_str ((term_value_pair_to_string (bitind, bitind_val)));
-		| None -> failwith ("No value for state skolem constant"^(Term.to_string bitind)^"is found")
-	in
+	| None -> failwith ("No value for bitind skolem constant: "^(Term.to_string bitind)^"is found") *)
+	let const_val = (constant_val model bitind) in
+	out_str (term_value_pair_to_string (bitind, const_val));
+	in 
 	List.iter f_bitind conj_bitindex_list;
 	out_str "\n---------------------\n";
 	out_str "All addresses:\n";

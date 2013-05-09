@@ -27,6 +27,9 @@ let bot_term = Parser_types.bot_term
 
 type flat_subst = (var * term) list
 
+let flat_subst_to_string fs =
+  "["^(list_to_string (fun (v,t) -> "("^(Var.to_string v)^","^(Term.to_string t)^")") fs ";")^"]"	
+	
 (*type assignment = var*term*)
 exception Subst_var_already_def
 
