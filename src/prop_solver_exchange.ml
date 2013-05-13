@@ -835,8 +835,8 @@ let assign_solver_assumptions lit_list =
 	Format.printf "@\n@.";
 	*)
 	
-	solver_assumptions_ref:= new_assumptions;
-	solver_uc_assumptions_ref:= new_assumptions_uc
+	solver_assumptions_ref := new_assumptions;
+	solver_uc_assumptions_ref := new_assumptions_uc
 
 let assign_only_sim_solver_assumptions lit_list =
 	
@@ -881,7 +881,7 @@ let assign_only_norm_solver_assumptions lit_list =
 	solver_uc_norm_assumptions_ref := new_assumptions_uc
 
 let assign_adjoint_preds preds =
-	adjoint_preds:= preds
+	adjoint_preds := preds
 
 (*-------------Add clause to solver----------------*)
 

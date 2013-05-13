@@ -1271,7 +1271,7 @@ let ground_pred_value_to_str model pred_term =
 let get_bitindex_from_str str =
 	try
 		let name = Str.string_before str 10 in
-		out_str ("bit str name: "^(name)^"\n");
+		(* out_str ("bit str name: "^(name)^"\n"); *)
 		match name with
 		|"$$bitIndex" ->
 				Def((int_of_string (Str.string_after str 10)))
@@ -1513,7 +1513,7 @@ let term_value_pair_to_string (t, s) =
 	let val_str = 
 		match s with
 		| Some(v) -> (Term.to_string v) 
-		| None -> "X" 
+		| None -> "x" 
 	in			
 	(Term.to_string t)^" = "^val_str
 
@@ -1683,7 +1683,7 @@ module PTMap = Map.Make(PTKey)
 type ptv_map = ((int list) ref) PTMap.t
 
 let get_pre_term_pos_bit_ind symb flat_subst =
-	out_str ("symb: "^(Symbol.to_string symb)^" "^(Subst.flat_subst_to_string flat_subst)^"\n");
+(*	out_str ("symb: "^(Symbol.to_string symb)^" "^(Subst.flat_subst_to_string flat_subst)^"\n");*)
 	if (Symbol.is_a_memory_pred_symb symb)
 	then
 		(
@@ -1728,7 +1728,7 @@ let fill_ptv_map model =
 		if ((Symbol.is_a_memory_pred_symb symb) || (Symbol.is_a_bitvec_pred_symb symb) || (Symbol.is_a_bitvec_unary_pred_symb symb) )
 		then
 			begin
-					out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n");
+				(*	out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n"); *)
 				let pos_lit_def = model_node.pos_lit_def in
 				if (pos_lit_def.model_lit_undef)
 				then
