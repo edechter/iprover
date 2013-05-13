@@ -1244,6 +1244,8 @@ let get_ground_pred_value model pred_term =
 					flat_subst_vars = !y_var_list_ref
 				}
 			in
+			begin
+			try
 			let model_node = NModel.find symb model in
 			let pos_lit_def = model_node.pos_lit_def in
 			let neg_lit_def = model_node.neg_lit_def in
@@ -1255,6 +1257,11 @@ let get_ground_pred_value model pred_term =
 				Def(false)
 			else
 				Undef
+			with 
+			| Not_found -> 
+				 ((* out_str ("dbg: symb: "^(Symbol.to_string symb) ^" is not in the model\n");*)
+					Undef)	
+		end			
 	| Term.Var _ -> failwith "get_ground_pred_value: should not be a var"
 
 let ground_pred_value_to_str model pred_term =
@@ -1262,7 +1269,7 @@ let ground_pred_value_to_str model pred_term =
 		match (get_ground_pred_value model pred_term) with
 		| Def true -> "1"
 		| Def false -> "0"
-		| Undef -> "X"
+		| Undef -> "x"
 	in
 	(Term.to_string pred_term)^":"^val_str
 
