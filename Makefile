@@ -45,7 +45,7 @@ CSOLVER=solver
 #CSOLVER=solver_basic
 
 ASSERT=
-OCAMLFLAGS=-inline 10 $(ASSERT) -I obj/ -I util/lib  -I ocamlgraph/
+OCAMLFLAGS=-inline 10 $(ASSERT) -annot -I obj/ -I util/lib  -I ocamlgraph/
 #OCAMLFLAGS=-I obj/
 #LIB  = lib
 
