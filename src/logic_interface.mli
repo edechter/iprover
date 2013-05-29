@@ -64,7 +64,7 @@ val add_typed_disequality_sym :
 (** add_term_algebra_eq_term args *)
 val add_term_algebra_eq_term : term list -> term
 
-(*-----------term views----------*)
+(*----------- term views (not finished) ----------*)
 (* term_eq_view_type_term decomposes equational term into *)
 (* Def(Eq_type_term(equality_type_term, t,s)) or Undef if term is not equality  *)
 

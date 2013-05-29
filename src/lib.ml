@@ -349,9 +349,9 @@ type 'a param = Def of 'a | Undef
 exception Undef_param
 
 let get_param_val p = 
-	match p with 
+  match p with 
   |Def(p') -> p'
- 	|Undef  -> raise Undef_param
+  |Undef  -> raise Undef_param
 
 let get_param_val_fun f = 
 	(fun b -> get_param_val (f b))

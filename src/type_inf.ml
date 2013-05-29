@@ -50,8 +50,9 @@ type sub_type =
 let sub_type_to_str st =
   "$$iProver"^"_"
   ^(Symbol.to_string st.sym)^"_"
-  ^(Symbol.to_string st.arg_type)^"_"
-  ^(string_of_int st.arg_ind)
+  ^(string_of_int st.arg_ind)^"_"
+  ^(Symbol.to_string st.arg_type)
+
       
 let create_sub_type sym arg_ind arg_type =
   {
@@ -87,22 +88,62 @@ module VarTable = Hashtbl.Make (Var)
 
 module SymSet = Symbol.Set
 
+(*----------------*)
+(* pair of symbol position is used to identify (symbol,position) that can not be used as guarding *)
+
+type symb_pos = (symbol * int)
+
+module SP = 
+  struct
+    type t = symb_pos
+    let compare sp1 sp2 = pair_compare_lex Symbol.compare Pervasives.compare sp1 sp2 
+  end
+
+module SP_Set = Set.Make (SP)
+(*---------------*)
+
+(*----------------------------------------- -*)
+(* use mapping in context: var_subtype from (clause,var) -> sub_type *)
+(* this mapping is global *)
+(* subtypes are not normalised in this map, since dynammically can chage from clause to clause *)
+(*  *)
+
+type clause_var = (clause * var)
+
+module CV = 
+  struct 
+    type t = clause_var 
+    let compare cv1 cv2 = pair_compare_lex Clause.compare Var.compare cv1 cv2
+  end
+
+module CV_Map = Map.Make (CV)
+
 type context =
     {
      uf : UF_ST.t;
      
+(* old *)
      (* types with X=Y, X=t, t=X are collapsed since all arg_subtypes should be merged *)
      (* can be relaxed later *)
      (* collapsed types implicitly override sub_types *)
      mutable collapsed_types : SymSet.t;
+
+     mutable clause_var_subtype : sub_type CV_Map.t;
+
+   (* not_shallow_guards: pair of (pred_symb, position)  which are *)
+   (* not sutable for being used as a shallow guard (equality is not included here) *)
+   (* currently simplified condition: (p,i) is not_shallow_guard if it has a positive occurence P(t,x_i,s) \/ C *)    
+   (* arg positions start from 1 *)
+    mutable non_guarding_symb_pos : SP_Set.t;
+    mutable current_clause : clause param;
      
    }
 
-(* var -> sub_type table linking variables to a choosen sub_type of this var; local to each clause *)
-(*needs to be rest with each clause, not very good *)
+let context_get_current_clause context = 
+  get_param_val context.current_clause
 
-type vtable = (sub_type) VarTable.t
 
+(*--aux--*)
 let get_sym_types sym = Symbol.get_stype_args_val_def sym
 
 (* aux fun *)
@@ -113,13 +154,78 @@ let get_val_sub_type sym =
   let val_sub_type = (create_sub_type sym 0 val_type) in
   val_sub_type
 
-(*    top_type : sub_type option; *)
-(* f(t_1,t_2) at t_2 we have top_type_top is f_arg_2 *)
+(*---------check that literal is guarding for a vairable x-----------*)
 
+(* the literal lit is (shallowly) guarding for a variable v if *)
+(*  1)  the literal is negative 2) is non-equational and  *)
+(*  3) at there is a (shallow) position in atom of lit in which x occurs and *)
+(*       this position is not in context.non_guarding_symb_pos *)
+
+(*  is_shallow_guarding returns Def(sub_type) where sub_type is the subtype of a guarding position *)
+(*  or Undef if there exist no guarding position in lit *)
+
+let shallow_guarding_subtype_lit context var_term lit = 
+  if (Term.is_neg_lit lit) && (not (Term.is_eq_lit lit))
+  then 
+    let atom = Term.get_atom lit in 
+    match atom with 
+    |Term.Fun (pred_symb, args, _inf) ->
+	let arg_types, _val_type = get_sym_types pred_symb in
+	let arg_list = Term.arg_to_list args in
+
+	let f (arg_ind, sub_type_param) arg_type arg_term =
+	  if (param_is_def sub_type_param)
+	  then 
+	     (arg_ind, sub_type_param)
+	  else
+	    let new_arg_ind = arg_ind + 1 in 
+	    if ((var_term == arg_term) (* we assume all terms are shared *) 
+		  &&	
+		(not (SP_Set.mem (pred_symb,arg_ind) context.non_guarding_symb_pos))) 
+	    then 
+	      let arg_sub_type = create_sub_type pred_symb arg_ind arg_type in
+	      (arg_ind,Def(arg_sub_type))  
+	    else
+	      (new_arg_ind, Undef)
+	in
+	let (_final_arg_ind, sub_type_param) =  
+	  List.fold_left2 f (1, Undef) arg_types arg_list 
+	in 
+	sub_type_param
+    |Term.Var _ -> failwith "is_shallow_guarding pred should not be var"
+  else
+    Undef
+
+(* returns guardin subtype; can be extended to also return guarding literal*)
+let shallow_guarding_subtype_lit_list context var_term lit_list = 
+  let f sub_type_param lit =
+  if (param_is_def sub_type_param)
+  then 
+    sub_type_param 
+  else
+    (shallow_guarding_subtype_lit context var_term lit) 
+  in
+  List.fold_left f Undef lit_list
+
+let shallow_guarding_subtype_clause context var_term =
+  let current_clause =  (Clause.get_literals (get_param_val context.current_clause)) in
+  shallow_guarding_subtype_lit_list context var_term current_clause
+
+(*------------*)
+
+(* var -> sub_type table linking variables to a choosen sub_type of this var; local to each clause *)
+(*needs to be reset with each clause, not very good *)
+
+type vtable = (sub_type) VarTable.t
+
+(*---------------------------------------------------*)
+(*    top_type : sub_type option;                    *)
+(* f(t_1,t_2) at t_2 we have top_type_top is f_arg_2 *)
 (* top_type_opt_term_list = [(Some(top_sub_type),fun_term);(None, pred_term)...]  *)
 
-let rec extend_uf_types context (vtable: vtable) top_sub_type_opt_term_ass_list =
-  (* first define a function for processing arguments that we will use several times *)
+let rec extend_uf_types context top_sub_type_opt_term_ass_list =
+  let current_clause = context_get_current_clause context in
+  (* first define a function for processing arguments that we will used several times *)
   let process_args_fun sym args ass_list =
     let arg_types, _val_type = get_sym_types sym in
     (*    let arg_list = Term.arg_to_list args in*)
@@ -137,31 +243,40 @@ let rec extend_uf_types context (vtable: vtable) top_sub_type_opt_term_ass_list 
     in
     (* add_ass_list is reversed but should not matter *)
     let new_ass_list = add_ass_list@ass_list in
-    extend_uf_types context vtable new_ass_list
+    extend_uf_types context new_ass_list
+  in
+
+(* process  var_term and new sub_type which this var should belong to; used in several places *)
+  let process_var_subtype var_term sub_type =     
+    try
+      let var_sub_type = CV_Map.find (current_clause, var_term) context.clause_var_subtype in
+      UF_ST.union context.uf sub_type var_sub_type;
+      (* extend_uf_types context tl_ass *)
+    with
+      Not_found ->
+	(
+	 (* VarTable.add vtable var top_sub_type; *)
+	 context.clause_var_subtype <- 
+	   CV_Map.add (current_clause, var_term) sub_type context.clause_var_subtype;
+	 UF_ST.add context.uf sub_type;
+	 (* extend_uf_types context tl_ass *)
+	)
   in
   
   (*----------- main part ---------------*)
   
   match top_sub_type_opt_term_ass_list with
-  | (Some(top_sub_type), Term.Fun (sym, args, _)):: tl_ass ->
-      (* here we assume that sym is not fun (not pred) since Some *)
+  | (Some(top_sub_type), Term.Fun (sym, args, _))::tl_ass ->
+      (* here we assume that sym is fun (not pred) since Some *)
       let val_sub_type = get_val_sub_type sym in
       UF_ST.union context.uf top_sub_type val_sub_type;
       process_args_fun sym args tl_ass
 	
-  | (Some(top_sub_type), Term.Var(var, args)):: tl_ass ->
-      ( try
-	let var_sub_type = VarTable.find vtable var in
-	UF_ST.union context.uf top_sub_type var_sub_type;
-	extend_uf_types context vtable tl_ass
-      with
-	Not_found ->
-	  (
-	   VarTable.add vtable var top_sub_type;
-	   UF_ST.add context.uf top_sub_type;
-	   extend_uf_types context vtable tl_ass
-	  )
-       )
+  | (Some(top_sub_type), Term.Var(var_term, _inf))::tl_ass ->
+      (
+       process_var_subtype var_term top_sub_type;
+       extend_uf_types context tl_ass
+      )
   | (None, lit):: tl_ass ->
       (* here we assume that sym is pred/or ~pred since None *)
       let atom = Term.get_atom lit in
@@ -197,48 +312,60 @@ let rec extend_uf_types context (vtable: vtable) top_sub_type_opt_term_ass_list 
 		   else ());
 		   process_args_fun sym1 args1 [];
 		   process_args_fun sym2 args2 [];
-		   extend_uf_types context vtable tl_ass
+		   extend_uf_types context (*vtable*) tl_ass
 		  )
 		    
 		    (* type collaps cases *)
 		    
 	      | ((Term.Var (v, _) as v_term), (Term.Fun(sym, args, _) as f_term))
 	      | ((Term.Fun(sym, args, _) as f_term), (Term.Var (v, _) as v_term))
-		->
-		  (
-		   (* (if (not (Term.is_neg_lit lit)) (* positive eq *)
-		      then
-		      (context.collapsed_types <-
-		      SymSet.add eq_v_type context.collapsed_types;)
-		      else ()
-		      );*)
-		   context.collapsed_types <-
-		     SymSet.add eq_v_type context.collapsed_types;
-		   (* collapsed for both negative and positive X!=f(X) *)
-		   (* may be smth better can be done for negative *)
-		   (* arguments can be still of a different type  *)
-		   let val_sub_type = get_val_sub_type sym in
-		   
-		   extend_uf_types context vtable [(Some(val_sub_type), v_term)];
-		   extend_uf_types context vtable ((None, f_term):: tl_ass);
-		  )
-	      | (Term.Var(v1, _), Term.Var (v2, _)) ->
-		  (
-		   (* for negative x!=y we can do smth better (collapsing should be safe in any case) *)
-		   (* but we can assume that they are eliminated during preprocessing; so do not bother *)
-		   (context.collapsed_types <-
-		     SymSet.add eq_v_type context.collapsed_types;)
-		     
-		     (*if (not (Term.is_neg_lit lit)) (* positive eq *)
-			then
+		->		  
+		   (*  (if (not (Term.is_neg_lit lit)) (* positive eq *) *)
+		   (*    then *)
+		   (*    (context.collapsed_types <- *)
+		   (*    SymSet.add eq_v_type context.collapsed_types;) *)
+		   (*    else () *)
+		   (*    ); *)
+                   (*   *)
+		   begin
+		     (* the same for both negative and positive X!=f(X) *)
+		     (* better can be done for negative *)		    
+
+		     let fun_val_sub_type = get_val_sub_type sym in
+		     if (Term.is_neg_lit lit)
+		     then 
+		       (
+			process_var_subtype v fun_val_sub_type;
+			extend_uf_types context tl_ass
+		       )
+		     else
+		       match (shallow_guarding_subtype_clause context v_term) with 		      
+		       |Def(guarding_subtype) ->		     
+			   process_var_subtype v guarding_subtype;
+			   UF_ST.union context.uf guarding_subtype fun_val_sub_type; 			
+		       | Undef -> 
+			   (* ther is no guard *)
+			   (context.collapsed_types <-
+			     SymSet.add eq_v_type context.collapsed_types;
+			    extend_uf_types context  [(Some(fun_val_sub_type), v_term)];
+			    extend_uf_types context  ((None, f_term):: tl_ass);		    	   
+			   )
+		   end		   
+		  
+	      | ((Term.Var(v1, _) as v1_term), (Term.Var (v2, _) as v2_term)) ->
+		  ( (* we assume that x!=y are eliminated during preprocessing; *)
+		    let guard_param_v1 = shallow_guarding_subtype_clause context v1_term in
+		    let guard_param_v2 = shallow_guarding_subtype_clause context v2_term in
+		    match (guard_param_v1, guard_param_v2) with 
+		    |(Def (gv1) ,Def(gv2)) -> 
+			UF_ST.union context.uf gv1 gv2;
+			process_var_subtype v1 gv1;
+			process_var_subtype v2 gv2;
+		    |_ ->
 			(context.collapsed_types <-
-			SymSet.add eq_v_type context.collapsed_types;)
-			else ()
-			);
-		      *)
-		  )
-	    end
-	      
+			  SymSet.add eq_v_type context.collapsed_types;)		     		    
+		   )
+	    end	      
 	| _ -> failwith "extend_uf_types: non-eq 2"
       else (* non eq predicate *)
 	(match atom with
@@ -250,12 +377,13 @@ let rec extend_uf_types context (vtable: vtable) top_sub_type_opt_term_ass_list 
   |[] -> ()
 
 let extend_uf_types_clause context clause =
-  let lits = Clause.get_literals clause in
+  let clause_lits = Clause.get_literals clause in
+  context.current_clause <- Def(clause); 
   let top_sub_type_opt_term_ass_list =
-    List.map (fun l -> (None, l)) lits
+    List.map (fun l -> (None, l)) clause_lits
   in
   let vtable = VarTable.create 10 in
-  extend_uf_types context vtable top_sub_type_opt_term_ass_list
+  extend_uf_types context (* vtable *) top_sub_type_opt_term_ass_list
 
 let extend_uf_types_clause_list context clause_list =
   List.iter (extend_uf_types_clause context) clause_list
@@ -280,10 +408,14 @@ let st_nf_to_all_st_table context =
   st_table
 
 
+let type_term_from_type_symb type_symb =
+  Parser_types.create_theory_term type_symb [] 
+		  
+
 (*------------------------------*)
 exception Neg_eq_different_types
-(* if Neg_eq_different_types then the clause is a tautology!*)
-(*we assume that signature already retyped ! *)
+(* if Neg_eq_different_types then the clause is a tautology! *)
+(* we assume that signature already retyped ! *)
 
 let type_equality_lit context lit =
   let atom = Term.get_atom lit in
@@ -307,51 +439,97 @@ let type_equality_lit context lit =
 	  lit (* do not do anything to collapsed types *)
 	else
 	  begin
-	    match (t, s) with
-	    | (Term.Fun(sym_t, _args1, _), Term.Fun(sym_s, _args2, _)) ->
-		(
-		 try
-		   (* newtypes of t and s should be the same so we take t  *)
-		   (* out_str (Symbol.to_string sym_t);
-		      out_str (Symbol.to_string sym_s);
-		    *)
-		   let t_vt = get_val_type sym_t in
-		   let s_vt = get_val_type sym_s in
-		   
-		   (* out_str (Symbol.to_string t_vt);
-		      out_str (Symbol.to_string s_vt);
-		    *)
-		   (if ((Term.is_neg_lit lit) &&
-			(not (t_vt == s_vt)))
-		   then
-		     raise Neg_eq_different_types
-		   else ());
-		   
-		   assert (t_vt == s_vt);
-		   let t_new_type_term =
-		     Parser_types.create_theory_term t_vt [] in
-		   let new_eq_atom =
-		     Parser_types.create_theory_term
-		       Symbol.symb_typed_equality
-		       [t_new_type_term; t; s]
-		   in
-		   (
-		    if (not (Term.is_neg_lit lit)) (* positive eq *)
+	    try
+	      let new_eq_atom = 	     
+		match (t, s) with
+		| (Term.Fun(sym_t, _args1, _), Term.Fun(sym_s, _args2, _)) ->		
+		    
+		    (* newtypes of t and s should be the same so we take t  *)
+		    (* out_str (Symbol.to_string sym_t);
+		       out_str (Symbol.to_string sym_s);
+		     *)
+		    let t_vt = get_val_type sym_t in
+		    let s_vt = get_val_type sym_s in
+		    
+		    (* out_str (Symbol.to_string t_vt);
+		       out_str (Symbol.to_string s_vt);
+		     *)
+		    (if ((Term.is_neg_lit lit) &&
+			 (not (t_vt == s_vt)))
 		    then
-		      new_eq_atom
-		    else
-		      Parser_types.neg_fun new_eq_atom
-		   )
-		 with Not_found -> failwith "type_equality_lit: should be subtyped"
-		)
-	    | _ -> lit (* collapsed type; can be changed! *)
+		   raise Neg_eq_different_types
+		    else ());
+		    
+		    assert (t_vt == s_vt);
+		    let new_eq_type_term = type_term_from_type_symb t_vt in
+		    let new_eq_atom =  add_typed_equality_term new_eq_type_term t s in
+		    new_eq_atom			   
+		| ((Term.Var (v, _) as v_term), _)
+		| (_,(Term.Var (v, _) as v_term)) -> 
+		    ( try
+		      let current_clause = context_get_current_clause context in
+		      let var_sub_type = CV_Map.find (current_clause, v) context.clause_var_subtype in
+		      let sb_nf = UF_ST.find context.uf var_sub_type in
+		      let eq_type_symb = sub_type_to_type sb_nf in
+		      let new_eq_type_term = type_term_from_type_symb eq_type_symb in
+		      let new_eq_atom = add_typed_equality_term new_eq_type_term t s in
+		    new_eq_atom
+		    with  		     	  
+		      Not_found -> failwith "variables should be subtyped here"
+		     )
+	      in
+	      (
+	       if (not (Term.is_neg_lit lit)) (* positive eq *)
+	       then
+		 new_eq_atom
+	       else
+		 (add_neg_atom new_eq_atom)
+	      )		    		
+	    with Not_found -> failwith "type_equality_lit: should be subtyped" (* cna be thown by *)
 	  end
-    | _ -> failwith "type_equality_lit: not eq should not happen"
   else
-    lit (* not an equality atom *)
+    lit (* not euqality*)
 
 (*------finish--------*)
 
+(*----- check for guarding positions ------*)
+
+(*----- fill non_guarding positions ------*)
+
+let fill_non_guarding_set ng_set clause_list = 
+  let fill_non_guarding_set_clause ng_set clause = 
+    let fill_non_guardig_set_lit ng_set lit = 
+      if ((Term.is_neg_lit lit) || (Term.is_eq_lit lit))
+      then
+	ng_set 
+      else
+	(* positive non-equality literal *)
+	(* collect all variale positions *)
+	begin
+	  match lit with  
+	  |Term.Fun(pred_symb,args,_inf) ->
+	      let f (arg_ind, current_set) term =
+		let new_arg_ind = arg_ind + 1 in
+		let new_set = 
+		  if (Term.is_var term) 
+		  then 
+		    SP_Set.add (pred_symb,arg_ind) current_set 
+		  else
+		    current_set
+		in
+		(new_arg_ind, new_set)
+	      in 
+	      let (_num_of_args,new_set) = Term.arg_fold_left f (1, ng_set) args in
+	      new_set
+	  | Term.Var _-> failwith "fill_non_guardig_set_lit"
+	end
+    in
+    List.fold_left fill_non_guardig_set_lit ng_set (Clause.get_literals clause)
+  in
+  List.fold_left fill_non_guarding_set_clause ng_set clause_list
+
+
+	
 
 (*------------------------------*)
 exception Type_Undef
@@ -360,11 +538,17 @@ let sub_type_inf clause_list =
     {
      uf = UF_ST.create 301;
      collapsed_types = SymSet.empty;
+     clause_var_subtype = CV_Map.empty;
+     non_guarding_symb_pos = SP_Set.empty;
+     current_clause = Undef;
    }
   in
-  (
-   extend_uf_types_clause_list context clause_list;
-  );
+  context.non_guarding_symb_pos <- (fill_non_guarding_set context.non_guarding_symb_pos clause_list);
+  (*------*)
+  extend_uf_types_clause_list context clause_list;
+  context.current_clause <- Undef;
+  (*-----*)
+
   let st_nf_table = st_nf_to_all_st_table context in
   (* process collapsed types in future; eliminate some of them *)
   
@@ -404,6 +588,7 @@ let sub_type_inf clause_list =
   
   (* retype the signature *)
   (* add a check when we do not need to do anything: all types collapsed or merged *)
+  (* this is for non-equality symbols *)
   let process_sym sym =
     if (SymSet.mem sym !typed_symbs_set_ref)
     then () (* already processed *)
@@ -435,7 +620,7 @@ let sub_type_inf clause_list =
 		       Not_found -> arg_type
 		    )
 		in
-		((arg_ind +1), (new_type:: new_types_rest))
+		((arg_ind +1), (new_type::new_types_rest))
 	      )
 	      (0,[])
 	      all_types
@@ -472,11 +657,12 @@ let sub_type_inf clause_list =
   
   (*   SymbolDB.iter process_sym !symbol_db_ref;*)
   
-  (* 1) type equalities, 2) merge history with christoph, 3) C\/t!=s and s has differen type from t then the clause is a tautology ! *)
+  (* 1) type equalities, 2) merge history with christoph, 3) C\/t!=s and s has differen type from t then the clause is a tautology *)
   
   let typed_clause_list =
     let f rest clause =
       try
+	context.current_clause <- Def(clause);
 	(* switching off symbol type check/restore after retyping *)
 	let input_symbol_type_check = !current_options.symbol_type_check in
 	!current_options.symbol_type_check <- false;				
@@ -493,7 +679,7 @@ let sub_type_inf clause_list =
 	
 	if (typed_var_lits == lits)
 	then
-	  clause:: rest
+	  clause::rest
 	else
 	  (
 	   let tstp_source = Clause.tstp_source_subtyping clause in
