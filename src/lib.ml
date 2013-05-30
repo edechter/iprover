@@ -58,7 +58,7 @@ let out_err_str s =
 let iprover_name_str = "iProver"
 
 (* version is a list of integers *)
-let iprover_current_version = [0;99]
+let iprover_current_version = [1;0]
 
 let rec iprover_version_to_str v = 
   match v with 
@@ -71,7 +71,7 @@ let iprover_version_str  = "v"^(iprover_version_to_str iprover_current_version)
 (*let iprover_add_info = "(Post CASC-22)"*)
 (*let iprover_add_info = "(post CASC-J5 2010)"*)
 
-let iprover_add_info = "(CASC-J6 2012)"
+let iprover_add_info = "(CASC-24 2013)"
 
 let pref_str_head = "\n%---------------- " 
 

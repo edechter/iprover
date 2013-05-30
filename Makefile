@@ -264,7 +264,7 @@ clean_all: clean
 	if [ -d $(VCLAUSIFIER_PATH) ]; then cd $(VCLAUSIFIER_PATH); make clean; rm -f vclausify_rel; cd ../; fi;\
     if [ -d $(OCAMLGRAPH_PATH) ]; then cd $(OCAMLGRAPH_PATH); make clean; cd ../; fi
 
-ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./LICENSE_PicoSAT ./COPYING_Lingeling ./LICENSE_MiniSAT ./LICENSE_OCAMLGRAPH ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB.batch ./README.CASC-J6
+ARCHIVE_IPROVER_NAMES=./src ./LICENSE ./LICENSE_PicoSAT ./COPYING_Lingeling ./LICENSE_MiniSAT ./LICENSE_OCAMLGRAPH ./README ./Makefile ./Makefile.extras ./configure ./iproveropt_run.sh ./iproveropt_run_sat.sh ./Changelog ./problem.p ./problem_sat.p ./problem_fof.p ./util ./README.iProver_LTB ./LTB.batch ./README.CASC-J6 ./README.CADE-24
 
 ARCHIVE_LTB_NAMES=./LTB/iprover_sine.sh ./LTB/iprover_sine_single.sh ./LTB/iprover_sine_turing.sh ./LTB/iprover_sine_reduced_cores.sh ./LTB/create_ltb_batch.sh ./LTB/Makefile ./LTB/TreeLimitedRun.c ./LTB/MZR.header ./LTB/MZR_turing.header ./LTB/SMO.header ./LTB/ISA.header ./LTB/MZR_bushy_rand_100.list ./LTB/MZR_chainy_rand_100.list ./LTB/SMO_2011.list ./LTB/ISA_2011.list ./LTB/MZR_bushy.list ./LTB/MZR_chainy.list
 

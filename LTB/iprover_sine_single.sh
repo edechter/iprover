@@ -4,7 +4,7 @@
 #For CASC-J5 use only
 
 
-#category: LTB.SMO, LTB.MZR, MZR.MZR or LTB.CYC
+#category: LTB.SMO, LTB.MZR, MZR.MZR, LTB.CYC, LTB.HOL 
 CAT=$1
 #time limit
 TLIMIT=$2
@@ -109,7 +109,7 @@ else
 	    SLICE[10]="-ss included -sd 1"
 	    SLICE[11]="-ss included -sd 2"
 	else
-	    if [ "$CAT" == "LTB.ISA" ]; then
+	    if [ "$CAT" == "LTB.ISA" -o "$CAT" == "LTB.HOL" ]; then
 		echo "$CAT Slices"
 		SLICE[0]="-ss axioms -sd 3 -st 3 -sgt 7"
 		SLICE[1]="-ss axioms -sd 2 -st 5"

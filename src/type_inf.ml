@@ -16,6 +16,7 @@ along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 
 open Lib
 open Options
+open Statistics
 open Logic_interface 
 
 type symbol = Symbol.symbol
@@ -80,6 +81,13 @@ module SubTypeE =
 	&&
       (t1.arg_type == t2.arg_type)	
     let hash t = ((Symbol.get_fast_key t.sym) lsl 5) + t.arg_ind
+
+(* compare *)
+    let cmp_sym t1 t2 =  Symbol.compare t1.sym t2.sym  
+    let cmp_arg_ind t1 t2 = Pervasives.compare t1.arg_ind t2.arg_ind  
+    let cmp_arg_type t1 t2 = Symbol.compare t1.arg_type t2.arg_type  
+    let compare t1 t2 =  
+      lex_combination [cmp_sym; cmp_arg_ind; cmp_arg_type] t1 t2
   end
 
 module UF_ST = Union_find.Make(SubTypeE)
@@ -87,6 +95,8 @@ module UF_ST = Union_find.Make(SubTypeE)
 module VarTable = Hashtbl.Make (Var)
 
 module SymSet = Symbol.Set
+
+module SubTypeSet = Set.Make(SubTypeE)
 
 (*----------------*)
 (* pair of symbol position is used to identify (symbol,position) that can not be used as guarding *)
@@ -136,7 +146,11 @@ type context =
    (* arg positions start from 1 *)
     mutable non_guarding_symb_pos : SP_Set.t;
     mutable current_clause : clause param;
-     
+
+(* ---- used for statistics ---- *)
+(* types that use guards, this will include collapsing types; not normalised *)
+     mutable guarded_subtype_set : SubTypeSet.t 
+
    }
 
 let context_get_current_clause context = 
@@ -342,6 +356,8 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 		       match (shallow_guarding_subtype_clause context v_term) with 		      
 		       |Def(guarding_subtype) ->		     
 			   process_var_subtype v guarding_subtype;
+			   context.guarded_subtype_set <- 
+			     SubTypeSet.add guarding_subtype context.guarded_subtype_set;
 			   UF_ST.union context.uf guarding_subtype fun_val_sub_type; 			
 		       | Undef -> 
 			   (* ther is no guard *)
@@ -361,6 +377,8 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 			UF_ST.union context.uf gv1 gv2;
 			process_var_subtype v1 gv1;
 			process_var_subtype v2 gv2;
+			context.guarded_subtype_set <- 
+			  SubTypeSet.add gv1 context.guarded_subtype_set;
 		    |_ ->
 			(context.collapsed_types <-
 			  SymSet.add eq_v_type context.collapsed_types;)		     		    
@@ -382,8 +400,8 @@ let extend_uf_types_clause context clause =
   let top_sub_type_opt_term_ass_list =
     List.map (fun l -> (None, l)) clause_lits
   in
-  let vtable = VarTable.create 10 in
-  extend_uf_types context (* vtable *) top_sub_type_opt_term_ass_list
+ (* let vtable = VarTable.create 10 in *)
+  extend_uf_types context top_sub_type_opt_term_ass_list
 
 let extend_uf_types_clause_list context clause_list =
   List.iter (extend_uf_types_clause context) clause_list
@@ -464,8 +482,8 @@ let type_equality_lit context lit =
 		    let new_eq_type_term = type_term_from_type_symb t_vt in
 		    let new_eq_atom =  add_typed_equality_term new_eq_type_term t s in
 		    new_eq_atom			   
-		| ((Term.Var (v, _) as v_term), _)
-		| (_,(Term.Var (v, _) as v_term)) -> 
+		| (Term.Var (v, _), _)
+		| (_,Term.Var (v, _)) -> 
 		    ( try
 		      let current_clause = context_get_current_clause context in
 		      let var_sub_type = CV_Map.find (current_clause, v) context.clause_var_subtype in
@@ -487,12 +505,10 @@ let type_equality_lit context lit =
 	      )		    		
 	    with Not_found -> failwith "type_equality_lit: should be subtyped" (* cna be thown by *)
 	  end
+    |Term.Var _ -> failwith "type_equality_lit: should be atom"
   else
     lit (* not euqality*)
 
-(*------finish--------*)
-
-(*----- check for guarding positions ------*)
 
 (*----- fill non_guarding positions ------*)
 
@@ -541,12 +557,19 @@ let sub_type_inf clause_list =
      clause_var_subtype = CV_Map.empty;
      non_guarding_symb_pos = SP_Set.empty;
      current_clause = Undef;
-   }
+     guarded_subtype_set = SubTypeSet.empty}
   in
   context.non_guarding_symb_pos <- (fill_non_guarding_set context.non_guarding_symb_pos clause_list);
   (*------*)
   extend_uf_types_clause_list context clause_list;
   context.current_clause <- Undef;
+  let normalise_guarded_subtype_set context = 
+    let f gs new_set = 
+      SubTypeSet.add (UF_ST.find context.uf gs) new_set
+    in
+    context.guarded_subtype_set <- SubTypeSet.fold f context.guarded_subtype_set SubTypeSet.empty 
+  in
+  normalise_guarded_subtype_set context;
   (*-----*)
 
   let st_nf_table = st_nf_to_all_st_table context in
@@ -563,26 +586,39 @@ let sub_type_inf clause_list =
     )
     st_nf_table;
   
-  (*------------ Add this output and an option ----------*)
+  (*------------ statistics/output and an option ----------*)
+   let get_non_collapsing_guarding_subtypes context = 
+     let f sub_type = 
+       not (SymSet.mem sub_type.arg_type context.collapsed_types)
+     in
+     SubTypeSet.filter f context.guarded_subtype_set 
+   in
+   let non_collapsing_guarding_subtypes = get_non_collapsing_guarding_subtypes context in
+   (incr_int_stat (SubTypeSet.cardinal non_collapsing_guarding_subtypes) sat_num_of_guarded_non_collapsed_types);
 
-  (* debug *)
-(*	
-   out_str "Inferred Subtypes:\n";
+  (if !current_options.dbg_out_stat then	
+    out_str "Inferred subtypes:\n";
    STypeTable.iter
-   (fun nf st_list ->
-   out_str ("NF: "^(sub_type_to_str nf)^" "
-   ^"["^(list_to_string sub_type_to_str st_list ";")^"]\n"
-   )
-   ) st_nf_table;
+     (fun nf st_list ->
+       out_str ("NF: "^(sub_type_to_str nf)^" "
+		^"["^(list_to_string sub_type_to_str st_list ";")^"]\n"
+	       )
+     ) st_nf_table;
    
-   out_str "\n Collapsed Types: ";
+   out_str "\nCollapsed types: \n";
    SymSet.iter
-   (fun sym ->
-   out_str ((Symbol.to_string sym)^", ")) context.collapsed_types;
-   
- *)
-  
-  (* end debug *)
+     (fun sym ->
+       out_str ((Symbol.to_string sym)^", ")) context.collapsed_types;
+    
+   out_str "\nGuarded non-collapsed types:\n ";
+   SubTypeSet.iter 
+     (
+      fun sub_type -> 
+	out_str (sub_type_to_str sub_type)
+     ) non_collapsing_guarding_subtypes;
+   out_str "\n---------------";
+  );
+
   
   let typed_symbs_set_ref = ref SymSet.empty in
   

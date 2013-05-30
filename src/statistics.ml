@@ -1,17 +1,17 @@
 (*----------------------------------------------------------------------(C)-*)
 (* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
-   This file is part of iProver - a theorem prover for first-order logic.
+    This file is part of iProver - a theorem prover for first-order logic.
 
-   iProver is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-   iProver is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-   See the GNU General Public License for more details.
-   You should have received a copy of the GNU General Public License
-   along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
+	iProver is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+      the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+  iProver is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+    See the GNU General Public License for more details.
+	You should have received a copy of the GNU General Public License
+	    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
 
@@ -79,7 +79,7 @@ let clear_stat_fun_entry e = e.stat_fun <- Undef
 (* does not work! *)
 let run_and_time stat f x =
   let start_time = Unix.gettimeofday () in
- (* out_str ("s "^(string_of_float start_time)^"\n");*)
+  (* out_str ("s "^(string_of_float start_time)^"\n");*)
   try
     let res = f x in
     let end_time   = Unix.gettimeofday () in 
@@ -95,7 +95,7 @@ let run_and_time stat f x =
       out_str "adding\n";
       add_float_stat run_time stat;      
       raise e
-  
+	
 
 
 (*-------General---------*)
@@ -164,37 +164,45 @@ let sat_num_of_non_cyclic_types =
    value = 0;
  }
 
+let sat_num_of_guarded_non_collapsed_types = 
+  {
+   int_entry_name  = "sat_guarded_non_collapsed_types";
+   value = 0;
+ }
+
+
+
 let is_epr = 
-	{
-		int_entry_name  = "is_epr";
-		value = 0;
-		}
-		
+  {
+   int_entry_name  = "is_epr";
+   value = 0;
+ }
+    
 let is_horn = 
-	{
-	int_entry_name  = "is_horn";
-	value = 0;
-		}
-		
+  {
+   int_entry_name  = "is_horn";
+   value = 0;
+ }
+    
 let has_eq = 
-			{
-	int_entry_name  = "has_eq";
-	value = 0;
-	}
+  {
+   int_entry_name  = "has_eq";
+   value = 0;
+ }
 
 let simp_replaced_by =
-	 {
+  {
    int_entry_name  = "simp_replaced_by";
    value = 0;
  }
 
 let res_preprocessed =
-	 {
+  {
    int_entry_name  = "res_preprocessed";
    value = 0;
  }
 
-   
+    
 let forced_gc_time = 
   {
    int_entry_name  = "forced_gc_time" ;
@@ -202,10 +210,10 @@ let forced_gc_time =
  }
 
 let gc_basic_clause_elim =
-	{
-  int_entry_name  = "gc_basic_clause_elim";
-	value =0
-}
+  {
+   int_entry_name  = "gc_basic_clause_elim";
+   value =0
+ }
 
 let total_time = 
   {
@@ -224,13 +232,13 @@ let sem_filter_time =
    float_entry_name  = "sem_filter_time";
    float_value = 0.;
  }
- 
+    
 let out_proof_time = 
   {
    float_entry_name  = "out_proof_time";
    float_value = 0.;
  }
- 
+    
 
 
 
@@ -408,10 +416,10 @@ let inst_num_existing_simplified  =
  }
 
 let inst_num_eq_res_simplified =
-	{
+  {
    int_entry_name  = "inst_num_eq_res_simplified" ;
    value = 0;
-}
+ }
 
 let inst_num_from_inst_to_res  = 
   {
@@ -456,9 +464,9 @@ let inst_num_of_duplicates  =
 
 let res_num_of_clauses  = 
   {  
-   fun_entry_name  = "res_num_of_clauses";
-   stat_fun        = Undef 
- }
+     fun_entry_name  = "res_num_of_clauses";
+     stat_fun        = Undef 
+   }
 
 let res_num_in_passive = 
   {
@@ -520,18 +528,18 @@ let res_backward_subsumption_resolution =
    int_entry_name  = "res_backward_subsumption_resolution";
    value = 0;
  }
-   
+    
 let res_clause_to_clause_subsumption = 
-   {
-    int_entry_name  = "res_clause_to_clause_subsumption";
-    value = 0;
-  }
+  {
+   int_entry_name  = "res_clause_to_clause_subsumption";
+   value = 0;
+ }
 
 let res_orphan_elimination = 
-   {
-    int_entry_name  = "res_orphan_elimination";
-    value = 0;
-  }
+  {
+   int_entry_name  = "res_orphan_elimination";
+   value = 0;
+ }
 
 
 let res_tautology_del = 
@@ -541,10 +549,10 @@ let res_tautology_del =
  }
 
 let res_num_eq_res_simplified =
-	{
+  {
    int_entry_name  = "res_num_eq_res_simplified" ;
    value = 0;
-}
+ }
 
 let res_num_sel_changes = 
   {
@@ -562,20 +570,20 @@ let res_moves_from_active_to_pass =
 
 
 (*
-let   = 
-  {
+   let   = 
+   {
    int_entry_name  = "";
    value = 0;
- }
+   }
 
 
-let  = 
-  {
+   let  = 
+   {
    fun_entry_name  = "";
    stat_fun        = Undef 
- }
+   }
 
-*)
+ *)
 
 
 (*-----------------*)
@@ -626,14 +634,15 @@ let gen_int_stat_list =
    num_of_sem_filtered_clauses;
    num_of_subtypes;
    sat_num_of_epr_types;
-	 sat_num_of_non_cyclic_types;
-	 is_epr;
-	 is_horn;
-	 has_eq;
-	 simp_replaced_by;
-	 res_preprocessed;
+   sat_num_of_non_cyclic_types;
+   sat_num_of_guarded_non_collapsed_types;
+   is_epr;
+   is_horn;
+   has_eq;
+   simp_replaced_by;
+   res_preprocessed;
    forced_gc_time;
-	 gc_basic_clause_elim;
+   gc_basic_clause_elim;
  ]
 
 let gen_float_stat_list = 
@@ -694,7 +703,7 @@ let inst_int_stat_list =
    inst_num_tautologies;
    inst_num_prop_implied;
    inst_num_existing_simplified;
-	 inst_num_eq_res_simplified;
+   inst_num_eq_res_simplified;
    inst_num_child_elim;
    inst_num_of_dismatching_blockings;
    inst_num_of_non_proper_insts;
@@ -726,7 +735,7 @@ let res_int_stat_list =
    res_clause_to_clause_subsumption;
    res_orphan_elimination;
    res_tautology_del; 
-	 res_num_eq_res_simplified;
+   res_num_eq_res_simplified;
    res_num_sel_changes;
    res_moves_from_active_to_pass;
  ]
@@ -774,8 +783,8 @@ let out_stat () =
 
 (*
 
-type statistics = 
-    {
+   type statistics = 
+   {
 
 (*---------General--------*)
 
@@ -783,6 +792,6 @@ type statistics =
    (* let lit_activity_check_move  = ref 0*)
 
 
-let inst_solver_thershold   = ref 100
+   let inst_solver_thershold   = ref 100
 
-*)
+ *)
