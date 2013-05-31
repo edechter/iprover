@@ -86,7 +86,7 @@ let check_types (_b,t) (_b,s) =
   then ()
   else
 		(
-		out_str ("Warning: Unif faild for term: "^(Term.to_string t)^" type: "^(Symbol.to_string t_type)^" term "^(Term.to_string s)^(" type ")^(Symbol.to_string s_type)^"\n");
+		out_warning ("Unif faild for term: "^(Term.to_string t)^" type: "^(Symbol.to_string t_type)^" term "^(Term.to_string s)^(" type ")^(Symbol.to_string s_type)^"\n");
 	raise Unification_failed
 	)
 	
@@ -245,7 +245,7 @@ let mgu_high_bind_is_matching b_high bsubst =
 		if b_v < b_high
 		then
 			raise HBind_match_failed
-		else out_str "Warning: mgu_high_bind_is_matching: b_high is not the highest!\n"
+		else out_warning "mgu_high_bind_is_matching: b_high is not the highest!\n"
 	in
 	try
 		SubstBound.iter check bsubst;
@@ -288,7 +288,7 @@ let mgu_low_bind_is_matching b_high bsubst =
 		else
 		if b_v < b_high
 		then ()
-		else out_str "Warning: mgu_low_bind_is_matching: b_high is not the highest!\n"
+		else out_warning "mgu_low_bind_is_matching: b_high is not the highest!\n"
 	in
 	try
 		SubstBound.iter check bsubst;

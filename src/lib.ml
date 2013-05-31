@@ -49,6 +49,8 @@ let out_err_str s =
   else
    prerr_endline s
 
+let out_warning s = 
+  out_err_str ("\n\nWarning: "^s)
  
 (*let out_str_debug s =
   if debug then out_str s else ()*)

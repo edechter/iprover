@@ -1,17 +1,17 @@
 (*----------------------------------------------------------------------(C)-*)
 (* Copyright (C) 2006 -2012 Konstantin Korovin and The University of Manchester.
-This file is part of iProver - a theorem prover for first - order logic.
+    This file is part of iProver - a theorem prover for first - order logic.
 
-iProver is free software: you can redistribute it and / or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+	iProver is free software: you can redistribute it and / or modify
+  it under the terms of the GNU General Public License as published by
+      the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-iProver is distributed in the hope that it will be useful,
+  iProver is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-You should have received a copy of the GNU General Public License
-along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+    See the GNU General Public License for more details.
+	You should have received a copy of the GNU General Public License
+	    along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 (*----------------------------------------------------------------------[C]-*)
 
 open Lib
@@ -140,12 +140,12 @@ type context =
 
      mutable clause_var_subtype : sub_type CV_Map.t;
 
-   (* not_shallow_guards: pair of (pred_symb, position)  which are *)
-   (* not sutable for being used as a shallow guard (equality is not included here) *)
-   (* currently simplified condition: (p,i) is not_shallow_guard if it has a positive occurence P(t,x_i,s) \/ C *)    
-   (* arg positions start from 1 *)
-    mutable non_guarding_symb_pos : SP_Set.t;
-    mutable current_clause : clause param;
+     (* not_shallow_guards: pair of (pred_symb, position)  which are *)
+     (* not sutable for being used as a shallow guard (equality is not included here) *)
+     (* currently simplified condition: (p,i) is not_shallow_guard if it has a positive occurence P(t,x_i,s) \/ C *)    
+     (* arg positions start from 1 *)
+     mutable non_guarding_symb_pos : SP_Set.t;
+     mutable current_clause : clause param;
 
 (* ---- used for statistics ---- *)
 (* types that use guards, this will include collapsing types; not normalised *)
@@ -190,7 +190,7 @@ let shallow_guarding_subtype_lit context var_term lit =
 	let f (arg_ind, sub_type_param) arg_type arg_term =
 	  if (param_is_def sub_type_param)
 	  then 
-	     (arg_ind, sub_type_param)
+	    (arg_ind, sub_type_param)
 	  else
 	    let new_arg_ind = arg_ind + 1 in 
 	    if ((var_term == arg_term) (* we assume all terms are shared *) 
@@ -213,11 +213,11 @@ let shallow_guarding_subtype_lit context var_term lit =
 (* returns guardin subtype; can be extended to also return guarding literal*)
 let shallow_guarding_subtype_lit_list context var_term lit_list = 
   let f sub_type_param lit =
-  if (param_is_def sub_type_param)
-  then 
-    sub_type_param 
-  else
-    (shallow_guarding_subtype_lit context var_term lit) 
+    if (param_is_def sub_type_param)
+    then 
+      sub_type_param 
+    else
+      (shallow_guarding_subtype_lit context var_term lit) 
   in
   List.fold_left f Undef lit_list
 
@@ -236,14 +236,15 @@ type vtable = (sub_type) VarTable.t
 (*    top_type : sub_type option;                    *)
 (* f(t_1,t_2) at t_2 we have top_type_top is f_arg_2 *)
 (* top_type_opt_term_list = [(Some(top_sub_type),fun_term);(None, pred_term)...]  *)
+      
 
 let rec extend_uf_types context top_sub_type_opt_term_ass_list =
   let current_clause = context_get_current_clause context in
   (* first define a function for processing arguments that we will used several times *)
-  let process_args_fun sym args ass_list =
+  let process_args_fun sym args =
     let arg_types, _val_type = get_sym_types sym in
     (*    let arg_list = Term.arg_to_list args in*)
-    let (_, _, add_ass_list) =
+    let (_, _, ass_list) =
       Term.arg_fold_left
 	(fun (arg_ind, arg_types_rest, ass_list_rest) arg ->
 	  match arg_types_rest with
@@ -256,8 +257,9 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 	args
     in
     (* add_ass_list is reversed but should not matter *)
-    let new_ass_list = add_ass_list@ass_list in
-    extend_uf_types context new_ass_list
+    ass_list 
+      
+      (*   extend_uf_types context new_ass_list *)
   in
 
 (* process  var_term and new sub_type which this var should belong to; used in several places *)
@@ -278,121 +280,140 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
   in
   
   (*----------- main part ---------------*)
-  
-  match top_sub_type_opt_term_ass_list with
-  | (Some(top_sub_type), Term.Fun (sym, args, _))::tl_ass ->
-      (* here we assume that sym is fun (not pred) since Some *)
-      let val_sub_type = get_val_sub_type sym in
-      UF_ST.union context.uf top_sub_type val_sub_type;
-      process_args_fun sym args tl_ass
-	
-  | (Some(top_sub_type), Term.Var(var_term, _inf))::tl_ass ->
-      (
-       process_var_subtype var_term top_sub_type;
-       extend_uf_types context tl_ass
-      )
-  | (None, lit):: tl_ass ->
-      (* here we assume that sym is pred/or ~pred since None *)
-      let atom = Term.get_atom lit in
-      (* dealing with equality *)
-      if (Term.is_eq_atom atom)
-      then
-	match atom with
-	| Term.Fun (_sym, args, _) ->
-	    let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
-	    let eq_v_type =
-	      try
-		Term.get_top_symb type_term_eq
-	      with Term.Var_term ->
-		failwith "equality should not have var as the type argument; proabably equality axioms are added which are not needed here"
-	    in
-	    
-	    (*
-	       if (not (Term.is_neg_lit lit)) (* positive eq *)
-	       then
-	       (* for negative eq  more can be done than not putting it into collapsed? *)
-	     *)
-	    begin
-	      match (t, s) with
-	      | (Term.Fun(sym1, args1, _), Term.Fun(sym2, args2, _)) ->
-		  (
-		   let val_sub_type1 = get_val_sub_type sym1 in
-		   let val_sub_type2 = get_val_sub_type sym2 in
-		   UF_ST.add context.uf val_sub_type1;
-		   UF_ST.add context.uf val_sub_type2;
-		   (if (not (Term.is_neg_lit lit)) (* positive eq *)
-		   then
-		     (UF_ST.union context.uf val_sub_type1 val_sub_type2;)
-		   else ());
-		   process_args_fun sym1 args1 [];
-		   process_args_fun sym2 args2 [];
-		   extend_uf_types context (*vtable*) tl_ass
-		  )
-		    
-		    (* type collaps cases *)
-		    
-	      | ((Term.Var (v, _) as v_term), (Term.Fun(sym, args, _) as f_term))
-	      | ((Term.Fun(sym, args, _) as f_term), (Term.Var (v, _) as v_term))
-		->		  
-		   (*  (if (not (Term.is_neg_lit lit)) (* positive eq *) *)
-		   (*    then *)
-		   (*    (context.collapsed_types <- *)
-		   (*    SymSet.add eq_v_type context.collapsed_types;) *)
-		   (*    else () *)
-		   (*    ); *)
-                   (*   *)
-		   begin
-		     (* the same for both negative and positive X!=f(X) *)
-		     (* better can be done for negative *)		    
 
-		     let fun_val_sub_type = get_val_sub_type sym in
-		     if (Term.is_neg_lit lit)
-		     then 
-		       (
-			process_var_subtype v fun_val_sub_type;
-			extend_uf_types context tl_ass
-		       )
-		     else
-		       match (shallow_guarding_subtype_clause context v_term) with 		      
-		       |Def(guarding_subtype) ->		     
-			   process_var_subtype v guarding_subtype;
-			   context.guarded_subtype_set <- 
-			     SubTypeSet.add guarding_subtype context.guarded_subtype_set;
-			   UF_ST.union context.uf guarding_subtype fun_val_sub_type; 			
-		       | Undef -> 
-			   (* ther is no guard *)
-			   (context.collapsed_types <-
-			     SymSet.add eq_v_type context.collapsed_types;
-			    extend_uf_types context  [(Some(fun_val_sub_type), v_term)];
-			    extend_uf_types context  ((None, f_term):: tl_ass);		    	   
-			   )
-		   end		   
-		  
-	      | ((Term.Var(v1, _) as v1_term), (Term.Var (v2, _) as v2_term)) ->
-		  ( (* we assume that x!=y are eliminated during preprocessing; *)
-		    let guard_param_v1 = shallow_guarding_subtype_clause context v1_term in
-		    let guard_param_v2 = shallow_guarding_subtype_clause context v2_term in
-		    match (guard_param_v1, guard_param_v2) with 
-		    |(Def (gv1) ,Def(gv2)) -> 
-			UF_ST.union context.uf gv1 gv2;
-			process_var_subtype v1 gv1;
-			process_var_subtype v2 gv2;
-			context.guarded_subtype_set <- 
-			  SubTypeSet.add gv1 context.guarded_subtype_set;
-		    |_ ->
-			(context.collapsed_types <-
-			  SymSet.add eq_v_type context.collapsed_types;)		     		    
-		   )
-	    end	      
-	| _ -> failwith "extend_uf_types: non-eq 2"
-      else (* non eq predicate *)
-	(match atom with
-	| Term.Fun (sym, args, _) ->
-	    (process_args_fun sym args tl_ass)
-	| _ -> failwith "extend_uf_types: var"
-	)
+  let f top_sub_type_opt_term = 
+    match top_sub_type_opt_term with
+    | (Some(top_sub_type), Term.Fun (sym, args, _)) ->
+	(* here we assume that sym is fun (not pred) since Some *)
+	let val_sub_type = get_val_sub_type sym in
+	UF_ST.union context.uf top_sub_type val_sub_type;
+	process_args_fun sym args
 	  
-  |[] -> ()
+    | (Some(top_sub_type), Term.Var(var_term, _inf)) ->
+	(process_var_subtype var_term top_sub_type;
+	 [])
+    | (None,lit) ->
+	(* here we assume that sym is pred/or ~pred, or f(t) where f e.g. x != f(y)  since None *)
+	let atom = Term.get_atom lit in
+	(* dealing with equality *)
+	if (Term.is_eq_atom atom)
+	then
+	  match atom with
+	  | Term.Fun (_sym, args, _) ->
+	      let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
+	      let eq_v_type =
+		try
+		  Term.get_top_symb type_term_eq
+		with 
+		  Term.Var_term ->
+		    failwith 
+		      "equality should not have var as the type argument; \
+		      proabably equality axioms are added which are not needed here"
+	      in
+	      
+	      (*
+		 if (not (Term.is_neg_lit lit)) (* positive eq *)
+		 then
+		 (* for negative eq  more can be done than not putting it into collapsed? *)
+	       *)
+	      begin
+		match (t, s) with
+		| (Term.Fun(sym1, args1, _), Term.Fun(sym2, args2, _)) ->
+		    (
+		     let val_sub_type1 = get_val_sub_type sym1 in
+		     let val_sub_type2 = get_val_sub_type sym2 in
+		     UF_ST.add context.uf val_sub_type1;
+		     UF_ST.add context.uf val_sub_type2;
+		     (if (not (Term.is_neg_lit lit)) (* positive eq *)
+		     then
+		       (UF_ST.union context.uf val_sub_type1 val_sub_type2;)
+		     else ());
+		     let add_ass_list1 = process_args_fun sym1 args1 in
+		     let add_ass_list2 = process_args_fun sym2 args2 in
+		     add_ass_list1@add_ass_list2
+		    )
+		      
+		      (* type collaps cases *)
+		      
+		| ((Term.Var (v, _) as v_term), (Term.Fun(sym, args, _) as f_term))
+		| ((Term.Fun(sym, args, _) as f_term), (Term.Var (v, _) as v_term))
+		  ->		  
+		    (*  (if (not (Term.is_neg_lit lit)) (* positive eq *) *)
+		    (*    then *)
+		    (*    (context.collapsed_types <- *)
+		    (*    SymSet.add eq_v_type context.collapsed_types;) *)
+		    (*    else () *)
+		    (*    ); *)
+                    (*   *)
+		      (* the same for both negative and positive X!=f(X) *)
+		      (* better can be done for negative *)		    
+
+       		      let fun_val_sub_type = get_val_sub_type sym in
+		      begin
+			if (Term.is_neg_lit lit)
+			then 
+			  (
+			   process_var_subtype v fun_val_sub_type;		
+			  )
+			else
+			  (
+			  match (shallow_guarding_subtype_clause context v_term) with 		      
+			  |Def(guarding_subtype) ->	
+			      (process_var_subtype v guarding_subtype;			   
+			       UF_ST.union context.uf guarding_subtype fun_val_sub_type;   
+			       context.guarded_subtype_set <- 
+				 SubTypeSet.add guarding_subtype context.guarded_subtype_set;
+			      )
+			  | Undef -> 
+			      (* ther is no guard *)
+			      (
+			       process_var_subtype v fun_val_sub_type;
+			       context.collapsed_types <-
+				 SymSet.add eq_v_type context.collapsed_types;			       	    	   
+			      )
+			  )
+		      end;
+		      [(None,f_term)]
+		      
+		| ((Term.Var(v1, _) as v1_term), (Term.Var (v2, _) as v2_term)) ->
+		    ( 
+                      (* we assume that x!=y are eliminated during preprocessing; *)
+		      	(if (Term.is_neg_lit lit)
+			then 
+			 (out_warning "type_inf: x!=y should be eliminated by preprocessing"));
+			
+		      let guard_param_v1 = shallow_guarding_subtype_clause context v1_term in
+		      let guard_param_v2 = shallow_guarding_subtype_clause context v2_term in
+		      
+		      (match (guard_param_v1, guard_param_v2) with 
+		      |(Def (gv1) ,Def(gv2)) -> 
+			  UF_ST.union context.uf gv1 gv2;
+			  process_var_subtype v1 gv1;
+			  process_var_subtype v2 gv2;
+			  context.guarded_subtype_set <- 
+			    SubTypeSet.add gv1 context.guarded_subtype_set;
+		      |_ ->
+			  (context.collapsed_types <-
+			    SymSet.add eq_v_type context.collapsed_types;)
+		      );
+		      [] (* no additianl ass_list*)		     		    
+		     )
+	      end	      
+	  | _ -> failwith "extend_uf_types: non-eq 2"
+	else (* non eq predicate or fun *)
+	  (match atom with
+	  | Term.Fun (sym, args, _) ->
+	      (process_args_fun sym args)
+	  | _ -> failwith "extend_uf_types: var"
+	  )
+  in  (* end of add_ass_list *)
+  List.iter 
+    (fun top_sub_type_opt_term -> 
+      let new_list = f top_sub_type_opt_term in 
+      extend_uf_types context new_list)
+    top_sub_type_opt_term_ass_list    
+
+ 
 
 let extend_uf_types_clause context clause =
   let clause_lits = Clause.get_literals clause in
@@ -400,7 +421,7 @@ let extend_uf_types_clause context clause =
   let top_sub_type_opt_term_ass_list =
     List.map (fun l -> (None, l)) clause_lits
   in
- (* let vtable = VarTable.create 10 in *)
+  (* let vtable = VarTable.create 10 in *)
   extend_uf_types context top_sub_type_opt_term_ass_list
 
 let extend_uf_types_clause_list context clause_list =
@@ -428,7 +449,7 @@ let st_nf_to_all_st_table context =
 
 let type_term_from_type_symb type_symb =
   Parser_types.create_theory_term type_symb [] 
-		  
+    
 
 (*------------------------------*)
 exception Neg_eq_different_types
@@ -475,7 +496,7 @@ let type_equality_lit context lit =
 		    (if ((Term.is_neg_lit lit) &&
 			 (not (t_vt == s_vt)))
 		    then
-		   raise Neg_eq_different_types
+		      raise Neg_eq_different_types
 		    else ());
 		    
 		    assert (t_vt == s_vt);
@@ -491,7 +512,7 @@ let type_equality_lit context lit =
 		      let eq_type_symb = sub_type_to_type sb_nf in
 		      let new_eq_type_term = type_term_from_type_symb eq_type_symb in
 		      let new_eq_atom = add_typed_equality_term new_eq_type_term t s in
-		    new_eq_atom
+		      new_eq_atom
 		    with  		     	  
 		      Not_found -> failwith "variables should be subtyped here"
 		     )
@@ -545,7 +566,7 @@ let fill_non_guarding_set ng_set clause_list =
   List.fold_left fill_non_guarding_set_clause ng_set clause_list
 
 
-	
+    
 
 (*------------------------------*)
 exception Type_Undef
@@ -587,14 +608,14 @@ let sub_type_inf clause_list =
     st_nf_table;
   
   (*------------ statistics/output and an option ----------*)
-   let get_non_collapsing_guarding_subtypes context = 
-     let f sub_type = 
-       not (SymSet.mem sub_type.arg_type context.collapsed_types)
-     in
-     SubTypeSet.filter f context.guarded_subtype_set 
-   in
-   let non_collapsing_guarding_subtypes = get_non_collapsing_guarding_subtypes context in
-   (incr_int_stat (SubTypeSet.cardinal non_collapsing_guarding_subtypes) sat_num_of_guarded_non_collapsed_types);
+  let get_non_collapsing_guarding_subtypes context = 
+    let f sub_type = 
+      not (SymSet.mem sub_type.arg_type context.collapsed_types)
+    in
+    SubTypeSet.filter f context.guarded_subtype_set 
+  in
+  let non_collapsing_guarding_subtypes = get_non_collapsing_guarding_subtypes context in
+  (incr_int_stat (SubTypeSet.cardinal non_collapsing_guarding_subtypes) sat_num_of_guarded_non_collapsed_types);
 
   (if !current_options.dbg_out_stat then	
     out_str "Inferred subtypes:\n";
@@ -609,7 +630,7 @@ let sub_type_inf clause_list =
    SymSet.iter
      (fun sym ->
        out_str ((Symbol.to_string sym)^", ")) context.collapsed_types;
-    
+   
    out_str "\nGuarded non-collapsed types:\n ";
    SubTypeSet.iter 
      (
@@ -740,62 +761,62 @@ let sub_type_inf clause_list =
 (*-------------------Commented below-----------------*)
 
 (*
-let rec extend_uf_types context top_type_opt term =
-match term with
-| Term.Fun (sym, args, _) ->
-let arg_types, v_type =
-match (Symbol.get_stype_args_val sym) with
-| Def (arg_t, v_t) -> (arg_t, v_t)
-| _ -> failwith "extend_uf_types: arg_types should be defined"
-in
+   let rec extend_uf_types context top_type_opt term =
+   match term with
+   | Term.Fun (sym, args, _) ->
+   let arg_types, v_type =
+   match (Symbol.get_stype_args_val sym) with
+   | Def (arg_t, v_t) -> (arg_t, v_t)
+   | _ -> failwith "extend_uf_types: arg_types should be defined"
+   in
 (* extend args *)
-ignore(
-Term.arg_fold_left
-(fun (arg_ind, arg_types_rest) arg ->
-let h:: tl = arg_types_rest in
-let new_pnt = create_pnt sym arg_ind h in
-extend_uf_types context (Some new_pnt) arg;
-((arg_ind +1), tl)
-)
-(1, arg_types)
-args
-);
+   ignore(
+   Term.arg_fold_left
+   (fun (arg_ind, arg_types_rest) arg ->
+   let h:: tl = arg_types_rest in
+   let new_pnt = create_pnt sym arg_ind h in
+   extend_uf_types context (Some new_pnt) arg;
+   ((arg_ind +1), tl)
+   )
+   (1, arg_types)
+   args
+   );
 
-if (Symbol.is_pred sym)
-then
-(
-if (sym == Symbol.symb_typed_equality)
-then
-match args with
-| [type_eq_; t; s] ->
-if !(Term.is_var t) && !(Term.is_var s)
-then
-..............
-extend_uf_types context top_type_opt
-..............
-)
-else
-( (* fun symb *)
-match top_type_opt with
-| Some top_type ->
-UF_PNT.union context.uf top_type (create_pnt sym 0 v_type);
-| None -> failwith "functions should not be at top"
-)
+   if (Symbol.is_pred sym)
+   then
+   (
+   if (sym == Symbol.symb_typed_equality)
+   then
+   match args with
+   | [type_eq_; t; s] ->
+   if !(Term.is_var t) && !(Term.is_var s)
+   then
+   ..............
+   extend_uf_types context top_type_opt
+   ..............
+   )
+   else
+   ( (* fun symb *)
+   match top_type_opt with
+   | Some top_type ->
+   UF_PNT.union context.uf top_type (create_pnt sym 0 v_type);
+   | None -> failwith "functions should not be at top"
+   )
 
-| Term.Var (v, _) ->
-let top_type =
-match top_type_opt with
-| Some top_type -> top_type
-| None -> failwith "vars should not be at top"
-in
-try
-let v_type = VarTable.find context.vtable v in
-UF_PNT.union context.uf top_type v_type
-with
-Not_found ->
-VarTable.add context.vtable v top_type
-*)
+   | Term.Var (v, _) ->
+   let top_type =
+   match top_type_opt with
+   | Some top_type -> top_type
+   | None -> failwith "vars should not be at top"
+   in
+   try
+   let v_type = VarTable.find context.vtable v in
+   UF_PNT.union context.uf top_type v_type
+   with
+   Not_found ->
+   VarTable.add context.vtable v top_type
+ *)
 
 (* let typify_clause clause type_context =
 
-let typify_clause_list clause_list =*)
+   let typify_clause_list clause_list =*)

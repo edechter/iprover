@@ -171,7 +171,7 @@ let init_gr_by () =
 									SMap.add stype s max_occ_map
 						end
 				| Undef ->
-				(*out_str ("Warning: a constant symbol "^(Symbol.to_string s)^(" does not have a type \n")); *)
+				(*out_warning ("a constant symbol "^(Symbol.to_string s)^(" does not have a type \n")); *)
 						max_occ_map
 			else
 				max_occ_map

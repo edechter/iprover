@@ -201,6 +201,8 @@ val out_str : string -> unit
 val out_err_str : string->unit 
 (* out in stderr *)
 
+val out_warning : string->unit 
+
 val list_compare_lex : ('a -> 'a -> int) -> 'a list -> 'a list ->int
 val lex_combination  : ('a -> 'a -> int) list -> 'a -> 'a -> int
 

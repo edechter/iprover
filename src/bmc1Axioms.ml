@@ -1380,7 +1380,7 @@ let get_bound_assumptions bound =
 Does not work at the moment because transitional addresses can occur in
 2) then they are not unrolled since the clauses are separated *)
 
-(*let _= out_str "\n!!! Warning: pre_instantiate_next_state_flag add to options!!!\n"*)
+(*let _= out_warning "!!!!: pre_instantiate_next_state_flag add to options!!!\n"*)
 
 (*-----------------------------------------*)
 (* Axioms for bound 0 *)

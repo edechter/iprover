@@ -342,8 +342,7 @@ let ext_clausify_parse problem_files =
     ("\n"^(s_pref_str ())^"Clausification by "^clausifier_short_name^"  & Parsing by iProver");
   flush stdout;
   (   
-      try 
-	
+      try 	
 	(* Check if environment variable set *)
 	ignore (Unix.getenv "TPTP")	  
       with Not_found ->
@@ -418,7 +417,7 @@ let parse_files problem_files =
        List.iter parse_one_file problem_files
       )
   end;
-(*-----Parse includes---*)
+(*----- Parse includes ----*)
   List.iter 
     (fun current_include -> 
       if current_include.include_formula_list != []

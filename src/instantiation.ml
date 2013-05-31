@@ -482,8 +482,8 @@ struct
 				)
 			with
 				Not_found ->
-					out_str
-						("\n Warning: eliminate_from_unif_index: the clause in not in the index!\n ")
+					out_warning
+						(" eliminate_from_unif_index: the clause in not in the index!\n ")
 			);
 			Clause.set_ps_in_unif_index
 				false main_clause
