@@ -414,7 +414,6 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
     top_sub_type_opt_term_ass_list    
 
  
-
 let extend_uf_types_clause context clause =
   let clause_lits = Clause.get_literals clause in
   context.current_clause <- Def(clause); 

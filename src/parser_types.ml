@@ -28,6 +28,17 @@ type term = Term.term
 type clause = Clause.clause
 module SymbMap = Symbol.Map
 
+type buffer_name = 
+  |FileName of string
+  |Stdin
+
+
+let buffer_name_to_string bn =
+  match bn with 
+  |FileName str -> str 
+  |Stdin -> "stdin"
+	
+
 (* init_lexbuf should be applied before lexing, for coorect line counting *)
 let position_init_lnum position =
   { Lexing.pos_fname = position.Lexing.pos_fname;
@@ -35,12 +46,16 @@ let position_init_lnum position =
     Lexing.pos_bol = position.Lexing.pos_bol;
     Lexing.pos_cnum = position.Lexing.pos_cnum;}
 
-let init_lexbuf lexbuf =
+let buffer_name_ref = ref Undef
+
+let init_lexbuf buffer_name lexbuf =
+  buffer_name_ref := Def (buffer_name);
   lexbuf.Lexing.lex_curr_p <- (position_init_lnum lexbuf.Lexing.lex_curr_p)
 
 type includes =
     {includes_file_name : string;
      include_formula_list : string list;
+     include_source_file_name : buffer_name; (* full file name of the buffer where include is *)
    }
 
 (* not used type parser_state = { symbol_db_ref : SymbolDB.symbolDB ref;   *)
@@ -224,6 +239,7 @@ let include_file_fun file_name formula_names =
   let new_include =
     { includes_file_name = file_name;
       include_formula_list = formula_names;
+      include_source_file_name = get_param_val !buffer_name_ref
     }
   in
   includes := new_include::!includes

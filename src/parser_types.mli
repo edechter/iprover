@@ -5,7 +5,6 @@ exception THF_format
 type var = Var.var
 type term = Term.term
 type clause = Clause.clause
-
 module SymbMap :
   sig
     type key = Symbol.Key.t
@@ -23,15 +22,22 @@ module SymbMap :
     val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
     val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
   end
+type buffer_name = FileName of string | Stdin
+val buffer_name_to_string : buffer_name -> string
 val position_init_lnum : Lexing.position -> Lexing.position
-val init_lexbuf : Lexing.lexbuf -> unit
+val buffer_name_ref : buffer_name Lib.param ref
+val init_lexbuf : buffer_name -> Lexing.lexbuf -> unit
 type includes = {
   includes_file_name : string;
   include_formula_list : string list;
+  include_source_file_name : buffer_name;
 }
-(* val context : Clause.context *)
 val symbol_db_ref : SymbolDB.symbolDB ref
 val term_db_ref : Clause.term_db ref
+val create_clause :
+  Clause.tstp_source -> Clause.literal_list -> Clause.clause
+val create_neg_conjecture :
+  Clause.tstp_source -> Clause.literal_list -> Clause.clause
 val parsed_clauses : Clause.clause list ref
 val neg_conjectures : Clause.clause list ref
 val includes : includes list ref

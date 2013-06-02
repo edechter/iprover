@@ -242,13 +242,13 @@ let get_line_num_lexbuf lexbuf =
 	
 let parse_channel channel_name in_channel = 
   let lexbuf = (Lexing.from_channel in_channel) in
-  let () = init_lexbuf lexbuf in
+  let () = init_lexbuf channel_name lexbuf in
   try     
     (parser_main_fun lexer_token lexbuf) 
   with 
   |Parsing_fails -> 
       let line_number = (get_line_num_lexbuf lexbuf) in
-      let fail_str = "Parse error in: "^channel_name
+      let fail_str = "Parse error in: "^(buffer_name_to_string channel_name)
 	^" line: "^(string_of_int line_number)
 	^" near token: \'"^(Lexing.lexeme lexbuf)^"\'" in 
       failwith fail_str
@@ -317,8 +317,7 @@ let clausify_parse_channel clausifier_full_cmd channel_name in_channel =
 
 (*----------------------------------------------------------------------------*)
 (* parse file (input files and includes)                                      *)
-(* it is assume include file names already preprocessed to have absolute path *)
-(* if file nam is relative it is assumed to an input file name                *)
+
 
 let adjust_input_file_name file_name = 
   if Filename.is_relative file_name 
@@ -337,20 +336,19 @@ let ext_clausify_parse problem_files =
   let (clausifier_cmd,options) = clausifier_cmd_options ()  in
   let clausifier_full_cmd = clausifier_cmd^" "^options in
   let clausifier_short_name = Filename.basename clausifier_cmd in
-
   print_string 
     ("\n"^(s_pref_str ())^"Clausification by "^clausifier_short_name^"  & Parsing by iProver");
   flush stdout;
   (   
-      try 	
+    try 	
 	(* Check if environment variable set *)
-	ignore (Unix.getenv "TPTP")	  
-      with Not_found ->
-        (* Pass include path on to E via $TPTP *)
-	if not (!current_options.include_path = "")
-	then
-  	  Unix.putenv "TPTP" !current_options.include_path	  
-	else ()
+      ignore (Unix.getenv "TPTP")	  
+    with Not_found ->
+      (* Pass include path on to E via $TPTP *)
+      if not (!current_options.include_path = "")
+      then
+  	Unix.putenv "TPTP" !current_options.include_path	  
+      else ()
      );
 
   (* we assume that includes are infolded by the external clausifier *)
@@ -358,7 +356,7 @@ let ext_clausify_parse problem_files =
     if !current_options.stdin then
       ( print_string " from stdin...";
 	flush stdout;
-	clausify_parse_channel clausifier_full_cmd "sdtin" stdin
+	clausify_parse_channel clausifier_full_cmd (*"sdtin"*) Stdin stdin
        )    
     else
       (print_string "...";
@@ -366,7 +364,7 @@ let ext_clausify_parse problem_files =
        let parse_one_file file_name = 
 	 let full_file_name = (adjust_input_file_name file_name) in 
 	 let in_channel = open_in full_file_name in
-	 clausify_parse_channel clausifier_full_cmd full_file_name in_channel 
+	 clausify_parse_channel clausifier_full_cmd (FileName(full_file_name)) in_channel 
        in
        List.iter parse_one_file problem_files
       )
@@ -379,56 +377,93 @@ let ext_clausify_parse problem_files =
 
   (* parse all includes *)
   
-let include_full_file_name file_name =
-  if Filename.is_relative file_name 
-  then
-    if not (!current_options.include_path = "")
+let include_full_file_name includes =
+  if Filename.is_relative includes.includes_file_name
+  then 
+    if not (!current_options.include_path = "") (* input option takes priority *)
     then
       (Filename.concat 
-	 (remove_double_quotes !current_options.include_path) file_name)
+	 (remove_double_quotes !current_options.include_path) 
+	 includes.includes_file_name)
     else
-      try 
-	let tptp_path = (Unix.getenv "TPTP")	in	
-	(Filename.concat tptp_path file_name)  	   
-      with Not_found ->
-	file_name     	     
-  else 
-    file_name
+            (* check whether the file is in the dirctory of the source file *)
+     let source_dir =  
+       match includes.include_source_file_name with 
+       |FileName source_file_name -> Filename.dirname source_file_name
+       |Stdin -> Filename.current_dir_name 
+     in 
+     let full_file_name = Filename.concat source_dir includes.includes_file_name in 
+     if (Sys.file_exists full_file_name) 
+     then 
+       full_file_name 
+     else
+       try 
+	 let tptp_path = (Unix.getenv "TPTP")	in	
+	 (Filename.concat tptp_path includes.includes_file_name)  	   
+       with Not_found ->
+	 includes.includes_file_name     	     
+  else (* absolute path *)
+    includes.includes_file_name
       
+
+module StrSet = Set.Make (String)
+
+let get_file_name_from_buffer_name  bn = 
+  match bn with 
+  | FileName str -> str
+  | Stdin -> failwith "get_file_name_from_buffer_name: should not be Stdin"
+
 
 let parse_files problem_files = 
   print_string ((s_pref_str ())^"Parsing");
   flush stdout;
-  let parse_one_file file_name = 
-    let full_file_name = (adjust_input_file_name file_name) in
-    let in_channel = open_in full_file_name in
-    parse_channel full_file_name in_channel; 
-    close_in in_channel
+  let parsed_file_set_ref = ref StrSet.empty in
+  
+(*----- Parse includes after parsing a file ----*)
+  let rec parse_includes (*current_file_name*) () =
+    let current_includes = !includes in
+    includes := [];
+    List.iter 
+      (fun current_include -> 
+	if current_include.include_formula_list != []
+	then 
+	  failwith "Formula selection is not supported in includes"
+	else
+	  (
+	   let include_file_name = include_full_file_name current_include in
+	   parse_one_file include_file_name
+	  )
+      )
+      current_includes;
+  and
+      parse_one_file file_name = 
+    let full_file_name = (* (adjust_input_file_name file_name)*) file_name in
+    if (not (StrSet.mem full_file_name !parsed_file_set_ref)) 
+    then
+      ((* out_str ("\n open full_file_name: "^full_file_name^"\n");*)
+       let in_channel = open_in full_file_name in
+      parse_channel (FileName (full_file_name)) in_channel; 
+      close_in in_channel;
+      parsed_file_set_ref := StrSet.add full_file_name !parsed_file_set_ref;
+      parse_includes ();
+      )
+    else (* already parsed this file *) 
+      ()
   in  
   begin
     if !current_options.stdin then
       (print_string " from stdin...";
        flush stdout;
-       parse_channel "stdin" stdin      
-    )
+       parse_channel (*"stdin"*) Stdin stdin      
+      )
     else
       (print_string "...";
        flush stdout;
        List.iter parse_one_file problem_files
       )
   end;
-(*----- Parse includes ----*)
-  List.iter 
-    (fun current_include -> 
-      if current_include.include_formula_list != []
-      then 
-	failwith "Formula selection is not supported in includes"
-      else
-	(parse_one_file (include_full_file_name current_include.includes_file_name))
-    )
-    !includes;
   out_str "successful\n"
-
+    
 
 
 let parse () = 
