@@ -616,27 +616,31 @@ let sub_type_inf clause_list =
   let non_collapsing_guarding_subtypes = get_non_collapsing_guarding_subtypes context in
   (incr_int_stat (SubTypeSet.cardinal non_collapsing_guarding_subtypes) sat_num_of_guarded_non_collapsed_types);
 
-  (if !current_options.dbg_out_stat then	
-    out_str "Inferred subtypes:\n";
-   STypeTable.iter
-     (fun nf st_list ->
-       out_str ("NF: "^(sub_type_to_str nf)^" "
-		^"["^(list_to_string sub_type_to_str st_list ";")^"]\n"
-	       )
+  (if !current_options.dbg_out_stat 
+  then
+    begin	
+      out_str "\n---------------";
+      out_str "Inferred subtypes:\n";
+      STypeTable.iter
+	(fun nf st_list ->
+	  out_str ("NF: "^(sub_type_to_str nf)^" "
+		   ^"["^(list_to_string sub_type_to_str st_list ";")^"]\n"
+		  )
      ) st_nf_table;
-   
-   out_str "\nCollapsed types: \n";
-   SymSet.iter
-     (fun sym ->
-       out_str ((Symbol.to_string sym)^", ")) context.collapsed_types;
-   
-   out_str "\nGuarded non-collapsed types:\n ";
-   SubTypeSet.iter 
-     (
-      fun sub_type -> 
+      
+      out_str "\nCollapsed types: \n";
+      SymSet.iter
+	(fun sym ->
+	  out_str ((Symbol.to_string sym)^", ")) context.collapsed_types;
+      
+      out_str "\nGuarded non-collapsed types:\n ";
+      SubTypeSet.iter 
+	(
+	 fun sub_type -> 
 	out_str (sub_type_to_str sub_type)
-     ) non_collapsing_guarding_subtypes;
-   out_str "\n---------------";
+	) non_collapsing_guarding_subtypes;
+      out_str "\n---------------";
+    end 
   );
 
   

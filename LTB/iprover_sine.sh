@@ -49,7 +49,12 @@ fi
 CPU_CORES=`grep processor /proc/cpuinfo | wc -l`
 #count the total  number of problems 
 
+#BATCHPROBNUM is an array of batch_num -> number of problems in this batch
+declare -a BATCHPROBNUM
+
 PROBNUM=0
+
+BATCHCOUNT=0
 
 while read LINE
 do
@@ -59,6 +64,9 @@ do
 	    ;;
 	"% SZS end BatchProblems"*)
 	    STRATPROBS=0
+	    BATCHPROBNUM[$BATCHCOUNT]=$PROBNUM
+	    PROBNUM=0
+	    BATCHCOUNT=$(($BATCHCOUNT+1))	    
 	    ;;  
 	*)
 	    if [ $STRATPROBS -eq 1 ]; then
@@ -68,21 +76,32 @@ do
     esac
 done < $BFILE
 
+#number of problems in batches are in from  BATCHPROBNUM which is indexed 
+#from 0 to TOTALNUMBATCHES-1
+
+TOTALNUMBATCHES=$BATCHCOUNT
+
 echo ""
-echo "Number of Problems: $PROBNUM"
+echo "Number of Batches: $TOTALNUMBATCHES"
 echo ""
 
 PROBTRIED=0
 PROBREMAINS=$PROBNUM
 
 #$SECONDS -- bash var number of seconds the script run
+# space in "division.category " is important, since Geoff also has division.category.
+
+BATCHCOUNT=0
 
 while read LINE
 do
     case $LINE in 
 	"% SZS start BatchConfiguration"*)
+	    PROBNUM=${BATCHPROBNUM[$BATCHCOUNT]}
+	    PROBREMAINS=$PROBNUM
+	    echo "Batch: $BATCHCOUNT Problem num: $PROBNUM"
 	    ;;
-	"division.category"*) 	    
+	"division.category "*) 	    
 	    CAT=`echo $LINE | awk '{print $2}'`
 	  #  echo "$CAT"
 	    ;;
@@ -102,11 +121,16 @@ do
 		PTLI=$MAXTIME
 	    fi
 	    ;;
+	"limit.time.overall.wc"*)
+	    OTLIMIT=`echo $LINE | awk '{print $2}'`
+	    echo "batch limit = $OTLIMIT"
+	    ;;
 	"% SZS start BatchProblems"*)
 	    STRATPROBS=1
 	    ;;
 	"% SZS end BatchProblems"*)
 	    STRATPROBS=0
+	    BATCHCOUNT=$(($BATCHCOUNT+1))
 	    ;;  
 
 	*)
@@ -123,11 +147,10 @@ do
 		TAVAIL=$(($OTLIMIT-$SECONDS))
 		PTLO=$(($TAVAIL/$PROBREMAINS))
 		if [ $PTLI -gt $PTLO ]; then
-		    PTL=$(($PTLO+30))
+		    PTL=$PTLO
 		else
 		    PTL=$PTLI
 		fi
-
 		INP=`echo $LINE | awk '{print $1}'`
 		OUTP=`echo $LINE | awk '{print $2}'`
 	#	echo "INP=$INP"

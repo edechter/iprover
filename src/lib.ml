@@ -73,7 +73,7 @@ let iprover_version_str  = "v"^(iprover_version_to_str iprover_current_version)
 (*let iprover_add_info = "(Post CASC-22)"*)
 (*let iprover_add_info = "(post CASC-J5 2010)"*)
 
-let iprover_add_info = "(CASC-24 2013)"
+let iprover_add_info = "(CASC-24 2013 r1)"
 
 let pref_str_head = "\n%---------------- " 
 
