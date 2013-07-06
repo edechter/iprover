@@ -428,90 +428,87 @@ let plain_term_fun_typed ~is_top input_symb_name args =
   let arity = List.length args in
   let symb =
     try
-      (
-       let symb = SymbolDB.find
-	   (Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
-       
-       if ((Symbol.get_arity symb) = arity ) && (is_top = (Symbol.is_pred symb))
-       then
-	 (symb)
-       else
-	 (
-	  ( if (not !overriding_arities_warning_was_shown_ref) &&
-	    (not ((Symbol.get_arity symb) = arity))
-	  then
-	    (
-	     out_warning
-	       (
-		"plain_term_fun_typed: symbol "^(!symb_name_ref)
-		^" occurred with two arities: "
-		^(string_of_int (Symbol.get_arity symb))
-		^" and "^(string_of_int arity)
-		^" the latter will be replaced by fresh symbol (other similar warnings are surpressed)\n"
-	       );
-	     overriding_arities_warning_was_shown_ref:= true
-	    )
-	  else ()
-	   );
-	  ( if (not !overriding_arities_warning_was_shown_ref) &&
-	    (not ((Symbol.get_arity symb) = arity))
-	  then
-	    (
-	     out_warning
-	       ("plain_term_fun_typed: symbol "^(!symb_name_ref)
-		^" occurred as function and as predicate "
-		^" on of them will be replaced by fresh symbol (other similar warnings are surpressed)\n"
-	       );
-	     overriding_arities_warning_was_shown_ref:= true
-	    )
-	  else ()
-	   );
+      begin
+	let symb = SymbolDB.find
+	    (Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
+	
+	if ((Symbol.get_arity symb) = arity ) && (is_top = (Symbol.is_pred symb))
+	then
+	  (symb)
+	else
+	  begin
+	    ( if (not !overriding_arities_warning_was_shown_ref) &&
+	      (not ((Symbol.get_arity symb) = arity))
+	    then
+	      (
+	       out_warning
+		 (
+		  "plain_term_fun_typed: symbol "^(!symb_name_ref)
+		  ^" occurred with two arities: "
+		  ^(string_of_int (Symbol.get_arity symb))
+		  ^" and "^(string_of_int arity)
+		  ^" the latter will be replaced by fresh symbol (other similar warnings are surpressed)\n"
+		 );
+	       overriding_arities_warning_was_shown_ref:= true
+	      )
+	    else ()
+	     );
+	    ( if (not !overriding_arities_warning_was_shown_ref) &&
+	      (not ((Symbol.get_arity symb) = arity))
+	    then
+	      (
+	       out_warning
+		 ("plain_term_fun_typed: symbol "^(!symb_name_ref)
+		  ^" occurred as function and as predicate "
+		  ^" on of them will be replaced by fresh symbol (other similar warnings are surpressed)\n"
+		 );
+	       overriding_arities_warning_was_shown_ref:= true
+	      )
+	    else ()
+	     );
+	    
+	    let pred_fun_str =
+	      if is_top
+	      then "pred"
+	      else "fun"
+	    in
+	    symb_name_ref:=
+	      ("$$iProver_"^"arity_"^(string_of_int arity)^"_"
+	       ^pred_fun_str^"_"^(!symb_name_ref));
+	    
+	    let new_symb = SymbolDB.find
+		(Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
+	    (* at this point we assume that the arity problem is fixed ! *)
+	    assert ((Symbol.get_arity new_symb) = arity);
+	    new_symb
+	      
+	  end
+      end
+	
+    with
+      Not_found ->
+	( let stype =
+	  (* is a predicate *)
+	  if is_top then
+	    Symbol.create_stype
+	      (list_n arity Symbol.symb_default_type) Symbol.symb_bool_type
+	  else
+	    (* is a fun *)
+	    Symbol.create_stype
+	      (list_n arity Symbol.symb_default_type) Symbol.symb_default_type
+	in
+	let symb = SymbolDB.add_ref
+	    (Symbol.create_from_str_type
+	       (* ~is_sig:true it is a signature symbol *)
+	       ~is_sig: true !symb_name_ref stype) symbol_db_ref in
+	symb
+	 )
+	  (* failwith ("parser_types, plain_term_fun_typed type of symbol "          *)
+	  (* ^symb_name^" was not declared")                                         *)
 	  
-	  let pred_fun_str =
-	    if is_top
-	    then "pred"
-	    else "fun"
-	  in
-	  symb_name_ref:=
-	    ("$$iProver_"^"arity_"^(string_of_int arity)^"_"
-	     ^pred_fun_str^"_"^(!symb_name_ref));
-	  
-	  let new_symb = SymbolDB.find
-	      (Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
-	  (* at this point we assume that the arity problem is fixed ! *)
-	  assert ((Symbol.get_arity new_symb) = arity);
-	  new_symb
-	    (* failwith ("plain_term_fun_typed: symbol "^symb_name ^" occurred with    *)
-	       (* two arities: " ^(string_of_int (Symbol.get_arity symb)) ^" and          *)
-	       (* "^(string_of_int arity))                                                *)
-		  
-		  )
-		  )
-		  
-		  with
-		  Not_found ->
-		  ( let stype =
-		  (* is a predicate *)
-		  if is_top then
-		  Symbol.create_stype
-		  (list_n arity Symbol.symb_default_type) Symbol.symb_bool_type
-		  else
-		  (* is a fun *)
-		  Symbol.create_stype
-		  (list_n arity Symbol.symb_default_type) Symbol.symb_default_type
-		  in
-		  let symb = SymbolDB.add_ref
-		  (Symbol.create_from_str_type
-		  (* ~is_sig:true it is a signature symbol *)
-		  ~is_sig: true !symb_name_ref stype) symbol_db_ref in
-		  symb
-		  )
-		  (* failwith ("parser_types, plain_term_fun_typed type of symbol "          *)
-		  (* ^symb_name^" was not declared")                                         *)
-		  
-		  in
-		  assign_param_input_symb symb;
-		  Term.create_fun_term symb args
+  in
+  assign_param_input_symb symb;
+  Term.create_fun_term symb args
 (* terms are not added to termDB at this point but added when the clause   *)
 (* is created                                                              *)
 
@@ -521,551 +518,549 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 (* Symbol.is_conj_symb symb ))^"\n"); let args = list_map_left             *)
 (* (parsed_term_to_term var_map_ref Symbol.Fun) parsed_term_list in        *)
 
-		  let defined_term_fun name args =
-		  match name with
-		  |"$sum" ->
-		  create_theory_term Symbol.symb_plus args
-		  |"$difference" ->
-		  create_theory_term Symbol.symb_minus args
-		  |"$product" ->
-		  create_theory_term Symbol.symb_product args
-		  |"$uminus" ->
-		  create_theory_term Symbol.symb_unaryminus args
-		  |"$i" ->
-		  create_theory_term Symbol.symb_default_type args
-		  |"$o" ->
-		  create_theory_term Symbol.symb_bool_type args
-		  
-		  | _ -> failwith ("Parsing error: unsupported defined function \""^name^"\"")
+let defined_term_fun name args =
+  match name with
+  |"$sum" ->
+      create_theory_term Symbol.symb_plus args
+  |"$difference" ->
+      create_theory_term Symbol.symb_minus args
+  |"$product" ->
+      create_theory_term Symbol.symb_product args
+  |"$uminus" ->
+      create_theory_term Symbol.symb_unaryminus args
+  |"$i" ->
+      create_theory_term Symbol.symb_default_type args
+  |"$o" ->
+      create_theory_term Symbol.symb_bool_type args
+	
+  | _ -> failwith ("Parsing error: unsupported defined function \""^name^"\"")
 
-		  let defined_pred_fun name args =
-		  match name with
-		  |"=" ->
-		  (* no all equalities are sorted and = is replaces by                   *)
-		  (* $equality_sorted(symb_default_type, args) create_theory_term        *)
-		  (* Symbol.symb_equality args                                           *)
-		  equality_fun args
-		  
-		  |"$true" ->
-		  create_theory_term Symbol.symb_true args
-		  |"$false" ->
-		  create_theory_term Symbol.symb_false args
-		  |"$$equality_sorted" | "$equality_sorted" -> (* temporaly leave $equality_sorted *)
-		  create_theory_term Symbol.symb_typed_equality args
-		  
-		  |"$distinct" ->
-		  (contains_distinct:= true;
-		  create_theory_term Symbol.symb_distinct args
-		  )
-		  (* moved to system symbols |"$answer" | "$$answer" |"\'$$answer\'" ->      *)
-		  (* answer_mode_ref := true; create_theory_term Symbol.symb_answer args     *)
-		  | _ -> failwith ("Parsing error: unsupported defined predicate \""^name^"\"")
+let defined_pred_fun name args =
+  match name with
+  |"=" ->
+      (* no all equalities are sorted and = is replaces by                   *)
+      (* $equality_sorted(symb_default_type, args) create_theory_term        *)
+      (* Symbol.symb_equality args                                           *)
+      equality_fun args
+	
+  |"$true" ->
+      create_theory_term Symbol.symb_true args
+  |"$false" ->
+      create_theory_term Symbol.symb_false args
+  |"$$equality_sorted" | "$equality_sorted" -> (* temporaly leave $equality_sorted *)
+      create_theory_term Symbol.symb_typed_equality args
+	
+  |"$distinct" ->
+      (contains_distinct:= true;
+       create_theory_term Symbol.symb_distinct args
+      )
+	(* moved to system symbols |"$answer" | "$$answer" |"\'$$answer\'" ->      *)
+	(* answer_mode_ref := true; create_theory_term Symbol.symb_answer args     *)
+  | _ -> failwith ("Parsing error: unsupported defined predicate \""^name^"\"")
 
-		  let defined_infix_pred_fun pred_symb term1 term2 =
-		  defined_pred_fun pred_symb [term1; term2]
+let defined_infix_pred_fun pred_symb term1 term2 =
+  defined_pred_fun pred_symb [term1; term2]
 
 (* let defined_prop_fun name = () let defined_pred_fun name = *)
 
-		  let reg_exp_less = Str.regexp_string "$$less_"
-		  let reg_exp_range = Str.regexp_string "$$range_"
-		  let reg_exp_clock = Str.regexp_string "$$bmc1_clock_"
+let reg_exp_less = Str.regexp_string "$$less_"
+let reg_exp_range = Str.regexp_string "$$range_"
+let reg_exp_clock = Str.regexp_string "$$bmc1_clock_"
 
-		  let system_pred_name_pref_reg_expr =
-		  Str.regexp
-		  (Str.quote "$$less_"^"\\|"^
-		  Str.quote "$$range_"^"\\|"^
-		  Str.quote "$$bmc1_clock_")
+let system_pred_name_pref_reg_expr =
+  Str.regexp
+    (Str.quote "$$less_"^"\\|"^
+     Str.quote "$$range_"^"\\|"^
+     Str.quote "$$bmc1_clock_")
 
-		  let system_pred_fun name args =
-		  
-		  match name with
-		  
-		  (* Next state predicate for BMC1 *)
-		  | "$$nextState" ->
-		  create_theory_term Symbol.symb_ver_next_state args
-		  (* Create term like plain term plain_term_fun_typed true name args *)
-		  
-		  (* Reachable state predicate for BMC1 *)
-		  | "$$reachableState" ->
-		  create_theory_term Symbol.symb_ver_reachable_state args
-		  (* Create term like plain term plain_term_fun_typed true name args *)
-		  
-		  (* Less predicate for BMC1 | term when (try String.sub term 0 7 =      *)
-		  (* "$$less_" with
-		     | Invalid_argument _ -> false ->
-		     
-		     (* Create term like plain term *)
-		     plain_term_fun_typed true name args
-		     
-		     (* Range predicate for BMC1 *)
-		     | term when
-		     (try
-		     String.sub term 0 8 = "$$range_"
-		     with
-		     | Invalid_argument _ -> false) ->
-		     
-		     (* Create term like plain term *)
-		     plain_term_fun_typed true name args
-		     
-		   *)
-		  (* Sorted equality *)
-		  | "$$equality_sorted" ->
-		  
-		  create_theory_term Symbol.symb_typed_equality args
-		  
-		  |"$answer" | "$$answer" |"\'$$answer\'" ->
-		  (
-		  answer_mode_ref := true;
-		  
-		  let arity = List.length args in
-		  (* --check arity compatibility with previous answer pred---- *)
-		  
-		  (if (Symbol.is_arity_def Symbol.symb_answer) &&
-		  (not ((Symbol.get_arity Symbol.symb_answer) == arity))
-		  then failwith "Only one arity for answer predicates is supported"
-		  );
-		  let stype =
-		  Symbol.create_stype
-		  (list_n arity Symbol.symb_default_type) Symbol.symb_bool_type
-		  in
-		  Symbol.assign_arity arity Symbol.symb_answer;
-		  Symbol.assign_stype Symbol.symb_answer stype;
-		  Symbol.assign_is_input true Symbol.symb_answer;
-		  Symbol.incr_num_input_occur Symbol.symb_answer;
-		  
-		  (* let symb = SymbolDB.add_ref (Symbol.create_from_str_type ~is_sig:true   *)
-		  (* it is a signature symbol ~is_sig:true symb_name stype) symbol_db_ref in *)
-		  
-		  create_theory_term Symbol.symb_answer args
-		  )
-		  | pred_name
-		  when
-		  (Str.string_match system_pred_name_pref_reg_expr pred_name 0) ->
-		  plain_term_fun_typed true name args
-		  
-		  | _ ->
-		  
-		  (* Alternative: create as plain term without catching undefined *)
-		  failwith ("Parsing error: unsupported system predicate \""^name^"\"")
+let system_pred_fun name args =
+  
+  match name with
+    
+    (* Next state predicate for BMC1 *)
+  | "$$nextState" ->
+      create_theory_term Symbol.symb_ver_next_state args
+	(* Create term like plain term plain_term_fun_typed true name args *)
+	
+	(* Reachable state predicate for BMC1 *)
+  | "$$reachableState" ->
+      create_theory_term Symbol.symb_ver_reachable_state args
+	(* Create term like plain term plain_term_fun_typed true name args *)
+	
+	(* Less predicate for BMC1 | term when (try String.sub term 0 7 =      *)
+	(* "$$less_" with
+	   | Invalid_argument _ -> false ->
+	   
+	   (* Create term like plain term *)
+	   plain_term_fun_typed true name args
+	   
+	   (* Range predicate for BMC1 *)
+	   | term when
+	   (try
+	   String.sub term 0 8 = "$$range_"
+	   with
+	   | Invalid_argument _ -> false) ->
+	   
+	   (* Create term like plain term *)
+	   plain_term_fun_typed true name args
+	   
+	 *)
+	(* Sorted equality *)
+  | "$$equality_sorted" ->
+      
+      create_theory_term Symbol.symb_typed_equality args
+	
+  |"$answer" | "$$answer" |"\'$$answer\'" ->
+      (
+       answer_mode_ref := true;
+       
+       let arity = List.length args in
+       (* --check arity compatibility with previous answer pred---- *)
+       
+       (if (Symbol.is_arity_def Symbol.symb_answer) &&
+	 (not ((Symbol.get_arity Symbol.symb_answer) == arity))
+       then failwith "Only one arity for answer predicates is supported"
+       );
+       let stype =
+	 Symbol.create_stype
+	   (list_n arity Symbol.symb_default_type) Symbol.symb_bool_type
+       in
+       Symbol.assign_arity arity Symbol.symb_answer;
+       Symbol.assign_stype Symbol.symb_answer stype;
+       Symbol.assign_is_input true Symbol.symb_answer;
+       Symbol.incr_num_input_occur Symbol.symb_answer;
+       
+       (* let symb = SymbolDB.add_ref (Symbol.create_from_str_type ~is_sig:true   *)
+       (* it is a signature symbol ~is_sig:true symb_name stype) symbol_db_ref in *)
+       
+       create_theory_term Symbol.symb_answer args
+      )
+  | pred_name
+    when
+      (Str.string_match system_pred_name_pref_reg_expr pred_name 0) ->
+	plain_term_fun_typed true name args
+	  
+  | _ ->
+      
+      (* Alternative: create as plain term without catching undefined *)
+      failwith ("Parsing error: unsupported system predicate \""^name^"\"")
 
-		  let system_term_fun name args =
-		  
-		  match name with
-		  
-		  (* State constant for BMC1 *)
-		  | term when
-		  (try
-		  String.sub term 0 8 = "$$constB"
-		  with
-		  | Invalid_argument _ -> false) ->
-		  
-		  (* Create term like plain term *)
-		  plain_term_fun_typed false name args
-		  
-		  (* bitindex term for BMC1 *)
-		  | term when
-		  (try
-		  String.sub term 0 10 = "$$bitIndex"
-		  with
-		  | Invalid_argument _ -> false) ->
-		  
-		  (* Create term like plain term *)
-		  plain_term_fun_typed false name args
-		  
-		  | _ ->
-		  
-		  (* Alternative: create as plain term without catching undefined *)
-		  failwith ("Parsing error: unsupported system term \""^name^"\"")
+let system_term_fun name args =
+  
+  match name with
+    
+    (* State constant for BMC1 *)
+  | term when
+      (try
+	String.sub term 0 8 = "$$constB"
+      with
+      | Invalid_argument _ -> false) ->
+	  
+	  (* Create term like plain term *)
+	  plain_term_fun_typed false name args
+	    
+	    (* bitindex term for BMC1 *)
+  | term when
+      (try
+	String.sub term 0 10 = "$$bitIndex"
+      with
+      | Invalid_argument _ -> false) ->
+	  
+	  (* Create term like plain term *)
+	  plain_term_fun_typed false name args
+	    
+  | _ ->
+      
+      (* Alternative: create as plain term without catching undefined *)
+      failwith ("Parsing error: unsupported system term \""^name^"\"")
 
-		  let term_variable_fun var =
-		  Term.create_var_term var
+let term_variable_fun var =
+  Term.create_var_term var
 
-		  let variable_fun var_name =
-		  try
-		  Hashtbl.find !var_table_ref var_name
-		  with
-		  Not_found ->
-		  (
-		  let current_var = !max_var_ref in
-		  Hashtbl.add !var_table_ref var_name current_var;
-		  max_var_ref := (Var.get_next_var !max_var_ref);
-		  current_var
-		  )
+let variable_fun var_name =
+  try
+    Hashtbl.find !var_table_ref var_name
+  with
+    Not_found ->
+      (
+       let current_var = !max_var_ref in
+       Hashtbl.add !var_table_ref var_name current_var;
+       max_var_ref := (Var.get_next_var !max_var_ref);
+       current_var
+      )
 
 (* change later on the number type *)
 
-		  let num_term name =
-		  let symb = SymbolDB.add_ref
-		  (Symbol.create_from_str_type
-		  name (Symbol.create_stype [] Symbol.symb_default_type)) symbol_db_ref in
-		  assign_param_input_symb symb;
-		  Term.create_fun_term symb []
+let num_term name =
+  let symb = SymbolDB.add_ref
+      (Symbol.create_from_str_type
+	 name (Symbol.create_stype [] Symbol.symb_default_type)) symbol_db_ref in
+  assign_param_input_symb symb;
+  Term.create_fun_term symb []
 
-		  let term_of_int_number_fun num =
-		  let name = (string_of_int num) in
-		  num_term name
+let term_of_int_number_fun num =
+  let name = (string_of_int num) in
+  num_term name
 
-		  let term_of_rat_number_fun (num, denum) =
-		  let name = (string_of_int num)^"/"^(string_of_int denum) in
-		  num_term name
+let term_of_rat_number_fun (num, denum) =
+  let name = (string_of_int num)^"/"^(string_of_int denum) in
+  num_term name
 
-		  let term_of_real_number_fun real =
-		  let name = real_to_string real in
-		  num_term name
+let term_of_real_number_fun real =
+  let name = real_to_string real in
+  num_term name
 
 (* -------------ttf--------------- Note $tType will be of $tType *)
-		  let ttf_atomic_type_fun symb_name =
-		  let symb = SymbolDB.add_ref
-		  (Symbol.create_type_symb_from_str
-		  (* ~is_sig:true since can occur in typed equalities *)
-		  ~is_sig: true symb_name) symbol_db_ref in
-		  assign_param_input_symb symb;
-		  symb
+let ttf_atomic_type_fun symb_name =
+  let symb = SymbolDB.add_ref
+      (Symbol.create_type_symb_from_str
+	 (* ~is_sig:true since can occur in typed equalities *)
+	 ~is_sig: true symb_name) symbol_db_ref in
+  assign_param_input_symb symb;
+  symb
 
-		  let is_bound_constant_type stype =
-		  match (Symbol.get_stype_args_val stype) with
-		  | Def([], value) -> (value == Symbol.symb_ver_state_type)
-		  | _ -> false
+let is_bound_constant_type stype =
+  match (Symbol.get_stype_args_val stype) with
+  | Def([], value) -> (value == Symbol.symb_ver_state_type)
+  | _ -> false
 
-		  let ttf_add_typed_atom_out_symb_fun symb_name stype =
-		  let symb =
-		  (Symbol.create_from_str_type symb_name stype)
-		  in
-		  let added_symb = SymbolDB.add_ref symb symbol_db_ref in
-		  (if (is_bound_constant_type symb)
-		  then
-		  Symbol.set_bool_param true Symbol.is_bound_constant added_symb
-		  else ()
-		  );
-		  if (Symbol.is_special_symbol added_symb)
-		  (* (Symbol.is_defined_type added_symb) || (Symbol.is_defined_symb ) *)
-		  then
-		  ( assign_param_input_symb added_symb;
-		  added_symb
-		  )
-		  else
-		  if (symb == added_symb)
-		  then
-		  (symb)  (* added_symb *) (*just return unit*)
-		  else
-		  failwith
-		  ("parser_types, ttf_add_typed_atom_out_fun: symbol \""
-		  ^symb_name
-		  ^"\" was already declared!")
+let ttf_add_typed_atom_out_symb_fun symb_name stype =
+  let symb =
+    (Symbol.create_from_str_type symb_name stype)
+  in
+  let added_symb = SymbolDB.add_ref symb symbol_db_ref in
+  (if (is_bound_constant_type symb)
+  then
+    Symbol.set_bool_param true Symbol.is_bound_constant added_symb
+  else ()
+  );
+  if (Symbol.is_special_symbol added_symb)
+      (* (Symbol.is_defined_type added_symb) || (Symbol.is_defined_symb ) *)
+  then
+    ( assign_param_input_symb added_symb;
+      added_symb
+     )
+  else
+    if (symb == added_symb)
+    then
+      (symb)  (* added_symb *) (*just return unit*)
+    else
+      failwith
+	("parser_types, ttf_add_typed_atom_out_fun: symbol \""
+	 ^symb_name
+	 ^"\" was already declared!")
 
-		  let ttf_add_typed_atom_fun symb_name stype =
-		  ignore (ttf_add_typed_atom_out_symb_fun symb_name stype)
+let ttf_add_typed_atom_fun symb_name stype =
+  ignore (ttf_add_typed_atom_out_symb_fun symb_name stype)
 
-		  type attr_args =
-		  (* Attr_Interval of int * int *)
-		  | Attr_List of int list
-		  | Attr_Int of int
-		  | Attr_Str of string
+type attr_args =
+    (* Attr_Interval of int * int *)
+  | Attr_List of int list
+  | Attr_Int of int
+  | Attr_Str of string
 
-		  type attr_type =
-		  | ALess of int
-		  | ARange of int * int
-		  
-		  | AFatherOf of string
-		  | ASonOf of string
-		  
-		  (* A clock symbol with initial value (first) and period (second) *)
-		  | AClock of int list
-		  
-		  (* Cardinality of a type, currently used to determine the maximal bound in *)
-		  (* BMC1. The maximal bound is the value of $cardinality of the state_type  *)
-		  (* minus one, since states are 0-based.                                    *)
-		  | ACardinality of int
-		  
-		  (* A symbol for a state, usually $$constB0 *)
-		  | AStateConstant of int
-		  
-		  (* Base name of address term, the current bound is to be appended to the   *)
-		  (* base name                                                               *)
-		  | AAddressBaseName of string
-		  
-		  (* Maximal width of addresses, usually for address_type *)
-		  | AAddressMaxWidth of int
-		  
-		  | AOther of string * attr_args
+type attr_type =
+  | ALess of int
+  | ARange of int * int
+	
+  | AFatherOf of string
+  | ASonOf of string
+	
+	(* A clock symbol with initial value (first) and period (second) *)
+  | AClock of int list
+	
+	(* Cardinality of a type, currently used to determine the maximal bound in *)
+	(* BMC1. The maximal bound is the value of $cardinality of the state_type  *)
+	(* minus one, since states are 0-based.                                    *)
+  | ACardinality of int
+	
+	(* A symbol for a state, usually $$constB0 *)
+  | AStateConstant of int
+	
+	(* Base name of address term, the current bound is to be appended to the   *)
+	(* base name                                                               *)
+  | AAddressBaseName of string
+	
+	(* Maximal width of addresses, usually for address_type *)
+  | AAddressMaxWidth of int
+	
+  | AOther of string * attr_args
 
-		  type attr =
-		  Attr of attr_type * attr_args
+type attr =
+    Attr of attr_type * attr_args
 
-		  let attr_fun attr_name attr_args =
-		  match attr_name with
-		  |"less"
-		  |"$less"
-		  |"$$less" ->
-		  (match attr_args with
-		  | Attr_Int (int) -> ALess int
-		  | _ -> failwith "less should have one argument: int"
-		  )
-		  
-		  |"range"
-		  |"$range"
-		  |"$$range" ->
-		  (match attr_args with
-		  | Attr_List [i1; i2] -> ARange (i1, i2)
-		  | _ -> failwith "range should have one argument: interval"
-		  )
-		  
-		  | "clock"
-		  | "$clock"
-		  | "$$clock" ->
-		  (match attr_args with
-		  | Attr_List p -> AClock p
-		  | _ -> failwith "clock should have one argument: clock pattern"
-		  )
-		  
-		  |"father_of"
-		  |"$father_of"
-		  |"$$father_of" ->
-		  (match attr_args with
-		  | Attr_Str(str) -> AFatherOf(str)
-		  | _ -> failwith "father_of should have one argument: string  "
-		  )
-		  
-		  | "son_of"
-		  | "$son_of"
-		  | "$$son_of" ->
-		  (match attr_args with
-		  | Attr_Str(str) -> ASonOf(str)
-		  | _ -> failwith "son_of should have one argument: string  "
-		  )
-		  
-		  | "cardinality"
-		  | "$cardinality"
-		  | "$$cardinality" ->
-		  (match attr_args with
-		  | Attr_Int c -> ACardinality c
-		  | _ -> failwith "cardinality should have one argument: integer")
-		  
-		  | "addressMaxWidth"
-		  | "$addressMaxWidth"
-		  | "$$addressMaxWidth" ->
-		  (match attr_args with
-		  | Attr_Int c -> AAddressMaxWidth c
-		  | _ -> failwith "addressMaxWidth should have one argument: integer")
-		  
-		  | "state_constant"
-		  | "$state_constant"
-		  | "$$state_constant" ->
-		  (match attr_args with
-		  | Attr_Int c -> AStateConstant c
-		  | _ -> failwith "state_constant should have one argument: integer")
-		  
-		  | "address_base_name"
-		  | "$address_base_name"
-		  | "$$address_base_name" ->
-		  (match attr_args with
-		  | Attr_Str c -> AAddressBaseName c
-		  | _ -> failwith "address_base_name should have one argument: integer")
-		  
-		  | other_str -> AOther (other_str, attr_args)
+let attr_fun attr_name attr_args =
+  match attr_name with
+  |"less"
+  |"$less"
+  |"$$less" ->
+      (match attr_args with
+      | Attr_Int (int) -> ALess int
+      | _ -> failwith "less should have one argument: int"
+      )
+	
+  |"range"
+  |"$range"
+  |"$$range" ->
+      (match attr_args with
+      | Attr_List [i1; i2] -> ARange (i1, i2)
+      | _ -> failwith "range should have one argument: interval"
+      )
+	
+  | "clock"
+  | "$clock"
+  | "$$clock" ->
+      (match attr_args with
+      | Attr_List p -> AClock p
+      | _ -> failwith "clock should have one argument: clock pattern"
+      )
+	
+  |"father_of"
+  |"$father_of"
+  |"$$father_of" ->
+      (match attr_args with
+      | Attr_Str(str) -> AFatherOf(str)
+      | _ -> failwith "father_of should have one argument: string  "
+      )
+	
+  | "son_of"
+  | "$son_of"
+  | "$$son_of" ->
+      (match attr_args with
+      | Attr_Str(str) -> ASonOf(str)
+      | _ -> failwith "son_of should have one argument: string  "
+      )
+	
+  | "cardinality"
+  | "$cardinality"
+  | "$$cardinality" ->
+      (match attr_args with
+      | Attr_Int c -> ACardinality c
+      | _ -> failwith "cardinality should have one argument: integer")
+	
+  | "addressMaxWidth"
+  | "$addressMaxWidth"
+  | "$$addressMaxWidth" ->
+      (match attr_args with
+      | Attr_Int c -> AAddressMaxWidth c
+      | _ -> failwith "addressMaxWidth should have one argument: integer")
+	
+  | "state_constant"
+  | "$state_constant"
+  | "$$state_constant" ->
+      (match attr_args with
+      | Attr_Int c -> AStateConstant c
+      | _ -> failwith "state_constant should have one argument: integer")
+	
+  | "address_base_name"
+  | "$address_base_name"
+  | "$$address_base_name" ->
+      (match attr_args with
+      | Attr_Str c -> AAddressBaseName c
+      | _ -> failwith "address_base_name should have one argument: integer")
+	
+  | other_str -> AOther (other_str, attr_args)
 
 (* returns (Some(range/less), Some(AFatherOF str_list)) can raise          *)
 (* Not_found                                                               *)
 
-		  let find_recognised_main_attr attr_list =
-		  try
-		  Some
-		  (List.find
-		  (fun attr ->
-		  match attr with
-		  | ALess _
-		  | ARange _
-		  | AClock _
-		  | ACardinality _
-		  | AAddressMaxWidth _
-		  | AStateConstant _
-		  | AAddressBaseName _ -> true
-		  | _ -> false
-		  )
-		  attr_list
-		  )
-		  with
-		  Not_found -> None
+let find_recognised_main_attr attr_list =
+  try
+    Some
+      (List.find
+	 (fun attr ->
+	   match attr with
+	   | ALess _
+	   | ARange _
+	   | AClock _
+	   | ACardinality _
+	   | AAddressMaxWidth _
+	   | AStateConstant _
+	   | AAddressBaseName _ -> true
+	   | _ -> false
+	 )
+	 attr_list
+      )
+  with
+    Not_found -> None
 
-		  let get_all_father_of attr_list =
-		  let f rest attr =
-		  match attr with
-		  | AFatherOf str -> (str:: rest)
-		  | _ -> rest
-		  in
-		  List.fold_left f [] attr_list
+let get_all_father_of attr_list =
+  let f rest attr =
+    match attr with
+    | AFatherOf str -> (str:: rest)
+    | _ -> rest
+  in
+  List.fold_left f [] attr_list
 
-		  let is_defined_symbol attr_list =
-		  List.exists
-		  (fun attr ->
-		  match attr with
-		  AFatherOf _ | ASonOf _ -> true
-		  | _ -> false)
-		  attr_list
+let is_defined_symbol attr_list =
+  List.exists
+    (fun attr ->
+      match attr with
+	AFatherOf _ | ASonOf _ -> true
+      | _ -> false)
+    attr_list
 
-		  let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
-		  let symb = ttf_add_typed_atom_out_symb_fun symb_name stype in
-		  let attr = find_recognised_main_attr attr_list in
-		  (* fill less/range *)
-		  (match attr with
-		  | Some(ALess i) ->
-		  if (SymbMap.mem symb !less_map)
-		  then ()
-		  else
-		  (
-		  less_map := SymbMap.add symb i !less_map;
-		  Symbol.set_bool_param true Symbol.is_less symb
-		  )
-		  | Some(ARange (i, j)) ->
-		  if (SymbMap.mem symb !range_map)
-		  then ()
-		  else
-		  (
-		  range_map := SymbMap.add symb (i, j) !range_map;
-		  Symbol.set_bool_param true Symbol.is_range symb
-		  )
-		  
-		  (* Symbol is a clock with pattern p *)
-		  | Some (AClock p) ->
-		  
-		  (* Clock symbol already defined? *)
-		  if (SymbMap.mem symb !clock_map) then
-		  
-		  (* Skip *)
-		  ()
-		  
-		  else
-		  
-		  (
-		  
-		  (* Sanity check: pattern must not be empty *)
-		  if p = [] then
-		  failwith
-		  (Format.sprintf
-		  "Bad $clock attribute for symbol %s: pattern must not be empty"
-		  (Symbol.to_string symb));
-		  
-		  (* Sanity check: all elements in list must be 0 or 1 *)
-		  if List.exists (fun e -> not (e = 0 || e = 1)) p then
-		  failwith
-		  (Format.sprintf
-		  "Bad $clock attribute for symbol %s: pattern must contain only 0 and 1"
-		  (Symbol.to_string symb));
-		  
-		  (* Add symbol to map *)
-		  clock_map := SymbMap.add symb p !clock_map;
-		  Symbol.set_bool_param true Symbol.is_clock symb
-		  )
-		  
-		  (* Symbol has cardinality c *)
-		  | Some (ACardinality c) ->
-		  
-		  (* Cardinality of symbol already defined? *)
-		  if (SymbMap.mem symb !cardinality_map) then
-		  
-		  (* Skip *)
-		  ()
-		  
-		  else
-		  
-		  (
-		  
-		  (* Sanity check: cardinality must not be zero or less *)
-		  if c < 1 then
-		  failwith
-		  (Format.sprintf
-		  "Bad $cardinality attribute for symbol %s: must be positive and not zero"
-		  (Symbol.to_string symb));
-		  
-		  (* Add symbol to map *)
-		  cardinality_map := SymbMap.add symb c !cardinality_map
-		  
-		  )
-		  
-		  (* Symbol has a maximal address width *)
-		  | Some (AAddressMaxWidth c) ->
-		  
-		  (* Maximal address width of symbol already defined? *)
-		  if (SymbMap.mem symb !max_address_width_map) then
-		  
-		  (* Skip *)
-		  ()
-		  
-		  else
-		  
-		  (
-		  
-		  (* Sanity check: must not negative *)
-		  if c < 0 then
-		  failwith
-		  (Format.sprintf
-		  "Bad address_max_width attribute for symbol %s: must be positive"
-		  (Symbol.to_string symb));
-		  
-		  (* Add symbol to map *)
-		  max_address_width_map := SymbMap.add symb c !max_address_width_map
-		  
-		  )
-		  
-		  (* Symbol is a state constant *)
-		  | Some (AStateConstant c) ->
-		  
-		  (* State of symbol already defined? *)
-		  if (SymbMap.mem symb !state_constant_map) then
-		  
-		  (* Skip *)
-		  ()
-		  
-		  else
-		  
-		  (
-		  
-		  (* Sanity check: state constant must not be negative *)
-		  if c < 0 then
-		  failwith
-		  (Format.sprintf
-		  "Bad state_constant attribute for symbol %s: must be positive"
-		  (Symbol.to_string symb));
-		  
-		  (* Add symbol to map *)
-		  state_constant_map := SymbMap.add symb c !state_constant_map
-		  
-		  )
-		  
-		  (* Symbol has a base name *)
-		  | Some (AAddressBaseName c) ->
-		  
-		  (* Base name of symbol already defined? *)
-		  if (SymbMap.mem symb !address_base_name_map) then
-		  
-		  (* Skip *)
-		  ()
-		  
-		  else
-		  
-		  (
-		  
-		  (* Add symbol to map *)
-		  address_base_name_map := SymbMap.add symb c !address_base_name_map
-		  
-		  )
-		  
-		  | _ -> ()
-		  );
-		  (
-		  if (is_defined_symbol attr_list)
-		  then
-		  (Symbol.set_bool_param true Symbol.is_defined_symb_input symb)
-		  else ()
-		  );
-		  (* fill father_of map *)
-		  let all_father_of = get_all_father_of attr_list in
-		  if ((all_father_of = []) || (SymbMap.mem symb !father_of_map))
-		  then () (* should not happen since symb is defined only once *)
-		  else
-		  (
-		  father_of_map := SymbMap.add symb all_father_of !father_of_map
-		  )
+let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
+  let symb = ttf_add_typed_atom_out_symb_fun symb_name stype in
+  let attr = find_recognised_main_attr attr_list in
+  (* fill less/range *)
+  (match attr with
+  | Some(ALess i) ->
+      if (SymbMap.mem symb !less_map)
+      then ()
+      else
+	(
+	 less_map := SymbMap.add symb i !less_map;
+	 Symbol.set_bool_param true Symbol.is_less symb
+	)
+  | Some(ARange (i, j)) ->
+      if (SymbMap.mem symb !range_map)
+      then ()
+      else
+	(
+	 range_map := SymbMap.add symb (i, j) !range_map;
+	 Symbol.set_bool_param true Symbol.is_range symb
+	)
+	  
+	  (* Symbol is a clock with pattern p *)
+  | Some (AClock p) ->
+      
+      (* Clock symbol already defined? *)
+      if (SymbMap.mem symb !clock_map) then
+	
+	(* Skip *)
+	()
+	  
+      else
+	
+	(
+	 
+	 (* Sanity check: pattern must not be empty *)
+	 if p = [] then
+	   failwith
+	     (Format.sprintf
+		"Bad $clock attribute for symbol %s: pattern must not be empty"
+		(Symbol.to_string symb));
+	 
+	 (* Sanity check: all elements in list must be 0 or 1 *)
+	 if List.exists (fun e -> not (e = 0 || e = 1)) p then
+	   failwith
+	     (Format.sprintf
+		"Bad $clock attribute for symbol %s: pattern must contain only 0 and 1"
+		(Symbol.to_string symb));
+	 
+	 (* Add symbol to map *)
+	 clock_map := SymbMap.add symb p !clock_map;
+	 Symbol.set_bool_param true Symbol.is_clock symb
+	)
+	  
+	  (* Symbol has cardinality c *)
+  | Some (ACardinality c) ->
+      
+      (* Cardinality of symbol already defined? *)
+      if (SymbMap.mem symb !cardinality_map) then
+	
+	(* Skip *)
+	()
+	  
+      else
+	
+	(
+	 
+	 (* Sanity check: cardinality must not be zero or less *)
+	 if c < 1 then
+	   failwith
+	     (Format.sprintf
+		"Bad $cardinality attribute for symbol %s: must be positive and not zero"
+		(Symbol.to_string symb));
+	 
+	 (* Add symbol to map *)
+	 cardinality_map := SymbMap.add symb c !cardinality_map
+	     
+	)
+	  
+	  (* Symbol has a maximal address width *)
+  | Some (AAddressMaxWidth c) ->
+      
+      (* Maximal address width of symbol already defined? *)
+      if (SymbMap.mem symb !max_address_width_map) then
+	
+	(* Skip *)
+	()
+	  
+      else
+	
+	(
+	 
+	 (* Sanity check: must not negative *)
+	 if c < 0 then
+	   failwith
+	     (Format.sprintf
+		"Bad address_max_width attribute for symbol %s: must be positive"
+		(Symbol.to_string symb));
+	 
+	 (* Add symbol to map *)
+	 max_address_width_map := SymbMap.add symb c !max_address_width_map
+	     
+	)
+	  
+	  (* Symbol is a state constant *)
+  | Some (AStateConstant c) ->
+      
+      (* State of symbol already defined? *)
+      if (SymbMap.mem symb !state_constant_map) then
+	
+	(* Skip *)
+	()
+	  
+      else
+	(	 
+	 (* Sanity check: state constant must not be negative *)
+	 if c < 0 then
+	   failwith
+	     (Format.sprintf
+		"Bad state_constant attribute for symbol %s: must be positive"
+		(Symbol.to_string symb));
+	 
+	 (* Add symbol to map *)
+	 state_constant_map := SymbMap.add symb c !state_constant_map
+	     
+	)
+	  
+	  (* Symbol has a base name *)
+  | Some (AAddressBaseName c) ->
+      
+      (* Base name of symbol already defined? *)
+      if (SymbMap.mem symb !address_base_name_map) then
+	
+	(* Skip *)
+	()
+	  
+      else
+	
+	(
+	 
+	 (* Add symbol to map *)
+	 address_base_name_map := SymbMap.add symb c !address_base_name_map
+	     
+	)
+	  
+  | _ -> ()
+  );
+  (
+   if (is_defined_symbol attr_list)
+   then
+     (Symbol.set_bool_param true Symbol.is_defined_symb_input symb)
+   else ()
+  );
+  (* fill father_of map *)
+  let all_father_of = get_all_father_of attr_list in
+  if ((all_father_of = []) || (SymbMap.mem symb !father_of_map))
+  then () (* should not happen since symb is defined only once *)
+  else
+    (
+     father_of_map := SymbMap.add symb all_father_of !father_of_map
+    )
 
 (* -------------All below is commented------------------------ type tmp =  *)
 (* string type language = CNF | FOF type name = string type parsed_symbol  *)

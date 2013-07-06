@@ -1283,6 +1283,16 @@ let out_bmc1_unsat_result bmc1_cur_bound =
     ("UNSAT")
     (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time))
 
+let out_bmc1_sat_result bmc1_cur_bound =
+  Format.printf
+    "@\n%s BMC1 bound %d %s after %.3fs@\n@."
+    pref_str
+    bmc1_cur_bound
+    ("SAT")
+    (truncate_n 3 (Unix.gettimeofday () -. iprover_start_time))
+
+
+
 (* these clauses are used for *)
 (*let clauses_for_sat_ref = ref [] *)
 
@@ -1388,7 +1398,10 @@ let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_
       else
 	begin
 	  out_str (satisfiable_str ());
-	  
+	  (if (val_of_override !current_options.bmc1_incremental)
+	  then
+	    (out_bmc1_sat_result !bmc1_cur_bound;)
+	  );
 	  (* Do not output statistics in BMC1 mode with
 	     -- bmc1_out_stat none *)
 	  if (not (val_of_override !current_options.bmc1_incremental)) ||
@@ -1414,7 +1427,11 @@ let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_
 	when_eq_ax_ommitted ()
       else
 	(out_str (satisfiable_str ());
-	 
+
+	 (if (val_of_override !current_options.bmc1_incremental)
+	 then
+	   (out_bmc1_sat_result !bmc1_cur_bound;)
+	 );
 	 (* Do not output statistics in BMC1 mode with
 	    -- bmc1_out_stat none *)
 	 if (not (val_of_override !current_options.bmc1_incremental)) ||
@@ -2857,6 +2874,10 @@ let run_iprover () =
     ->
       (assert (not !eq_axioms_are_omitted);
        out_str (satisfiable_str ());
+       (if (val_of_override !current_options.bmc1_incremental)
+       then
+	 (out_bmc1_sat_result !bmc1_cur_bound;)
+       );
        (* Do not output statistics in BMC1 mode with
 	  -- bmc1_out_stat none *)
        if (not (val_of_override !current_options.bmc1_incremental)) ||
@@ -2876,6 +2897,10 @@ let run_iprover () =
       (assert (not !eq_axioms_are_omitted);
        out_str (satisfiable_str ());
        
+       (if (val_of_override !current_options.bmc1_incremental)
+       then
+	 (out_bmc1_sat_result !bmc1_cur_bound;)
+       );
        (* Do not output statistics in BMC1 mode with
 	  -- bmc1_out_stat none *)
        if (not (val_of_override !current_options.bmc1_incremental)) ||
