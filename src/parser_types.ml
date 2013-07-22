@@ -645,6 +645,9 @@ let system_pred_fun name args =
       (* Alternative: create as plain term without catching undefined *)
       failwith ("Parsing error: unsupported system predicate \""^name^"\"")
 
+(*let constB_base_str = "$$constB"*)
+
+
 let system_term_fun name args =
   
   match name with

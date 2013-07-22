@@ -31,10 +31,10 @@ exception Empty_Clause of clause
 
 (*let creat_const_symb symb_name ~symb_type =*)
 let create_symbol symbol_name symbol_stype =
-	SymbolDB.add_ref
-			(Symbol.create_from_str_type symbol_name symbol_stype)
-			symbol_db_ref
-	
+  SymbolDB.add_ref
+    (Symbol.create_from_str_type symbol_name symbol_stype)
+    symbol_db_ref
+    
 
 (*---------------terms/lits----------------------------------*)
 let add_fun_term symb args = 
@@ -45,120 +45,120 @@ let add_fun_term_args symb args =
 
 let add_var_term var = 
   TermDB.add_ref (Term.create_var_term var) term_db_ref
-					
+    
 let add_typed_equality_term stype_term t s =
-	let args = [stype_term; t; s] in
-	add_fun_term Symbol.symb_typed_equality args
+  let args = [stype_term; t; s] in
+  add_fun_term Symbol.symb_typed_equality args
 
 let add_typed_equality_sym eq_type_sym t s =
-	let eq_type_term = (add_fun_term eq_type_sym []) in
-	add_typed_equality_term eq_type_term t s
+  let eq_type_term = (add_fun_term eq_type_sym []) in
+  add_typed_equality_term eq_type_term t s
 
 
 let add_typed_disequality_term eq_type t s =
-	add_fun_term Symbol.symb_neg [(add_typed_equality_term eq_type t s)]
+  add_fun_term Symbol.symb_neg [(add_typed_equality_term eq_type t s)]
 
 let add_typed_disequality_sym eq_type_sym t s =
-	add_fun_term Symbol.symb_neg [(add_typed_equality_sym eq_type_sym t s)]
+  add_fun_term Symbol.symb_neg [(add_typed_equality_sym eq_type_sym t s)]
 
 let add_neg_atom atom =
-	let args = [atom] in
-	add_fun_term Symbol.symb_neg args
+  let args = [atom] in
+  add_fun_term Symbol.symb_neg args
 
 let add_neg_atom_symb symb args = 
- add_neg_atom	(add_fun_term symb args)
+  add_neg_atom	(add_fun_term symb args)
 
 let add_compl_lit lit = 
-	TermDB.add_ref (Term.compl_lit lit) term_db_ref 
-	
+  TermDB.add_ref (Term.compl_lit lit) term_db_ref 
+    
 (*-----------term views----------*)	
 type eq_view_type_term = 
-	 Eq_type_term of term * term * term
+    Eq_type_term of term * term * term
 
 type eq_view_type_symb = 
-	| Eq_type_symb of symbol * term * term 
+  | Eq_type_symb of symbol * term * term 
 
- 
+	
 let term_eq_view_type_term t = 
-		match t with
-		|Term.Fun (sym, args, _info) ->
-	   	if (sym == Symbol.symb_typed_equality)
-			then 
-				let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
-	      Def(Eq_type_term (type_term_eq, t, s))
-			else
-	    Undef
-	 |_-> Undef
+  match t with
+  |Term.Fun (sym, args, _info) ->
+      if (sym == Symbol.symb_typed_equality)
+      then 
+	let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
+	Def(Eq_type_term (type_term_eq, t, s))
+      else
+	Undef
+  |_-> Undef
 	
 (* should be used with care since assume that eq type is not a variable here *)	
 let term_eq_view_type_symb t = 
-		match t with
-		|Term.Fun (sym, args, _info) ->
-	   	if (sym == Symbol.symb_typed_equality)
-			then 
-				let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
-				let eq_type_symb = 
-						try
-			 			Term.get_top_symb type_term_eq
-				  	with 
-						 Term.Var_term ->
-							failwith
-								("term_eq_view_type_symb: equality type is a variable in"^(Term.to_string t))
-				in				
-	      Def(Eq_type_symb (eq_type_symb, t, s))
-			else
-	    Undef
-	 |_-> Undef
-		
+  match t with
+  |Term.Fun (sym, args, _info) ->
+      if (sym == Symbol.symb_typed_equality)
+      then 
+	let (type_term_eq, t, s) = get_triple_from_list (Term.arg_to_list args) in
+	let eq_type_symb = 
+	  try
+	    Term.get_top_symb type_term_eq
+	  with 
+	    Term.Var_term ->
+	      failwith
+		("term_eq_view_type_symb: equality type is a variable in"^(Term.to_string t))
+	in				
+	Def(Eq_type_symb (eq_type_symb, t, s))
+      else
+	Undef
+  |_-> Undef
+	
 	
 (*
-let dis_equality t s =
-	neg_atom (equality_term t s)
-*)
+   let dis_equality t s =
+   neg_atom (equality_term t s)
+ *)
 
 (*
-let add_typed_dis_equality stype t s =
-	add_neg_atom (add_typed_equality_term stype t s)
-*)
+   let add_typed_dis_equality stype t s =
+   add_neg_atom (add_typed_equality_term stype t s)
+ *)
 (* used for model output *)
 let add_term_algebra_eq_term args = 
-    let ta_eq_type_term = (add_fun_term Symbol.symb_term_algebra_type []) in
-	 add_fun_term Symbol.symb_typed_equality  (ta_eq_type_term::args)
+  let ta_eq_type_term = (add_fun_term Symbol.symb_term_algebra_type []) in
+  add_fun_term Symbol.symb_typed_equality  (ta_eq_type_term::args)
 
 (*--------clause---------------*)	
 
 let create_clause tstp_source lits = 
-	let norm_lits = Clause.normalise_lit_list term_db_ref lits in
-	let clause = Clause.create_clause term_db_ref tstp_source norm_lits	in 
-	(if (Clause.is_empty_clause clause) 
-	then 
-		raise (Empty_Clause (clause))
-	);
-	clause
+  let norm_lits = Clause.normalise_lit_list term_db_ref lits in
+  let clause = Clause.create_clause term_db_ref tstp_source norm_lits	in 
+  (if (Clause.is_empty_clause clause) 
+  then 
+    raise (Empty_Clause (clause))
+  );
+  clause
 
 let create_clause_context context tstp_source lits =
-	let clause = create_clause tstp_source lits in
-	Clause.context_add context clause
+  let clause = create_clause tstp_source lits in
+  Clause.context_add context clause
 
 let normalise_blitlist_list blitlist_list = 
-	Clause.normalise_blitlist_list term_db_ref blitlist_list 		
+  Clause.normalise_blitlist_list term_db_ref blitlist_list 		
 
 let get_lits c = Clause.get_lits c
 
 let clause_register_subsumed_by ~by c = 
   (if (not (by == c)) then Clause.assign_is_dead true c);
-	if (Clause.lits_equal by c )
-	then ()
-	else
-		( 
-	 Clause.set_ps_simplifying true by;
-   Clause.assign_replaced_by (Def(Clause.RB_subsumption by)) c
-	)
+  if (Clause.lits_equal by c )
+  then ()
+  else
+    ( 
+      Clause.set_ps_simplifying true by;
+      Clause.assign_replaced_by (Def(Clause.RB_subsumption by)) c
+     )
 
 let pp_clause_with_source = Clause.pp_clause_with_source
- 
+    
 let pp_clause_list_with_source = Clause.pp_clause_list_with_source
- 
+    
 
 (*---------- context ----------------*)				
 let context_create = Clause.context_create
@@ -175,8 +175,8 @@ let context_size = Clause.context_size
 
 (* context_add_context from_cxt to_cxt *)
 let context_add_context = Clause.context_add_context
- 
+    
 (** replaces dead with simplified_by *)
 let context_replace_by_clist = Clause.context_replace_by_clist 	
-		
+    
 

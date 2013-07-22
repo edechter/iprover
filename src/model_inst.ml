@@ -13,7 +13,7 @@
    You should have received a copy of the GNU General Public License
    along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 (*----------------------------------------------------------------------[C]-*)
-
+ 
 open Lib
 open Options
 open Logic_interface
@@ -215,7 +215,7 @@ module VarMap = Map.Make (Var)
 type dism_constr_set =
   | DCSet of FSVSet.t
 	(* Subsumed means that all dismatching constraints are subsumed     *)
-	(* by dismatching constr which is either undefined of is a renaming *)
+	(* by dismatching constr which is either undefined or is a renaming *)
 	(* (over all vars in the clause)           *)
 	(* so L(X)| (x=t & Subsumed ...) means \forall X (L(X) <=> (x=t...) *)
   | DCSSubsumed
@@ -365,7 +365,7 @@ let rec flatten_args
 	  if (SubstBound.in_renaming renaming_env (b_flat,v))
 	  then
 	    (	
-	      let next_var = SubstBound.get_next_unused_var renaming_env h_type in 							
+	      let next_var = SubstBound.get_next_unused_var renaming_env h_type in 
 	      flat_subst_ref:= (next_var, h)::(!flat_subst_ref);
               x_var_list_ref := next_var:: (!x_var_list_ref)							
 	     )
@@ -376,7 +376,7 @@ let rec flatten_args
 	    )
       | Term.Fun _ ->
           (
-	   let next_var = SubstBound.get_next_unused_var renaming_env h_type in 														
+	   let next_var = SubstBound.get_next_unused_var renaming_env h_type in 
 	   flat_subst_ref:= (next_var, h)::(!flat_subst_ref);
 	   x_var_list_ref := next_var:: (!x_var_list_ref)		
           )
@@ -1675,6 +1675,7 @@ let get_max_length_addr_map addr_map =
 (* this map is called vpt_map *)
 (*----------------------------------*)
 (* evrything is based on positive definitions (could be later extended to negative/both) *)
+(* so the  default vlaue is negative *) 
 
 type pre_term = (symbol * (term list))
 
@@ -1688,6 +1689,33 @@ module PTKey =
 module PTMap = Map.Make(PTKey)
 
 type ptv_map = ((int list) ref) PTMap.t
+
+module SSet = Symbol.Set
+
+(* sanity check for non-covered memory/etc. symbols in the SymbolDB *)
+(* not used at the moment *)
+type sanity = 
+  {
+   mutable sanity_smt_mem_symbs : SSet.t; 
+   mutable sanity_smt_bv_symbs : SSet.t;
+   mutable sanity_smt_unary_bv_symbs : SSet.t;
+  }
+      
+let init_sanity () = 
+  {
+   sanity_smt_mem_symbs = SSet.empty;
+   sanity_smt_bv_symbs = SSet.empty;
+   sanity_smt_unary_bv_symbs = SSet.empty
+ }
+
+(* word_pred --  mem, bv, unary_bv predicates *)
+
+let is_word_pred symb = 
+  ((Symbol.is_a_memory_pred_symb symb) 
+ || (Symbol.is_a_bitvec_pred_symb symb) 
+ || (Symbol.is_a_bitvec_unary_pred_symb symb))
+
+(* check that we can rely on the order state, addr bit_ind in the flat_subst *)
 
 let get_pre_term_pos_bit_ind symb flat_subst =
 (*	out_str ("symb: "^(Symbol.to_string symb)^" "^(Subst.flat_subst_to_string flat_subst)^"\n");*)
@@ -1732,7 +1760,7 @@ let get_pre_term_pos_bit_ind symb flat_subst =
 (* returns ptv_map *)
 let fill_ptv_map model =
   let f_model symb model_node model_ptv_map =
-    if ((Symbol.is_a_memory_pred_symb symb) || (Symbol.is_a_bitvec_pred_symb symb) || (Symbol.is_a_bitvec_unary_pred_symb symb) )
+    if (is_word_pred symb)
     then
       begin
 	(*	out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n"); *)
@@ -1747,24 +1775,35 @@ let fill_ptv_map model =
 	else
 	  begin
 	    let pos_lit_def_body = pos_lit_def.model_lit_def_body in
-	    
+	    assert (not (pos_lit_def_body = FSVMap.empty)); (* asseting that it is not all positive *)
+	    let all_negative = ref true in 
 	    (* add when all $false *)
 	    let f_pos_def subst_constr
 		(_dsim_constr_set_ref, _clause_list_ref) node_ptv_map =
 	      (match (get_pre_term_pos_bit_ind symb subst_constr.flat_subst) with
 	      | Def((pre_term, bit_ind)) ->
-		  (try
-		    let val_ref = PTMap.find pre_term node_ptv_map in
-		    val_ref:= bit_ind::!val_ref;
-		    node_ptv_map
-		  with
-		    Not_found ->
-		      PTMap.add pre_term (ref [bit_ind]) node_ptv_map
+		  (all_negative := false;
+		   try
+		     let val_ref = PTMap.find pre_term node_ptv_map in
+		     val_ref:= bit_ind::!val_ref;
+		     node_ptv_map
+		   with
+		     Not_found ->
+		       PTMap.add pre_term (ref [bit_ind]) node_ptv_map
 		  )
 	      | Undef -> node_ptv_map
 	      )
 	    in
-	    FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map
+	    let pos_def_ptv = FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map in 
+	    if !all_negative 
+	    then
+	       (
+		(* false for all values *)
+		let pre_term = (symb,[]) in
+		PTMap.add pre_term (ref []) pos_def_ptv
+	       )
+	    else 
+	      pos_def_ptv
 	  end
       end
     else
@@ -1777,27 +1816,229 @@ let fill_ptv_map model =
   PTMap.iter sort_vals vals_ptmap;
   vals_ptmap
 
+
+(*---------------------*)
+(* similar to fill_ptv_map ptv_map *)
+let fill_ptv_map_for_per_bound model =
+  let f_model symb model_node model_ptv_map =
+    if (is_word_pred symb)
+    then
+      begin
+	(*	out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n"); *)
+	let pos_lit_def = model_node.pos_lit_def in
+	(* 
+        if (pos_lit_def.model_lit_undef)
+	then
+	  (
+	   (* false for all values *)
+	   let pre_term = (symb,[]) in
+	   PTMap.add pre_term (ref []) model_ptv_map
+	  )
+	else
+        *)
+	  begin
+	    let pos_lit_def_body = pos_lit_def.model_lit_def_body in
+	    let all_negative = ref true in 
+	    (* add when all $false *)
+	    let f_pos_def subst_constr (_dsim_constr_set_ref, _clause_list_ref) node_ptv_map =
+	      (match (get_pre_term_pos_bit_ind symb subst_constr.flat_subst) with
+	      | Def((pre_term, bit_ind)) ->
+		  (all_negative := false;
+		   try
+		     let val_ref = PTMap.find pre_term node_ptv_map in
+		     val_ref:= bit_ind::!val_ref;
+		     node_ptv_map
+		   with
+		     Not_found ->
+		       PTMap.add pre_term (ref [bit_ind]) node_ptv_map
+		  )
+	      | Undef -> node_ptv_map
+	      )
+	    in
+	    let pos_def_ptv = FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map in 
+	  (* 
+           if !all_negative 
+	   then
+	      (
+           	(* false for all values *)
+               let pre_term = (symb,[]) in
+	       PTMap.add pre_term (ref []) pos_def_ptv
+	       )
+	    else 
+           *)
+	      pos_def_ptv
+	  end
+      end
+    else
+      model_ptv_map
+  in
+  let vals_ptmap = NModel.fold f_model model PTMap.empty in
+  let sort_vals pt val_ref =
+    val_ref:= List.sort compare !val_ref
+  in
+  PTMap.iter sort_vals vals_ptmap;
+  vals_ptmap
+
+
+(* vpt_map  initially is used for output grouping all predicates by thier bv values *)
 type vpt_map = ((pre_term list) ref) LMap.t
 
 let fill_vpt_map ptv_map =
-  let f pt v_ref vpt_map =
+  let f pre_term value_list_ref vpt_map =
     try
-      let pt_list_ref = LMap.find (!v_ref) vpt_map in
-      pt_list_ref := pt::!pt_list_ref;
+      let pre_term_list_ref = LMap.find (!value_list_ref) vpt_map in
+      pre_term_list_ref := pre_term::!pre_term_list_ref;
       vpt_map
     with
       Not_found ->
-	LMap.add (!v_ref) (ref [pt]) vpt_map
+	LMap.add (!value_list_ref) (ref [pre_term]) vpt_map
   in
   PTMap.fold f ptv_map LMap.empty
 
+
+(* per bound map is an alternative to vpt_map where bv, etc are grouped by bmc bounds *)
+
+(* per-bound map:  map bound -> 
+                     type bound_vpt_map_preds 
+                       {(val_list  -> pre_term_list) -- vpt_map; 
+                       boud_def_preds_set -- set of all predicates which are in pre_term_list} *)
+
+(* 1) extract all input word_preds from SymbolDB --  all_word_preds *)
+(* 2) get max bound *)
+(* 3) pre_fill per_bound_map: go through ptv_map and fill per_bound_map *)
+(* 4) complete per_bound_map: go through bounds; get all_word_preds \setminus def_preds_set and add them to "[] -> pre_term_list" in the val_list -> pre_term_list *)
+(*                            add added predicates to def_preds_set  *)
+(* 5) pre_fill also can have missing bounds when e.g. when all vals are false *)
+(* 6) in the completing we fill infor about this bounds *)
+
+(*------ bound to/from strings -----------*)
+
+let bound_base_str = "$$constB"
+let bound_base_str_length = String.length bound_base_str
+
+
+let create_bound_symb n =  
+  let bound_str = bound_base_str^(string_of_int n) in
+  let bound_const_type = Symbol.create_stype [] Symbol.symb_ver_state_type in
+  create_symbol bound_str bound_const_type
+
+let get_bound_from_str str =
+  try
+    let name = Str.string_before str bound_base_str_length in
+    (* out_str ("bit str name: "^(name)^"\n"); *)
+    (match name with
+    | bound_base_str -> 
+	Def((int_of_string (Str.string_after str bound_base_str_length)))
+    | _ -> Undef
+    )
+  with
+    (* Str.string_before can raise Invalid_argument and int_of_string can rise Failure *)
+    Failure _ | Invalid_argument _ -> Undef
+
+(* state_term can be a skolem constant; in this case get_bound_from_state_term will be Undef *)
+let get_bound_from_state_term state_term = 
+  let top_symb = Term.get_top_symb state_term in 
+  let symb_name = Symbol.get_name top_symb in 
+  get_bound_from_str symb_name
+(*
+  match (get_bound_from_str symb_name) with
+  |Def(bound_int) -> bound_int
+  |Undef -> failwith ("is not a bound term: "^(Term.to_string state_term))
+*)
+
+let get_bound_from_word_pre_term word_pre_term = 
+  let (word_pred, term_list) = word_pre_term in  
+  assert (is_word_pred word_pred);
+  let state_term = List.hd term_list in
+  get_bound_from_state_term state_term
+
+
+type bound_vpt_map_preds = 
+    {
+     mutable bound_vpt_map : vpt_map; 
+     mutable bound_def_preds_set : SSet.t;
+   }
+      
+let create_bound_vpt_map_preds () =
+  {
+   bound_vpt_map = LMap.empty;
+   bound_def_preds_set = SSet.empty
+ }
+
+module BoundKey =
+  struct
+    type t = int
+    let compare = compare
+  end
+
+module BoundMap = Map.Make (BoundKey)
+
+
+type per_bound_map = (bound_vpt_map_preds) BoundMap.t
+
+let pre_fill_per_bound_map ptv_map = 
+  let f pre_term val_list_ref per_bound_map =
+    match (get_bound_from_word_pre_term pre_term) with
+    |Def(bound) -> 
+	begin 
+	  let bound_vpt_map_preds =
+	    try 
+	      BoundMap.find bound per_bound_map 
+	    with 
+	      Not_found -> 
+		create_bound_vpt_map_preds ()       
+	  in
+	  let vpt_map = bound_vpt_map_preds.bound_vpt_map in 
+	  let bound_def_preds_set =  bound_vpt_map_preds.bound_def_preds_set in 
+	  (* add word_pred to the def_preds_set *)
+	  let (word_pred,_term_list) = pre_term in 
+	  bound_vpt_map_preds.bound_def_preds_set <- SSet.add word_pred bound_def_preds_set;
+	  let new_vpt_map =       
+	    try 
+	      let pre_term_list_ref = LMap.find (!val_list_ref) vpt_map in
+	      pre_term_list_ref := pre_term::!pre_term_list_ref;
+	      vpt_map
+	    with
+	      Not_found -> (* new val_list at this bound *)	 
+		LMap.add (!val_list_ref) (ref [pre_term]) vpt_map	    
+	  in
+	  bound_vpt_map_preds.bound_vpt_map <- new_vpt_map;
+	  BoundMap.add bound bound_vpt_map_preds per_bound_map
+	end
+    |Undef -> per_bound_map  (* when bound is a Skolem constant we skip it *)    
+  in
+  PTMap.fold f ptv_map BoundMap.empty
+
+(* adds all remaining predicates as all false i.e. into the !val_list_ref = []*)
+(* adds missing bounds *)
+
+(*
+let complete_per_bound_map per_bound_map = 
+  let (max_bound,_) = BoundMap.max_binding per_bound_map in 
+  for i = 0 to max_bound 
+  do
+    let bound_vpt_map_preds =
+      try 
+	BoundMap.find bound per_bound_map 
+      with 
+	Not_found -> 
+(* bound is missing; due to all preds in are false in this bound *)
+	  create_bound_vpt_map_preds ()       
+    in
+    let 
+	
+  done
+*)
+
+
+(*------output-------*)
 let pre_term_to_str (symb, term_list) =
   ((Symbol.to_string symb)^":"
    ^(list_to_string Term.to_string term_list ":"))
 
 let pre_term_list_to_str pt_list =
   (list_to_string pre_term_to_str pt_list "\n")
-
+ 
 let out_vpt_map vpt_map =
   let max_val_length = get_max_length_addr_map vpt_map in
   let f v pt_list_ref =
@@ -1811,6 +2052,15 @@ let out_vpt_map vpt_map =
   in
   LMap.iter f vpt_map
 
+let out_per_bound_map per_bound_map = 
+  let f bound  bound_vpt_map_preds = 
+    out_str "\n\n=====================================\n";
+    out_str ("            Bound "^(string_of_int bound)^" values:");
+    out_str   "\n=====================================\n\n";
+    out_vpt_map bound_vpt_map_preds.bound_vpt_map;
+  in
+  BoundMap.iter f per_bound_map
+      
 (*--------------------------*)
 
 let out_memory_ver model =
@@ -1946,10 +2196,15 @@ let out_memory_ver model =
   out_str "\n---------------------\n";
   out_str "All bit-vectors/memories:\n";
   out_str "---------------------\n";
-  let ptv_map = fill_ptv_map model in
+(*  let ptv_map = fill_ptv_map model in*)
+  let ptv_map = fill_ptv_map_for_per_bound model in
   let vtp_map = fill_vpt_map ptv_map in
-  out_vpt_map vtp_map
-
+(* complete later *)
+  let per_bound_map = pre_fill_per_bound_map ptv_map in 
+ (* old *)
+ (* out_vpt_map vtp_map *)
+  out_per_bound_map per_bound_map
+ 
 (*
    let f_addr_eq addr_val addr_list_ref =
    if (Term.is_addr_const addr)
@@ -1970,7 +2225,7 @@ let out_model model =
   then
     out_memory_ver model
   else ()
-
+ 
 (*
 
    type dism_constr_set =
