@@ -160,6 +160,9 @@ let address_base_name_map = ref SymbMap.empty
 (* maps symbol into list of strings which this symbol is the father of *)
 let father_of_map = ref SymbMap.empty
 
+let bit_vector_name_map = ref SymbMap.empty
+let memory_name_map     = ref SymbMap.empty
+
 let distinct : (((term list) list) ref) = ref []
 (* list of $distinct(t_1,..,t_n) represented   *)
 (* as list of lists of terms note distinct are *)
@@ -214,7 +217,8 @@ let init () =
   state_constant_map := SymbMap.empty;
   address_base_name_map := SymbMap.empty;
   father_of_map := SymbMap.empty;
-  
+  bit_vector_name_map := SymbMap.empty;
+  memory_name_map := SymbMap.empty;
   (* ignore (TermDB.add_ref bot_term term_db_ref); ignore (TermDB.add_ref    *)
   (* top_term term_db_ref);                                                  *)
   max_var_ref := (Var.get_first_var default_var_type);
@@ -294,8 +298,7 @@ let rec retype_term ttype t =
 	    in
 	    retype_term_list
 	      arg_types
-	      arg_list
-	      
+	      arg_list	      
 	end
       in
       Term.create_fun_term sym new_args
@@ -786,6 +789,12 @@ type attr_type =
 	
 	(* Maximal width of addresses, usually for address_type *)
   | AAddressMaxWidth of int
+
+	(* size of the bv *)
+  | ABitVector of int 
+ 
+	(* AMemory: (bit-size of addresses) * (memory_word_size) *)
+  | AMemory of int * int
 	
   | AOther of string * attr_args
 
@@ -861,6 +870,18 @@ let attr_fun attr_name attr_args =
       (match attr_args with
       | Attr_Str c -> AAddressBaseName c
       | _ -> failwith "address_base_name should have one argument: integer")
+
+  |"$bit_vector"
+  |"$constant_bit_vector" ->
+      (match attr_args with
+      | Attr_Int (int) -> ABitVector int
+      | _ -> failwith "bit-vector should have one argument: int"
+      )
+  |"$memory" -> 
+      (match attr_args with
+      | Attr_List [i1; i2] -> AMemory (i1, i2)
+      | _ -> failwith "memory should have one argument: interval"
+      )
 	
   | other_str -> AOther (other_str, attr_args)
 
@@ -879,7 +900,10 @@ let find_recognised_main_attr attr_list =
 	   | ACardinality _
 	   | AAddressMaxWidth _
 	   | AStateConstant _
-	   | AAddressBaseName _ -> true
+	   | AAddressBaseName _ 
+	   | ABitVector _ 
+	   | AMemory _
+	     -> true
 	   | _ -> false
 	 )
 	 attr_list
@@ -1047,7 +1071,24 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 	 address_base_name_map := SymbMap.add symb c !address_base_name_map
 	     
 	)
-	  
+  | Some (ABitVector i) ->       
+      if (SymbMap.mem symb !bit_vector_name_map) then	
+	(* Skip *)
+	()	  
+      else	
+	(	 
+	   (* Add symbol to map *)
+	   bit_vector_name_map := SymbMap.add symb i !bit_vector_name_map	     
+	  )
+
+  | Some(AMemory (i, j)) ->
+      if (SymbMap.mem symb !memory_name_map)
+      then ()
+      else
+	(
+	 memory_name_map := SymbMap.add symb (i, j) !memory_name_map;
+	)
+	    
   | _ -> ()
   );
   (

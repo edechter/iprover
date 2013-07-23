@@ -97,7 +97,6 @@ type sproperty =
   |FDLess of int 
   |FDRange of int * int
 
-
 (*|Type of stype *) 
 
 
@@ -119,8 +118,10 @@ let to_string_sproperty = function
 
   |FDRange (i, j)   -> "range_"^(string_of_int i)^"_"^(string_of_int j)  
                         (* finite domain range_i_j (x)*)
-  
-						     
+(*
+  |BitVector i -> "bv_"^(string_of_int i)
+  |Memory (i,j) -> "memory_"^(string_of_int i)^"_"^(string_of_int j)
+*)						     
 
 (*  |Type stype       -> ("type_"^(to_string_stype stype)) *)
 

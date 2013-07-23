@@ -49,6 +49,8 @@ val max_address_width_map : int SymbMap.t ref
 val state_constant_map : int SymbMap.t ref
 val address_base_name_map : string SymbMap.t ref
 val father_of_map : string list SymbMap.t ref
+val bit_vector_name_map : int SymbMap.t ref
+val memory_name_map : (int * int) SymbMap.t ref
 val distinct : term list list ref
 val all_current_clauses : clause list ref
 val bot_term : TermDB.term
@@ -116,6 +118,8 @@ type attr_type =
   | AStateConstant of int
   | AAddressBaseName of string
   | AAddressMaxWidth of int
+  | ABitVector of int
+  | AMemory of int * int
   | AOther of string * attr_args
 type attr = Attr of attr_type * attr_args
 val attr_fun : string -> attr_args -> attr_type

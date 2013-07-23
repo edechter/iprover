@@ -49,6 +49,10 @@ type sproperty =
   |Undef_Prop
   |FDLess of int 
   |FDRange of int * int
+(*
+  |BitVector of int  (* size of the bv *)
+  |Memory of int * int (* (size of the address space) * (size of the bit-vec space) *)
+*)
 	
 (* Special Symbols*)
 val symb_bool_type         : symbol

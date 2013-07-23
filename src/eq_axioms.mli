@@ -45,3 +45,6 @@ val less_range_axioms : unit -> clause list
 
 (* typed_symmetry_axiom_sym eq_type_sym *)
 val typed_symmetry_axiom_sym : symbol -> clause
+
+val bit_index_symb : int -> symbol 
+val bit_index_term : int -> term
