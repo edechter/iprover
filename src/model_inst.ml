@@ -18,8 +18,9 @@ open Lib
 open Options
 open Logic_interface
 
-let addr_split_size = 10
 
+let addr_split_size = 10
+ 
 type all_clauses = context
 
 
@@ -1409,6 +1410,34 @@ let norm_addr_pos_val_to_msb fill_to_length addr_pos_val =
      zero_list@(msb_basic)
     )
 
+(* returns list of list where the size of each chunk is n *)
+(* apart of possibly the last one, which corresponds to the tail of the original list *)
+let split_list_in_chunks n list = 
+  (assert (n >= 0));
+  (* returns (first_chunk, rest) *)
+  let rec get_chunk n (chunk, rest) =
+    if n = 0 
+    then
+      ((List.rev chunk), rest)
+    else
+      match rest with 
+      | h::tl ->
+	  get_chunk (n-1) (h::chunk, tl)
+      |[] ->  
+	  ((List.rev chunk), rest)
+  in 
+  let rec split_list chunks l = 
+    if l = [] 
+    then 
+      List.rev chunks
+    else
+      let (new_chunk,rest) = get_chunk n ([], l) in
+      split_list (new_chunk::chunks) rest
+  in
+  split_list [] list
+
+
+
 (* head corr. n=1, returns rest of the list *)
 let rec apply_to_first_n_rest f n list =
   if n <=0
@@ -1421,6 +1450,30 @@ let rec apply_to_first_n_rest f n list =
 	apply_to_first_n_rest f (n -1) tl
     |[] -> []
     )
+
+(* split msb 10101001 into chunks of size 3:  [10][101][001] first chunk can be shorter; *)
+(* first chunk is most significant bits *)
+
+let msb_split_into_chunks split_size msb_list = 
+  assert (split_size >0);
+  let msb_rev = List.rev msb_list in
+  let msb_rev_chunks = split_list_in_chunks split_size msb_rev in 
+  (* reverse inside chunks and reverse chunks themselves to get back to highest first *)
+  let msb_chunks = List.rev (List.map List.rev  msb_rev_chunks) in 
+  msb_chunks
+
+let msb_with_split_to_string slpit_size msb_list =
+  let msb_chunks = msb_split_into_chunks slpit_size msb_list in 
+  let chunk_to_str chunk = 
+    list_to_string string_of_int chunk "" 
+  in
+  list_to_string chunk_to_str msb_chunks " " 
+
+let out_msb_with_split split_size msb_list =
+  let msb_str = msb_with_split_to_string split_size msb_list in
+  print_string msb_str
+
+(* commented
 
 (* we split bits with space every split_size bits starting from right*)
 let out_msb_with_split slpit_size msb_list =
@@ -1445,6 +1498,8 @@ let out_msb_with_split slpit_size msb_list =
 	)
     in
     print_splits rest_msb
+
+*)
 
 (* eq_proper_val t_type t flat_subst: *)
 (* we have typed_equality(eq_type, u,v) *)
@@ -2173,12 +2228,65 @@ let complete_per_bound_map per_bound_map =
 
 (*------output-------*)
 let pre_term_to_str (symb, term_list) =
-  ((Symbol.to_string symb)^":"
-   ^(list_to_string Term.to_string term_list ":"))
+  if  term_list = [] 
+  then 
+    Symbol.to_string symb
+  else
+    ((Symbol.to_string symb)^":"
+     ^(list_to_string Term.to_string term_list ":"))
+
+(* for bv_value (mem, [$$constB0;addr]) will output [Bound 0] mem:addr: bv_value  *)
+(* we assume that the bound term is first in the list   *)
+
+let fancy_pre_term_to_str max_val_length_default bit_values (symb, term_list) =
+  let max_val_length = 
+    if (Symbol.is_a_memory_pred_symb symb) 
+    then 
+      try 	
+	let (_addr_size,bv_size)  = SMap.find symb Parser_types.(!memory_name_map) in 
+	bv_size 
+      with 
+	Not_found -> 
+	  max_val_length_default
+    else 
+      if (Symbol.is_a_bitvec_pred_symb symb) 
+      then
+	try 	
+	  let bv_size = SMap.find symb Parser_types.(!bit_vector_name_map) in 
+	bv_size 
+	with 
+	  Not_found -> 
+	    max_val_length_default
+      else
+	if (Symbol.is_a_bitvec_unary_pred_symb symb)
+	then 
+	  1
+	else
+	  max_val_length_default 
+  in
+  let msb_val = norm_addr_pos_val_to_msb max_val_length bit_values in
+  let msb_str = msb_with_split_to_string max_val_length msb_val in
+  let term_pre_val_str = 
+    match term_list with 
+    |h::tl -> 
+	(
+	 match (get_bound_from_state_term h) with
+	 |Def (i) -> 
+	     "[Bound "^(string_of_int i)^"] "^(pre_term_to_str (symb, tl))
+	 |Undef -> (* not a bound term *)
+	     pre_term_to_str  (symb, term_list)
+	)
+    |[]  -> 
+	pre_term_to_str  (symb, term_list)
+  in
+  term_pre_val_str^":"^msb_str
 
 let pre_term_list_to_str pt_list =
   (list_to_string pre_term_to_str pt_list "\n")
- 
+
+let fancy_pre_term_list_to_str max_val_length bit_values pt_list =
+  (list_to_string (fancy_pre_term_to_str max_val_length bit_values) pt_list "\n") 
+
 let out_vpt_map vpt_map =
   let max_val_length = get_max_length_addr_map vpt_map in
   let f v pt_list_ref =
@@ -2192,29 +2300,29 @@ let out_vpt_map vpt_map =
   in
   LMap.iter f vpt_map
 
-(*
+
 let fancy_out_vpt_map vpt_map = 
   let max_val_length = get_max_length_addr_map vpt_map in
-  let msb_val = norm_addr_pos_val_to_msb max_val_length v in
-  let f v pt_list_ref =
-    out_str (pre_term_list_to_str !pt_list_ref);
+(*  let msb_val = norm_addr_pos_val_to_msb max_val_length v in *)
+  let f bit_values pt_list_ref =
+    out_str (fancy_pre_term_list_to_str max_val_length bit_values !pt_list_ref);
     out_str "\n";
-    let msb_val = norm_addr_pos_val_to_msb max_val_length v in
+    let msb_val = norm_addr_pos_val_to_msb max_val_length bit_values in
     out_msb_with_split addr_split_size msb_val;
     out_str "\n";
-    out_str (address_pos_val_to_string v);
+    out_str (address_pos_val_to_string bit_values);
     out_str "\n---------------------\n";
   in
   LMap.iter f vpt_map
     
-*)
+
 
 let out_per_bound_map per_bound_map = 
   let f bound  bound_vpt_map_preds = 
     out_str "\n\n=====================================\n";
     out_str ("            Bound "^(string_of_int bound)^" values:");
     out_str   "\n=====================================\n\n";
-    out_vpt_map bound_vpt_map_preds.bound_vpt_map;
+    fancy_out_vpt_map bound_vpt_map_preds.bound_vpt_map;
   in
   BoundMap.iter f per_bound_map
       
