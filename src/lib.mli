@@ -132,6 +132,7 @@ val add_child_process_channels  :
 (* removes from the list without killing *)
 val remove_top_child_process_channels : unit -> unit 
 
+
 val kill_all_child_processes : unit -> unit
 
 (*----------------End Processes-----------------*)
@@ -233,8 +234,11 @@ val list_find_min_element_p : ('a -> bool) -> ('a -> 'a -> int) -> 'a list -> 'a
 
 (* removes duplicates  based on the fact 
   that literals are preordered i.e. the same are in sequence*)
-
+(* based on == *)
 val list_remove_duplicates : ('a list) -> ('a list)
+
+(* as above based on = *)
+val list_remove_duplicates_ordered_non_ptr : ('a list) -> ('a list)
 
 val list_find2 : ('a -> 'b -> bool) -> ('a list) -> ('b list) -> ('a *'b) 
 

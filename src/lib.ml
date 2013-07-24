@@ -692,6 +692,16 @@ let rec list_remove_duplicates_ordered list =
   |[h] -> [h]
   |[]   -> []
 
+(* removes duplicates from an ordered list based on non-pointer equality *)
+let rec list_remove_duplicates_ordered_non_ptr list = 
+  match list with 
+  |h1::h2::tl -> 
+      if h1=h2 
+      then list_remove_duplicates_ordered (h2::tl) 
+      else (h1::(list_remove_duplicates (h2::tl)))
+  |[h] -> [h]
+  |[]   -> []
+
 
 (* like List.find but for two lists in parallel*)
 

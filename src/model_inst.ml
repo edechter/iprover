@@ -1754,7 +1754,8 @@ let get_index_term_set i j =
   f TSet.empty j
 
 (* check that we can rely on the order state, addr bit_ind in the flat_subst *)
-(* fix memories !!! *)
+(* !!!!! fix memories as bit-vectors below !!! *)
+
 let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 (*	out_str ("symb: "^(Symbol.to_string symb)^" "^(Subst.flat_subst_to_string flat_subst)^"\n");*)
   if (Symbol.is_a_memory_pred_symb symb)
@@ -1781,6 +1782,7 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 	    | Def (i) -> Def ([((symb,[state]), i)])
 	    | Undef -> Undef
 	    )
+
       (* for all bit_indexes which satisfy dismatching constraints... *)
 	|[(_, state)] ->
 	    begin
@@ -1809,9 +1811,7 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 		   | _ -> ()
 		  )
 		in	      
-		FSVSet.iter 
-		  f 
-		  dism_set;
+		FSVSet.iter f dism_set;
 		let remaing_bit_indexes = 
 		  let rec f acc_list k = 
 		    if k < 0 
@@ -1975,7 +1975,8 @@ let fill_ptv_map_for_per_bound model =
   in
   let vals_ptmap = NModel.fold f_model model PTMap.empty in
   let sort_vals pt val_ref =
-    val_ref:= List.sort compare !val_ref
+(*    val_ref:= (List.sort compare !val_ref)*)
+    val_ref:= list_remove_duplicates_ordered_non_ptr (List.sort compare !val_ref)
   in
   PTMap.iter sort_vals vals_ptmap;
   vals_ptmap
@@ -2031,7 +2032,7 @@ let get_bound_from_str str =
     let name = Str.string_before str bound_base_str_length in
     (* out_str ("bit str name: "^(name)^"\n"); *)
     (match name with
-    | bound_base_str -> 
+    | "$$constB"  -> 
 	Def((int_of_string (Str.string_after str bound_base_str_length)))
     | _ -> Undef
     )
@@ -2164,7 +2165,7 @@ let complete_per_bound_map per_bound_map =
 	bound_vpt_map_preds.bound_vpt_map <- new_vpt_map;
 	let new_per_bound_map = BoundMap.add bound bound_vpt_map_preds per_bound_map_acc
 	in
-	f_bound per_bound_map_acc (bound - 1)
+	f_bound new_per_bound_map (bound - 1)
       end
   in
   f_bound per_bound_map max_bound
@@ -2190,6 +2191,23 @@ let out_vpt_map vpt_map =
     out_str "\n---------------------\n";
   in
   LMap.iter f vpt_map
+
+(*
+let fancy_out_vpt_map vpt_map = 
+  let max_val_length = get_max_length_addr_map vpt_map in
+  let msb_val = norm_addr_pos_val_to_msb max_val_length v in
+  let f v pt_list_ref =
+    out_str (pre_term_list_to_str !pt_list_ref);
+    out_str "\n";
+    let msb_val = norm_addr_pos_val_to_msb max_val_length v in
+    out_msb_with_split addr_split_size msb_val;
+    out_str "\n";
+    out_str (address_pos_val_to_string v);
+    out_str "\n---------------------\n";
+  in
+  LMap.iter f vpt_map
+    
+*)
 
 let out_per_bound_map per_bound_map = 
   let f bound  bound_vpt_map_preds = 
