@@ -1690,7 +1690,7 @@ let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_
        then
 	 
 	 (
-	  
+	  out_str ("\n % Max bound was reached: "^(string_of_int max_bound)^"\n");
 	  (* Output unsatisfiable result for last bound *)
 	  out_str (proved_str ());
 	  

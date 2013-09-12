@@ -380,7 +380,7 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
                       (* we assume that x!=y are eliminated during preprocessing; *)
 		      	(if (Term.is_neg_lit lit)
 			then 
-			 (out_warning "type_inf: x!=y should be eliminated by preprocessing"));
+			 ( out_warning "type_inf: x!=y should be eliminated by preprocessing"));
 			
 		      let guard_param_v1 = shallow_guarding_subtype_clause context v1_term in
 		      let guard_param_v2 = shallow_guarding_subtype_clause context v2_term in
