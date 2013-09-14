@@ -431,11 +431,11 @@ let plain_term_fun_typed ~is_top input_symb_name args =
   let arity = List.length args in
   let symb =
     try
-      begin
+      begin	
 	let symb = SymbolDB.find
 	    (Symbol.create_template_key_symb !symb_name_ref) !symbol_db_ref in
 	
-	if ((Symbol.get_arity symb) = arity ) && (is_top = (Symbol.is_pred symb))
+	if ((Symbol.get_arity symb) = arity ) && (is_top = (Symbol.is_pred symb)) && (not (symb == Symbol.symb_neg))
 	then
 	  (symb)
 	else
@@ -457,7 +457,7 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 	    else ()
 	     );
 	    ( if (not !overriding_arities_warning_was_shown_ref) &&
-	      (not ((Symbol.get_arity symb) = arity))
+	      (not  (is_top = (Symbol.is_pred symb)))
 	    then
 	      (
 	       out_warning
@@ -469,7 +469,20 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 	      )
 	    else ()
 	     );
-	    
+	    ( if (not !overriding_arities_warning_was_shown_ref) &&
+	      (symb == Symbol.symb_neg)
+	    then
+	      (
+	       out_warning
+		 ("plain_term_fun_typed: symbol "^(!symb_name_ref)
+		  ^" occurred as function or predcate"
+		  ^" and will be replaced by a fresh symbol (other similar warnings are surpressed)\n"
+		 );
+	       overriding_arities_warning_was_shown_ref:= true
+	      )
+	    else ()
+	     );
+
 	    let pred_fun_str =
 	      if is_top
 	      then "pred"
@@ -523,14 +536,15 @@ let plain_term_fun_typed ~is_top input_symb_name args =
 
 let defined_term_fun name args =
   match name with
-  |"$sum" ->
-      create_theory_term Symbol.symb_plus args
-  |"$difference" ->
-      create_theory_term Symbol.symb_minus args
-  |"$product" ->
-      create_theory_term Symbol.symb_product args
-  |"$uminus" ->
-      create_theory_term Symbol.symb_unaryminus args
+  |"$sum" 
+      (* -> create_theory_term Symbol.symb_plus args *)
+  |"$difference" 
+    (*  -> create_theory_term Symbol.symb_minus args*)
+  |"$product" 
+     (* -> create_theory_term Symbol.symb_product args *)
+  |"$uminus" 
+    (* ->  create_theory_term Symbol.symb_unaryminus args *)
+     -> failwith (name^" is not supported")
   |"$i" ->
       create_theory_term Symbol.symb_default_type args
   |"$o" ->

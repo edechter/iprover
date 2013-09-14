@@ -349,22 +349,24 @@ let symb_term_algebra_type =
 (*---------types used in verification at Intel------*)
 (* since these symbols are  not defined in TPTP we use $$, to be consistent with current Zurab output $$ is omitted *)
 
+(* old Intel benchmarks requre "state_type" in places of "$$state_type" *)
+
 let symb_ver_state_type = 
   {symb_type_template with
-(*   name      = "$$state_type"; *)
-   name      = "state_type"; 
+   name      = "$$state_type"; 
+(*   name      = "state_type"; *)
  }
 
 let symb_ver_address_type = 
   {symb_type_template with
-(*   name      = "$$address_type"; *)
-   name      = "address_type"; 
+   name      = "$$address_type"; 
+(*   name      = "address_type"; *)
  }
 
 let symb_ver_bit_index_type = 
   {symb_type_template with
-(*   name      = "$$bitindex_type"; *)
-   name      = "bitindex_type"; 
+   name      = "$$bitindex_type"; 
+(*   name      = "bitindex_type"; *)
  }
 
 
@@ -396,6 +398,7 @@ let is_defined_type symb =
   
 
 (*-------------Connectives-----------------------*)
+(* possible clash if someone defines symbols '~' as e.g. function symbol *)
 
 let symb_connective_template = 
   {
@@ -423,6 +426,7 @@ let symb_neg =
    name      = "~"; 
  }
 
+(*
 let symb_and = 
   {symb_binary_connective_template with
    name      = "&"; 
@@ -438,13 +442,14 @@ let symb_impl =
   {symb_binary_connective_template with
    name      = "->";    
  }
+*)
 
 (*-----------quantifiers------------*)
 
 (* at the moment quantifiers with undef type *)
 (* (generally should be polymorphic: (n-> bool) -> (n-1 -> bool) *)
 
-
+(*
 let symb_quantifier_template = 
   { empty_symb with 
     arity         = Def(1);
@@ -461,6 +466,7 @@ let symb_exists =
   {symb_quantifier_template  with 
     name      = "?"; 
   }
+*)
 
 (*--------theory symbols--------------*)
 
@@ -526,7 +532,8 @@ let symb_ver_reachable_state =
  }
 
 (* at the moment we define arithmetic symbols having symbol_type_types as arguments *)
-
+(* +,-,* does not comply with TPTP format!, got unsound clash with user redefined '+' etc. *)
+(*
 let symb_plus =
   {theory_symbol_template with 
    name      = "+"; 
@@ -555,6 +562,7 @@ let symb_unaryminus =
    arity     = Def(1); 
    stype     = create_stype [symb_type_types] symb_type_types;
  }
+*)
 
 (* old *)
 (* sometimes equality is defined in terms of some theory equality                      *)
@@ -627,21 +635,23 @@ let special_symbols =
 defined_types@
   [
    symb_neg;   
-   symb_and;
+(*   symb_and;
    symb_or; 
    symb_impl;
    symb_forall;
    symb_exists;
+*)
    symb_true;  
    symb_false; 
  (*  symb_equality;*)
    symb_typed_equality;
    symb_ver_next_state;
    symb_ver_reachable_state;
-   symb_plus;    
+(*   symb_plus;    
    symb_product;
    symb_minus;   
    symb_unaryminus;
+*)
    symb_distinct;
    symb_bot;
   (* symb_iprover_eq; *)

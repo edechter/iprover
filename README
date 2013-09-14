@@ -12,7 +12,7 @@ http://code.google.com/p/iprover/
                     Easy to install:
 -------------------------------------------------
 
-We assume OCaml v3.10 >= is installed. 
+We assume OCaml v4.00 >= is installed. 
 
 1) ./configure
 2) make 
@@ -21,7 +21,7 @@ will produce executable: iproveropt
 
 
 -1) "make clean"     to remove created objects and executable files
--2) "make clean_all" to remove created objects and executable files including E objects
+-2) "make clean_all" to remove created objects and executable files including E objects (if iProver does not compile try this first)
 
 -------------------------------------------------
                     Easy to use: 
@@ -41,7 +41,7 @@ General:
 
 Sat modes:
 
-2) iproveropt --sat_mode true problem_sat.p
+2) iproveropt --schedule sat problem_sat.p
 
 3) iproveropt --sat_mode true --schedule none --sat_finite_models true problem_sat.p
 
@@ -164,3 +164,11 @@ External libraries (freely available with LGPL compatible licenses) are:
 
 MiniSat by Niklas Een and Niklas Sorensson
 Heaps   by Jean-Christophe Filliatre
+
+You can replace default solver MiniSAT with 
+
+PicoSAT developed by Armin Biere  using 
+"make PicoSAT=true"  
+
+Lingeling  developed by Armin Biere using 
+"make LGL=true"    

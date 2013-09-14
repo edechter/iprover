@@ -64,11 +64,14 @@ val symb_ver_state_type     : symbol
 val symb_ver_address_type   : symbol
 val symb_ver_bit_index_type : symbol
 
+(*
 val symb_and               : symbol
 val symb_or                : symbol
 val symb_impl              : symbol
 val symb_forall            : symbol
 val symb_exists            : symbol
+*)
+
 val symb_neg               : symbol
 val symb_true              : symbol
 val symb_false             : symbol
@@ -77,10 +80,13 @@ val symb_typed_equality    : symbol
 val symb_ver_next_state    : symbol
 val symb_ver_reachable_state : symbol
  
+(*
 val symb_plus              : symbol
 val symb_product           : symbol
 val symb_minus             : symbol
 val symb_unaryminus        : symbol
+*)
+
 (*val symb_iprover_eq        : symbol*)
 val symb_distinct          : symbol
 val symb_bot               : symbol
