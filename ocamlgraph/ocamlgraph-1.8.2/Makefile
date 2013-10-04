@@ -32,7 +32,7 @@ OCAMLDEP = ocamldep -slash
 OCAMLDOC = ocamldoc.opt
 OCAMLLEX = ocamllex.opt
 OCAMLYACC= ocamlyacc -v
-OCAMLLIB = /opt/local/lib/ocaml
+OCAMLLIB = /usr/local/lib/ocaml
 OCAMLBEST= opt
 OCAMLVERSION = 4.00.1
 OCAMLWEB = true
@@ -55,7 +55,7 @@ OFLAGS = $(INCLUDES)
 
 NAME=ocamlgraph
 
-ifeq (yes,yes)
+ifeq (no,yes)
 all: byte $(OCAMLBEST) viewer dgraph editor
 else
 all: byte $(OCAMLBEST)
@@ -124,7 +124,7 @@ ED_CMO:= $(patsubst %, $(ED_DIR)/%.cmo, $(ED_CMO))
 ED_CMX = $(ED_CMO:.cmo=.cmx)
 ED_CMI = $(ED_CMO:.cmo=.cmi)
 
-ED_INCLUDES = -I +lablgtk2 -I +threads -I $(ED_DIR) $(INCLUDES) -I .
+ED_INCLUDES =  -I +threads -I $(ED_DIR) $(INCLUDES) -I .
 
 $(ED_CMI) $(ED_CMO): BFLAGS+= $(ED_INCLUDES)
 $(ED_CMI) $(ED_CMO): $(CMA)
@@ -152,7 +152,7 @@ VIEWER_CMX=$(VIEWER_CMO:.cmo=.cmx)
 VIEWER_CMI=$(VIEWER_CMO:.cmo=.cmi)
 VIEWER_MLI=$(VIEWER_CMI:.cmi=.mli)
 
-VIEWER_INCLUDES= -I +lablgtk2 -I $(VIEWER_DIR) $(INCLUDES) -I .
+VIEWER_INCLUDES=  -I $(VIEWER_DIR) $(INCLUDES) -I .
 
 $(VIEWER_CMI) $(VIEWER_CMO): BFLAGS+= $(VIEWER_INCLUDES)
 $(VIEWER_CMX): OFLAGS+= $(VIEWER_INCLUDES) -for-pack Viewgraph
@@ -194,7 +194,7 @@ DGRAPH_CMO:=$(patsubst %,$(DGRAPH_DIR)/%.cmo, $(DGRAPH_CMO))
 DGRAPH_CMX=$(DGRAPH_CMO:.cmo=.cmx)
 DGRAPH_CMI=$(filter-out dgraph/dGraphViewer.cmi, $(DGRAPH_CMO:.cmo=.cmi))
 
-DGRAPH_INCLUDES= -I +lablgtk2 -I $(DGRAPH_DIR) $(INCLUDES) -I .
+DGRAPH_INCLUDES=  -I $(DGRAPH_DIR) $(INCLUDES) -I .
 
 $(DGRAPH_CMI) $(DGRAPH_CMO): BFLAGS+= $(DGRAPH_INCLUDES)
 $(DGRAPH_CMX): OFLAGS+= $(DGRAPH_INCLUDES) -for-pack Dgraph
@@ -311,7 +311,7 @@ INSTALL_LIBDIR=$(DESTDIR)$(OCAMLLIB)/ocamlgraph
 
 install: install-$(OCAMLBEST) install-byte
 	mkdir -p $(BINDIR)
-ifeq (yes,yes)
+ifeq (no,yes)
 ifeq ($(OCAMLBEST),byte)
 	cp -f $(BINDIR)/graph-editor.byte $(BINDIR)/graph-editor$(EXE)
 	cp -f $(BINDIR)/graph-viewer.byte $(BINDIR)/graph-viewer$(EXE)
@@ -325,7 +325,7 @@ install-byte:
 	mkdir -p $(INSTALL_LIBDIR)
 	cp -f graph.cmo graph.cmi $(CMA) $(INSTALL_LIBDIR)
 	cp -f $(SRCDIR)/*.mli $(INSTALL_LIBDIR)
-ifeq (yes,yes)
+ifeq (no,yes)
 	mkdir -p $(BINDIR)
 	cp -f $(ED_DIR)/editor.byte $(BINDIR)/graph-editor.byte
 	cp -f $(VIEWER_CMILIB) $(VIEWER_CMOLIB) $(INSTALL_LIBDIR)
@@ -338,7 +338,7 @@ install-opt: install-byte
 	mkdir -p $(INSTALL_LIBDIR)
 	cp -f graph$(LIBEXT) graph.cmi graph.cmx $(CMXA) $(INSTALL_LIBDIR)
 	cp -f $(SRCDIR)/*.mli $(INSTALL_LIBDIR)
-ifeq (yes,yes)
+ifeq (no,yes)
 	mkdir -p $(BINDIR)
 	cp -f $(ED_DIR)/editor.opt $(BINDIR)/graph-editor.opt
 	cp -f $(VIEWER_CMILIB) $(VIEWER_CMXLIB) $(VIEWER_CMXLIB:.cmx=.o) \
@@ -351,7 +351,7 @@ endif
 
 install-findlib: META
 ifdef OCAMLFIND
-ifeq (yes,yes)
+ifeq (no,yes)
 	$(OCAMLFIND) install ocamlgraph META \
 		$(SRCDIR)/*.mli $(VIEWER_DIR)/*.mli $(DGRAPH_DIR)/*.mli \
 		graph$(LIBEXT) graph.cmx graph.cmo graph.cmi $(CMA) $(CMXA) \
@@ -377,7 +377,7 @@ NODOC	= blocks dot_parser dot_lexer version
 NODOC	:= $(patsubst %, $(SRCDIR)/%.cmo, $(NODOC))
 DOC_CMO	= $(filter-out $(NODOC) $(LIB), $(CMO))
 DOC_SRC	= $(CMI:.cmi=.mli) $(DOC_CMO:.cmo=.mli) $(DOC_CMO:.cmo=.ml)
-ifeq (yes,yes)
+ifeq (no,yes)
 DOC_SRC := $(DOC_SRC) $(DGRAPH_CMI:.cmi=.mli)
 endif
 

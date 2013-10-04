@@ -1991,6 +1991,91 @@ let out_symb_reach_map srm =
 
 (*------------------------------------------------*)
 
+let bmc1_all_bounds_unsat_out current_bound = 
+  begin
+    if val_of_override !current_options.bmc1_incremental
+    then
+      (
+       out_bmc1_unsat_result current_bound;	    
+       Format.printf
+	 "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
+	 pref_str
+	 current_bound;
+       
+       (* Get maximal bound *)
+       let max_bound =
+	 max
+	   (val_of_override !current_options.bmc1_max_bound)
+	   (val_of_override !current_options.bmc1_max_bound_default)
+       in     
+       let rec skip_all_bounds current_bound =
+	 
+	 (* Next bound *)
+	 let next_bound = succ current_bound in
+	 
+	 (*
+	    (* Output current bound *)
+	    Format.printf
+	    "@.@\n%s BMC1 bound %d UNSAT@\n@."
+	    pref_str
+	    !bmc1_cur_bound;
+	       *)
+	 out_bmc1_unsat_result current_bound;
+	 
+	      (* Output unsatisfiable result *)
+	 out_str (proved_str ());
+	      
+	 (* Assign last solved bound in statistics *)
+	 assign_int_stat current_bound bmc1_last_solved_bound;
+	 
+	 if
+	   
+	   (* Next bound less than or equal maximal bound? *)
+	   next_bound <= max_bound &&
+	   
+	   (* No maximal bound for -1 *)
+	   max_bound >= 0		  
+	 then
+	   
+	   (
+		 (* Increment bound *)
+(*		 bmc1_cur_bound := next_bound;*)
+		 
+	    (* Recurse to output all bounds up to maximum *)
+	    skip_all_bounds next_bound
+	      
+	   )
+	     
+       in
+       
+	    (* Increment bound *)
+       bmc1_cur_bound := succ !bmc1_cur_bound;
+       let next_bound = succ current_bound in
+       (* Output results for all bounds up to maximum *)
+       skip_all_bounds next_bound;
+	    
+       (
+      (* When to output statistics? *)
+	match val_of_override !current_options.bmc1_out_stat with
+	
+	  (* Output statistics after each bound *)
+	| BMC1_Out_Stat_Full -> out_stat ()
+	    
+	      (* Output statistics after last bound *)
+	| BMC1_Out_Stat_Last
+	    (* when next_bound > max_bound*) -> out_stat ()
+		
+		(* Do not output statistics for bounds before last *)
+	      (*		  | BMC1_Out_Stat_Last -> ()*)
+		
+		(* Never output statistics *)
+	| BMC1_Out_Stat_None -> ()
+	      
+     );
+       
+      );
+  end
+
 (*----------------Top Function--------------------*)
 
 (*--run_iprover: initialises, ----------------*)
@@ -2725,95 +2810,13 @@ let run_iprover () =
        (* In incremental BMC1?
 	  
 	  Then output status once for each bound to prove *)
-       begin
-	 if val_of_override !current_options.bmc1_incremental
+      
+	 (if (val_of_override !current_options.bmc1_incremental)
 	 then
-	   
-	   (
-	    
-	    out_bmc1_unsat_result !bmc1_cur_bound;
-	    
-	    Format.printf
-	      "@\n%sUnsatisfiable at every bound from %d on@\n@\n@."
-	      pref_str
-	      !bmc1_cur_bound;
-	    
-	    (* Get maximal bound *)
-	    let max_bound =
-	      max
-		(val_of_override !current_options.bmc1_max_bound)
-		(val_of_override !current_options.bmc1_max_bound_default)
-	    in
-	    
-	    let rec skip_all_bounds () =
-	      
-	      (* Next bound *)
-	      let next_bound = succ !bmc1_cur_bound in
-	      
-	      (*
-		 (* Output current bound *)
-		 Format.printf
-		 "@.@\n%s BMC1 bound %d UNSAT@\n@."
-		 pref_str
-		 !bmc1_cur_bound;
-	       *)
-	      out_bmc1_unsat_result !bmc1_cur_bound;
-	      
-	      (* Output unsatisfiable result *)
-	      out_str (proved_str ());
-	      
-	      (* Assign last solved bound in statistics *)
-	      assign_int_stat !bmc1_cur_bound bmc1_last_solved_bound;
-	      
-	      if
-		
-		(* Next bound less than or equal maximal bound? *)
-		next_bound <= max_bound &&
-		
-		(* No maximal bound for -1 *)
-		max_bound >= 0
-		  
-	      then
-		
-		(
-		 (* Increment bound *)
-		 bmc1_cur_bound := next_bound;
-		 
-		 (* Recurse to output all bounds up to maximum *)
-		 skip_all_bounds ()
-		   
-		)
-		  
-	    in
-	    
-	    (* Increment bound *)
-	    bmc1_cur_bound := succ !bmc1_cur_bound;
-	    
-	    (* Output results for all bounds up to maximum *)
-	    skip_all_bounds ();
-	    
-	    (
-	     (* When to output statistics? *)
-	     match val_of_override !current_options.bmc1_out_stat with
-	       
-	       (* Output statistics after each bound *)
-	     | BMC1_Out_Stat_Full -> out_stat ()
-		   
-		   (* Output statistics after last bound *)
-	     | BMC1_Out_Stat_Last
-		 (* when next_bound > max_bound*) -> out_stat ()
-		     
-		     (* Do not output statistics for bounds before last *)
-		     (*		  | BMC1_Out_Stat_Last -> ()*)
-		     
-		     (* Never output statistics *)
-	     | BMC1_Out_Stat_None -> ()
-		   
-	    );
-	    
-	   );
-       end;
-       
+	   (bmc1_all_bounds_unsat_out !bmc1_cur_bound;)
+	 else ()
+	 );
+
        (* Do not output statistics in BMC1 mode with
 	  -- bmc1_out_stat none *)
        if (not (val_of_override !current_options.bmc1_incremental)) ||
@@ -2827,7 +2830,7 @@ let run_iprover () =
   | (*Discount.Empty_Clause (clause) ->*)
     Empty_Clause (clause) ->
       (
-       out_str(" Resolution empty clause:\n");
+       out_str(" Resolution empty clause\n");
        
        (* in this case the unsat is already without answer clauses *)
        if !answer_mode_ref then
@@ -2860,7 +2863,13 @@ let run_iprover () =
 	  assign_float_stat (end_time -. start_time) out_proof_time;
 	  
 	 );
+
        
+       (if (val_of_override !current_options.bmc1_incremental)
+       then
+	 (bmc1_all_bounds_unsat_out !bmc1_cur_bound;)
+       else ()
+       );       
        (* Do not output statistics in BMC1 mode with
 	  -- bmc1_out_stat none *)
        if (not (val_of_override !current_options.bmc1_incremental)) ||

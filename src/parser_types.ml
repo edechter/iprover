@@ -599,7 +599,7 @@ let system_pred_fun name args =
       create_theory_term Symbol.symb_ver_next_state args
 	(* Create term like plain term plain_term_fun_typed true name args *)
 	
-	(* Reachable state predicate for BMC1 *)
+  	(* Reachable state predicate for BMC1 *)
   | "$$reachableState" ->
       create_theory_term Symbol.symb_ver_reachable_state args
 	(* Create term like plain term plain_term_fun_typed true name args *)
@@ -689,6 +689,15 @@ let system_term_fun name args =
 	  (* Create term like plain term *)
 	  plain_term_fun_typed false name args
 	    
+  | "$$address_type" ->
+      create_theory_term Symbol.symb_ver_address_type args
+	
+  | "$$state_type" -> 
+      create_theory_term  Symbol.symb_ver_state_type args 
+	
+  | "$$bit_index_type" -> 
+      create_theory_term  Symbol.symb_ver_bit_index_type args
+      
   | _ ->
       
       (* Alternative: create as plain term without catching undefined *)
