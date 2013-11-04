@@ -308,55 +308,57 @@ value C_solve(value solver_In, value reset)
 value C_fast_solve(value solver_In, value assumptions)
 {
   CAMLparam2 (solver_In, assumptions);
-    SolverM * solver_mem = (SolverM *)Field(solver_In, 0);
-    solver * solver =solver_mem -> solver_ptr;
-    veci   * lits = solver_mem -> vector_ptr;
-    int size = Wosize_val(assumptions);
-    int i , temp ;
-    veci_resize(lits,0);
+  SolverM * solver_mem = (SolverM *)Field(solver_In, 0);
+  solver * solver =solver_mem -> solver_ptr;
+  veci   * lits = solver_mem -> vector_ptr;
+  int size = Wosize_val(assumptions);
+  int i , temp ;
+  veci_resize(lits,0);
     //    printf ("Debug: Change C_fast_solve: remove solved check!\n ");
     //	    fflush(stdout);
     //     lbool   solver_out_without_ass = solver_solve(solver,0,0);
     // if (solver_out_without_ass == l_True)
     //  {	
 	
-    if (solver_simplify(solver))
-    	  {
-	    for (i = 0; i < size; i++)
-	      {
-		temp = Int_val( Field(assumptions, i) );		
-		veci_push(lits, temp);
-	      }
+  if (solver_simplify(solver))
+    {
+      for (i = 0; i < size; i++)
+	{
+	  temp = Int_val( Field(assumptions, i) );		
+	  veci_push(lits, temp);
+	}
 	    
-	    lit* begin = (lit *)veci_begin(lits);
-	    int n = veci_size(lits);
-	    //   fprintf(stdout,"Before fast_solve:\n");
-	    // fflush(stdout);
-	   
-	    lbool   solver_out = fast_solve(solver,begin,begin+n);
-	    //fprintf(stdout,"After fast_solve:\n");
-	    //fflush(stdout);
-
-	    if (solver_out == l_True)
-	      { //sat under assumprions
-		CAMLreturn(Val_int(l_True));
-	      }
-	    else 
-	      {
-		if(solver_out == l_False)
-		  {//unsat under assumprions
-		    CAMLreturn(Val_int(l_False));}
-		else
-		  {
-		    if(solver_out == l_Undef) 
-		      {CAMLreturn(Val_int(l_Err));} //should not happen  
-		  }
-	      }
-	  }
-	else
-	  { //unsat without assumptions
-	    CAMLreturn(Val_int(l_Undef));
-	  }
+      lit* begin = (lit *)veci_begin(lits);
+      int n = veci_size(lits);
+      //   fprintf(stdout,"Before fast_solve:\n");
+      // fflush(stdout);
+      
+      lbool   solver_out = fast_solve(solver,begin,begin+n);
+      //fprintf(stdout,"After fast_solve:\n");
+      //fflush(stdout);
+      
+      if (solver_out == l_True)
+	{ //sat under assumprions
+	  CAMLreturn(Val_int(l_True));
+	}
+      else 
+	{
+	  if(solver_out == l_False)
+	    {//unsat under assumprions
+	      CAMLreturn(Val_int(l_False));}
+	  else
+	    {
+	      if(solver_out == l_Undef) 
+		{CAMLreturn(Val_int(l_Err));} //should not happen
+	      else
+		{CAMLreturn(Val_int(l_Err));} //should not happen
+	    }
+	}
+    }
+  else
+    { //unsat without assumptions
+      CAMLreturn(Val_int(l_Undef));
+    }
 	//	 }
 	//else
 	// { //unsat without assumptions
@@ -369,40 +371,40 @@ value C_fast_solve(value solver_In, value assumptions)
 value C_solve_assumptions(value solver_In, value assumptions, value reset)
 {
   CAMLparam3 (solver_In, assumptions,reset);
-    SolverM * solver_mem = (SolverM *)Field(solver_In, 0);
-    solver * solver =solver_mem -> solver_ptr;
-    veci   * lits = solver_mem -> vector_ptr;
-    int size = Wosize_val(assumptions);
-    int i , temp ;
-    veci_resize(lits,0);    
-    //  lbool   solver_out_without_ass = solver_solve(solver,0,0);
-    //   if (solver_out_without_ass == l_True)
-    //    {	
-           if (solver_simplify(solver))
-    	 {
-	    for (i = 0; i < size; i++)
-	      {
-		temp = Int_val( Field(assumptions, i) );		
-		veci_push(lits, temp);
-	      }
-	    
-	    lit* begin = (lit *)veci_begin(lits);
-	    int n = veci_size(lits);
-	    lbool solver_out = solver_solve(solver,begin,begin+n);
-	    if (solver_out == true)
-	  { //sat under assumprions
-	    CAMLreturn(Val_int(l_True));
-	  }
-	    else 
-	      { //unsat under assumptions
-		CAMLreturn(Val_int(l_False));
-	      }
-	 }
-       else
-	 { //unsat without assumptions
-	    CAMLreturn(Val_int(l_Undef));
-	 }
-       //    }
+  SolverM * solver_mem = (SolverM *)Field(solver_In, 0);
+  solver * solver =solver_mem -> solver_ptr;
+  veci   * lits = solver_mem -> vector_ptr;
+  int size = Wosize_val(assumptions);
+  int i , temp ;
+  veci_resize(lits,0);    
+  //  lbool   solver_out_without_ass = solver_solve(solver,0,0);
+  //   if (solver_out_without_ass == l_True)
+  //    {	
+  if (solver_simplify(solver))
+    {
+      for (i = 0; i < size; i++)
+	{
+	  temp = Int_val( Field(assumptions, i) );		
+	  veci_push(lits, temp);
+	}
+      
+      lit* begin = (lit *)veci_begin(lits);
+      int n = veci_size(lits);
+      lbool solver_out = solver_solve(solver,begin,begin+n);
+      if (solver_out == true)
+	{ //sat under assumprions
+	  CAMLreturn(Val_int(l_True));
+	}
+      else 
+	{ //unsat under assumptions
+	  CAMLreturn(Val_int(l_False));
+	}
+    }
+  else
+    { //unsat without assumptions
+      CAMLreturn(Val_int(l_Undef));
+    }
+  //    }
        //else
        // { //unsat without assumptions
 	 // CAMLreturn(Val_int(0));
