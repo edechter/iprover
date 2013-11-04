@@ -13,39 +13,39 @@
    You should have received a copy of the GNU General Public License
    along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 (*----------------------------------------------------------------------[C]-*)
- 
+
 open Lib
 open Options
 open Logic_interface
 
 
 let addr_split_size = 10
- 
+    
 type all_clauses = context
 
 
 type raw_model = all_clauses
 
 (*
-   let add_fun_term symb args = 
-   TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
+  let add_fun_term symb args = 
+  TermDB.add_ref (Term.create_fun_term symb args) term_db_ref
  *)
 
 (* model node consists of a normalised literal, list of clauses  *)
 (* where this literal is selected normalised w.r.t. the literal  *)
 (*   *)
 (*
-   type model_node =
-   {
-   model_lit : lit;
+  type model_node =
+  {
+  model_lit : lit;
 (* *)
-   mutable clause_set :
-   mutable constraint_set :
-   }
+  mutable clause_set :
+  mutable constraint_set :
+  }
  *)
 
 (*
-   let build_model active_clauses = active_clauses
+  let build_model active_clauses = active_clauses
  *)
 
 (*----------------------------------------------------*)
@@ -83,33 +83,33 @@ let out_raw_model model =
 (* leterals a defined in the fixed model of the term algebra          *)
 (*--------------------------------------------------------------------*)
 (*
-   \forall x_1,..., x_n
-   (~) L(x_1,.., x_n) <->
+  \forall x_1,..., x_n
+  (~) L(x_1,.., x_n) <->
 (* we will  call it definition of a literal lit_def *)
-   [
+  [
 
-   \exists \bar { y }
-   [
-   (x_i_1 = t_1(\bar { y },\bar { x }) &..& x_i_m = t_m(\bar { y },\bar { x })
+  \exists \bar { y }
+  [
+  (x_i_1 = t_1(\bar { y },\bar { x }) &..& x_i_m = t_m(\bar { y },\bar { x })
 (* this corresponds to flattening of L(x,t,..) *)
 (* let's call it subst_constr this also corresponds to the selected literal in a clause *)
 (* we will pair list of clauses with this literal selected  with the set of dismatching constraints below *)
 
 (* variables from \bar{y} can contain  some x_j below *)
-   &
+  &
 
 (* this corresponds to dismathcing  constraints collected from  *)
 (* all active clauses where L(x,t,..) is selected              *)
 
-   \forall \bar { z } ((x_j_1 \not = s_1(\bar { z }) \/...\/ x_j_n \not = s_n(\bar { z }))) &
-   ..............
-   \forall \bar { z } ((x_l_1 \not = g_1(\bar { z }) \/...\/ x_j_n \not = g_v(\bar { z })))
-   ]
-   \/
-   ......
-   \/
-   ......
-   §   ]
+  \forall \bar { z } ((x_j_1 \not = s_1(\bar { z }) \/...\/ x_j_n \not = s_n(\bar { z }))) &
+  ..............
+  \forall \bar { z } ((x_l_1 \not = g_1(\bar { z }) \/...\/ x_j_n \not = g_v(\bar { z })))
+  ]
+  \/
+  ......
+  \/
+  ......
+  §   ]
 
 (* both subst_constr and dismathcing  constraints are represented as flat_subst, ordered and normalised *)
  *)
@@ -306,23 +306,23 @@ let next_top_var vtype vlist =
 (* note new terms are not in term_db! *)
 
 (*
-   let rec normalise_term_var' var_table_ref max_var_ref var_list_ref term =
-   match term with
-   | Term.Fun(sym, args, _) ->
-   let new_args =
-   Term.arg_map_left (normalise_term_var' var_table_ref max_var_ref var_list_ref) args in
-   Term.create_fun_term_args sym new_args
-   | Term.Var(v, _) ->
-   try
-   let new_v = VarMap.find v !var_table_ref in
-   Term.create_var_term new_v
-   with
-   Not_found ->
-   var_table_ref := VarMap.add v !max_var_ref !var_table_ref;
-   var_list_ref := (!max_var_ref):: (!var_list_ref);
-   let new_term = Term.create_var_term !max_var_ref in
-   max_var_ref := Var.get_next_var !max_var_ref;
-   new_term
+  let rec normalise_term_var' var_table_ref max_var_ref var_list_ref term =
+  match term with
+  | Term.Fun(sym, args, _) ->
+  let new_args =
+  Term.arg_map_left (normalise_term_var' var_table_ref max_var_ref var_list_ref) args in
+  Term.create_fun_term_args sym new_args
+  | Term.Var(v, _) ->
+  try
+  let new_v = VarMap.find v !var_table_ref in
+  Term.create_var_term new_v
+  with
+  Not_found ->
+  var_table_ref := VarMap.add v !max_var_ref !var_table_ref;
+  var_list_ref := (!max_var_ref):: (!var_list_ref);
+  let new_term = Term.create_var_term !max_var_ref in
+  max_var_ref := Var.get_next_var !max_var_ref;
+  new_term
  *)
 let bound_x = 0
 let bound_y = 1
@@ -399,9 +399,9 @@ let normalise_flat_subst renaming_env bound y_var_list_ref flat_subst_ref =
   flat_subst_ref:= (f [] !flat_subst_ref)
 
 (*
-   let normalise_clause var_table_ref lit_list =
-   let
-   normalise_term_var' var_table_ref max_var_ref var_list_ref term
+  let normalise_clause var_table_ref lit_list =
+  let
+  normalise_term_var' var_table_ref max_var_ref var_list_ref term
  *)
 
 (*let normalise_dism_constr *)
@@ -419,20 +419,20 @@ let norm_and_flatten_args
   y_var_list_ref:= List.rev !y_var_list_ref
 
 (*
-   let norm_clause
-   let norm_dism_constr
+  let norm_clause
+  let norm_dism_constr
  *)
 (*
-   let norm_and_flatten_atom
-   var_table_ref x_var_list_ref y_var_list_ref flat_subst_ref atom =
-   match atom with
-   | Term.Fun(sym, args, _) ->
-   let new_args =
-   norm_and_flatten_args
-   var_table_ref x_var_list_ref y_var_list_ref flat_subst_ref args in
-   Term.create_fun_term_args sym new_args
-   | Term.Var _ ->
-   failwith "model_inst: norm_and_flatten_atom here should be a predicate\n"
+  let norm_and_flatten_atom
+  var_table_ref x_var_list_ref y_var_list_ref flat_subst_ref atom =
+  match atom with
+  | Term.Fun(sym, args, _) ->
+  let new_args =
+  norm_and_flatten_args
+  var_table_ref x_var_list_ref y_var_list_ref flat_subst_ref args in
+  Term.create_fun_term_args sym new_args
+  | Term.Var _ ->
+  failwith "model_inst: norm_and_flatten_atom here should be a predicate\n"
  *)
 
 let extend_model clause model =
@@ -456,18 +456,18 @@ let extend_model clause model =
       let var_term_list = List.map Term.create_var_term !x_var_list_ref in
       (*  let var_term_list = !x_var_list_ref in *)
       (*
-	 let new_flat_atom =
-	 (* if the symbol is equality it is replaced by symb_iprover_eq in order to avoid clash *)
-	 (* with "=" in formulas which is interpreted over the term algebra                     *)
-	 (* we do not change the symbol in normalised clauses since they do not participate in the definition *)
-	 if (sym == Symbol.symb_typed_equality)
-	 then
-	 ( 
-	 add_fun_term sym var_term_list			
-	 )		
-	 else
-	 add_fun_term sym var_term_list 
-	 in
+	let new_flat_atom =
+	(* if the symbol is equality it is replaced by symb_iprover_eq in order to avoid clash *)
+	(* with "=" in formulas which is interpreted over the term algebra                     *)
+	(* we do not change the symbol in normalised clauses since they do not participate in the definition *)
+	if (sym == Symbol.symb_typed_equality)
+	then
+	( 
+	add_fun_term sym var_term_list			
+	)		
+	else
+	add_fun_term sym var_term_list 
+	in
        *)
       let new_flat_atom = add_fun_term sym var_term_list in
       let new_compl_flat_atom = add_compl_lit new_flat_atom in
@@ -744,43 +744,43 @@ let extend_model clause model =
 
 (*----------debug----------*)
 (*
-   type lit_def_body = ((dism_constr_set ref) * ((norm_clause list) ref) FSVMap.t)
+  type lit_def_body = ((dism_constr_set ref) * ((norm_clause list) ref) FSVMap.t)
 
-   type lit_def =
-   {
+  type lit_def =
+  {
 (* this is a flattened normalised literal of the form (~)P(x_0,..,x_n) *)
-   model_lit : lit;
+  model_lit : lit;
 (* ordered list of vars in the literal *)
-   model_lit_vars : var list;
-   mutable model_lit_def_body : lit_def_body;
-   }
+  model_lit_vars : var list;
+  mutable model_lit_def_body : lit_def_body;
+  }
 
-   type model_node =
-   {
+  type model_node =
+  {
 (* positive and negative definitions of the same predicate *)
-   pos_lit_def : lit_def;
-   neg_lit_def : lit_def;
-   }
+  pos_lit_def : lit_def;
+  neg_lit_def : lit_def;
+  }
 
 (* normal model is a map from predicates to model nodes definig these predicates *)
-   module NModel = Map.Make(Symbol)
+  module NModel = Map.Make(Symbol)
 
-   type norm_model = (model_node NModel.t)
+  type norm_model = (model_node NModel.t)
 
  *)
 (*
-   stdout_stream.stream_add_str "\n normalised atom:\n";
-   Term.to_stream stdout_stream new_norm_atom;
-   stdout_stream.stream_add_str "\n normalised lit lis:\n";
-   Term.out_term_list norm_lits;
-   stdout_stream.stream_add_str "\nx_var_list_ref\n";
-   var_list_to_stream stdout_stream !x_var_list_ref;
-   stdout_stream.stream_add_str "\n!y_var_list_ref\n";
-   var_list_to_stream stdout_stream !y_var_list_ref;
-   stdout_stream.stream_add_str "\n!flat_subst_ref\n";
-   to_stream_plain_fs stdout_stream !flat_subst_ref
-   | Term.Var _ ->
-   failwith "model_inst: norm_and_flatten_atom here should be a predicate\n"
+  stdout_stream.stream_add_str "\n normalised atom:\n";
+  Term.to_stream stdout_stream new_norm_atom;
+  stdout_stream.stream_add_str "\n normalised lit lis:\n";
+  Term.out_term_list norm_lits;
+  stdout_stream.stream_add_str "\nx_var_list_ref\n";
+  var_list_to_stream stdout_stream !x_var_list_ref;
+  stdout_stream.stream_add_str "\n!y_var_list_ref\n";
+  var_list_to_stream stdout_stream !y_var_list_ref;
+  stdout_stream.stream_add_str "\n!flat_subst_ref\n";
+  to_stream_plain_fs stdout_stream !flat_subst_ref
+  | Term.Var _ ->
+  failwith "model_inst: norm_and_flatten_atom here should be a predicate\n"
  *)
 
 (* stdout_stream.stream_add_str (pref_str^"Building Model"); *)
@@ -804,10 +804,10 @@ let test_iter clause =
 
 (*---------------- fills statistics and extras in model -------------*)
 (*
-   mutable model_lit_undef : bool;
-   mutable model_lit_always_true : bool;
-   mutable model_lit_num_of_subs_constr : int;
-   mutable model_lit_num_of_dism_constr : int;
+  mutable model_lit_undef : bool;
+  mutable model_lit_always_true : bool;
+  mutable model_lit_num_of_subs_constr : int;
+  mutable model_lit_num_of_dism_constr : int;
  *)
 
 let fill_stat_model model =
@@ -865,8 +865,8 @@ let build_model all_clauses filtered_out_clauses =
   (* debug *)
   
   (*
-     out_str "\n\n-----Debug Out Raw Model\n\n";
-     out_raw_model all_clauses;
+    out_str "\n\n-----Debug Out Raw Model\n\n";
+    out_raw_model all_clauses;
    *)
   
   stdout_stream.stream_add_str (pref_str^"Building Model...");
@@ -951,12 +951,12 @@ let to_stream_subs_constr s subs_constr =
   );
   (!nonempty_quant_ref, !nonempty_body_ref)
 (*
-   (if subs_constr.flat_subst_vars = []
-   then ()
-   else
-   to_stream_space s 15;
-   s.stream_add_str ")\n"  (* (? end should be after all dism constr *)
-   )
+  (if subs_constr.flat_subst_vars = []
+  then ()
+  else
+  to_stream_space s 15;
+  s.stream_add_str ")\n"  (* (? end should be after all dism constr *)
+  )
  *)
 
 let to_stream_dism_constr_set exists_constr_before s dc_set =
@@ -1058,10 +1058,10 @@ let def_type_to_con_str def_type =
 
 let to_stream_lit_def s opt def_type lit_def =
   (*
-     out_str ("\n%--- model_lit_undef:"^(string_of_bool lit_def.model_lit_undef)^"\n");
-     out_str ("\n%--- lit_def.model_lit_always_true: "^(string_of_bool lit_def.model_lit_always_true)^"\n");
-     out_str ("\n%--- lit_def.model_lit_num_of_subs_constr : "^(string_of_int lit_def.model_lit_num_of_subst_constr)^"\n");
-     out_str ("\n%--- lit_def.model_lit_num_of_dism_constr : "^(string_of_int lit_def.model_lit_num_of_dism_constr)^"\n");
+    out_str ("\n%--- model_lit_undef:"^(string_of_bool lit_def.model_lit_undef)^"\n");
+    out_str ("\n%--- lit_def.model_lit_always_true: "^(string_of_bool lit_def.model_lit_always_true)^"\n");
+    out_str ("\n%--- lit_def.model_lit_num_of_subs_constr : "^(string_of_int lit_def.model_lit_num_of_subst_constr)^"\n");
+    out_str ("\n%--- lit_def.model_lit_num_of_dism_constr : "^(string_of_int lit_def.model_lit_num_of_dism_constr)^"\n");
    *)
   
   (* do not need to output anything if "<=" and lit was not defined  *)
@@ -1127,10 +1127,10 @@ let to_stream_lit_def s opt def_type lit_def =
       to_stream_space s 3; s.stream_add_str ").\n" (* end fof(apt_def,axiom,( *)
     end
 (*
-   model_lit : lit;
+  model_lit : lit;
 
-   model_lit_vars : var list;
-   mutable model_lit_def_body : lit_def_body;
+  model_lit_vars : var list;
+  mutable model_lit_def_body : lit_def_body;
 
  *)
 
@@ -1207,20 +1207,20 @@ let to_stream_model s opt model =
 let neg_conjectures_ref = Parser_types.neg_conjectures
 
 (*
-   let is_state_type_symb symb =
-   match (Symbol.get_name symb) with
-   |"$state_type" -> true
-   | _ -> false
+  let is_state_type_symb symb =
+  match (Symbol.get_name symb) with
+  |"$state_type" -> true
+  | _ -> false
 
-   let is_address_type_symb symb =
-   match (Symbol.get_name symb) with
-   |"$address_type" -> true
-   | _ -> false
+  let is_address_type_symb symb =
+  match (Symbol.get_name symb) with
+  |"$address_type" -> true
+  | _ -> false
 
-   let is_bitindex_type_symb symb =
-   match (Symbol.get_name symb) with
-   |"$bitindex_type" -> true
-   | _ -> false
+  let is_bitindex_type_symb symb =
+  match (Symbol.get_name symb) with
+  |"$bitindex_type" -> true
+  | _ -> false
 
  *)
 
@@ -1290,7 +1290,7 @@ let get_bitindex_from_str str =
 
 let is_bit_index_str str = 
   (Str.string_before str 10) = "$$bitIndex"
-  
+    
 let is_bit_index_symb symb = 
   is_bit_index_str (Symbol.get_name symb)
 
@@ -1476,30 +1476,30 @@ let out_msb_with_split split_size msb_list =
 (* commented
 
 (* we split bits with space every split_size bits starting from right*)
-let out_msb_with_split slpit_size msb_list =
-  assert (slpit_size >0);
-  let msb_length = List.length msb_list in
-  if(msb_length <= slpit_size)
-  then
-    List.iter (fun b -> print_int b) msb_list
-  else
-    let first_chunk = msb_length mod slpit_size in
-    let rest_msb = apply_to_first_n_rest print_int first_chunk msb_list in
-    (* rest msb is divisible by slpit_size *)
-    
-    let rec print_splits msb_left =
-      if (msb_left = [])
-      then ()
-      else
-	(
-	 print_char ' ';
-	 let new_msb = apply_to_first_n_rest print_int slpit_size msb_left in
-	 print_splits new_msb;
-	)
-    in
-    print_splits rest_msb
+   let out_msb_with_split slpit_size msb_list =
+   assert (slpit_size >0);
+   let msb_length = List.length msb_list in
+   if(msb_length <= slpit_size)
+   then
+   List.iter (fun b -> print_int b) msb_list
+   else
+   let first_chunk = msb_length mod slpit_size in
+   let rest_msb = apply_to_first_n_rest print_int first_chunk msb_list in
+   (* rest msb is divisible by slpit_size *)
+   
+   let rec print_splits msb_left =
+   if (msb_left = [])
+   then ()
+   else
+   (
+   print_char ' ';
+   let new_msb = apply_to_first_n_rest print_int slpit_size msb_left in
+   print_splits new_msb;
+   )
+   in
+   print_splits rest_msb
 
-*)
+ *)
 
 (* eq_proper_val t_type t flat_subst: *)
 (* we have typed_equality(eq_type, u,v) *)
@@ -1527,11 +1527,11 @@ let get_value_type_term symb =
       (
        add_fun_term ctype [];
        (*
-	  try
-	  TermDB.find (Term.create_fun_term ctype []) !term_db_ref
-	  with
-	  Not_found ->
-	  failwith ("get_value_type_term: ctype term does not exist in term db: "^(Symbol.to_string ctype)^"\n");
+	 try
+	 TermDB.find (Term.create_fun_term ctype []) !term_db_ref
+	 with
+	 Not_found ->
+	 failwith ("get_value_type_term: ctype term does not exist in term db: "^(Symbol.to_string ctype)^"\n");
 	*)
       )
   | Undef -> failwith ("get_value_type_term: type  was not defined")
@@ -1628,11 +1628,11 @@ let get_conj_ground_mem_bitvec_preds () =
   (!mem_list_ref, !bitvec_pred_ref, !bitvec_unary_pred_ref)
 
 (*
-   let get_states_addr_bitindex_sk_from_clauses clause_list =
-   let state_list_ref = ref [] in
-   let addr_list_ref = ref [] in
-   let bitindex_list_ref = ref [] in
-   let add_const term =
+  let get_states_addr_bitindex_sk_from_clauses clause_list =
+  let state_list_ref = ref [] in
+  let addr_list_ref = ref [] in
+  let bitindex_list_ref = ref [] in
+  let add_const term =
  *)
 
 let get_from_states_addr_bitindex_sk_lists mem_pred_list bitvec_pred_list =
@@ -1697,10 +1697,10 @@ module ListKey =
 module LMap = Map.Make (ListKey)
 
 (*
-   type addr_type =
-   { addr : Term.term;
-   addr_value : int list
-   }
+  type addr_type =
+  { addr : Term.term;
+  addr_value : int list
+  }
  *)
 
 (* is used to share (find) equal addresses; in the leaves we have equal addresses *)
@@ -1773,11 +1773,11 @@ module TSet = Term.Set
 (* sanity check for non-covered memory/etc. symbols in the SymbolDB *)
 (* not used at the moment *)
 type sanity = 
-  {
-   mutable sanity_smt_mem_symbs : SSet.t; 
-   mutable sanity_smt_bv_symbs : SSet.t;
-   mutable sanity_smt_unary_bv_symbs : SSet.t;
-  }
+    {
+     mutable sanity_smt_mem_symbs : SSet.t; 
+     mutable sanity_smt_bv_symbs : SSet.t;
+     mutable sanity_smt_unary_bv_symbs : SSet.t;
+   }
       
 let init_sanity () = 
   {
@@ -1828,7 +1828,7 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
     if (Symbol.is_a_bitvec_pred_symb symb)
     then
       begin
-		 
+	
 (*	  out_str ("\n bv: "^(Symbol.to_string symb)^" "^(string_of_int bv_size)^"\n");*)
 	
 	match flat_subst with
@@ -1838,7 +1838,7 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 	    | Undef -> Undef
 	    )
 
-      (* for all bit_indexes which satisfy dismatching constraints... *)
+	      (* for all bit_indexes which satisfy dismatching constraints... *)
 	|[(_, state)] ->
 	    begin
 	      try
@@ -1862,7 +1862,7 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 			     IntSet.add i (!exclude_bit_index_set_ref) 	 
 		       | Undef -> ()
 		       )
-		      
+			 
 		   | _ -> ()
 		  )
 		in	      
@@ -1873,13 +1873,13 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 		    then 
 		      acc_list 
 		    else
-		     ( 
-		       if (IntSet.mem k !exclude_bit_index_set_ref)
-		       then 
-			 f acc_list (k-1)
-		       else
-			 f (((symb,[state]), k)::acc_list) (k-1)
-		      )
+		      ( 
+			if (IntSet.mem k !exclude_bit_index_set_ref)
+			then 
+			  f acc_list (k-1)
+			else
+			  f (((symb,[state]), k)::acc_list) (k-1)
+		       )
 		  in
 		  f [] (bv_size -1)
 		in
@@ -1900,9 +1900,9 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 	|[(_, state)] ->
 	    Def ([((symb,[state]), 0)])
 	      (*	(match (get_ind_from_bit_ind_term bit_ind) with
-		 | Def (i) -> Def (((symb,[state]), i))
-		 | Undef -> Undef
-		 )
+		| Def (i) -> Def (((symb,[state]), i))
+		| Undef -> Undef
+		)
 	       *)	
 	| _ -> Undef
       else
@@ -1910,65 +1910,65 @@ let get_pre_term_pos_bit_ind symb flat_subst dism_constr_set =
 	  
 (*
 (* returns ptv_map *)
-let fill_ptv_map model =
+  let fill_ptv_map model =
   let f_model symb model_node model_ptv_map =
-    if (is_word_pred symb)
-    then
-      begin
-	(*	out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n"); *)
-	let pos_lit_def = model_node.pos_lit_def in
-	if (pos_lit_def.model_lit_undef)
-	then
-	  (
-	   (* false for all values *)
-	   let pre_term = (symb,[]) in
-	   PTMap.add pre_term (ref []) model_ptv_map
-	  )
-	else
-	  begin
-	    let pos_lit_def_body = pos_lit_def.model_lit_def_body in
-	    assert (not (pos_lit_def_body = FSVMap.empty)); (* asseting that it is not all positive *)
-	    let all_negative = ref true in 
-	    (* add when all $false *)
-	    let f_pos_def 
-		subst_constr (dsim_constr_set_ref, _clause_list_ref) node_ptv_map =
-	      (match (get_pre_term_pos_bit_ind symb subst_constr.flat_subst !dsim_constr_set_ref) with
-	
-	      | Def((pre_term, bit_ind)) ->
-		  (all_negative := false;		
-       		   try
-		     let val_ref = PTMap.find pre_term node_ptv_map in
-		     val_ref:= bit_ind::!val_ref;
-		     node_ptv_map
-		   with
-		     Not_found ->
-		       PTMap.add pre_term (ref [bit_ind]) node_ptv_map
-		  )
-	      | Undef -> node_ptv_map
-	      )
-	    in
-	    let pos_def_ptv = FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map in 
-	    if !all_negative 
-	    then
-	       (
-		(* false for all values *)
-		let pre_term = (symb,[]) in
-		PTMap.add pre_term (ref []) pos_def_ptv
-	       )
-	    else 
-	      pos_def_ptv
-	  end
-      end
-    else
-      model_ptv_map
+  if (is_word_pred symb)
+  then
+  begin
+  (*	out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n"); *)
+  let pos_lit_def = model_node.pos_lit_def in
+  if (pos_lit_def.model_lit_undef)
+  then
+  (
+  (* false for all values *)
+  let pre_term = (symb,[]) in
+  PTMap.add pre_term (ref []) model_ptv_map
+  )
+  else
+  begin
+  let pos_lit_def_body = pos_lit_def.model_lit_def_body in
+  assert (not (pos_lit_def_body = FSVMap.empty)); (* asseting that it is not all positive *)
+  let all_negative = ref true in 
+  (* add when all $false *)
+  let f_pos_def 
+  subst_constr (dsim_constr_set_ref, _clause_list_ref) node_ptv_map =
+  (match (get_pre_term_pos_bit_ind symb subst_constr.flat_subst !dsim_constr_set_ref) with
+  
+  | Def((pre_term, bit_ind)) ->
+  (all_negative := false;		
+  try
+  let val_ref = PTMap.find pre_term node_ptv_map in
+  val_ref:= bit_ind::!val_ref;
+  node_ptv_map
+  with
+  Not_found ->
+  PTMap.add pre_term (ref [bit_ind]) node_ptv_map
+  )
+  | Undef -> node_ptv_map
+  )
+  in
+  let pos_def_ptv = FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map in 
+  if !all_negative 
+  then
+  (
+  (* false for all values *)
+  let pre_term = (symb,[]) in
+  PTMap.add pre_term (ref []) pos_def_ptv
+  )
+  else 
+  pos_def_ptv
+  end
+  end
+  else
+  model_ptv_map
   in
   let vals_ptmap = NModel.fold f_model model PTMap.empty in
   let sort_vals pt val_ref =
-    val_ref:= List.sort compare !val_ref
+  val_ref:= List.sort compare !val_ref
   in
   PTMap.iter sort_vals vals_ptmap;
   vals_ptmap
-*)
+ *)
 
 (*---------------------*)
 (* similar to fill_ptv_map ptv_map *)
@@ -1980,50 +1980,50 @@ let fill_ptv_map_for_per_bound model =
 	(*	out_str ("fill_ptv_map model symb: "^(Symbol.to_string symb)^"\n"); *)
 	let pos_lit_def = model_node.pos_lit_def in
 	(* 
-        if (pos_lit_def.model_lit_undef)
-	then
-	  (
+           if (pos_lit_def.model_lit_undef)
+	   then
+	   (
 	   (* false for all values *)
 	   let pre_term = (symb,[]) in
 	   PTMap.add pre_term (ref []) model_ptv_map
-	  )
-	else
-        *)
-	  begin
-	    let pos_lit_def_body = pos_lit_def.model_lit_def_body in
+	   )
+	   else
+         *)
+	begin
+	  let pos_lit_def_body = pos_lit_def.model_lit_def_body in
 	  (*  let all_negative = ref true in *)
-	    (* add when all $false *)
-	    let f_pos_def subst_constr (dsim_constr_set_ref, _clause_list_ref) node_ptv_map =
-	      (match (get_pre_term_pos_bit_ind symb subst_constr.flat_subst !dsim_constr_set_ref) with
-	      | Def(pre_term_bit_ind_list) ->
-		  ((*all_negative := false;*)
-		   let f node_ptv_map_acc (pre_term, bit_ind) =
-		     try
-		       let val_ref = PTMap.find pre_term node_ptv_map_acc in
-		       val_ref:= bit_ind::!val_ref;
-		       node_ptv_map_acc
-		     with
-		       Not_found ->
-			 PTMap.add pre_term (ref [bit_ind]) node_ptv_map_acc
-		   in
-		   List.fold_left f node_ptv_map pre_term_bit_ind_list
-		  )
-	      | Undef -> node_ptv_map
-	      )
-	    in
-	    let pos_def_ptv = FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map in 
+	  (* add when all $false *)
+	  let f_pos_def subst_constr (dsim_constr_set_ref, _clause_list_ref) node_ptv_map =
+	    (match (get_pre_term_pos_bit_ind symb subst_constr.flat_subst !dsim_constr_set_ref) with
+	    | Def(pre_term_bit_ind_list) ->
+		((*all_negative := false;*)
+		 let f node_ptv_map_acc (pre_term, bit_ind) =
+		   try
+		     let val_ref = PTMap.find pre_term node_ptv_map_acc in
+		     val_ref:= bit_ind::!val_ref;
+		     node_ptv_map_acc
+		   with
+		     Not_found ->
+		       PTMap.add pre_term (ref [bit_ind]) node_ptv_map_acc
+		 in
+		 List.fold_left f node_ptv_map pre_term_bit_ind_list
+		)
+	    | Undef -> node_ptv_map
+	    )
+	  in
+	  let pos_def_ptv = FSVMap.fold f_pos_def pos_lit_def_body model_ptv_map in 
 	  (* 
-           if !all_negative 
-	   then
-	      (
-           	(* false for all values *)
-               let pre_term = (symb,[]) in
-	       PTMap.add pre_term (ref []) pos_def_ptv
-	       )
-	    else 
+             if !all_negative 
+	     then
+	     (
+             (* false for all values *)
+             let pre_term = (symb,[]) in
+	     PTMap.add pre_term (ref []) pos_def_ptv
+	     )
+	     else 
            *)
-	      pos_def_ptv
-	  end
+	  pos_def_ptv
+	end
       end
     else
       model_ptv_map
@@ -2056,9 +2056,9 @@ let fill_vpt_map ptv_map =
 (* per bound map is an alternative to vpt_map where bv, etc are grouped by bmc bounds *)
 
 (* per-bound map:  map bound -> 
-                     type bound_vpt_map_preds 
-                       {(val_list  -> pre_term_list) -- vpt_map; 
-                       boud_def_preds_set -- set of all predicates which are in pre_term_list} *)
+   type bound_vpt_map_preds 
+   {(val_list  -> pre_term_list) -- vpt_map; 
+   boud_def_preds_set -- set of all predicates which are in pre_term_list} *)
 
 (* 1) extract all input word_preds from SymbolDB --  all_word_preds *)
 (* 2) get max bound *)
@@ -2104,7 +2104,7 @@ let get_bound_from_state_term state_term =
   match (get_bound_from_str symb_name) with
   |Def(bound_int) -> bound_int
   |Undef -> failwith ("is not a bound term: "^(Term.to_string state_term))
-*)
+ *)
 
 let get_bound_from_word_pre_term word_pre_term = 
   let (word_pred, term_list) = word_pre_term in  
@@ -2224,7 +2224,7 @@ let complete_per_bound_map per_bound_map =
       end
   in
   f_bound per_bound_map max_bound
-  
+    
 
 (*------output-------*)
 let pre_term_to_str (symb, term_list) =
@@ -2253,7 +2253,7 @@ let fancy_pre_term_to_str max_val_length_default bit_values (symb, term_list) =
       then
 	try 	
 	  let bv_size = SMap.find symb Parser_types.(!bit_vector_name_map) in 
-	bv_size 
+	  bv_size 
 	with 
 	  Not_found -> 
 	    max_val_length_default
@@ -2325,7 +2325,7 @@ let out_per_bound_map per_bound_map =
     fancy_out_vpt_map bound_vpt_map_preds.bound_vpt_map;
   in
   BoundMap.iter f per_bound_map
-      
+    
 (*--------------------------*)
 
 let out_memory_ver model =
@@ -2336,14 +2336,14 @@ let out_memory_ver model =
   out_str "Negated conjectures:\n";
   out_str (Clause.clause_list_to_string !neg_conjectures_ref);
   (*
-     out_str "\n---------------------\n\n";
-     (match (get_counter_ex_bound model) with
-     | Some(sk_bound_val) ->
-     out_str ("Counterexample state: "
-     ^(term_value_pair_to_string sk_bound_val)
-     ^"\n");
-     | None -> out_str ("\nCounterexample state predicate was not found\n")
-     );
+    out_str "\n---------------------\n\n";
+    (match (get_counter_ex_bound model) with
+    | Some(sk_bound_val) ->
+    out_str ("Counterexample state: "
+    ^(term_value_pair_to_string sk_bound_val)
+    ^"\n");
+    | None -> out_str ("\nCounterexample state predicate was not found\n")
+    );
    *)
   
   let (conj_state_list, conj_addr_list, conj_bitindex_list) =
@@ -2388,9 +2388,9 @@ let out_memory_ver model =
   out_str "Counterexample states: \n ";
   let f_state state =
     (*	match (constant_val model state) with
-       | Some(state_val) ->
-       out_str ((term_value_pair_to_string (state, state_val)));
-       | None -> failwith ("No value for state skolem constant: "^(Term.to_string state)^"is found")
+      | Some(state_val) ->
+      out_str ((term_value_pair_to_string (state, state_val)));
+      | None -> failwith ("No value for state skolem constant: "^(Term.to_string state)^"is found")
      *) 
     let state_val = (constant_val model state) in 
     out_str ((term_value_pair_to_string (state, state_val)));
@@ -2426,8 +2426,8 @@ let out_memory_ver model =
       out_str (address_pos_val_to_string addr_val);
       out_str "\n---------------------\n";
       (*
-	 out_str ((Term.to_string addr)^":");
-	 out_str (address_pos_val_to_string (address_pos_val model addr));
+	out_str ((Term.to_string addr)^":");
+	out_str (address_pos_val_to_string (address_pos_val model addr));
        *)
     with Not_found ->
       failwith "out_memory_ver: all addresses should be in the addr_map"
@@ -2437,9 +2437,9 @@ let out_memory_ver model =
   out_str "Counterexample bit-indices:\n";
   let f_bitind bitind =
 (*		match (constant_val model bitind) with
-   | Some(bitind_val) -> 
-   out_str ((term_value_pair_to_string (bitind, bitind_val)));
-   | None -> failwith ("No value for bitind skolem constant: "^(Term.to_string bitind)^"is found") *)
+  | Some(bitind_val) -> 
+  out_str ((term_value_pair_to_string (bitind, bitind_val)));
+  | None -> failwith ("No value for bitind skolem constant: "^(Term.to_string bitind)^"is found") *)
     let const_val = (constant_val model bitind) in
     out_str (term_value_pair_to_string (bitind, const_val));
   in 
@@ -2467,20 +2467,20 @@ let out_memory_ver model =
 (* complete later *)
   let per_bound_map = pre_fill_per_bound_map ptv_map in 
   let per_bound_map_complete = complete_per_bound_map per_bound_map in 
- (* old *)
- (* out_vpt_map vtp_map *)
+  (* old *)
+  (* out_vpt_map vtp_map *)
   out_per_bound_map per_bound_map_complete
- 
+    
 (*
-   let f_addr_eq addr_val addr_list_ref =
-   if (Term.is_addr_const addr)
-   then
-   (out_str ((Term.to_string addr)^":");
-   out_str (address_val_to_string (address_val model addr));
-   out_str "\n";
-   )
-   else ()
-   in
+  let f_addr_eq addr_val addr_list_ref =
+  if (Term.is_addr_const addr)
+  then
+  (out_str ((Term.to_string addr)^":");
+  out_str (address_val_to_string (address_val model addr));
+  out_str "\n";
+  )
+  else ()
+  in
  *)
 (*  List.iter f_addr addresses_list*)
 (* TermDB.iter f_addr !term_db_ref *)
@@ -2491,73 +2491,73 @@ let out_model model =
   then
     out_memory_ver model
   else ()
- 
+      
 (*
 
-   type dism_constr_set =
-   | DCSet of FSVSet.t
+  type dism_constr_set =
+  | DCSet of FSVSet.t
 (* Subsumed means that all dismatching constraints are subsumed     *)
 (* by dismatching constr which is either undefined of is a renaming *)
 (* (over all vars in the clause)           *)
 (* so L(X)| Subsumed means \forall X L(X) (in other notation \forall X (L(X) <-> true) ) *)
-   | DCSSubsumed
+  | DCSSubsumed
 
-   type var_table = (var VarMap.t)
+  type var_table = (var VarMap.t)
 
-   type var_table_ref = var_table ref
+  type var_table_ref = var_table ref
 
 (*we pair old clause with the normalised lit list form this clause and constraint list*)
-   type norm_clause =
-   (clause * ((lit list) * flat_subst list))
+  type norm_clause =
+  (clause * ((lit list) * flat_subst list))
 (* literal definition body is a map from subst_constraints into sets of dismatching constrints *)
 (* paired with a list of clauses where the L\subst_constraint is selected  *)
 (* dismatching constraints are normalised and only varibales in L are left *)
 (*  clauses are also normalised such that L is first, vars renamed, including in dismatiching constr.*)
 
-   type lit_def_body = (((dism_constr_set ref) * ((norm_clause list) ref)) FSVMap.t)
+  type lit_def_body = (((dism_constr_set ref) * ((norm_clause list) ref)) FSVMap.t)
 
-   type lit_def =
-   {
+  type lit_def =
+  {
 
 (* this is a flattened normalised literal of the form (~)P(x_0,..,x_n)                       *)
-   model_lit : lit;
+  model_lit : lit;
 
 (* ordered list of vars in the literal                                                       *)
-   model_lit_vars : var list;
+  model_lit_vars : var list;
 
 (* a) if lit_def_body is FSVMap.empty then this literal was not defined and this corresponds to          *)
 (* \forall X ~L(X)    or \forall X (L(X) <-> $false)                                                     *)
 (* b) if [] is a key in  lit_def_body, this corresponds to the empty subst_constr, there are still       *)
 (*    can be dismatching constraints corresponding to []                                                 *)
-   mutable model_lit_def_body : lit_def_body;
-   }
+  mutable model_lit_def_body : lit_def_body;
+  }
  *)
 (* debug *)
 
 (*
-   let out_model active_clauses =
-   let f clause =
-   if not (Clause.get_bool_param Clause.in_active clause)
-   then ()
-   else
-   begin
-   stdout_stream.stream_add_str "%---------------\n";
-   Clause.to_stream stdout_stream clause;
-   stdout_stream.stream_add_char ' ';
-   Term.to_stream stdout_stream (Clause.get_inst_sel_lit clause);
-   stdout_stream.stream_add_char '\n';
-   (try
-   Dismatching.to_stream_constr_set stdout_stream (Clause.get_dismatching clause);
-   stdout_stream.stream_add_char '\n';
-   with
-   Clause.Dismatching_undef ->
-   stdout_stream.stream_add_str "[]\n");
-   stdout_stream.stream_add_str "%----Debug-----------\n";
+  let out_model active_clauses =
+  let f clause =
+  if not (Clause.get_bool_param Clause.in_active clause)
+  then ()
+  else
+  begin
+  stdout_stream.stream_add_str "%---------------\n";
+  Clause.to_stream stdout_stream clause;
+  stdout_stream.stream_add_char ' ';
+  Term.to_stream stdout_stream (Clause.get_inst_sel_lit clause);
+  stdout_stream.stream_add_char '\n';
+  (try
+  Dismatching.to_stream_constr_set stdout_stream (Clause.get_dismatching clause);
+  stdout_stream.stream_add_char '\n';
+  with
+  Clause.Dismatching_undef ->
+  stdout_stream.stream_add_str "[]\n");
+  stdout_stream.stream_add_str "%----Debug-----------\n";
 (*	extend_model model clause; *)
-   stdout_stream.stream_add_char '\n';
-   end
-   in
-   ClauseAssignDB.iter f active_clauses;
-   stdout_stream.stream_add_str "\n%---------------End Model--------------\n\n"
+  stdout_stream.stream_add_char '\n';
+  end
+  in
+  ClauseAssignDB.iter f active_clauses;
+  stdout_stream.stream_add_str "\n%---------------End Model--------------\n\n"
 
  *)

@@ -32,9 +32,9 @@ end
 (* A bare element module with only the type and no operations, those
    are given in a separate module at runtime *)
 module type Elem0 =
-sig 
-  type t 
-end
+  sig 
+    type t 
+  end
 
 exception EmptyHeap
 
@@ -52,15 +52,15 @@ exception EmptyHeap
    parameter, heaps with the same element types but different
    orderings are of the same type and can be mixed in a list, see
    n-ary priority queues.
-*)
+ *)
 module ImperativeGen(E : Elem0) = struct
 
   (* The type of an element in the heap *)
   type elt = E.t
 
-  (* The heap is encoded in the array [data], where elements are stored
-     from [0] to [size - 1]. From an element stored at [i], the left 
-     (resp. right) subtree, if any, is rooted at [2*i+1] (resp. [2*i+2]). *)
+	(* The heap is encoded in the array [data], where elements are stored
+	   from [0] to [size - 1]. From an element stored at [i], the left 
+	   (resp. right) subtree, if any, is rooted at [2*i+1] (resp. [2*i+2]). *)
 
   type t = 
       { 
@@ -77,12 +77,12 @@ module ImperativeGen(E : Elem0) = struct
 
       }
 
-  (* When [create n] is called, we cannot allocate the array, since there is
-     no known value of type [X.t]; we'll wait for the first addition to 
-     do it, and we remember this situation with a negative size. *)
+	(* When [create n] is called, we cannot allocate the array, since there is
+	   no known value of type [X.t]; we'll wait for the first addition to 
+	   do it, and we remember this situation with a negative size. *)
 
-  (* [create] has an addtional parameter [o]: a module of type Ordered
-     that gives the ordering of the elements. *)
+	(* [create] has an addtional parameter [o]: a module of type Ordered
+	   that gives the ordering of the elements. *)
 
   let create o n = 
     if n <= 0 then invalid_arg "create";
@@ -92,7 +92,7 @@ module ImperativeGen(E : Elem0) = struct
 
   let is_empty h = h.size <= 0
 
-  (* [resize] doubles the size of [data] *)
+      (* [resize] doubles the size of [data] *)
 
   let resize h =
     let n = h.size in
@@ -190,9 +190,9 @@ module Imperative(X : Ordered) = struct
 
   type t = { mutable size : int; mutable data : X.t array }
 
- (* When [create n] is called, we cannot allocate the array, since there is
-     no known value of type [X.t]; we'll wait for the first addition to 
-     do it, and we remember this situation with a negative size. *)
+	(* When [create n] is called, we cannot allocate the array, since there is
+	   no known value of type [X.t]; we'll wait for the first addition to 
+	   do it, and we remember this situation with a negative size. *)
 
   let create n = 
     if n <= 0 then invalid_arg "create";
@@ -200,7 +200,7 @@ module Imperative(X : Ordered) = struct
 
   let is_empty h = h.size <= 0
 
-  (* [resize] doubles the size of [data] *)
+      (* [resize] doubles the size of [data] *)
 
   let resize h =
     let n = h.size in
@@ -290,7 +290,7 @@ module ImperativeEq(X : Ordered) = struct
 
   type elt = X.t
   type elt_list = elt list
-  
+	
   let compare_elt_list el l  = 
     try 
       X.compare el (List.hd l)
@@ -307,9 +307,9 @@ module ImperativeEq(X : Ordered) = struct
   type t = { mutable size : int; mutable num_nonequal : int; 
 	     mutable data : elt_list array }
 
-  (* When [create n] is called, we cannot allocate the array, since there is
-     no known value of type [X.t]; we'll wait for the first addition to 
-     do it, and we remember this situation with a negative size. *)
+	(* When [create n] is called, we cannot allocate the array, since there is
+	   no known value of type [X.t]; we'll wait for the first addition to 
+	   do it, and we remember this situation with a negative size. *)
 
   let create n = 
     if n <= 0 then invalid_arg "create";
@@ -317,7 +317,7 @@ module ImperativeEq(X : Ordered) = struct
 
   let is_empty h = h.size <= 0
 
-  (* [resize] doubles the size of [data] *)
+      (* [resize] doubles the size of [data] *)
 
   let resize h =
     let n = h.num_nonequal in
@@ -375,7 +375,7 @@ module ImperativeEq(X : Ordered) = struct
 	else tl
     |[] -> failwith "heap remove: should not be empty"    
 
-	
+	  
   let remove h =
     if h.size <= 0 then raise EmptyHeap;
     let n = h.size - 1 in
@@ -386,7 +386,7 @@ module ImperativeEq(X : Ordered) = struct
       d.(n) <- (remove_from_list d.(n))
     with 
       Last_Elem ->
-    (* moving [x] down in the heap *)
+	(* moving [x] down in the heap *)
 	h.num_nonequal <- h.num_nonequal -1;
 	let rec movedown i =
 	  let j = 2 * i + 1 in
@@ -437,7 +437,7 @@ module type FunctionalSig = sig
   val iter : (elt -> unit) -> t -> unit
 (*
   val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
-*)
+ *)
   val fold : ('a -> elt -> 'a) -> t -> 'a -> 'a
 end
 
@@ -468,11 +468,11 @@ module Functional(X : Ordered) = struct
     | PFP of t * X.t * t (* partial (full,    partial) *)
 
   let empty = Empty
- 
-  (* smart constructors for insertion *)
+      
+      (* smart constructors for insertion *)
   let p_f l x r = match l with
-    | Empty | FFF _ -> PFF (l, x, r)
-    | _ -> PPF (l, x, r)
+  | Empty | FFF _ -> PFF (l, x, r)
+  | _ -> PPF (l, x, r)
 
   let pf_ l x = function
     | Empty | FFF _ as r -> FFF (l, x, r)
@@ -481,10 +481,10 @@ module Functional(X : Ordered) = struct
   let rec add x = function
     | Empty -> 
 	FFF (Empty, x, Empty)
-    (* insertion to the left *)
+	  (* insertion to the left *)
     | FFF (l, y, r) | PPF (l, y, r) ->
 	if X.compare x y > 0 then p_f (add y l) x r else p_f (add x l) y r
-    (* insertion to the right *)
+	  (* insertion to the right *)
     | PFF (l, y, r) | PFP (l, y, r) ->
 	if X.compare x y > 0 then pf_ l x (add y r) else pf_ l y (add x r)
 
@@ -492,11 +492,11 @@ module Functional(X : Ordered) = struct
     | Empty -> raise EmptyHeap
     | FFF (_, x, _) | PPF (_, x, _) | PFF (_, x, _) | PFP (_, x, _) -> x
 
-  (* smart constructors for removal; note that they are different
-     from the ones for insertion! *)
+	  (* smart constructors for removal; note that they are different
+	     from the ones for insertion! *)
   let p_f l x r = match l with
-    | Empty | FFF _ -> FFF (l, x, r)
-    | _ -> PPF (l, x, r)
+  | Empty | FFF _ -> FFF (l, x, r)
+  | _ -> PPF (l, x, r)
 
   let pf_ l x = function
     | Empty | FFF _ as r -> PFF (l, x, r)
@@ -509,7 +509,7 @@ module Functional(X : Ordered) = struct
 	Empty
     | PFF (l, _, Empty) ->
 	l
-    (* remove on the left *)
+	  (* remove on the left *)
     | PPF (l, x, r) | PFF (l, x, r) ->
         let xl = maximum l in
 	let xr = maximum r in
@@ -518,7 +518,7 @@ module Functional(X : Ordered) = struct
 	  p_f l' xl r 
 	else 
 	  p_f l' xr (add xl (remove r))
-    (* remove on the right *)
+	    (* remove on the right *)
     | FFF (l, x, r) | PFP (l, x, r) ->
         let xl = maximum l in
 	let xr = maximum r in
@@ -535,18 +535,18 @@ module Functional(X : Ordered) = struct
 	iter f l; f x; iter f r
 
 (* old fold
-  let rec fold f h x0 = match h with
-    | Empty -> 
-	x0
-    | FFF (l, x, r) | PPF (l, x, r) | PFF (l, x, r) | PFP (l, x, r) -> 
-	fold f l (fold f r (f x x0))
-*)
+   let rec fold f h x0 = match h with
+   | Empty -> 
+   x0
+   | FFF (l, x, r) | PPF (l, x, r) | PFF (l, x, r) | PFP (l, x, r) -> 
+   fold f l (fold f r (f x x0))
+ *)
 
   let rec fold f h x0 = match h with
-    | Empty -> 
-	x0
-    | FFF (l, x, r) | PPF (l, x, r) | PFF (l, x, r) | PFP (l, x, r) -> 
-	fold f l (fold f r (f x0 x))
+  | Empty -> 
+      x0
+  | FFF (l, x, r) | PPF (l, x, r) | PFF (l, x, r) | PFP (l, x, r) -> 
+      fold f l (fold f r (f x0 x))
 
 end
 
@@ -573,7 +573,7 @@ module FunctionalEq(X : Ordered) = struct
      and [PFP] for a partial tree with a full left subtree and a partial
      right subtree.
      KK added lists to store elements whish are equal according to compare
- *)
+   *)
 
   type elt = X.t
   type elt_list = elt list
@@ -587,9 +587,9 @@ module FunctionalEq(X : Ordered) = struct
     | PPF of t * elt_list_ref * t (* partial (partial, full) *)
     | PFF of t * elt_list_ref * t (* partial (full,    full) *)
     | PFP of t * elt_list_ref * t (* partial (full,    partial) *)
-	
+	  
   let empty = Empty  
-   
+      
 
   let compare_elt_list el l  = 
     try 
@@ -604,12 +604,12 @@ module FunctionalEq(X : Ordered) = struct
       _-> failwith "heap compare_list_list: list should be non-empty"
 (*
   let apply_f_to_elem f = function
-    |FFF(l,y,r) -> FFF(l,(f y),r) 
-    |PPF(l,y,r) -> PPF(l,(f y),r)  
-    |PFF(l,y,r) -> PFF(l,(f y),r)  
-    |PFP(l,y,r) -> PFP(l,(f y),r)
-    |Empty -> Empty
-*)
+  |FFF(l,y,r) -> FFF(l,(f y),r) 
+  |PPF(l,y,r) -> PPF(l,(f y),r)  
+  |PFF(l,y,r) -> PFF(l,(f y),r)  
+  |PFP(l,y,r) -> PFP(l,(f y),r)
+  |Empty -> Empty
+ *)
 
   let apply_f_to_elem f = function
     |FFF(_,y,_) |PPF(_,y,_) |PFF(_,y,_) |PFP(_,y,_) -> (f y)
@@ -618,11 +618,11 @@ module FunctionalEq(X : Ordered) = struct
   exception Add_if_equal
   let add_if_equal x h =
     apply_f_to_elem (function y -> y := x::(!y)) h    
- 
-  (* smart constructors for insertion *)
+      
+      (* smart constructors for insertion *)
   let p_f l x r = match l with
-    | Empty | FFF _ -> PFF (l, x, r)
-    | _ -> PPF (l, x, r)
+  | Empty | FFF _ -> PFF (l, x, r)
+  | _ -> PPF (l, x, r)
 
   let pf_ l x = function
     | Empty | FFF _ as r -> FFF (l, x, r)
@@ -632,12 +632,12 @@ module FunctionalEq(X : Ordered) = struct
   let rec add_list x = function
     | Empty -> 
 	FFF (Empty, x, Empty)
-    (* insertion to the left *)
+	  (* insertion to the left *)
     | FFF (l, y, r) | PPF (l, y, r) ->
 	if compare_list_list x y > 0 
 	then p_f (add_list y l) x r 
 	else p_f (add_list x l) y r
-    (* insertion to the right *)
+	    (* insertion to the right *)
     | PFF (l, y, r) | PFP (l, y, r) ->
 	if compare_list_list x y > 0 
 	then pf_ l x (add_list y r) 
@@ -648,7 +648,7 @@ module FunctionalEq(X : Ordered) = struct
     match heap with 
     | Empty -> 
 	FFF (Empty, (ref [x]), Empty)
-    (* insertion to the left *)
+	  (* insertion to the left *)
     | FFF (l, y, r) | PPF (l, y, r) ->
 	let cmp = compare_elt_list x y in
 	if cmp = 0 then 
@@ -657,11 +657,11 @@ module FunctionalEq(X : Ordered) = struct
 	   raise Add_if_equal)
 	else
 	  ((*out_str "Add Heap compare not equal\n";*)
-	  if  compare_elt_list x y > 0 
-	  then p_f (add_list y l) (ref [x]) r 
-	  else p_f (add' x l) y r)
+	   if  compare_elt_list x y > 0 
+	   then p_f (add_list y l) (ref [x]) r 
+	   else p_f (add' x l) y r)
 
-    (* insertion to the right *)
+	    (* insertion to the right *)
     | PFF (l, y, r) | PFP (l, y, r) ->
 	let cmp = compare_elt_list x y in
 	if cmp = 0 then 
@@ -670,9 +670,9 @@ module FunctionalEq(X : Ordered) = struct
 	   raise Add_if_equal)
 	else
 	  ((*out_str "Add Heap compare equal\n";*)
-	  if cmp > 0 
-	  then pf_ l (ref [x]) (add_list y r) 
-	  else pf_ l y (add' x r))
+	   if cmp > 0 
+	   then pf_ l (ref [x]) (add_list y r) 
+	   else pf_ l y (add' x r))
 
 (* need this to preserve FFF properties...*)
   let add x heap = 
@@ -681,21 +681,21 @@ module FunctionalEq(X : Ordered) = struct
     with 
       Add_if_equal -> heap
 
- let maximum_list = function
+  let maximum_list = function
     | Empty -> raise EmptyHeap
     | FFF (_, x, _) | PPF (_, x, _) | PFF (_, x, _) | PFP (_, x, _) -> x
- 
+	  
 
   let maximum = function
     | Empty -> raise EmptyHeap
     | FFF (_, x, _) | PPF (_, x, _) | PFF (_, x, _) | PFP (_, x, _) -> 
 	try (List.hd !x) with _-> failwith "heap maximum: should not be empty"
 
-  (* smart constructors for removal; note that they are different
-     from the ones for insertion! *)
+	    (* smart constructors for removal; note that they are different
+	       from the ones for insertion! *)
   let p_f l x r = match l with
-    | Empty | FFF _ -> FFF (l, x, r)
-    | _ -> PPF (l, x, r)
+  | Empty | FFF _ -> FFF (l, x, r)
+  | _ -> PPF (l, x, r)
 
   let pf_ l x = function
     | Empty | FFF _ as r -> PFF (l, x, r)
@@ -711,7 +711,7 @@ module FunctionalEq(X : Ordered) = struct
 	Empty
     | PFF (l, _, Empty) ->
 	l
-    (* remove on the left *)
+	  (* remove on the left *)
     | PPF (l, x, r) | PFF (l, x, r) ->
         let xl = maximum_list l in
 	let xr = maximum_list r in
@@ -720,7 +720,7 @@ module FunctionalEq(X : Ordered) = struct
 	  p_f l' xl r 
 	else 
 	  p_f l' xr (add_list xl (remove_list r))
-    (* remove on the right *)
+	    (* remove on the right *)
     | FFF (l, x, r) | PFP (l, x, r) ->
         let xl = maximum_list l in
 	let xr = maximum_list r in
@@ -756,7 +756,7 @@ module FunctionalEq(X : Ordered) = struct
 		
 	  | PFF (l, _, Empty) -> l
 
-    (* remove on the left *)
+		(* remove on the left *)
 	  | PPF (l, x, r) | PFF (l, x, r) ->
               let xl = maximum_list l in
 	      let xr = maximum_list r in
@@ -768,7 +768,7 @@ module FunctionalEq(X : Ordered) = struct
 		p_f l' xl r 
 	      else 
 		p_f l' xr (add_list xl (remove_list r))
-    (* remove on the right *)
+		  (* remove on the right *)
 	  | FFF (l, x, r) | PFP (l, x, r) ->
               let xl = maximum_list l in
 	      let xr = maximum_list r in
@@ -787,9 +787,9 @@ module FunctionalEq(X : Ordered) = struct
 	iter f l; List.iter f !x; iter f r
 
   let rec fold f h x0 = match h with
-    | Empty -> 
-	x0
-    | FFF (l, x, r) | PPF (l, x, r) | PFF (l, x, r) | PFP (l, x, r) -> 
-	fold f l (fold f r (List.fold_left f x0 !x))
+  | Empty -> 
+      x0
+  | FFF (l, x, r) | PPF (l, x, r) | PFF (l, x, r) | PFP (l, x, r) -> 
+      fold f l (fold f r (List.fold_left f x0 !x))
 
 end

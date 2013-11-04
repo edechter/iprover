@@ -54,4 +54,4 @@ let remove symbol symbol_db =
 let map f symbol_db = 
   {db        = (SymbolDBM.map f symbol_db.db); 
    num_of_el = symbol_db.num_of_el}
-   
+    

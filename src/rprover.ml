@@ -18,7 +18,7 @@
 
 
 
- 
+
 
 open Lib
 open Printf
@@ -61,7 +61,7 @@ let spec_list =
    ("--include_path", Arg.String(include_path_fun), "include path prefix");
    ("--input_file", Arg.String(input_file_fun), "input file name")
  ]
-        
+    
 let usage_msg = 
   "iproveropt [--problem_path path_prefix] [--include_path path_prefix] [--input_file file] input_file_1 ... input_file_n"
     
@@ -76,9 +76,9 @@ let () =
   options.problem_files <- (List.map add_path options.problem_files)
 
 (*
-let problem_files_out = 
+  let problem_files_out = 
   out_str_debug ("%Problem files: "^(list_of_str_to_str options.problem_files ",")^"\n")
-*) 
+ *) 
 
 let parsed_all = 
   ParseFiles.parse_files options.include_path options.problem_files
@@ -86,8 +86,8 @@ let parsed_all =
 let _ = Parsed_input_to_db.parsed_input_to_db parsed_all
 
 (*let ()=out_str_debug ("debug iprover:\n "
-		^(Clause.clause_list_to_string !Parsed_input_to_db.clause_list_ref))
-*) 
+  ^(Clause.clause_list_to_string !Parsed_input_to_db.clause_list_ref))
+ *) 
 
 (****************************************)
 let () = Discount.start_discount ()
@@ -104,60 +104,60 @@ let () = Discount.start_discount ()
 (*let ()=Discount.try_subsumption_all ()*)
 
 (*
-module DTParam = struct let num_of_symb = (SymbolDB.size !symbol_db_ref) end
-module DiscrTreeM =  DiscrTree.Make(DTParam)
- 
-let unif_index_ref = ref (DiscrTreeM.create ())
+  module DTParam = struct let num_of_symb = (SymbolDB.size !symbol_db_ref) end
+  module DiscrTreeM =  DiscrTree.Make(DTParam)
+  
+  let unif_index_ref = ref (DiscrTreeM.create ())
 
-let fill_unif_index term_db unif_index_ref= 
+  let fill_unif_index term_db unif_index_ref= 
   let f term = 
-    let elem_ref = DiscrTreeM.add_term_path term unif_index_ref in
-    match !elem_ref with
-    |Elem(elem)  -> elem_ref:= Elem(term::elem)
-    |Empty_Elem  -> elem_ref:= Elem([term]) 
+  let elem_ref = DiscrTreeM.add_term_path term unif_index_ref in
+  match !elem_ref with
+  |Elem(elem)  -> elem_ref:= Elem(term::elem)
+  |Empty_Elem  -> elem_ref:= Elem([term]) 
   in
   TermDB.iter f term_db 
-    
-let () = fill_unif_index !term_db_ref unif_index_ref 
+  
+  let () = fill_unif_index !term_db_ref unif_index_ref 
 
-let term_list_to_string t_list = 
+  let term_list_to_string t_list = 
   list_to_string Term.to_string t_list ";"
 
-let () = 
+  let () = 
   let f clause =  
-    out_str_debug ((Clause.to_string clause)^"--"
-	     ^"["^( term_list_to_string (Selection.literal_neg_selection clause))^"]") 
+  out_str_debug ((Clause.to_string clause)^"--"
+  ^"["^( term_list_to_string (Selection.literal_neg_selection clause))^"]") 
   in
   ClauseAssignDB.iter f !clause_db_ref
 
-*)
+ *)
 
 (*
-let () = 
+  let () = 
   let f t = 
-    let g s = 
-      let cmp = Orderings.simple_kbo t s in  
-      if cmp > cequal 
-      then out_str_debug ("("^(Term.to_string t)^" greater than "^(Term.to_string s)^")") 
-      else 
-	if cmp =0 
-	then  
-	  out_str_debug ("("^(Term.to_string t)^" greater or equal than "
-	  ^(Term.to_string s)^")")
-	else 	
-	  out_str_debug ("("^(Term.to_string t)^" NOT greater or equal than "
-	  ^(Term.to_string s)^")")
-    in
-     TermDB.iter g !term_db_ref
+  let g s = 
+  let cmp = Orderings.simple_kbo t s in  
+  if cmp > cequal 
+  then out_str_debug ("("^(Term.to_string t)^" greater than "^(Term.to_string s)^")") 
+  else 
+  if cmp =0 
+  then  
+  out_str_debug ("("^(Term.to_string t)^" greater or equal than "
+  ^(Term.to_string s)^")")
+  else 	
+  out_str_debug ("("^(Term.to_string t)^" NOT greater or equal than "
+  ^(Term.to_string s)^")")
+  in
+  TermDB.iter g !term_db_ref
   in TermDB.iter f !term_db_ref
-*)
+ *)
 (*
-let () = 
+  let () = 
   let f term =
-    let unif_cand_str =  
-      term_list_to_string (DiscrTreeM.unif_candidates !unif_index_ref term ) in
-    out_str_debug
-      ( "Unif candidates for "^(Term.to_string term)^" is " 
-	^unif_cand_str^"\n") in
+  let unif_cand_str =  
+  term_list_to_string (DiscrTreeM.unif_candidates !unif_index_ref term ) in
+  out_str_debug
+  ( "Unif candidates for "^(Term.to_string term)^" is " 
+  ^unif_cand_str^"\n") in
   TermDB.iter f !term_db_ref
-*)
+ *)

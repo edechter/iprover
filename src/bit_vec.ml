@@ -44,8 +44,8 @@ let get (i: int) (v: bit_vec) =
   then
 (* lsr shift right*)     
     if ((v lsr i) mod 2) = 0
-     then false 
-     else true
+    then false 
+    else true
   else
     failwith "bit_vec: trying to access over the range of bit_vec"
       

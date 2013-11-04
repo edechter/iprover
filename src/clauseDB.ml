@@ -25,7 +25,7 @@ module ClauseKey =
   struct
     type t       = clause
     let  compare = Clause.compare
- end
+  end
 
 module ClauseDBM =  AbstDB.Make (ClauseKey)
 
@@ -44,7 +44,7 @@ let iter     = ClauseDBM.iter
 let add_ref  = ClauseDBM.add_ref 
 
 let add  = ClauseDBM.add
-     
+    
 
 let get_name = ClauseDBM.get_name
 
@@ -58,6 +58,6 @@ let to_string clause_db =
   ClauseDBM.to_string Clause.to_stream ",\n" clause_db
 
 (*
-let to_string clause_db = 
+  let to_string clause_db = 
   ClauseDBM.to_string Clause.to_string ",\n" clause_db
-*)
+ *)

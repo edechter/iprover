@@ -69,11 +69,11 @@ module Make(El : ElemDB) =
 	let compare = El.compare
       end
     module BasicAbstDB =  AbstDB.Make (BasicElem) 
-  
+	
     type abstDB = { db : BasicAbstDB.abstDB; 
 		    greatest_key : int }
 
-    (* greates unused key*)
+	  (* greates unused key*)
     let create () = 
       { db = BasicAbstDB.create (); greatest_key = 0 }
 
@@ -82,7 +82,7 @@ module Make(El : ElemDB) =
 
     let get_name elem_db  = BasicAbstDB.get_name elem_db.db
 
-    (* Return the unique identifier of the database *)
+	(* Return the unique identifier of the database *)
     let get_db_id elem_db  = BasicAbstDB.get_db_id elem_db.db
 
     let mem elem elem_db  = BasicAbstDB.mem elem elem_db.db
@@ -92,7 +92,7 @@ module Make(El : ElemDB) =
 
     let iter f elem_db = BasicAbstDB.iter f elem_db.db
 
-   (*add_ref is diff from abstDB*)
+	(*add_ref is diff from abstDB*)
 
     let add_ref elem elem_db_ref = 
       try (find elem !elem_db_ref)
@@ -115,7 +115,7 @@ module Make(El : ElemDB) =
       let _= add_ref elem elem_db_ref in
       !elem_db_ref
 	
-  (*note that remove does not decrease the greatest_key*)   	   
+	(*note that remove does not decrease the greatest_key*)   	   
     let remove elem elem_db =   
       {db   = (BasicAbstDB.remove elem elem_db.db); 
        greatest_key = elem_db.greatest_key }
@@ -135,4 +135,4 @@ module Make(El : ElemDB) =
 (*debug*)
     let  get_greatest_key elem_db = elem_db.greatest_key
 
-end
+  end

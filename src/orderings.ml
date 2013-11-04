@@ -25,7 +25,7 @@ type term = Term.term
 (* follows the interface of compare*)
 
 (* we assume that all useful info is assigned 
-  i.e. we have already put term in  term_db*)
+   i.e. we have already put term in  term_db*)
 
 (* simple_kbo
    weight of each sybol is 1, 
@@ -58,56 +58,56 @@ let compare_vars exception_vars t_vars s_vars =
 	  else exception_vars
       with Not_found -> raise T_vars_less_than_s_vars
   in
- List.fold_left f exception_vars s_vars
+  List.fold_left f exception_vars s_vars
 
 (* returns cequal if t greater or equal to s and 
    returns cequal+1 if t is strictly greater
    returns cequal-1 if it is not the case*)    
 
 (*-----------------------------Commented
- old KBO works but not efficient on the other hand more restrictive
+  old KBO works but not efficient on the other hand more restrictive
 (* uncomment minimal constant when it will be defined*)
-let rec general_kbo' 
-    get_weight compare_precedence (*minimal_constant*) exception_vars t s = 
+  let rec general_kbo' 
+  get_weight compare_precedence (*minimal_constant*) exception_vars t s = 
   try 
-    let new_exception_vars = 
-      compare_vars exception_vars 
-	(Term.get_var_list t) (Term.get_var_list s) in    
-    let weight_cmp = compare (get_weight t) (get_weight s) in
-    if weight_cmp > cequal 
-    then cequal+1
-    else
-      if weight_cmp = cequal 
-      then
-	(match (t,s) with 
-	|(Term.Fun(t_sym,t_args,_),Term.Fun(s_sym,s_args,_)) -> 
-	    let sym_cmp = compare_precedence t_sym s_sym in
-	    if sym_cmp > 0 then cequal+1
-	    else 
-	      if sym_cmp = cequal 
-	      then  
-		list_compare_lex 
-		  (general_kbo' get_weight compare_precedence new_exception_vars) 
-		  (Term.arg_to_list t_args) (Term.arg_to_list s_args) 
-              else cequal-1 
-	|(Term.Fun(_,_,_),Term.Var(_,_)) -> cequal+1 
-              (* note that the var on the left occurs in the right *)
-	|(Term.Var(_,_), Term.Var(_,_))  -> cequal
+  let new_exception_vars = 
+  compare_vars exception_vars 
+  (Term.get_var_list t) (Term.get_var_list s) in    
+  let weight_cmp = compare (get_weight t) (get_weight s) in
+  if weight_cmp > cequal 
+  then cequal+1
+  else
+  if weight_cmp = cequal 
+  then
+  (match (t,s) with 
+  |(Term.Fun(t_sym,t_args,_),Term.Fun(s_sym,s_args,_)) -> 
+  let sym_cmp = compare_precedence t_sym s_sym in
+  if sym_cmp > 0 then cequal+1
+  else 
+  if sym_cmp = cequal 
+  then  
+  list_compare_lex 
+  (general_kbo' get_weight compare_precedence new_exception_vars) 
+  (Term.arg_to_list t_args) (Term.arg_to_list s_args) 
+  else cequal-1 
+  |(Term.Fun(_,_,_),Term.Var(_,_)) -> cequal+1 
+  (* note that the var on the left occurs in the right *)
+  |(Term.Var(_,_), Term.Var(_,_))  -> cequal
 
-	|(Term.Var(_,_), Term.Fun(_,_,_)) -> cequal-1
+  |(Term.Var(_,_), Term.Fun(_,_,_)) -> cequal-1
 (* uncomment when minimal constant will be defined
 
-	|(Term.Var(t_v,_), Term.Fun(s_sym,_,_)) ->
-            if (Symbol.compare s_sym minimal_constant)=0 
-	    then cequal 
-	    else cequal-1
-*)
-	)
-      else cequal-1
+   |(Term.Var(t_v,_), Term.Fun(s_sym,_,_)) ->
+   if (Symbol.compare s_sym minimal_constant)=0 
+   then cequal 
+   else cequal-1
+ *)
+  )
+  else cequal-1
   with 
-    T_vars_less_than_s_vars -> cequal-1 
-    
-*)
+  T_vars_less_than_s_vars -> cequal-1 
+  
+ *)
 
 
 
@@ -117,7 +117,7 @@ let rec general_kbo'
   if 
     (weight_cmp < cequal)  
 (*|| 
-    ((Term.get_num_of_var t) < (Term.get_num_of_var s))*)
+  ((Term.get_num_of_var t) < (Term.get_num_of_var s))*)
   then cequal-1   
   else
     try 
@@ -140,28 +140,28 @@ let rec general_kbo'
 		  (Term.arg_to_list t_args) (Term.arg_to_list s_args) 
               else cequal-1 
 	|(Term.Fun(_,_,_),Term.Var(_,_)) -> cequal+1 
-	   (* if (Term.var_in v_s t)
-	    then cequal+1 
-	    else cequal-1*)
-		
+	      (* if (Term.var_in v_s t)
+		 then cequal+1 
+		 else cequal-1*)
+	      
 	|(Term.Var(_,_), Term.Var(_,_))  ->  cequal
 (*	    if (Var.equal v_t v_s) 
-	    then cequal
-	  else cequal-1
-*)
-		
+  then cequal
+  else cequal-1
+ *)
+	      
 	|(Term.Var(_,_), Term.Fun(_,_,_)) -> cequal-1
 (* uncomment when minimal constant will be defined
    
-	|(Term.Var(t_v,_), Term.Fun(s_sym,_,_)) ->
-            if (Symbol.compare s_sym minimal_constant)=0 
-	    then cequal 
-	    else cequal-1
-*)
+   |(Term.Var(t_v,_), Term.Fun(s_sym,_,_)) ->
+   if (Symbol.compare s_sym minimal_constant)=0 
+   then cequal 
+   else cequal-1
+ *)
 	)
     with 
       T_vars_less_than_s_vars -> cequal-1 
-    
+	  
 
 let general_kbo  get_weight compare_precedence t s = 
   general_kbo' get_weight compare_precedence [] t s
@@ -170,9 +170,9 @@ let general_kbo  get_weight compare_precedence t s =
 let simple_kbo = general_kbo Term.get_num_of_symb Symbol.compare
 
 (*
-let ()= out_str "!!!!Debug orderigns \n"
-let simple_kbo t s =  -1
-*)
+  let ()= out_str "!!!!Debug orderigns \n"
+  let simple_kbo t s =  -1
+ *)
 
 
 let simple_kbo_lit l1 l2 = 

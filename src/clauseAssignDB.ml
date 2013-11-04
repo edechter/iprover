@@ -26,7 +26,7 @@ module ClauseKey =
     let compare = Clause.compare_key
     let assign_fast_key = Clause.assign_fast_key
     let assign_db_id = Clause.assign_db_id
- end
+  end
 
 module ClauseDBM =  AbstAssignDB.Make (ClauseKey)
 
@@ -48,9 +48,9 @@ let add_ref clause db_ref  =
 
 (* should be copyed since add_ref is different....*)
 let add elem elem_db =
-      let elem_db_ref = ref elem_db in
-      let _= add_ref elem elem_db_ref in
-      !elem_db_ref
+  let elem_db_ref = ref elem_db in
+  let _= add_ref elem elem_db_ref in
+  !elem_db_ref
 
 
 let remove clause clause_db  = 

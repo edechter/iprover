@@ -15,7 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
- 
+
 
 module type Elem = 
   sig
@@ -25,22 +25,22 @@ module type Elem =
   end
 
 module type UF = 
-    sig 
-      type e
-      type t
+  sig 
+    type e
+    type t
 
 (* expected size *)
-      val create : int -> t
-      val add : t -> e -> unit
-      val find : t -> e -> e 
-      val union : t -> e -> e -> unit
-      val iter : (e -> e -> unit) -> t -> unit
-      val length : t -> int
-    end 
+    val create : int -> t
+    val add : t -> e -> unit
+    val find : t -> e -> e 
+    val union : t -> e -> e -> unit
+    val iter : (e -> e -> unit) -> t -> unit
+    val length : t -> int
+  end 
 
 (*module Make: 
-functor (Elem : Elem) -> UF with type e = Elem.t
-*)
+  functor (Elem : Elem) -> UF with type e = Elem.t
+ *)
 
 module Make(E : Elem) =
   struct

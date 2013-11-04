@@ -34,17 +34,17 @@ module type PropStruct =
     val get_var : lit -> var
     val compare_var : var -> var -> int
     val var_to_string : var -> string
- (*  val compare_lit : lit -> lit -> int
-    val get_num_lit : clause -> int
-    val iter_clause : (lit -> unit) -> clause -> unit
-    val find_lit    : (lit -> bool) -> clause -> lit
-*)
+	(*  val compare_lit : lit -> lit -> int
+	    val get_num_lit : clause -> int
+	    val iter_clause : (lit -> unit) -> clause -> unit
+	    val find_lit    : (lit -> bool) -> clause -> lit
+	 *)
   end
 
 module type DPLL = 
   sig
 (*    type var 
-    type lit *)
+      type lit *)
     type clause 
     type state
     val create_init_state : unit -> state
@@ -61,14 +61,14 @@ module Make(PropStruct:PropStruct) =
     let compare_var = PropStruct.compare_var
     let pos_lit     = PropStruct.pos_lit
 (* use later 
-    module VarSetElm =     
-      struct
-	type t = var
-	let compare =  PropStruct.compare_var
-      end
+   module VarSetElm =     
+   struct
+   type t = var
+   let compare =  PropStruct.compare_var
+   end
 
-    module VarSet = Set.Make(VarSetElm)
-*)
+   module VarSet = Set.Make(VarSetElm)
+ *)
     type decision_status = Decision | Implied
     type polarity = Pos | Neg
     type clause_ext = 
@@ -126,7 +126,7 @@ module Make(PropStruct:PropStruct) =
         num_of_lit = 0;
         num_of_true_lit = 0; 
         num_of_false_lit = 0;
-     }
+      }
 
     let create_init_state () = 
       {
@@ -143,13 +143,13 @@ module Make(PropStruct:PropStruct) =
       match param with 
       |Def(v) -> val_to_string v
       |Undef  -> "Undef" 
- 
+	    
     let decison_status_to_str = function 
 	Implied -> "Implied"
       |Decision -> "Decision"
 
     let var_to_str_long var_ext =
-       " Var:"
+      " Var:"
       ^(PropStruct.var_to_string var_ext.var) 
       ^" assignment:"^(param_to_str string_of_bool var_ext.assignment)
       ^" is_flipped:"^(string_of_bool var_ext.is_flipped) 
@@ -158,16 +158,16 @@ module Make(PropStruct:PropStruct) =
       ^"\n"  
 
     let lit_to_str_long lit= 
-    let pol_str =  
-      if lit.polarity = Pos 
-      then ""
-      else "-"
-    in pol_str^(var_to_str_long lit.var_ext)
-    
+      let pol_str =  
+	if lit.polarity = Pos 
+	then ""
+	else "-"
+      in pol_str^(var_to_str_long lit.var_ext)
+		    
 
     let clause_to_str_long clause =
       "["^(list_to_string lit_to_str_long clause.lit_list ",")^"]\n" 
- 
+								  
     let get_param p =
       match p with 
       | Def(v) -> v
@@ -195,17 +195,17 @@ module Make(PropStruct:PropStruct) =
 
     let is_unit clause_ext = 
       if ((not (is_sat clause_ext)) && 
-	(clause_ext.num_of_lit - clause_ext.num_of_false_lit = 1))
+	  (clause_ext.num_of_lit - clause_ext.num_of_false_lit = 1))
       then true 
       else false
-     
+	  
     let is_conflict clause_ext =
       if clause_ext.num_of_lit = clause_ext.num_of_false_lit
       then true
       else false
 
 
-   let add_clause state clause = 
+    let add_clause state clause = 
       let clause_ext = create_empty_clause () in
       let add_lit lit = 
 	let var = get_var lit in
@@ -253,12 +253,12 @@ module Make(PropStruct:PropStruct) =
 	then state.init_units <- clause_ext::state.init_units)
       );
       state.clause_list <- clause_ext::state.clause_list
-     (* out_str (clause_to_str_long clause_ext)*)
+					 (* out_str (clause_to_str_long clause_ext)*)
 
 
     let add_clause_list state clause_list = 
       List.iter (add_clause state) clause_list
-     
+	
 
 
     let num_of_unsat_with_var var = 
@@ -273,33 +273,33 @@ module Make(PropStruct:PropStruct) =
 
 
     let make_next_split state =    
-	let cmp v1 v2 = 
-	  compare (num_of_unsat_with_var v1) (num_of_unsat_with_var v2) in      
-	let split_var = 
-	  (try (list_find_max_element_p is_free cmp state.var_list)
-	  with Not_found -> 
-	    (*out_str "\n make_next_split: not found\n"; *)
-	    raise Satisfiable )
-	in
-	let add_unsat rest clause =
-	  if (is_sat clause) then rest else rest + 1 in 
-	let pos_unsat = List.fold_left add_unsat 0 split_var.pos_occur in 
-	let neg_unsat = List.fold_left add_unsat 0 split_var.neg_occur in 
-	if (pos_unsat = 0 && neg_unsat = 0 )
-	then raise Satisfiable (* since we choose var with max unsat*) 
-	else  
-	  (
-	   state.decision_var <- Def(split_var);
-	   split_var.var_decision_level <- Def(state.decision_level);
-	   split_var.decision_status <- Def(Decision);
-	   Stack.push split_var state.decision_stack; 
-	   (if pos_unsat > neg_unsat 
-	   then split_var.assignment <- Def(true)
-	   else split_var.assignment <- Def(false));
-	   out_str 
-	     (" Decision Level: "^(string_of_int state.decision_level)^"\n"
-	      ^"Decision_var:"^(var_to_str_long split_var)^"\n")
-	  )
+      let cmp v1 v2 = 
+	compare (num_of_unsat_with_var v1) (num_of_unsat_with_var v2) in      
+      let split_var = 
+	(try (list_find_max_element_p is_free cmp state.var_list)
+	with Not_found -> 
+	  (*out_str "\n make_next_split: not found\n"; *)
+	  raise Satisfiable )
+      in
+      let add_unsat rest clause =
+	if (is_sat clause) then rest else rest + 1 in 
+      let pos_unsat = List.fold_left add_unsat 0 split_var.pos_occur in 
+      let neg_unsat = List.fold_left add_unsat 0 split_var.neg_occur in 
+      if (pos_unsat = 0 && neg_unsat = 0 )
+      then raise Satisfiable (* since we choose var with max unsat*) 
+      else  
+	(
+	 state.decision_var <- Def(split_var);
+	 split_var.var_decision_level <- Def(state.decision_level);
+	 split_var.decision_status <- Def(Decision);
+	 Stack.push split_var state.decision_stack; 
+	 (if pos_unsat > neg_unsat 
+	 then split_var.assignment <- Def(true)
+	 else split_var.assignment <- Def(false));
+	 out_str 
+	   (" Decision Level: "^(string_of_int state.decision_level)^"\n"
+	    ^"Decision_var:"^(var_to_str_long split_var)^"\n")
+	)
 
     let rec free_var var =
       var.is_flipped <- false;
@@ -324,7 +324,7 @@ module Make(PropStruct:PropStruct) =
 
 (*flips the var and changes state.decision_level to this var.var_decision_level
   assign conflict lits from state to this var *)
-      
+	  
     let flip_var state var = 
       if (not var.is_flipped)
       then
@@ -338,11 +338,11 @@ module Make(PropStruct:PropStruct) =
 	     var.is_flipped <- true;
 	     var.var_conflict_lit_list <- state.conflict_lit_list;
 	     state.decision_var <- Def(var)	    
-	      )
+	    )
 	|_-> failwith "dpll: flip_var ass undef"
       else
 	failwith "dpll: flip_var var already flipped"
-	    
+	  
 (* later change to backjumping using state.conflict_clause*)
 
     exception Backtrack
@@ -389,40 +389,40 @@ module Make(PropStruct:PropStruct) =
 	  free_var var;
 	  free_to_level state level
 	else
-	state.decision_level <- (get_param top.var_decision_level)
+	  state.decision_level <- (get_param top.var_decision_level)
       with Stack.Empty -> raise Unsatisfiable
-	    
+	  
 (* not correct.... do later 
 
-    exception Backjump 
+   exception Backjump 
 
-    let rec backjump state = 
-      try   
-	let var = Stack.top state.decision_stack in  
-	state.decision_level <- (get_param var.var_decision_level);
-	if var.is_flipped 
-	then 
-	  (	
-	  let var_conflict =  get_param var.var_conflict_lit_list in
-	  let state_conflict = get_param state.conflict_lit_list in
-	  let new_conflict =  
-	    resolve var_conflict state_conflict state.decision_level in
-	  out_str 
-	    ("Decision Level: "^(string_of_int state.decision_level)^"\n"
-	     ^"Var_conflict: "^(list_to_string lit_to_str_long var_conflict "," )^"\n"
-	     ^"State_conflict: "
-	     ^(list_to_string lit_to_str_long state_conflict "," )^"\n");
-	  (if new_conflict = [] then raise Unsatisfiable);
-	  state.conflict_lit_list <- Def(new_conflict);
+   let rec backjump state = 
+   try   
+   let var = Stack.top state.decision_stack in  
+   state.decision_level <- (get_param var.var_decision_level);
+   if var.is_flipped 
+   then 
+   (	
+   let var_conflict =  get_param var.var_conflict_lit_list in
+   let state_conflict = get_param state.conflict_lit_list in
+   let new_conflict =  
+   resolve var_conflict state_conflict state.decision_level in
+   out_str 
+   ("Decision Level: "^(string_of_int state.decision_level)^"\n"
+   ^"Var_conflict: "^(list_to_string lit_to_str_long var_conflict "," )^"\n"
+   ^"State_conflict: "
+   ^(list_to_string lit_to_str_long state_conflict "," )^"\n");
+   (if new_conflict = [] then raise Unsatisfiable);
+   state.conflict_lit_list <- Def(new_conflict);
 
-	  let new_level = analyse_conflict state in
-	  free_to_level state new_level;
-	  backjump state
-	 )
-	else	  
-	  flip_var state var
-      with Stack.Empty -> raise Unsatisfiable
-*)	  
+   let new_level = analyse_conflict state in
+   free_to_level state new_level;
+   backjump state
+   )
+   else	  
+   flip_var state var
+   with Stack.Empty -> raise Unsatisfiable
+ *)	  
 	  
     let rec deduce state var = 
       let (sat_occur,unsat_occur) = 
@@ -451,15 +451,15 @@ module Make(PropStruct:PropStruct) =
       List.iter check_impl unsat_occur
     and
 	
-   unit_propagate state clause =
-     	
-    let is_free_lit lit = 
-      is_free lit.var_ext in
-    let free_lit = 
-      try 
-	List.find is_free_lit clause.lit_list 
-      with Not_found -> failwith "unit propagate: not unit"
-    in
+	unit_propagate state clause =
+      
+      let is_free_lit lit = 
+	is_free lit.var_ext in
+      let free_lit = 
+	try 
+	  List.find is_free_lit clause.lit_list 
+	with Not_found -> failwith "unit propagate: not unit"
+      in
       let var = free_lit.var_ext in
       let decision_var = get_decision_var state in   
       decision_var.implied_vars  <- 
@@ -470,7 +470,7 @@ module Make(PropStruct:PropStruct) =
 	("\n Unit Pr: "^(clause_to_str_long clause)^"\n"
 	 ^"On Lit:"^(lit_to_str_long free_lit)^"\n"); 
 
-     match free_lit.polarity with 
+      match free_lit.polarity with 
       |Pos ->
 	  (var.assignment <- Def(true);
 	   deduce state var)
@@ -482,54 +482,54 @@ module Make(PropStruct:PropStruct) =
     let dpll_loop state =
       try 
 (*	while true 
-	do  
-*)
-	  make_next_split state;
-	  (*out_str 
-	    ("Nex split Var: "
-	     ^(var_to_str_long 
-		 (get_decision_var state))
-	     ^"Assignment: "
-	     ^(string_of_bool (get_assingment (get_decision_var state)))^"\n");*)
-	  while true  
-	  do
-	    try	    
-	      deduce state (get_decision_var state);	   
-	      state.decision_level <- state.decision_level + 1;	 
-	      make_next_split state;
-	 (*    out_str ("Nex split Var: "
-	       ^(var_to_str_long 
-		   (get_decision_var state))
-	       ^"Assignment: "
-	       ^(string_of_bool (get_assingment (get_decision_var state)))^"\n")*)
-	    with Backtrack -> backtrack state (* state is changed on backtrack*)
-	  done
+  do  
+ *)
+	make_next_split state;
+	(*out_str 
+	  ("Nex split Var: "
+	  ^(var_to_str_long 
+	  (get_decision_var state))
+	  ^"Assignment: "
+	  ^(string_of_bool (get_assingment (get_decision_var state)))^"\n");*)
+	while true  
+	do
+	  try	    
+	    deduce state (get_decision_var state);	   
+	    state.decision_level <- state.decision_level + 1;	 
+	    make_next_split state;
+	    (*    out_str ("Nex split Var: "
+		  ^(var_to_str_long 
+		  (get_decision_var state))
+		  ^"Assignment: "
+		  ^(string_of_bool (get_assingment (get_decision_var state)))^"\n")*)
+	  with Backtrack -> backtrack state (* state is changed on backtrack*)
+	done
 (*	done*)
       with 
       |Satisfiable -> 
-	out_str 
+	  out_str 
 	    ("Sat Assignment: \n"
 	     ^(list_to_string var_to_str_long state.var_list "\n"));
 	  raise Satisfiable
       |Unsatisfiable -> raise Unsatisfiable 
-    
+	    
 	    
     let dpll state clause_list = 
       add_clause_list state clause_list;      
 (* cannot unit popagate initial clauses yet...
    problem with the finding the decision var which caused the unit 
 
-      let init_unit_propagate unit_cl = 
-	if (is_unit unit_cl) then 
-	  unit_propagate state unit_cl
-	else 
-	  if (is_conflict unit_cl) 
-	  then raise Unsatisfiable 
-      in
-      List.iter (unit_propagate state) state.init_units;	
-      state.init_units <- [];    
-*)  
+   let init_unit_propagate unit_cl = 
+   if (is_unit unit_cl) then 
+   unit_propagate state unit_cl
+   else 
+   if (is_conflict unit_cl) 
+   then raise Unsatisfiable 
+   in
+   List.iter (unit_propagate state) state.init_units;	
+   state.init_units <- [];    
+ *)  
       dpll_loop state
-    
+	
   end
-	  
+    

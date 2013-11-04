@@ -31,8 +31,8 @@ type 'a table =
 let create init_size x = 
   {array   = Array.make init_size x;
    max_key = 0; array_size = init_size}
- (* max_key is current unused key *)
-   
+    (* max_key is current unused key *)
+    
 let num_of_elem table = table.max_key
     
 let get table key = Array.get table.array key

@@ -46,27 +46,27 @@ type var_term    = var * term
 
 
 (*
-let var_term_to_string (v,t) =  (Term.to_string t)^"/"^(Var.to_string v)  
-let to_string constr =  
+  let var_term_to_string (v,t) =  (Term.to_string t)^"/"^(Var.to_string v)  
+  let to_string constr =  
   "["^(Lib.list_to_string var_term_to_string constr ",")^"]"
 
-let constr_list_to_string constr_list = 
+  let constr_list_to_string constr_list = 
   Lib.list_to_string to_string constr_list "\n"
-*)
-  
+ *)
+      
 
 
 exception Constr_Not_Sat
 
 (*--------------------------------------------------------------------*)
 (*------------- List version of Dismating Constr.---------------------*)
- 
+    
 
 (* Constr is sat if it doesnot match the subst*)
 
 
 type constr_plain = var_term list
-    
+      
 type constr_set_plain  = 
     {set : constr_plain list;
      set_size        : int}
@@ -82,11 +82,11 @@ let create_constr_plain subst =
     list
 
 (*    
-let create_constr_plain subst = 
-  let f v t rest = (v,t)::rest
-  in
-  Subst.fold f subst []
-*)
+      let create_constr_plain subst = 
+      let f v t rest = (v,t)::rest
+      in
+      Subst.fold f subst []
+ *)
     
 let create_constr_set_plain () = {set = []; set_size = 0}
 
@@ -94,7 +94,7 @@ let add_constr_plain constr_set_plain subst =
   {set = (create_constr_plain subst)::(constr_set_plain.set);
    set_size = constr_set_plain.set_size + 1}
     
-  
+    
 exception Constr_sat
 let rec extend_env_norm env lterm rterm =
   match lterm with
@@ -140,9 +140,9 @@ let check_constr_set_plain constr_set_plain subst =
     not( List.exists 
 	   (fun constr -> not (check_constr_norm subst constr)) constr_set_plain.set) in
 (*  let end_time = Unix.gettimeofday () in
-  Statistics.add_float_stat (end_time -. start_time) Statistics.inst_dismatching_checking_time;*)
+    Statistics.add_float_stat (end_time -. start_time) Statistics.inst_dismatching_checking_time;*)
 (*  out_str_debug ("\n Constaint Check result: "^(string_of_bool res)^"\n");*)
-   res
+  res
 
 let check_and_add_plain constr_set_plain subst =
   if (check_constr_set_plain constr_set_plain subst) 
@@ -175,7 +175,7 @@ let out_constr_set_plain = to_stream_constr_set_plain stdout_stream
 
 let to_string_constr_set_plain = 
   to_string_fun_from_to_stream_fun 30 to_stream_constr_set_plain
-  
+    
 let to_flat_subst_list_constr_set_plain constr  = constr.set
 
 
@@ -208,7 +208,7 @@ module SKey =
   end
     
 module SM = Map.Make (SKey)
-  
+    
 module TKey = 
   struct 
     type t       = term
@@ -279,16 +279,16 @@ let rec add_constr_to_constr_set set constr =
 		with 
 		  Not_found -> Empty
 	      in
-	       let var_node_new = add_constr_to_constr_set var_node_old tl in
-	       let var_val_new = TM.add t var_node_new var_val_old in
-	       Node(v_n, var_val_new, sym_val_old)
+	      let var_node_new = add_constr_to_constr_set var_node_old tl in
+	      let var_val_new = TM.add t var_node_new var_val_old in
+	      Node(v_n, var_val_new, sym_val_old)
 	    else
 	      let top_symb = Term.get_top_symb t in 
 	      let term_val_old = 
 		try
-		   SM.find top_symb sym_val_old
+		  SM.find top_symb sym_val_old
 		with 
-		   Not_found -> TM.empty
+		  Not_found -> TM.empty
 	      in
 	      let term_node_old = 
 		try
@@ -302,7 +302,7 @@ let rec add_constr_to_constr_set set constr =
 	      Node(v_n, var_val_old, sym_val_new)
 	|[] -> Empty
       end
-		
+	
 let add_constr_index set subs = 
   let constr = create_constr_index subs in
   add_constr_to_constr_set set constr
@@ -337,11 +337,11 @@ let rec check_term_env' env set_term t =
 	else raise Check_Fails
       with
 	Not_found -> Subst.add  lv t env
-  
+	    
 
 let check_term_env env set_term t = 
   try 
-   (true, (check_term_env' env set_term t))
+    (true, (check_term_env' env set_term t))
   with 
     Check_Fails -> (false,env) 
 
@@ -428,25 +428,25 @@ let to_string_constr_set_index _set =
 let index_strarts_from = 10
 
 type ('a, 'b) mark = 
-     | L of 'a 
-     | I of 'b 
+  | L of 'a 
+  | I of 'b 
 
 
 let plain_set_to_index_set plain_set = 
   let f index_set constr_plain = 
-   let constr_index =    
+    let constr_index =    
 (* we already sorted them in plain impl. *)
 (*     List.sort 
        (fun (v1,_t) (v2,_t2)-> Var.compare v1 v2)*)
-       constr_plain
-   in
-   add_constr_to_constr_set index_set constr_index
+      constr_plain
+    in
+    add_constr_to_constr_set index_set constr_index
   in
   List.fold_left f (create_constr_set_index ()) plain_set.set 
 
 
 
-  
+    
 
 (*---------*)
 type constr_dyn = (constr_plain, constr_index) mark
@@ -482,20 +482,20 @@ let check_and_add_dyn set subs =
       else
 	let i_set = plain_set_to_index_set l_set in
 	I(check_and_add_index i_set subs)
-  
+	  
 let to_stream_constr_set_dyn s set = 
-    match set with 
-    |L(l_set) ->
-	to_stream_constr_set_plain s l_set
-    |I (_i_set) ->
-	s.stream_add_str "\n \"to_stream_constr_set_dyn\" is not defined yet\n"
+  match set with 
+  |L(l_set) ->
+      to_stream_constr_set_plain s l_set
+  |I (_i_set) ->
+      s.stream_add_str "\n \"to_stream_constr_set_dyn\" is not defined yet\n"
 
 let to_string_constr_set_dyn set = 
   match set with 
-    |L(l_set) ->
-	to_string_constr_set_plain l_set
-    |I (_i_set) ->
-	failwith "\n \"to_string_constr_set_dyn\" is not defined yet\n"
+  |L(l_set) ->
+      to_string_constr_set_plain l_set
+  |I (_i_set) ->
+      failwith "\n \"to_string_constr_set_dyn\" is not defined yet\n"
 
 
 let to_flat_subst_list_constr_set_dyn set = 
@@ -503,7 +503,7 @@ let to_flat_subst_list_constr_set_dyn set =
   |L(l_set) -> 
       to_flat_subst_list_constr_set_plain l_set 
   |I(_i_set) ->
-	failwith "\n \"to_flat_subst_set_dyn\" is not defined yet\n"
+      failwith "\n \"to_flat_subst_set_dyn\" is not defined yet\n"
 
 
 
@@ -530,29 +530,29 @@ let check_constr_set_debug (s_plain,s_index) subs =
     failwith "Dismatching Constraints Debug in check_constr_set_debug!!!\n"
 
 let check_and_add_debug (s_plain,s_index) subs = 
- let res_plain, s_plain_new = 
-   try 
-     (true, check_and_add_plain s_plain subs)
-   with 
-     Constr_Not_Sat 
-     -> (false, s_plain) 
- in
- let res_index, s_index_new = 
-   try 
-     (true, check_and_add_index s_index subs)
-   with 
-     Constr_Not_Sat 
-     -> (false, s_index)
- in
- if (res_plain && res_index) || ((not res_plain) && (not res_index))
- then 
-   if res_plain 
-   then 
-     (s_plain_new,s_index_new)
-   else
-     raise Constr_Not_Sat
- else
-   failwith "Dismatching Constraints Debug in add_and_check_debug !!!\n"
+  let res_plain, s_plain_new = 
+    try 
+      (true, check_and_add_plain s_plain subs)
+    with 
+      Constr_Not_Sat 
+      -> (false, s_plain) 
+  in
+  let res_index, s_index_new = 
+    try 
+      (true, check_and_add_index s_index subs)
+    with 
+      Constr_Not_Sat 
+      -> (false, s_index)
+  in
+  if (res_plain && res_index) || ((not res_plain) && (not res_index))
+  then 
+    if res_plain 
+    then 
+      (s_plain_new,s_index_new)
+    else
+      raise Constr_Not_Sat
+  else
+    failwith "Dismatching Constraints Debug in add_and_check_debug !!!\n"
 
 let to_stream_constr_set_debug s c = ()
 let to_string_constr_set_debug c = 
@@ -567,14 +567,14 @@ let to_string_constr_set_debug c =
 
 type constr              = constr_dyn
 type constr_set          = constr_set_dyn
-                               
+      
 let create_constr_set    = create_constr_set_dyn
 let add_constr           =  add_constr_dyn
 (*  Statistics.run_and_time Statistics.inst_dismatching_checking_time add_constr_dyn *)
 let check_constr_set     = check_constr_set_dyn
 let check_and_add        =  check_and_add_dyn
 (*  Statistics.run_and_time Statistics.inst_dismatching_checking_time check_and_add_dyn *)
-                             
+    
 let to_stream_constr_set = to_stream_constr_set_dyn
 let to_string_constr_set = to_string_constr_set_dyn
 
@@ -584,138 +584,138 @@ let to_flat_subst_list_constr_set = to_flat_subst_list_constr_set_dyn
 
 (*
 
-let _ = out_str "\n\n!!!!!!!!! Dismatching DEBUG !!!!!!!\n\n"
+  let _ = out_str "\n\n!!!!!!!!! Dismatching DEBUG !!!!!!!\n\n"
 
-type constr       = constr_debug
-type constr_set   = constr_set_debug
+  type constr       = constr_debug
+  type constr_set   = constr_set_debug
 
-let create_constr_set    = create_constr_set_debug
-let add_constr           = add_constr_debug
-let check_constr_set     = check_constr_set_debug
-let check_and_add        = check_and_add_debug
+  let create_constr_set    = create_constr_set_debug
+  let add_constr           = add_constr_debug
+  let check_constr_set     = check_constr_set_debug
+  let check_and_add        = check_and_add_debug
 
-let to_stream_constr_set = to_stream_constr_set_debug  
-let to_string_constr_set = to_string_constr_set_debug  
+  let to_stream_constr_set = to_stream_constr_set_debug  
+  let to_string_constr_set = to_string_constr_set_debug  
 
-*)
+ *)
 
 (*-------------Definitions for Index representation--------------*)
 (*
-type constr       = constr_index
-type constr_set   = constr_set_index
+  type constr       = constr_index
+  type constr_set   = constr_set_index
 
-let create_constr_set        = create_constr_set_index   
-let add_constr               = add_constr_index          
-let check_constr_set         = check_constr_set_index    
-let check_and_add            = check_and_add_index
+  let create_constr_set        = create_constr_set_index   
+  let add_constr               = add_constr_index          
+  let check_constr_set         = check_constr_set_index    
+  let check_and_add            = check_and_add_index
 
-let to_stream_constr_set = to_stream_constr_set_index  
-let to_string_constr_set = to_string_constr_set_index  
-*)
+  let to_stream_constr_set = to_stream_constr_set_index  
+  let to_string_constr_set = to_string_constr_set_index  
+ *)
 
 (*-------------Definitions for List representation--------------*)
 
 (*
-type constr       = constr_plain
-type constr_set   = constr_set_plain
+  type constr       = constr_plain
+  type constr_set   = constr_set_plain
 
-let create_constr_set    = create_constr_set_plain
-let add_constr           = add_constr_plain
-let check_constr_set     = check_constr_set_plain
-let check_and_add        = check_and_add_plain
+  let create_constr_set    = create_constr_set_plain
+  let add_constr           = add_constr_plain
+  let check_constr_set     = check_constr_set_plain
+  let check_and_add        = check_and_add_plain
 
-let to_stream_constr_set = to_stream_constr_set_plain
-let to_string_constr_set = to_string_constr_set_plain
-*)
+  let to_stream_constr_set = to_stream_constr_set_plain
+  let to_string_constr_set = to_string_constr_set_plain
+ *)
 
 (*-------------------------------*)
 
 
 
 
- 
+    
 (********************new version based on vectIndex *********)
 (********************simple feature index*******************)
 (* Works but commented for the moment
-  
+   
 
- 
-let get_feature_list constr = 
-  let (feature_1,feature_2) = 
-    let f (num_of_symb_rest,num_of_non_var_rest) (var,term)  = 
-      let num_of_symb  = (Term.get_num_of_symb term) + num_of_symb_rest in
-      let num_non_var = 
-	if (Term.is_var term) then  num_of_non_var_rest
-	else num_of_non_var_rest + 1 in
-      (num_of_symb,num_non_var)
-    in	 
-    List.fold_left f (0,0) constr
-  in
-  [feature_1;feature_2]
-      
+   
+   let get_feature_list constr = 
+   let (feature_1,feature_2) = 
+   let f (num_of_symb_rest,num_of_non_var_rest) (var,term)  = 
+   let num_of_symb  = (Term.get_num_of_symb term) + num_of_symb_rest in
+   let num_non_var = 
+   if (Term.is_var term) then  num_of_non_var_rest
+   else num_of_non_var_rest + 1 in
+   (num_of_symb,num_non_var)
+   in	 
+   List.fold_left f (0,0) constr
+   in
+   [feature_1;feature_2]
+   
 (* get feature list from subst*)
 
-let get_subst_feature_list subst = 
-  let (feature_1,feature_2) = 
-    let f var term  (num_of_symb_rest,num_of_non_var_rest) =
-      let num_of_symb  = (Term.get_num_of_symb term) + num_of_symb_rest in
-      let num_non_var = 
-	if (Term.is_var term) then  num_of_non_var_rest
-	else num_of_non_var_rest + 1 in 
-      (num_of_symb,num_non_var)
-    in	 
-    Subst.fold f subst (0,0) 
-  in
-  [feature_1;feature_2]
-    
-module Feature = 
-  struct  
-    type t = int 
-    let  compare = compare
-  end
+   let get_subst_feature_list subst = 
+   let (feature_1,feature_2) = 
+   let f var term  (num_of_symb_rest,num_of_non_var_rest) =
+   let num_of_symb  = (Term.get_num_of_symb term) + num_of_symb_rest in
+   let num_non_var = 
+   if (Term.is_var term) then  num_of_non_var_rest
+   else num_of_non_var_rest + 1 in 
+   (num_of_symb,num_non_var)
+   in	 
+   Subst.fold f subst (0,0) 
+   in
+   [feature_1;feature_2]
+   
+   module Feature = 
+   struct  
+   type t = int 
+   let  compare = compare
+   end
 
-module VIndexM = VectorIndex.Make (Feature)
-type constr_list_feature = ((constr_flat_list list ) VIndexM.index) ref
+   module VIndexM = VectorIndex.Make (Feature)
+   type constr_list_feature = ((constr_flat_list list ) VIndexM.index) ref
 
 
-let create_constr_feature_list () =  ref (VIndexM.create ()) 
+   let create_constr_feature_list () =  ref (VIndexM.create ()) 
 
-let add_constr_feature_list constr_list_feature_ref constr  = 
-  let flat_constr = create_constr_flat_list constr in
-  let  feature_list = get_feature_list flat_constr in
-  let elem_ref = VIndexM.add feature_list constr_list_feature_ref in
-  match !elem_ref with 
-  |Elem(elem) -> 
-      elem_ref:=Elem(flat_constr::elem)
-  |Empty_Elem -> elem_ref:= Elem([flat_constr])
-	
-exception Constr_unsat
-let check_constr_feature_list subst constr_list_feature_ref =
-  (*out_str_debug ("------\n Constraint Check Features: \n");*)
-  let subst_feat_list = get_subst_feature_list subst in
-  let apply constr_list = 
+   let add_constr_feature_list constr_list_feature_ref constr  = 
+   let flat_constr = create_constr_flat_list constr in
+   let  feature_list = get_feature_list flat_constr in
+   let elem_ref = VIndexM.add feature_list constr_list_feature_ref in
+   match !elem_ref with 
+   |Elem(elem) -> 
+   elem_ref:=Elem(flat_constr::elem)
+   |Empty_Elem -> elem_ref:= Elem([flat_constr])
+   
+   exception Constr_unsat
+   let check_constr_feature_list subst constr_list_feature_ref =
+   (*out_str_debug ("------\n Constraint Check Features: \n");*)
+   let subst_feat_list = get_subst_feature_list subst in
+   let apply constr_list = 
 (* debug *)
 (*    let constr_list_str = (constr_list_to_string constr_list)^"\n" in
-    let subst_str = (Subst.to_string subst) ^"\n" in*)
-    (*out_str_debug 
-      ("\n------------------------\n"
-       ^"\n Constraint list:  "^constr_list_str
-       ^"Subst to Check: "^subst_str);*)
-    if not (check_constr_set_list constr_list subst)
-    then 
-      ((*out_str_debug ("\n Constr is UNSAT\n");*)
-       raise Constr_unsat)
-    else 
-      ((*out_str_debug ("\n Constr is SAT\n");*)
-       None)
-  in
-  try 
-    let _=VIndexM.findf_leq apply subst_feat_list constr_list_feature_ref in
-    true 
-  with 
-    Constr_unsat -> false
+      let subst_str = (Subst.to_string subst) ^"\n" in*)
+   (*out_str_debug 
+     ("\n------------------------\n"
+     ^"\n Constraint list:  "^constr_list_str
+     ^"Subst to Check: "^subst_str);*)
+   if not (check_constr_set_list constr_list subst)
+   then 
+   ((*out_str_debug ("\n Constr is UNSAT\n");*)
+   raise Constr_unsat)
+   else 
+   ((*out_str_debug ("\n Constr is SAT\n");*)
+   None)
+   in
+   try 
+   let _=VIndexM.findf_leq apply subst_feat_list constr_list_feature_ref in
+   true 
+   with 
+   Constr_unsat -> false
 
-*)
+ *)
 
 (*--------------------Commented----------------------------------*)
 (*
@@ -724,124 +724,124 @@ let check_constr_feature_list subst constr_list_feature_ref =
 (* bounds from other clauses *)
 (* don't apply resulting subst to the clause since vars are renamed only *)
 (* if they in bsubst *)
-let create_constr term_db_ref  bound bsubst = 
+  let create_constr term_db_ref  bound bsubst = 
   let next_var_ref    = ref (Var.get_first_var ()) and
-      renaming_list_ref     = ref [] in
+  renaming_list_ref     = ref [] in
   let add (bv,var) bterm rest = 
-    if bv = bound 
-    then
-      let reduced_term =  
-	SubstBound.apply_bsubst_bterm'  
-	  renaming_list_ref next_var_ref term_db_ref bsubst bterm 
-      in
-      (var,reduced_term)::rest
-    else rest
+  if bv = bound 
+  then
+  let reduced_term =  
+  SubstBound.apply_bsubst_bterm'  
+  renaming_list_ref next_var_ref term_db_ref bsubst bterm 
+  in
+  (var,reduced_term)::rest
+  else rest
   in
   SubstBound.fold add bsubst [] 
-    
-let add_constr_list constr_list constr = 
+  
+  let add_constr_list constr_list constr = 
   constr::constr_list
-	    
-exception Not_equal
+  
+  exception Not_equal
 
-let rec eq_bterm_subst' bsubst curr_val (bt,t) (bs,s) =
+  let rec eq_bterm_subst' bsubst curr_val (bt,t) (bs,s) =
   match t with
   |Term.Fun(t_sym,t_args,_) ->
-      ( 
-	match s with 
-	|Term.Fun(s_sym,s_args,_) -> 
-	    if (t_sym == s_sym) 
-	    then 
-		Term.arg_fold_left2 
-		  (fun curr_val t' s' 
-		    -> eq_bterm_subst' bsubst curr_val (bt,t') (bs,s')) 
-		  true t_args s_args
-	    else      
-	      raise Not_equal
-	|Term.Var(vs,_) -> 
-	   (try 
-	      let new_bs = SubstBound.find (bs,vs) bsubst in
-	      eq_bterm_subst' bsubst curr_val (bt,t) new_bs
-	    with
-	      Not_found -> 
-		raise Not_equal
-	   )
-       )
-  |Term.Var(vt,_) ->
-      ( 	
-	match s with 	
-	|Term.Var(vs,_) ->
-	    if (bt = bs) && (vt == vs) 
-	    then true
-	    else
-	      (try 
-		let new_bt = SubstBound.find (bt,vt) bsubst in
-		eq_bterm_subst' bsubst curr_val new_bt (bs,s)
-	      with 
-		Not_found -> 
-		  (try 
-		    let new_bs = SubstBound.find (bs,vs) bsubst in
-		    eq_bterm_subst' bsubst curr_val (bt,t) new_bs
-		  with
-		    Not_found -> 
-		      raise Not_equal
-		  )
-	      )
-	|_ ->  eq_bterm_subst' bsubst curr_val (bs,s) (bt,t)
-	)
-
-let eq_bterm_subst bsubst bt bs =
-  try
-    eq_bterm_subst' bsubst true bt bs
+  ( 
+  match s with 
+  |Term.Fun(s_sym,s_args,_) -> 
+  if (t_sym == s_sym) 
+  then 
+  Term.arg_fold_left2 
+  (fun curr_val t' s' 
+  -> eq_bterm_subst' bsubst curr_val (bt,t') (bs,s')) 
+  true t_args s_args
+  else      
+  raise Not_equal
+  |Term.Var(vs,_) -> 
+  (try 
+  let new_bs = SubstBound.find (bs,vs) bsubst in
+  eq_bterm_subst' bsubst curr_val (bt,t) new_bs
   with
-    Not_equal -> false
+  Not_found -> 
+  raise Not_equal
+  )
+  )
+  |Term.Var(vt,_) ->
+  ( 	
+  match s with 	
+  |Term.Var(vs,_) ->
+  if (bt = bs) && (vt == vs) 
+  then true
+  else
+  (try 
+  let new_bt = SubstBound.find (bt,vt) bsubst in
+  eq_bterm_subst' bsubst curr_val new_bt (bs,s)
+  with 
+  Not_found -> 
+  (try 
+  let new_bs = SubstBound.find (bs,vs) bsubst in
+  eq_bterm_subst' bsubst curr_val (bt,t) new_bs
+  with
+  Not_found -> 
+  raise Not_equal
+  )
+  )
+  |_ ->  eq_bterm_subst' bsubst curr_val (bs,s) (bt,t)
+  )
 
-exception Constr_sat
+  let eq_bterm_subst bsubst bt bs =
+  try
+  eq_bterm_subst' bsubst true bt bs
+  with
+  Not_equal -> false
+
+  exception Constr_sat
 (* env contains current mapping of (x,bterm) *)
 (* *)
-let rec extend_env bsubst env lterm (b,rterm)   =
+  let rec extend_env bsubst env lterm (b,rterm)   =
   match lterm with
-      |Term.Fun(l_sym,l_args,_) ->
-	( 
-	  match rterm with 
-	  | Term.Fun(r_sym,r_args,_) -> 
-	      if (Symbol.equal l_sym r_sym) 
-	      then 
-		let f env' lt' rt' = 
-		  extend_env bsubst env' lt' (b,rt') in
-		Term.arg_fold_left2 f env l_args r_args
-	      else raise Constr_sat
-	  |_-> raise Constr_sat
-	 )
-      |Term.Var(lv,_) -> 
-	  try
-	    let ass_rterm = List.assq lv env in
-	    if (eq_bterm_subst bsubst ass_rterm  (b,rterm))
-	    then env 
-	    else raise Constr_sat
-	  with
-	    Not_found -> (lv,(b,rterm))::env
+  |Term.Fun(l_sym,l_args,_) ->
+  ( 
+  match rterm with 
+  | Term.Fun(r_sym,r_args,_) -> 
+  if (Symbol.equal l_sym r_sym) 
+  then 
+  let f env' lt' rt' = 
+  extend_env bsubst env' lt' (b,rt') in
+  Term.arg_fold_left2 f env l_args r_args
+  else raise Constr_sat
+  |_-> raise Constr_sat
+  )
+  |Term.Var(lv,_) -> 
+  try
+  let ass_rterm = List.assq lv env in
+  if (eq_bterm_subst bsubst ass_rterm  (b,rterm))
+  then env 
+  else raise Constr_sat
+  with
+  Not_found -> (lv,(b,rterm))::env
 
 
-let check_constr bound bsubst constr = 
+  let check_constr bound bsubst constr = 
   let env_ref = ref [] in
   let f (x,lterm) = 
-    let brterm = SubstBound.find (bound,x) bsubst in
-    env_ref := (extend_env bsubst !env_ref lterm brterm)
+  let brterm = SubstBound.find (bound,x) bsubst in
+  env_ref := (extend_env bsubst !env_ref lterm brterm)
   in	  
   try
-    List.iter f constr;
-    false	
+  List.iter f constr;
+  false	
   with  (* Not_found refers to above  SubstBound.find (bound,x) bsubst *)
   | Constr_sat ->  true
   |Not_found -> (* out_str_debug (" Constaint Check Not_found \n ");*) true   
-	
+  
 
-let check_constr_list bound bsubst constr_list  = 
+  let check_constr_list bound bsubst constr_list  = 
   let res = 
-   not( List.exists (fun constr -> not (check_constr bound bsubst constr)) constr_list) in
+  not( List.exists (fun constr -> not (check_constr bound bsubst constr)) constr_list) in
 (*  out_str_debug ("\n Constaint Check result: "^(string_of_bool res)^"\n");*)
-   res
+  res
 
-*)
+ *)
 (*-------------------------------------------------------*)

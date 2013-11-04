@@ -100,9 +100,9 @@ let term_db_ref = ref (TermDB.create_name "Terms_DB")
 (* let context = Clause.context_create 21701 (* 21701 medium large prime number; context not used at the moment *) *) 
 
 (*
-   let create_clause tstp_source lits = 
-   let clause = Clause.create_clause term_db_ref tstp_source lits in 
-   Clause.context_add context clause 
+  let create_clause tstp_source lits = 
+  let clause = Clause.create_clause term_db_ref tstp_source lits in 
+  Clause.context_add context clause 
  *)
 let create_clause tstp_source lits = 
   let clause = Clause.create_clause term_db_ref tstp_source lits in
@@ -110,9 +110,9 @@ let create_clause tstp_source lits =
 (*	Clause.context_add context clause *)
 
 (*
-   let create_neg_conjecture tstp_source lits = 
-   let clause = Clause.create_neg_conjecture term_db_ref tstp_source lits	in
-   Clause.context_add context clause 
+  let create_neg_conjecture tstp_source lits = 
+  let clause = Clause.create_neg_conjecture term_db_ref tstp_source lits	in
+  Clause.context_add context clause 
  *)
 
 let create_neg_conjecture tstp_source lits = 
@@ -539,12 +539,12 @@ let defined_term_fun name args =
   |"$sum" 
       (* -> create_theory_term Symbol.symb_plus args *)
   |"$difference" 
-    (*  -> create_theory_term Symbol.symb_minus args*)
+      (*  -> create_theory_term Symbol.symb_minus args*)
   |"$product" 
-     (* -> create_theory_term Symbol.symb_product args *)
+      (* -> create_theory_term Symbol.symb_product args *)
   |"$uminus" 
-    (* ->  create_theory_term Symbol.symb_unaryminus args *)
-     -> failwith (name^" is not supported")
+      (* ->  create_theory_term Symbol.symb_unaryminus args *)
+    -> failwith (name^" is not supported")
   |"$i" ->
       create_theory_term Symbol.symb_default_type args
   |"$o" ->
@@ -697,7 +697,7 @@ let system_term_fun name args =
 	
   | "$$bit_index_type" -> 
       create_theory_term  Symbol.symb_ver_bit_index_type args
-      
+	
   | _ ->
       
       (* Alternative: create as plain term without catching undefined *)
@@ -815,7 +815,7 @@ type attr_type =
 
 	(* size of the bv *)
   | ABitVector of int 
- 
+	
 	(* AMemory: (bit-size of addresses) * (memory_word_size) *)
   | AMemory of int * int
 	
@@ -1065,17 +1065,17 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 	  
       else
 	(	 
-	 (* Sanity check: state constant must not be negative *)
-	 if c < 0 then
-	   failwith
-	     (Format.sprintf
-		"Bad state_constant attribute for symbol %s: must be positive"
-		(Symbol.to_string symb));
-	 
-	 (* Add symbol to map *)
-	 state_constant_map := SymbMap.add symb c !state_constant_map
-	     
-	)
+	   (* Sanity check: state constant must not be negative *)
+	   if c < 0 then
+	     failwith
+	       (Format.sprintf
+		  "Bad state_constant attribute for symbol %s: must be positive"
+		  (Symbol.to_string symb));
+	   
+	   (* Add symbol to map *)
+	   state_constant_map := SymbMap.add symb c !state_constant_map
+	       
+	  )
 	  
 	  (* Symbol has a base name *)
   | Some (AAddressBaseName c) ->
@@ -1111,7 +1111,7 @@ let ttf_add_typed_atom_atrr_fun symb_name stype attr_list =
 	(
 	 memory_name_map := SymbMap.add symb (i, j) !memory_name_map;
 	)
-	    
+	  
   | _ -> ()
   );
   (

@@ -30,13 +30,13 @@ type solver_core
 
 (* A solver instance *)
 type solver = 
-  { core : solver_core;
-    mutable num_of_solver_calls : int;
-    mutable num_of_fast_solver_calls : int;
-    mutable num_of_vars : int;
-    mutable num_of_clauses : int;
-    mutable is_sim         : bool;
-  }
+    { core : solver_core;
+      mutable num_of_solver_calls : int;
+      mutable num_of_fast_solver_calls : int;
+      mutable num_of_vars : int;
+      mutable num_of_clauses : int;
+      mutable is_sim         : bool;
+    }
 
 (* A literal in a solver instance *)
 type literal = {var: int; sign: bool; minisat_val: minisat_lit}
@@ -75,12 +75,12 @@ external fast_solve_minisat: solver_core -> minisat_lit array -> int = "C_fast_s
 external lit_val_minisat: solver_core -> minisat_lit -> int = "C_get_lit_val"
 
 external important_lit_minisat: solver_core -> minisat_lit -> unit = "C_important_lit"
-   
+    
 (* only functions allowed... so define explicitly 
-external l_False : int = "C_l_False"
-external l_True  : int = "C_l_True"
-external l_Undef : int = "C_l_Undef"
-*)
+   external l_False : int = "C_l_False"
+   external l_True  : int = "C_l_True"
+   external l_Undef : int = "C_l_Undef"
+ *)
 (* should be the same as in solver.h  ... cannt match int constants, so using  explicit numbers !*)
 let l_False = -1 
 let l_True  =  1
@@ -94,10 +94,10 @@ let create_solver is_sim =
     num_of_vars              = 0;
     num_of_clauses           = 0;
     is_sim                   = is_sim;
-   }
+  }
 
 (* Return [true] if the solver was created as a simplification
-    solver in {!create_solver} *)
+   solver in {!create_solver} *)
 let is_simplification solver = solver.is_sim
 
 (* Return the number of calls to {!solve} of the solver instance *)
@@ -120,12 +120,12 @@ let num_of_clauses solver =
 let add_var solver var_id =
   solver.num_of_vars <- solver.num_of_vars + 1;
   add_var_minisat solver.core var_id
-	
+    
 (* Create and return a literal of the propositional
-    variable [var] with sign [sign] 
+   variable [var] with sign [sign] 
 
    var = 0 is allowed in, but use var + 1 in order to be safe here
-*)
+ *)
 let create_lit solver sign var =
   (* TODO: var = 0 seems to be allowed, but check before changing
      calling code; Not in PicoSAT/Lingeling *)
@@ -150,7 +150,7 @@ let add_clause solver (lits_in:lit_list)   =
      if  out = false
      then raise Unsatisfiable else ()
     )
-	
+      
       
 let int_to_bool_option int_in = 
   match int_in with 
@@ -162,15 +162,15 @@ let int_to_bool_option int_in =
 
 
 (*  cannot mach a int constant ...
-  | l_True    -> True 
-  | l_False   -> False
-  | l_Undef   -> Any
-*)
- 
+    | l_True    -> True 
+    | l_False   -> False
+    | l_Undef   -> Any
+ *)
+	
 (*	
-let lit_val solver lit  = 
+  let lit_val solver lit  = 
   int_to_val (lit_val_minisat solver lit.minisat_val (sign_to_bool lit.sign))
-  *)  
+ *)  
 
 
 (* Return the truth value of the literal in the current model *)
@@ -185,7 +185,7 @@ let solve ?(reset = false) solver =
   if outcome = true then true else false
 
 (* Test the given clause set for satisfiability when the given
-    literals are to be made true. *)
+   literals are to be made true. *)
 let solve_assumptions ?(reset = false) solver (assumptions : lit_list) =
   solver.num_of_solver_calls <- solver.num_of_solver_calls+1;
   let list_of_minisat_lits = List.map get_minisat_lit assumptions in

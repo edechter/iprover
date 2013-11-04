@@ -1,17 +1,17 @@
 (*----------------------------------------------------------------------(C)-*)
 (* Copyright (C) 2006 -2012 Konstantin Korovin and The University of Manchester.
-    This file is part of iProver - a theorem prover for first - order logic.
+   This file is part of iProver - a theorem prover for first - order logic.
 
-	iProver is free software: you can redistribute it and / or modify
-  it under the terms of the GNU General Public License as published by
-      the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-  iProver is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-    See the GNU General Public License for more details.
-	You should have received a copy of the GNU General Public License
-	    along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
+   iProver is free software: you can redistribute it and / or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   iProver is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+   See the GNU General Public License for more details.
+   You should have received a copy of the GNU General Public License
+   along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 (*----------------------------------------------------------------------[C]-*)
 
 open Lib
@@ -312,9 +312,9 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 	      in
 	      
 	      (*
-		 if (not (Term.is_neg_lit lit)) (* positive eq *)
-		 then
-		 (* for negative eq  more can be done than not putting it into collapsed? *)
+		if (not (Term.is_neg_lit lit)) (* positive eq *)
+		then
+		(* for negative eq  more can be done than not putting it into collapsed? *)
 	       *)
 	      begin
 		match (t, s) with
@@ -345,43 +345,43 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
 		    (*    else () *)
 		    (*    ); *)
                     (*   *)
-		      (* the same for both negative and positive X!=f(X) *)
-		      (* better can be done for negative *)		    
+		    (* the same for both negative and positive X!=f(X) *)
+		    (* better can be done for negative *)		    
 
-       		      let fun_val_sub_type = get_val_sub_type sym in
-		      begin
-			if (Term.is_neg_lit lit)
-			then 
-			  (
-			   process_var_subtype v fun_val_sub_type;		
-			  )
-			else
-			  (
-			  match (shallow_guarding_subtype_clause context v_term) with 		      
-			  |Def(guarding_subtype) ->	
-			      (process_var_subtype v guarding_subtype;			   
-			       UF_ST.union context.uf guarding_subtype fun_val_sub_type;   
-			       context.guarded_subtype_set <- 
-				 SubTypeSet.add guarding_subtype context.guarded_subtype_set;
-			      )
-			  | Undef -> 
-			      (* ther is no guard *)
-			      (
-			       process_var_subtype v fun_val_sub_type;
-			       context.collapsed_types <-
-				 SymSet.add eq_v_type context.collapsed_types;			       	    	   
-			      )
-			  )
-		      end;
-		      [(None,f_term)]
+       		    let fun_val_sub_type = get_val_sub_type sym in
+		    begin
+		      if (Term.is_neg_lit lit)
+		      then 
+			(
+			 process_var_subtype v fun_val_sub_type;		
+			)
+		      else
+			(
+			 match (shallow_guarding_subtype_clause context v_term) with 		      
+			 |Def(guarding_subtype) ->	
+			     (process_var_subtype v guarding_subtype;			   
+			      UF_ST.union context.uf guarding_subtype fun_val_sub_type;   
+			      context.guarded_subtype_set <- 
+				SubTypeSet.add guarding_subtype context.guarded_subtype_set;
+			     )
+			 | Undef -> 
+			     (* ther is no guard *)
+			     (
+			      process_var_subtype v fun_val_sub_type;
+			      context.collapsed_types <-
+				SymSet.add eq_v_type context.collapsed_types;			       	    	   
+			     )
+			)
+		    end;
+		    [(None,f_term)]
 		      
 		| ((Term.Var(v1, _) as v1_term), (Term.Var (v2, _) as v2_term)) ->
 		    ( 
                       (* we assume that x!=y are eliminated during preprocessing; *)
-		      	(if (Term.is_neg_lit lit)
-			then 
-			 ( out_warning "type_inf: x!=y should be eliminated by preprocessing"));
-			
+		      (if (Term.is_neg_lit lit)
+		      then 
+			( out_warning "type_inf: x!=y should be eliminated by preprocessing"));
+		      
 		      let guard_param_v1 = shallow_guarding_subtype_clause context v1_term in
 		      let guard_param_v2 = shallow_guarding_subtype_clause context v2_term in
 		      
@@ -413,7 +413,7 @@ let rec extend_uf_types context top_sub_type_opt_term_ass_list =
       extend_uf_types context new_list)
     top_sub_type_opt_term_ass_list    
 
- 
+    
 let extend_uf_types_clause context clause =
   let clause_lits = Clause.get_literals clause in
   context.current_clause <- Def(clause); 
@@ -626,7 +626,7 @@ let sub_type_inf clause_list =
 	  out_str ("NF: "^(sub_type_to_str nf)^" "
 		   ^"["^(list_to_string sub_type_to_str st_list ";")^"]\n"
 		  )
-     ) st_nf_table;
+	) st_nf_table;
       
       out_str "\nCollapsed types: \n";
       SymSet.iter
@@ -637,7 +637,7 @@ let sub_type_inf clause_list =
       SubTypeSet.iter 
 	(
 	 fun sub_type -> 
-	out_str (sub_type_to_str sub_type)
+	   out_str (sub_type_to_str sub_type)
 	) non_collapsing_guarding_subtypes;
       out_str "\n---------------";
     end 
@@ -764,60 +764,60 @@ let sub_type_inf clause_list =
 (*-------------------Commented below-----------------*)
 
 (*
-   let rec extend_uf_types context top_type_opt term =
-   match term with
-   | Term.Fun (sym, args, _) ->
-   let arg_types, v_type =
-   match (Symbol.get_stype_args_val sym) with
-   | Def (arg_t, v_t) -> (arg_t, v_t)
-   | _ -> failwith "extend_uf_types: arg_types should be defined"
-   in
+  let rec extend_uf_types context top_type_opt term =
+  match term with
+  | Term.Fun (sym, args, _) ->
+  let arg_types, v_type =
+  match (Symbol.get_stype_args_val sym) with
+  | Def (arg_t, v_t) -> (arg_t, v_t)
+  | _ -> failwith "extend_uf_types: arg_types should be defined"
+  in
 (* extend args *)
-   ignore(
-   Term.arg_fold_left
-   (fun (arg_ind, arg_types_rest) arg ->
-   let h:: tl = arg_types_rest in
-   let new_pnt = create_pnt sym arg_ind h in
-   extend_uf_types context (Some new_pnt) arg;
-   ((arg_ind +1), tl)
-   )
-   (1, arg_types)
-   args
-   );
+  ignore(
+  Term.arg_fold_left
+  (fun (arg_ind, arg_types_rest) arg ->
+  let h:: tl = arg_types_rest in
+  let new_pnt = create_pnt sym arg_ind h in
+  extend_uf_types context (Some new_pnt) arg;
+  ((arg_ind +1), tl)
+  )
+  (1, arg_types)
+  args
+  );
 
-   if (Symbol.is_pred sym)
-   then
-   (
-   if (sym == Symbol.symb_typed_equality)
-   then
-   match args with
-   | [type_eq_; t; s] ->
-   if !(Term.is_var t) && !(Term.is_var s)
-   then
-   ..............
-   extend_uf_types context top_type_opt
-   ..............
-   )
-   else
-   ( (* fun symb *)
-   match top_type_opt with
-   | Some top_type ->
-   UF_PNT.union context.uf top_type (create_pnt sym 0 v_type);
-   | None -> failwith "functions should not be at top"
-   )
+  if (Symbol.is_pred sym)
+  then
+  (
+  if (sym == Symbol.symb_typed_equality)
+  then
+  match args with
+  | [type_eq_; t; s] ->
+  if !(Term.is_var t) && !(Term.is_var s)
+  then
+  ..............
+  extend_uf_types context top_type_opt
+  ..............
+  )
+  else
+  ( (* fun symb *)
+  match top_type_opt with
+  | Some top_type ->
+  UF_PNT.union context.uf top_type (create_pnt sym 0 v_type);
+  | None -> failwith "functions should not be at top"
+  )
 
-   | Term.Var (v, _) ->
-   let top_type =
-   match top_type_opt with
-   | Some top_type -> top_type
-   | None -> failwith "vars should not be at top"
-   in
-   try
-   let v_type = VarTable.find context.vtable v in
-   UF_PNT.union context.uf top_type v_type
-   with
-   Not_found ->
-   VarTable.add context.vtable v top_type
+  | Term.Var (v, _) ->
+  let top_type =
+  match top_type_opt with
+  | Some top_type -> top_type
+  | None -> failwith "vars should not be at top"
+  in
+  try
+  let v_type = VarTable.find context.vtable v in
+  UF_PNT.union context.uf top_type v_type
+  with
+  Not_found ->
+  VarTable.add context.vtable v top_type
  *)
 
 (* let typify_clause clause type_context =

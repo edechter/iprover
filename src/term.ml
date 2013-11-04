@@ -140,22 +140,22 @@ let get_prop_key term =
   | _ -> raise Prop_key_undef
 
 (*
-   exception Term_hash_undef
-   exception Term_var_hash_undef
-   let get_hash (t: term) =
-   match t with
-   | Fun(_, _, fun_info) ->
-   (
-   match fun_info.fun_hash with
-   | Def(hash) -> hash
-   | _ -> raise Term_hash_undef
-   )
-   | Var(_, var_info) ->
-   (
-   match var_info.var_hash with
-   | Def(hash) -> hash
-   | _ -> raise Term_var_hash_undef
-   )
+  exception Term_hash_undef
+  exception Term_var_hash_undef
+  let get_hash (t: term) =
+  match t with
+  | Fun(_, _, fun_info) ->
+  (
+  match fun_info.fun_hash with
+  | Def(hash) -> hash
+  | _ -> raise Term_hash_undef
+  )
+  | Var(_, var_info) ->
+  (
+  match var_info.var_hash with
+  | Def(hash) -> hash
+  | _ -> raise Term_var_hash_undef
+  )
  *)
 
 (*-------------------to string's-------------------*)
@@ -170,8 +170,8 @@ let var_int_to_stream s (v, int) =
   s.stream_add_char ')'
 
 (*
-   let var_int_to_string (v, int) =
-   "("^(Var.to_string v)^","^(string_of_int int)^")"
+  let var_int_to_string (v, int) =
+  "("^(Var.to_string v)^","^(string_of_int int)^")"
  *)
 
 let var_list_to_stream s vl =
@@ -180,8 +180,8 @@ let var_list_to_stream s vl =
   s.stream_add_char ']'
 
 (*
-   let var_list_to_string v_l =
-   "["^(list_to_string var_int_to_string v_l ",")^"]"
+  let var_list_to_string v_l =
+  "["^(list_to_string var_int_to_string v_l ",")^"]"
  *)
 
 let rec to_stream s t =
@@ -224,15 +224,15 @@ let rec pp_term_tptp ppf = function
 	  pp_term_tptp l
 	  pp_term_tptp r
 	  (*
-	     (* Negated untyped equation as != *)
-	     | Fun (s, [Fun(t, [eq_type;l; r], _)], _)
-	     when s == Symbol.symb_neg &&
-	     t == Symbol.symb_equality ->
-	     Format.fprintf
-	     ppf
-	     "%a != %a"
-	     pp_term_tptp l
-	     pp_term_tptp r
+	    (* Negated untyped equation as != *)
+	    | Fun (s, [Fun(t, [eq_type;l; r], _)], _)
+	    when s == Symbol.symb_neg &&
+	    t == Symbol.symb_equality ->
+	    Format.fprintf
+	    ppf
+	    "%a != %a"
+	    pp_term_tptp l
+	    pp_term_tptp r
 	   *)
 	  
 	  (* Negation as ~P without parentheses *)
@@ -279,33 +279,33 @@ let rec pp_term_tptp ppf = function
 let out = to_stream stdout_stream
 
 (*
-   let to_string t =
-   let s = create_buffer_stream 10 in
-   to_stream s t;
-   to_string_buffer_stream s
+  let to_string t =
+  let s = create_buffer_stream 10 in
+  to_stream s t;
+  to_string_buffer_stream s
  *)
 
 let to_string =
   to_string_fun_from_to_stream_fun 10 to_stream
 
 (*
-   let rec to_string_term t =
-   match t with
-   | Fun(sym,[], _) -> Symbol.to_string sym
-   | Fun(sym, args, _) ->
-   (Symbol.to_string sym)^"("^(list_to_string to_string_term args ",")^")"
-   | Var(v, _) -> Var.to_string v
+  let rec to_string_term t =
+  match t with
+  | Fun(sym,[], _) -> Symbol.to_string sym
+  | Fun(sym, args, _) ->
+  (Symbol.to_string sym)^"("^(list_to_string to_string_term args ",")^")"
+  | Var(v, _) -> Var.to_string v
 
  *)
 
 (*
-   let to_string_with_var_list t =
-   (to_string_term t)^"-"^(var_list_to_string (get_var_list t))
+  let to_string_with_var_list t =
+  (to_string_term t)^"-"^(var_list_to_string (get_var_list t))
  *)
 
 (*
-   let to_string_with_num_of_sym t =
-   (to_string_term t)^"-num_of_symb -"^(string_of_int (get_num_of_symb t))
+  let to_string_with_num_of_sym t =
+  (to_string_term t)^"-num_of_symb -"^(string_of_int (get_num_of_symb t))
  *)
 
 let to_stream_with_num_of_sym s t =
@@ -321,22 +321,22 @@ let term_list_to_stream s t_list =
 let out_term_list = term_list_to_stream stdout_stream
 
 (*
-   let term_list_to_string =
+  let term_list_to_string =
  *)
 
 let term_list_to_string =
   to_string_fun_from_to_stream_fun 30 term_list_to_stream
 
 (*
-   let term_list_to_string t_list =
-   let s = create_buffer_stream 30 in
-   term_list_to_stream s t_list;
-   to_string_buffer_stream s
+  let term_list_to_string t_list =
+  let s = create_buffer_stream 30 in
+  term_list_to_stream s t_list;
+  to_string_buffer_stream s
  *)
 
 (*
-   let term_list_to_string t_list =
-   list_to_string to_string t_list ";"
+  let term_list_to_string t_list =
+  list_to_string to_string t_list ";"
  *)
 
 (*-----------------------end to_strings------------------------*)
@@ -467,22 +467,22 @@ let get_var var_term =
 
 (*
 (* Get variables in term recursively *)
-   let rec get_vars' accum = function
-   
-   (* No more subterms to recurse into *)
-   | [] -> accum
-   
-   (* Term is a functional term *)
-   | Fun(_, args, _) :: tl -> get_vars' accum (args @ tl)
-   
-   (* Term is a variable that has already been seen *)
-   | Var (v, _) :: tl when List.mem v accum -> get_vars' accum tl
-   
-   (* Term is a variable that has not been seen *)
-   | Var (v, _) :: tl -> get_vars' (v :: accum) tl
+  let rec get_vars' accum = function
+  
+  (* No more subterms to recurse into *)
+  | [] -> accum
+  
+  (* Term is a functional term *)
+  | Fun(_, args, _) :: tl -> get_vars' accum (args @ tl)
+  
+  (* Term is a variable that has already been seen *)
+  | Var (v, _) :: tl when List.mem v accum -> get_vars' accum tl
+  
+  (* Term is a variable that has not been seen *)
+  | Var (v, _) :: tl -> get_vars' (v :: accum) tl
 
 (* Get all variables occurring in term *)
-   let get_vars term = get_vars' [] [term]
+  let get_vars term = get_vars' [] [term]
  *)
 
 (* not efficient*)
@@ -558,30 +558,30 @@ and
 
 	
 (*
-   let get_has_conj_symb_term_list term_list =
-   List.exists has_conj_symb_fun term_list
+  let get_has_conj_symb_term_list term_list =
+  List.exists has_conj_symb_fun term_list
 
-   let get_has_non_prolific_conj_symb_term_list term_list =
-   List.exists has_non_prolific_conj_symb_fun term_list
+  let get_has_non_prolific_conj_symb_term_list term_list =
+  List.exists has_non_prolific_conj_symb_fun term_list
 
-   let get_has_bound_constant_term_list term_list =
-   List.exists has_bound_constant_fun term_list
+  let get_has_bound_constant_term_list term_list =
+  List.exists has_bound_constant_fun term_list
  *)
 
 (*
-   let hash_comb rest term_hash =
+  let hash_comb rest term_hash =
 (* abs((rest lsl 1) lxor term_hash)*)
-   ((rest lsl 3) + term_hash) * 131
+  ((rest lsl 3) + term_hash) * 131
 (* (rest + term_hash) * 131*)
 (*  abs((rest lsl 3) + term_hash)*)
  *)
 
 (*
-   let get_hash_term_list init_hash term_list =
-   let hash_fun rest term =
-   let term_hash = get_hash term in
-   hash_comb rest term_hash in
-   List.fold_left hash_fun init_hash term_list
+  let get_hash_term_list init_hash term_list =
+  let hash_fun rest term =
+  let term_hash = get_hash term in
+  hash_comb rest term_hash in
+  List.fold_left hash_fun init_hash term_list
  *)
 
 let is_ground t = ((get_num_of_var t) = 0)
@@ -633,13 +633,13 @@ let assign_num_of_var term =
   | _ -> ()
 
 (*
-   let assign_has_conj_symb term =
-   match term with
-   | Fun(symb, args, fun_info) ->
-   let has_conj = ((Symbol.get_bool_param Symbol.is_conj_symb symb)
-   || (get_has_conj_symb_term_list args)) in
-   set_fun_info_bool_param has_conj has_conj_symb fun_info
-   | _ -> ()
+  let assign_has_conj_symb term =
+  match term with
+  | Fun(symb, args, fun_info) ->
+  let has_conj = ((Symbol.get_bool_param Symbol.is_conj_symb symb)
+  || (get_has_conj_symb_term_list args)) in
+  set_fun_info_bool_param has_conj has_conj_symb fun_info
+  | _ -> ()
  *)
 
 (* assign term_bool_param if there exists symbol with *)
@@ -672,50 +672,50 @@ let assign_has_non_prolific_conj_symb term =
 
 (* we assume that subterms term cannot  have hash undef never redefine!*)
 (*
-   let assign_hash term =
-   match term with
-   | Fun(symb, args, fun_info) ->
-   (let symb_hash = Symbol.get_hash symb in
-   let fun_hash = (get_hash_term_list symb_hash args) in
-   fun_info.fun_hash <- Def(fun_hash);
+  let assign_hash term =
+  match term with
+  | Fun(symb, args, fun_info) ->
+  (let symb_hash = Symbol.get_hash symb in
+  let fun_hash = (get_hash_term_list symb_hash args) in
+  fun_info.fun_hash <- Def(fun_hash);
 (*  out_str ("fun hash: "^(string_of_int fun_hash)^"\n")*)
-   )
+  )
 
-   | Var(v, var_info) ->
-   (let var_hash = Var.hash(v) in
-   var_info.var_hash <- Def(var_hash)
+  | Var(v, var_info) ->
+  (let var_hash = Var.hash(v) in
+  var_info.var_hash <- Def(var_hash)
 (*     out_str ("var hash: "^(string_of_int var_hash)^"\n")) *)
  *)
 
 (*
-   let rec assign_hash_full term =
-   (try (get_hash term)
-   with
-   Term_hash_undef | Term_var_hash_undef ->
-   (match term with
-   | Fun(symb, args, fun_info) ->
-   (let symb_hash = Symbol.get_hash symb in
-   let fun_hash = (get_hash_term_list_full symb_hash args) in
-   fun_info.fun_hash <- Def(fun_hash);
+  let rec assign_hash_full term =
+  (try (get_hash term)
+  with
+  Term_hash_undef | Term_var_hash_undef ->
+  (match term with
+  | Fun(symb, args, fun_info) ->
+  (let symb_hash = Symbol.get_hash symb in
+  let fun_hash = (get_hash_term_list_full symb_hash args) in
+  fun_info.fun_hash <- Def(fun_hash);
 (* out_str ("Term: "^(to_string term)^"\n");
    out_str ("def fun hash: "^(string_of_int fun_hash)^"\n");*)
-   fun_hash
-   )
-   | Var(v, var_info) ->
-   (let var_hash = Var.hash(v) in
-   var_info.var_hash <- Def(var_hash);
+  fun_hash
+  )
+  | Var(v, var_info) ->
+  (let var_hash = Var.hash(v) in
+  var_info.var_hash <- Def(var_hash);
 (* out_str ("Term: "^(to_string term)^"\n");
    out_str ("def var hash: "^(string_of_int var_hash)^"\n");*)
-   var_hash)
-   )
-   )
+  var_hash)
+  )
+  )
 
-   and get_hash_term_list_full symb_hash args =
-   let hash_fun rest arg_term =
-   let arg_term_hash = assign_hash_full arg_term in
+  and get_hash_term_list_full symb_hash args =
+  let hash_fun rest arg_term =
+  let arg_term_hash = assign_hash_full arg_term in
 (*was hash_comb rest arg_term_hash; not very good... *)
-   hash_comb arg_term_hash rest in
-   List.fold_left hash_fun symb_hash args
+  hash_comb arg_term_hash rest in
+  List.fold_left hash_fun symb_hash args
 
  *)
 
@@ -732,13 +732,13 @@ let iter_sym_depth f term =
   iter_sym_depth' f 1 term
 
 (*
-   let assign_var_list term =
-   match term with
-   | Fun(_, args, fun_info) ->
-   let f rest term = append_ass_list (+) (get_var_list term) rest in
-   let var_list = List.fold_left f [] args in
-   fun_info.var_list <- Def(var_list)
-   | _ -> ()
+  let assign_var_list term =
+  match term with
+  | Fun(_, args, fun_info) ->
+  let f rest term = append_ass_list (+) (get_var_list term) rest in
+  let var_list = List.fold_left f [] args in
+  fun_info.var_list <- Def(var_list)
+  | _ -> ()
  *)
 
 (* all fun info added only when we add term to term db
@@ -789,7 +789,7 @@ let assign_db_id = function
       (function db_id -> var_info.var_db_id <- Def(db_id))
 
 (*
-   exception Term_hash_is_def
+  exception Term_hash_is_def
  *)
 
 (* todo: in one iteration all these*)
@@ -877,13 +877,13 @@ let rec fold_left_var f v t =
   | Var(var,_) -> f v var 
 
 (*
-   let rec map f t =
-   match t with
-   | Fun(sym, args, _) ->
-   let new_args =
-   List.map (map f) args in
-   f (create_fun_term sym new_args)
-   | v -> f v
+  let rec map f t =
+  match t with
+  | Fun(sym, args, _) ->
+  let new_args =
+  List.map (map f) args in
+  f (create_fun_term sym new_args)
+  | v -> f v
  *)
 
 let rec fold_left f v t =
@@ -963,38 +963,38 @@ let rec replace subterm byterm t =
     | v -> v
 
 (*
-   does not work since map creats new terms without adding to term_db
+  does not work since map creats new terms without adding to term_db
 
-   let replace subterm byterm t =
-   let f xt =
-   if xt == subterm
-   then 
-   byterm				
-   else 
-   xt
-   in
-   map f t 
-   
+  let replace subterm byterm t =
+  let f xt =
+  if xt == subterm
+  then 
+  byterm				
+  else 
+  xt
+  in
+  map f t 
+  
  *)
 (* if the type of the term is the same as type of the argument then replace it *)
 
 (*let inst_all_vars_by_term_typed *)
 
 (*
-   map (subterm == t)
+  map (subterm == t)
 
-   if (subterm == t)
-   then
-   byterm
-   else
-   begin
-   match t with
-   | Fun(sym, args, _) ->
-   let new_args =
-   arg_map (replace ~subterm: subterm ~byterm: byterm) args in
-   create_fun_term sym new_args
-   | v -> v
-   end
+  if (subterm == t)
+  then
+  byterm
+  else
+  begin
+  match t with
+  | Fun(sym, args, _) ->
+  let new_args =
+  arg_map (replace ~subterm: subterm ~byterm: byterm) args in
+  create_fun_term sym new_args
+  | v -> v
+  end
  *)
 
 (* used in compare_key we assume that var alwyas greater than fun term*)
@@ -1272,13 +1272,13 @@ type term_set = Set.t
  *)
 
 (*
-   let to_string = to_string_with_num_of_symb
+  let to_string = to_string_with_num_of_symb
  *)
 (*
-   let rec subterm subt t =
-   if equal sumbt t then True
-   else
-   match t with
-   | Fun(_, args, _) -> map_arg subterm args
-   | _ -> False
+  let rec subterm subt t =
+  if equal sumbt t then True
+  else
+  match t with
+  | Fun(_, args, _) -> map_arg subterm args
+  | _ -> False
  *)

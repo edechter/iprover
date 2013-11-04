@@ -15,7 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
- 
+
 
 
 open Lib
@@ -46,18 +46,18 @@ type filter_clause =
 (* if filter_clause is in the watch index then first literal in lits_to_try*)
 (* is the watched literal  *)                 
      mutable lits_to_try : lit list;
- 
+     
    }
 
 (* filtered_clauses  are used for output only *)
 type filtered_clauses =
     {
 
-      filtered_in  : clause list;
+     filtered_in  : clause list;
 (* filtered out clauses are used in model representation *)
 (* for convenience  clauses get assigned inst_sel_lit which *)
 (* are the literals true in the model *)
-      filtered_out : clause list 
+     filtered_out : clause list 
    }
 
 module DTParam = 
@@ -72,8 +72,8 @@ module DiscrTreeM = DiscrTree.Make(DTParam)
 type watch_unif_index_elem = (filter_clause list)
 
 (*
-let (unif_index_ref : (unif_index_elem DiscrTreeM.index) ref ) 
-    = ref (DiscrTreeM.create ())
+  let (unif_index_ref : (unif_index_elem DiscrTreeM.index) ref ) 
+  = ref (DiscrTreeM.create ())
  *)
 
 type dummy = Dummy
@@ -123,7 +123,7 @@ let is_unif unif_index lit =
 
 
 let fclause_to_string fclause = 
- (Clause.to_string fclause.orig_clause)^" : "^(Term.term_list_to_string fclause.lits_to_try)
+  (Clause.to_string fclause.orig_clause)^" : "^(Term.term_list_to_string fclause.lits_to_try)
 
 (* find_watch_lit raise Not_found if no watch_symb found *)  
 
@@ -132,28 +132,28 @@ let rec find_watch_lit filter_state fclause =
   match fclause.lits_to_try with
   |[] -> raise Not_found
   |h::tl -> 
-     (* fclause.lits_to_try <- tl;*)
+      (* fclause.lits_to_try <- tl;*)
 
 (*      let atom = Term.get_atom h in       *)
 
       let compl_h = (Term.compl_lit h) in     
 (*      
-      out_str 
+	out_str 
 	(
-	 " clause: "^(Clause.to_string fclause.orig_clause)
-	 ^" to try "^(Term.term_list_to_string fclause.lits_to_try) 
-	 ^" Compl_h: "^(Term.to_string compl_h)^" unif watch ind: "
-	 ^(string_of_bool (is_unif filter_state.watch_unif_index compl_h))
-	 ^" unif cand: "
-	 ^(Clause.clause_list_to_string 
-	     (List.map (fun fcl -> fcl.orig_clause)
-		(DiscrTreeM.unif_candidates 
-		   filter_state.watch_unif_index compl_h))^"\n"));
-*)
+	" clause: "^(Clause.to_string fclause.orig_clause)
+	^" to try "^(Term.term_list_to_string fclause.lits_to_try) 
+	^" Compl_h: "^(Term.to_string compl_h)^" unif watch ind: "
+	^(string_of_bool (is_unif filter_state.watch_unif_index compl_h))
+	^" unif cand: "
+	^(Clause.clause_list_to_string 
+	(List.map (fun fcl -> fcl.orig_clause)
+	(DiscrTreeM.unif_candidates 
+	filter_state.watch_unif_index compl_h))^"\n"));
+ *)
       if 
 	(* check that the atom is not unif with  atom_unif_index; now moved up front *)
 (*	(not (is_unif filter_state.atom_unif_index atom))
-	  &&*)
+  &&*)
 	(* check that the complement of the lit  is not unif with  watch_unif_index *)
         (not (is_unif filter_state.watch_unif_index compl_h))
       then 
@@ -172,17 +172,17 @@ let add_to_watch filter_state watch_lit fclause =
   |Elem(old) -> 
       (
 (*       out_str ("\n Added to watch lit: "
-		^(Term.to_string watch_lit)^" clause: "
-		^(Clause.to_string fclause.orig_clause)^"\n");
-*)
+	 ^(Term.to_string watch_lit)^" clause: "
+	 ^(Clause.to_string fclause.orig_clause)^"\n");
+ *)
        ind_elem:= Elem (fclause::old)
       )
   |Empty_Elem   -> 	       
       (
 (*      out_str ("\n Added to watch new lit: "
-		^(Term.to_string watch_lit)^" clause: "
-		^(Clause.to_string fclause.orig_clause)^"\n");
-  *)     
+	^(Term.to_string watch_lit)^" clause: "
+	^(Clause.to_string fclause.orig_clause)^"\n");
+ *)     
        ind_elem := Elem([fclause])
       )
   )     
@@ -199,24 +199,24 @@ let get_watched_list_fclause fclause =
 (*---------------------------*)
 (*move_from_watch_to_unprocessed: assumes that fclause is in filter_state.watch_unif_index *)
 let move_from_watch_to_unprocessed filter_state fclause =
- let (w_lit,tl) = get_watched_list_fclause fclause in
+  let (w_lit,tl) = get_watched_list_fclause fclause in
 (* out_str ("\n Remove from watch:"^(Term.to_string w_lit)^"\n");*)
- (* we assume that all clauses for removal are already collected *)
- let ind_ref = ref filter_state.watch_unif_index in
- (try 
-   (DiscrTreeM.remove_term_path w_lit ind_ref;
-   filter_state.watch_unif_index <- !ind_ref;
-   )
- with (* could be removed when removing other w_lits *)
-   DiscrTree.Not_in_discr_tree -> ()
- ); 
+  (* we assume that all clauses for removal are already collected *)
+  let ind_ref = ref filter_state.watch_unif_index in
+  (try 
+    (DiscrTreeM.remove_term_path w_lit ind_ref;
+     filter_state.watch_unif_index <- !ind_ref;
+    )
+  with (* could be removed when removing other w_lits *)
+    DiscrTree.Not_in_discr_tree -> ()
+  ); 
 (* w_lit does not need to be tried again since *)
 (* atom(lit) will be in filter_state.atom_unif_index *)
- fclause.lits_to_try <- tl;
+  fclause.lits_to_try <- tl;
 (* add fclause to unprocessed *)
 (* out_str ("\n Added to unprocessed: "^(Clause.to_string fclause.orig_clause)^"\n");*)
- filter_state.unprocessed_fclauses <- fclause::(filter_state.unprocessed_fclauses)
-			
+  filter_state.unprocessed_fclauses <- fclause::(filter_state.unprocessed_fclauses)
+						  
 
 (*---------------------------*)
 
@@ -286,44 +286,44 @@ let process_given filter_state fclause =
 (*
   out_str ("\n\n-----------------\n");
   out_str ("\n Process: "^(fclause_to_string fclause)^"\n");
-*)
+ *)
 (*--debug---*)
   let old_lits_to_try  = fclause.lits_to_try in
   (try 
     let watch_lit = find_watch_lit filter_state fclause in 
 (*--debug---*)
 (*
-    out_str ("\n Found watch: "^(Term.to_string watch_lit)^" ; "
-	     ^(fclause_to_string fclause)^"\n");
-*)
+  out_str ("\n Found watch: "^(Term.to_string watch_lit)^" ; "
+  ^(fclause_to_string fclause)^"\n");
+ *)
 (*--debug---*)
     (add_to_watch filter_state watch_lit fclause)
   with
     Not_found -> 
       (
-    (*   out_str ("\n Try to Find Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
+       (*   out_str ("\n Try to Find Found watch: "^(Clause.to_string fclause.orig_clause)^"\n");*)
        fclause.lits_to_try <- old_lits_to_try;
        try 
-	let (lit, fclause_list) = (find_movable_watch filter_state fclause) in
+	 let (lit, fclause_list) = (find_movable_watch filter_state fclause) in
 (* move_from_watch_to_unprocessed it also moves in lits_to_try by one lit *)
 (*--debug---*)
 (*	out_str ("Found Movable watch: "^(Term.to_string lit)^" ; "
-		 ^(fclause_to_string fclause)^"\n");
-	out_str ("Compl clauses: "^(list_to_string fclause_to_string fclause_list "\n     "));
-*)
+  ^(fclause_to_string fclause)^"\n");
+  out_str ("Compl clauses: "^(list_to_string fclause_to_string fclause_list "\n     "));
+ *)
 (*--debug---*)
-	List.iter (move_from_watch_to_unprocessed filter_state) fclause_list;
-	
+	 List.iter (move_from_watch_to_unprocessed filter_state) fclause_list;
+	 
 (* add fclause to unprocessed; do not need to move in lits_to_try *)
-	filter_state.unprocessed_fclauses <- 
-	  fclause::(filter_state.unprocessed_fclauses)    
+	 filter_state.unprocessed_fclauses <- 
+	   fclause::(filter_state.unprocessed_fclauses)    
        with 
 	 Not_found ->
 	   ((*out_str "Whatch Not Found\n";*)
 	    no_watch_found filter_state fclause; )
       )
   )
-  
+    
 
 let rec filter_clauses filter_state = 
   match filter_state.unprocessed_fclauses with 
@@ -433,14 +433,14 @@ let sem_filter_unif clause_list side_clause_list =
 	do
 	  let num_of_sem_filtered_clauses_before = num_of_sem_filtered_clauses in
 	  let f order_fun  = 
-	 (*   current_clauses := (List.sort cmp_clause_length  !current_clauses);*)
+	    (*   current_clauses := (List.sort cmp_clause_length  !current_clauses);*)
 	    let filtered_clauses = 
 	      sem_filter_unif_order order_fun 
 		!current_filter_in_clauses side_clause_list in
 	    current_filter_in_clauses := filtered_clauses.filtered_in;
 	    current_filter_out_clauses := 
 	      (filtered_clauses.filtered_out)@(!current_filter_out_clauses)
-	      
+						 
 	  in	  
 	  List.iter f order_fun_list;
 	  let num_of_sem_filtered_clauses_after = num_of_sem_filtered_clauses in
@@ -464,59 +464,59 @@ let sem_filter_unif clause_list side_clause_list =
 
 
 
-let rec filter_clauses filter_state = 
+  let rec filter_clauses filter_state = 
   match filter_state.unprocessed_clauses with 
   |[] ->  filter_state.filtered_clauses
   |clause::tl ->
-      (try 
-	let watch_symb = find_watch_symb filter_state clause in 
-	add_to_watch filter_state watch_symb clause;
-      with
-	Not_found -> 
-	  (
-	   add_preds_to_undef_list filter_state clause;
-	   filter_state.filtered_clauses<-clause::filter_state.filtered_clauses;
-	   )
-      );
-      filter_state.unprocessed_clauses <- tl;
-      process_undef_preds filter_state
-and
-    process_undef_preds filter_state =
+  (try 
+  let watch_symb = find_watch_symb filter_state clause in 
+  add_to_watch filter_state watch_symb clause;
+  with
+  Not_found -> 
+  (
+  add_preds_to_undef_list filter_state clause;
+  filter_state.filtered_clauses<-clause::filter_state.filtered_clauses;
+  )
+  );
+  filter_state.unprocessed_clauses <- tl;
+  process_undef_preds filter_state
+  and
+  process_undef_preds filter_state =
   match filter_state.undef_pred_queue with 
   |[] -> filter_clauses filter_state
   |symb::tl -> 
-      (try
-	let watch_clause_list_ref =
-	  SymbHash.find filter_state.watch_symbol_table symb in
-	filter_state.unprocessed_clauses <- 
-	  (!watch_clause_list_ref)@filter_state.unprocessed_clauses;
-	SymbHash.remove filter_state.watch_symbol_table symb		      
-      with 
-	Not_found -> ()
-      );
-      filter_state.undef_pred_queue <- tl;
-      filter_state.undef_pred_set <-
-	(SymbSet.add symb filter_state.undef_pred_set);
-      process_undef_preds filter_state
+  (try
+  let watch_clause_list_ref =
+  SymbHash.find filter_state.watch_symbol_table symb in
+  filter_state.unprocessed_clauses <- 
+  (!watch_clause_list_ref)@filter_state.unprocessed_clauses;
+  SymbHash.remove filter_state.watch_symbol_table symb		      
+  with 
+  Not_found -> ()
+  );
+  filter_state.undef_pred_queue <- tl;
+  filter_state.undef_pred_set <-
+  (SymbSet.add symb filter_state.undef_pred_set);
+  process_undef_preds filter_state
 
 
 
 
 (*-----junk *)
 
-   let ind_elem = DiscrTreeM.add_term_path sel_lit unif_index_ref in
-    (match !ind_elem with 
-    |Elem(old) -> 
-	(try
-	  let old_clause_list =  List.assq sel_lit old in 
-	  let old_with_removed = List.remove_assq sel_lit old in
-	  ind_elem := 
-	    Elem((sel_lit,(main_clause::old_clause_list))::old_with_removed)
-	  with Not_found ->  ind_elem := Elem((sel_lit,[main_clause])::old)
-	)	     
-    |Empty_Elem   -> 	 
-	ind_elem := Elem([(sel_lit,[main_clause])])
-    );     
+  let ind_elem = DiscrTreeM.add_term_path sel_lit unif_index_ref in
+  (match !ind_elem with 
+  |Elem(old) -> 
+  (try
+  let old_clause_list =  List.assq sel_lit old in 
+  let old_with_removed = List.remove_assq sel_lit old in
+  ind_elem := 
+  Elem((sel_lit,(main_clause::old_clause_list))::old_with_removed)
+  with Not_found ->  ind_elem := Elem((sel_lit,[main_clause])::old)
+  )	     
+  |Empty_Elem   -> 	 
+  ind_elem := Elem([(sel_lit,[main_clause])])
+  );     
 
 
-*)
+ *)

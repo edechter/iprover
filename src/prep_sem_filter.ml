@@ -15,7 +15,7 @@
 (*----------------------------------------------------------------------[C]-*)
 
 
- 
+
 
 
 
@@ -70,7 +70,7 @@ let init_filter_state clause_list =
 
 
 (* find_watch_symb raise Not_found if no watch_symb found *)
-  
+    
 let find_watch_symb filter_state clause =
   let cand_watch_lit lit =  
     let top_symb = Term.lit_get_top_symb lit in
@@ -117,7 +117,7 @@ let rec filter_clauses filter_state =
 	  (
 	   add_preds_to_undef_list filter_state clause;
 	   filter_state.filtered_clauses<-clause::filter_state.filtered_clauses;
-	   )
+	  )
       );
       filter_state.unprocessed_clauses <- tl;
       process_undef_preds filter_state
@@ -144,4 +144,4 @@ and
 
 (* output filtered clauses*)
 let filter clause_list = 
- filter_clauses (init_filter_state clause_list)
+  filter_clauses (init_filter_state clause_list)

@@ -26,34 +26,34 @@ type key = string
 
 
 (*                 
-type atomic_type = 
-  | Boolean_type 
-  | Default_type 
-  | TType            (* type of the type symbols *)  
-  | User_atomic_type of string 
-*)
+		   type atomic_type = 
+		   | Boolean_type 
+		   | Default_type 
+		   | TType            (* type of the type symbols *)  
+		   | User_atomic_type of string 
+ *)
 
 (*
-type atomic_type_info = 
-    {
-     atype_name : string;
-   }
+  type atomic_type_info = 
+  {
+  atype_name : string;
+  }
 
-type symbol_type = 
+  type symbol_type = 
   |Atype of atomic_type * atomic_type_info 
   |Ftype of (atomic_type list) * atomic_type * fun_type_info 
 
-*)
+ *)
 
 
 (* type the symbol can have *)
 (*
-type stype = 
+  type stype = 
   Fun|Pred|Connective|Quantifier|Undef_stype
-*)
+ *)
 
 (*
-let to_string_stype = function
+  let to_string_stype = function
   |Fun               -> "function"
   |Pred              -> "predicate"
   |Connective        -> "connective"
@@ -62,9 +62,9 @@ let to_string_stype = function
 
 
 
-let to_stream_stype s stype =
+  let to_stream_stype s stype =
   s.stream_add_str (to_string_stype stype)
-*)
+ *)
 
 (*-----------Symbol Types----------------*)
 (* We assume a type is a symbol          *)    
@@ -72,14 +72,14 @@ let to_stream_stype s stype =
 (* for the type symbol this list is empty *)
 
 (*
-type stype = 
+  type stype = 
   |TUser
   |TBool
 
-let to_string_stype = function 
+  let to_string_stype = function 
   |TUser     -> "user"
   |TBool     -> "bool"
-*)
+ *)
 
 
 type sproperty = 
@@ -117,18 +117,18 @@ let to_string_sproperty = function
   |FDLess i         -> "less_"^(string_of_int i) (*finte domain less_i (x)*) 
 
   |FDRange (i, j)   -> "range_"^(string_of_int i)^"_"^(string_of_int j)  
-                        (* finite domain range_i_j (x)*)
+							 (* finite domain range_i_j (x)*)
 (*
   |BitVector i -> "bv_"^(string_of_int i)
   |Memory (i,j) -> "memory_"^(string_of_int i)^"_"^(string_of_int j)
-*)						     
+ *)						     
 
 (*  |Type stype       -> ("type_"^(to_string_stype stype)) *)
 
 
 let to_stream_sproperty s sproperty =
   s.stream_add_str (to_string_sproperty sproperty)
- 
+    
 
 (* fast key can be used only when symb. are already put in symbolDB*)
 type fast_key  = int param
@@ -148,7 +148,7 @@ let is_input                       = 5
 
 (* is not in a clause that got removed during proprocessed etc. *)
 let is_essential_input             = 6
- 
+    
 (* defined predicates are predicates connected with father_of/son_of attributes *)
 (* we compute reachibility relation/and priorities based on these predicates *)
 let is_defined_symb_input           =7
@@ -217,9 +217,9 @@ let is_signature_symb symb    = get_bool_param signature_symb symb
 let set_signature_symb b symb = set_bool_param b signature_symb symb
 
 (*
-let is_signature_symb symb  = symb.is_signature
-let set_signature_symb b symb = symb.is_signature_symb <- b
-*)
+  let is_signature_symb symb  = symb.is_signature
+  let set_signature_symb b symb = symb.is_signature_symb <- b
+ *)
 
 let inherit_bool_param param from_s to_s = 
   set_bool_param 
@@ -243,12 +243,12 @@ let get_stype_args_val_def symb =
   match symb.stype with 
   |Def(value::args) -> (args,value)  
   |_-> failwith "get_stype_args_val_def: arg_types should be defined"
-  
+	
 let get_val_type_def sym =
   let _arg_types, val_type = get_stype_args_val_def sym in 
   val_type
-	
-	
+    
+    
 
 
 let assign_stype s stype = 
@@ -274,7 +274,7 @@ let empty_symb_fun () =
    defined_depth   = Undef;
    flattening = Undef
 (*   hash = Undef;*)
-}
+ }
 
 let empty_symb = empty_symb_fun ()
 
@@ -285,18 +285,18 @@ let empty_sig_symb =
   sig_symb
 
 (*
-let create_less_symb (stype:stype) i    =
-    {empty_sig_symb with
-     sproperty = FDLess i;
-     name = "$"^(to_string_sproperty (FDLess i));
-     arity         = Def(1);
-     is_skolem     = Def(false); 
-     stype         = stype;
-   } 
+  let create_less_symb (stype:stype) i    =
+  {empty_sig_symb with
+  sproperty = FDLess i;
+  name = "$"^(to_string_sproperty (FDLess i));
+  arity         = Def(1);
+  is_skolem     = Def(false); 
+  stype         = stype;
+  } 
 
-*)
+ *)
     
- 
+    
 (*--------------Types--------------*)
 
 
@@ -342,10 +342,10 @@ let symb_default_type =
  }
     
 let symb_term_algebra_type = 
-	{symb_type_template with
-	name = "$$term_algebra_type";
-	}
-			
+  {symb_type_template with
+   name = "$$term_algebra_type";
+ }
+    
 (*---------types used in verification at Intel------*)
 (* since these symbols are  not defined in TPTP we use $$, to be consistent with current Zurab output $$ is omitted *)
 
@@ -372,30 +372,30 @@ let symb_ver_bit_index_type =
 
 let create_type_symb_from_str 
 (*~is_sig:true since can occur in typed equalities*)
-	?is_sig:(is_sig=true) symb_name =
- let symb = 
-   {symb_type_template with
-    name = symb_name;
-  } 
- in
- set_signature_symb is_sig symb;
- symb
+    ?is_sig:(is_sig=true) symb_name =
+  let symb = 
+    {symb_type_template with
+     name = symb_name;
+   } 
+  in
+  set_signature_symb is_sig symb;
+  symb
 
 let defined_types = 
-[
- symb_type_types;
- symb_bot_type;
- symb_bool_type; 
- symb_default_type; 
- symb_term_algebra_type;
- symb_ver_state_type;
- symb_ver_address_type;
- symb_ver_bit_index_type;
-]
+  [
+   symb_type_types;
+   symb_bot_type;
+   symb_bool_type; 
+   symb_default_type; 
+   symb_term_algebra_type;
+   symb_ver_state_type;
+   symb_ver_address_type;
+   symb_ver_bit_index_type;
+ ]
 
 let is_defined_type symb = 
   List.memq symb defined_types
-  
+    
 
 (*-------------Connectives-----------------------*)
 (* possible clash if someone defines symbols '~' as e.g. function symbol *)
@@ -412,7 +412,7 @@ let symb_unary_connective_template =
     symb_connective_template with 
     arity         = Def(1);
     stype         = create_stype [symb_bool_type] symb_bool_type;
- }
+  }
 
 let symb_binary_connective_template = 
   { 
@@ -427,22 +427,22 @@ let symb_neg =
  }
 
 (*
-let symb_and = 
+  let symb_and = 
   {symb_binary_connective_template with
-   name      = "&"; 
- }
+  name      = "&"; 
+  }
 
-let symb_or = 
+  let symb_or = 
   {symb_binary_connective_template with
-   name      = "|"; 
+  name      = "|"; 
   
- }
+  }
 
-let symb_impl = 
+  let symb_impl = 
   {symb_binary_connective_template with
-   name      = "->";    
- }
-*)
+  name      = "->";    
+  }
+ *)
 
 (*-----------quantifiers------------*)
 
@@ -450,23 +450,23 @@ let symb_impl =
 (* (generally should be polymorphic: (n-> bool) -> (n-1 -> bool) *)
 
 (*
-let symb_quantifier_template = 
+  let symb_quantifier_template = 
   { empty_symb with 
-    arity         = Def(1);
-    is_skolem     = Def(false);
-    sproperty     = Quantifier;
- }
-
-let symb_forall =
-  { symb_quantifier_template with  
-    name      = "!"; 
- }
-
-let symb_exists =
-  {symb_quantifier_template  with 
-    name      = "?"; 
+  arity         = Def(1);
+  is_skolem     = Def(false);
+  sproperty     = Quantifier;
   }
-*)
+
+  let symb_forall =
+  { symb_quantifier_template with  
+  name      = "!"; 
+  }
+
+  let symb_exists =
+  {symb_quantifier_template  with 
+  name      = "?"; 
+  }
+ *)
 
 (*--------theory symbols--------------*)
 
@@ -492,17 +492,17 @@ let symb_false =
    arity     = Def(0); 
    stype     = create_stype [] symb_bool_type;
    is_skolem = Def(false);
-}
+ }
 
 (* only typed equality remains; for untyped use $i type or $tType for the top type *)
 (*
-let symb_equality =
+  let symb_equality =
   {theory_symbol_template with 
-   name      = "="; 
-   arity     = Def(2); 
-   stype     = create_stype [symb_type_types;symb_type_types] symb_bool_type;
-}
-*)
+  name      = "="; 
+  arity     = Def(2); 
+  stype     = create_stype [symb_type_types;symb_type_types] symb_bool_type;
+  }
+ *)
 
 (* typed equality:  $equality_sorted(type_name,t_1,t2) *)
 let symb_typed_equality =
@@ -510,7 +510,7 @@ let symb_typed_equality =
    name      = "$$equality_sorted"; 
    arity     = Def(3); 
    stype     = create_stype [symb_type_types;symb_type_types;symb_type_types] symb_bool_type;
-}
+ }
 
 
 let symb_ver_next_state = 
@@ -524,7 +524,7 @@ let symb_ver_next_state =
 
 let symb_ver_reachable_state = 
   {
-  theory_symbol_template with 
+   theory_symbol_template with 
    name      = "$$reachableState";
    arity     = Def(1);
 (*   stype     = create_stype [symb_type_types] symb_bool_type;*)
@@ -534,74 +534,74 @@ let symb_ver_reachable_state =
 (* at the moment we define arithmetic symbols having symbol_type_types as arguments *)
 (* +,-,* does not comply with TPTP format!, got unsound clash with user redefined '+' etc. *)
 (*
-let symb_plus =
+  let symb_plus =
   {theory_symbol_template with 
-   name      = "+"; 
-   arity     = Def(2); 
-   stype     = create_stype [symb_type_types;symb_type_types] symb_type_types;
-}
+  name      = "+"; 
+  arity     = Def(2); 
+  stype     = create_stype [symb_type_types;symb_type_types] symb_type_types;
+  }
 
-let symb_product =
+  let symb_product =
   {theory_symbol_template with 
-   name      = "*"; 
-   arity     = Def(2); 
-   stype     = create_stype [symb_type_types;symb_type_types] symb_type_types;
-}
+  name      = "*"; 
+  arity     = Def(2); 
+  stype     = create_stype [symb_type_types;symb_type_types] symb_type_types;
+  }
 
-let symb_minus =
+  let symb_minus =
   {theory_symbol_template with 
-   name       = "-"; 
-   arity      = Def(2); 
-   stype      = create_stype [symb_type_types;symb_type_types] symb_type_types;
-}
+  name       = "-"; 
+  arity      = Def(2); 
+  stype      = create_stype [symb_type_types;symb_type_types] symb_type_types;
+  }
 
 
-let symb_unaryminus =
+  let symb_unaryminus =
   {theory_symbol_template with 
-   name      = "-"; 
-   arity     = Def(1); 
-   stype     = create_stype [symb_type_types] symb_type_types;
- }
-*)
+  name      = "-"; 
+  arity     = Def(1); 
+  stype     = create_stype [symb_type_types] symb_type_types;
+  }
+ *)
 
 (* old *)
 (* sometimes equality is defined in terms of some theory equality                      *)
 (* for example in model_inst equality can be defined in terms of term algebra equality *)
 (* in this case to avoid the clash the defined equality is renamed to iProver_=        *)
 (* now this is done via defining a type and typed equality
-let symb_iprover_eq =
-  {empty_sig_symb with 
+   let symb_iprover_eq =
+   {empty_sig_symb with 
    name      = "$$iProver_="; 
    arity     = Def(2); 
    stype     = create_stype [symb_type_types;symb_type_types] symb_bool_type;
    sproperty = Theory;   
    is_skolem = Def(false);
- }
-*)
+   }
+ *)
 
 (*---------change later (variadic)-------------*)
 let symb_answer =
- {theory_symbol_template with 
-    name      = "$$answer"; 
+  {theory_symbol_template with 
+   name      = "$$answer"; 
 (*!! Change to variadic/polymorphic symbols, take care since some indexies useing arity function !!*)
-  arity     = Undef; 
-  stype     = Undef; (*create_stype [symb_type_types] symb_bool_type;*)
-  sproperty = Theory;   
-  is_skolem = Def(false);
+   arity     = Undef; 
+   stype     = Undef; (*create_stype [symb_type_types] symb_bool_type;*)
+   sproperty = Theory;   
+   is_skolem = Def(false);
 
-}  
+ }  
 
 
 (*
-let symb_iprover_sorted_eq =
+  let symb_iprover_sorted_eq =
   {empty_sig_symb with 
-   name      = "$$iProver_sorted_equality"; 
-   arity     = Def(3); 
-   stype     = create_stype [symb_type_types;symb_type_types;symb_type_types] symb_bool_type;
-   sproperty = Theory;   
-   is_skolem = Def(false);
- }
-*)
+  name      = "$$iProver_sorted_equality"; 
+  arity     = Def(3); 
+  stype     = create_stype [symb_type_types;symb_type_types;symb_type_types] symb_bool_type;
+  sproperty = Theory;   
+  is_skolem = Def(false);
+  }
+ *)
 
 let symb_distinct =
   {theory_symbol_template with 
@@ -616,7 +616,7 @@ let symb_bot =
    name      = "$$iProver_bot"; 
    arity     = Def(0); 
    stype     = create_stype [] symb_bot_type;
-}
+ }
 
 
 (*-----is used in replacing non-eq atoms with eq -----*)
@@ -627,35 +627,35 @@ let symb_top =
    arity     = Def(0); 
    sproperty = FunPred;   
    stype     = create_stype [] symb_bool_type;
-}
+ }
 
 
 (* don't forget to add new symbols in the list!!!*)
 let special_symbols = 
-defined_types@
+  defined_types@
   [
    symb_neg;   
 (*   symb_and;
-   symb_or; 
-   symb_impl;
-   symb_forall;
-   symb_exists;
-*)
+     symb_or; 
+     symb_impl;
+     symb_forall;
+     symb_exists;
+ *)
    symb_true;  
    symb_false; 
- (*  symb_equality;*)
+   (*  symb_equality;*)
    symb_typed_equality;
    symb_ver_next_state;
    symb_ver_reachable_state;
 (*   symb_plus;    
-   symb_product;
-   symb_minus;   
-   symb_unaryminus;
-*)
+     symb_product;
+     symb_minus;   
+     symb_unaryminus;
+ *)
    symb_distinct;
    symb_bot;
-  (* symb_iprover_eq; *)
-  (* symb_iprover_sorted_eq;*)
+   (* symb_iprover_eq; *)
+   (* symb_iprover_sorted_eq;*)
    symb_top;       
    symb_answer
  ]
@@ -666,7 +666,7 @@ let is_special_symbol s = List.memq s special_symbols
 
 exception Symbol_fast_key_undef
 exception Arity_undef
-      
+    
 (* is_sig is a boolean whether the symbol is in the signature: fun or pred*)
 let create_from_str ?is_sig:(is_sig=true) (name:string) (stype:stype) = 
   if is_sig then
@@ -688,19 +688,19 @@ let get_arity_from stype =
   |Def(type_list)->  (List.length (type_list) -1)
   |Undef -> 0
   )   
-  
+    
 
 
 let create_from_str_type ?is_sig:(is_sig=true) (str:string) (stype:stype)  = 
   if is_sig then
     {
-    empty_sig_symb with
-    name=str; 
-    stype=stype; 
-    arity= Def(get_arity_from stype);
-    }
+     empty_sig_symb with
+     name=str; 
+     stype=stype; 
+     arity= Def(get_arity_from stype);
+   }
   else
-     {
+    {
      empty_symb with
      name=str; 
      stype=stype; 
@@ -719,19 +719,19 @@ let incr_num_input_occur s = s.num_input_occur <- s.num_input_occur +1
 
 (** t is a subtype of s; currently all types are incoparable except symb_type_types being a supertype of all types *)
 let is_subtype t s = 
-	t == s || s == symb_type_types || t == symb_bot_type	
+  t == s || s == symb_type_types || t == symb_bot_type	
 
 let assign_group s group = 
- match s.group with 
- |Undef -> 
-     s.group <- Def(group)
- |_-> failwith "group is already assigned"
+  match s.group with 
+  |Undef -> 
+      s.group <- Def(group)
+  |_-> failwith "group is already assigned"
 
 let assign_flattening s flat = 
   match s.flattening with 
   |Undef -> s.flattening <- Def(flat)
   |_-> failwith "flattening is already assigned"
- 
+	
 let get_flattening s = 
   match s.flattening with
   |Def(flat) -> flat
@@ -749,40 +749,40 @@ exception Symbol_fast_key_is_def
 (* assigns fast key and a group which is key modulo max_num_of_sym_groups*)
 (* assign_fast key is called in SymbolDB *)
 let assign_fast_key (s:symbol) (key:int) = 
- match s.fast_key with 
+  match s.fast_key with 
   |Undef -> (s.fast_key <- Def(key);
-	    assign_group s (key mod max_num_of_sym_groups))
+	     assign_group s (key mod max_num_of_sym_groups))
   |_     -> raise Symbol_fast_key_is_def
 
 exception Symbol_db_id_is_def
 
 let assign_db_id = function 
 
-  (* Raise exception when db_id is already defined *)
+    (* Raise exception when db_id is already defined *)
   | { db_id = Def _ } -> 
-    (function _ -> raise Symbol_db_id_is_def)
+      (function _ -> raise Symbol_db_id_is_def)
 
-  (* Set db_id to defined value *)
+	(* Set db_id to defined value *)
   | clause -> 
-    (function db_id -> clause.db_id <- Def(db_id))
+      (function db_id -> clause.db_id <- Def(db_id))
 
 
 
 (*
-exception Symbol_hash_is_def
-let assign_hash (s:symbol) (hash:int) = 
+  exception Symbol_hash_is_def
+  let assign_hash (s:symbol) (hash:int) = 
   match s.hash with 
   |Undef -> s.hash <- Def(hash)
   |_     -> raise Symbol_hash_is_def
+  
+ *)
 	
-*)
-    
 
 let assign_property prop s = 
   s.sproperty <- prop
 
 let get_property s = s.sproperty
-  
+    
 
 let assign_is_input bval s =
   set_bool_param bval is_input s
@@ -799,9 +799,9 @@ let assign_type stype s =
   s.stype <- stype
 
 (*
-let assign_type_pred s =  
+  let assign_type_pred s =  
   s.stype <- Pred
-*)
+ *)
 
 
 (*exception Is_input_undef*)
@@ -813,11 +813,11 @@ let is_essential_input s =
 
 
 (* 
-  match s.is_input with 
-  |Def(bv) -> bv
-  |Undef -> false
+   match s.is_input with 
+   |Def(bv) -> bv
+   |Undef -> false
 (*raise Is_input_undef*)
-*)
+ *)
 
 
 let is_flat s = 
@@ -849,7 +849,7 @@ let is_arity_def s =
 
 let assign_arity arity s = 
   s.arity <- Def(arity)
-	
+      
 let is_pred s = 
   if (is_signature_symb s) 
   then 
@@ -862,11 +862,11 @@ let is_pred s =
 
 let is_fun s = 
   (is_signature_symb s) && (not (is_pred s)) (* && (not (s.sproperty = Type)) *)
-	
+    
 (* types can occur in typed equality as constants...*)
 
 let is_constant s = 
-   (s.arity=Def(0)) && (is_fun s)
+  (s.arity=Def(0)) && (is_fun s)
 
 
 let get_type (s:symbol) = s.stype
@@ -882,13 +882,13 @@ let get_fast_key (s:symbol) =
 
 
 (*
-exception Symbol_hash_undef
+  exception Symbol_hash_undef
 
-let  get_hash (s:symbol) =
+  let  get_hash (s:symbol) =
   match s.hash with
   |Def(hash)   -> hash
   |Undef       -> raise  Symbol_hash_undef
-*)
+ *)
 
 exception Group_undef
 let get_group s = 
@@ -898,7 +898,7 @@ let get_group s =
 
 
 (*let  compare_key (s1:symbol)(s2:symbol)  = *)
-  (*(String.compare (get_key s1) (get_key s2))*)
+	(*(String.compare (get_key s1) (get_key s2))*)
 
 let compare_name s1 s2 = (String.compare s1.name s2.name)
 
@@ -936,18 +936,18 @@ let  compare_key =
 let create_template_key_symb name (*stype sproperty*) = 
   {empty_symb with 
    name  = name;
-  (* stype = stype;
-   sproperty = sproperty *)
+   (* stype = stype;
+      sproperty = sproperty *)
  }
     
 (*
-let  compare_key = 
+  let  compare_key = 
   lex_combination [compare_name;compare_arity;compare_type;compare_property]
-*)
+ *)
 
 let  compare_fast_key (s1:symbol)(s2:symbol) = 
   (compare (get_fast_key s1) (get_fast_key s2)) 
-     
+    
 let compare = compare_fast_key
 
 let equal = (==)
@@ -959,15 +959,15 @@ let equal = (==)
 let hash  = get_fast_key 
 
 (* unsafe compare    
-let  compare (s1:t) (s2:t) = 
-  try (compare_fast_key s1 s2) with 
-    Fast_key_undef -> (compare_key s1 s2)
-*)
+   let  compare (s1:t) (s2:t) = 
+   try (compare_fast_key s1 s2) with 
+   Fast_key_undef -> (compare_key s1 s2)
+ *)
 
 (*-----------verification related test-------------------*)
 let is_state_type_symb symb = 
- (symb_ver_state_type == symb)
-  
+  (symb_ver_state_type == symb)
+    
 let is_address_type_symb symb = 
   (symb_ver_address_type == symb) 
 
@@ -975,9 +975,9 @@ let is_bitindex_type_symb symb =
   (symb_ver_bit_index_type == symb)
 
 let is_address_const_symb symb = 
-   match (get_stype_args_val symb) with 
-   | Def([], val_type) -> 
-            (is_address_type_symb val_type) 
+  match (get_stype_args_val symb) with 
+  | Def([], val_type) -> 
+      (is_address_type_symb val_type) 
   | _-> false
 
 let is_a_state_pred_symb symb = 
@@ -987,7 +987,7 @@ let is_a_state_pred_symb symb =
        (is_state_type_symb arg_symb))
   | _-> false
 
-  
+	
 let is_a_memory_pred_symb symb = 
   match (get_stype_args_val symb) with 
   | Def([state_type;address_type;bitindex_type], val_type) -> 
@@ -1049,18 +1049,18 @@ let pp_symbol ppf { name = n } = Format.fprintf ppf "%s" n
 let pp_symbol_tptp ppf { name = n } = 
 (*
   let n' = 
-    if (String.length n) < 2 then
-      n
-    else
-      if 
-	String.sub n 0 2 = "$$" 
-      then 
-	String.sub n 2 ((String.length n) - 2)
-      else
-	n
+  if (String.length n) < 2 then
+  n
+  else
+  if 
+  String.sub n 0 2 = "$$" 
+  then 
+  String.sub n 2 ((String.length n) - 2)
+  else
+  n
   in
   Format.fprintf ppf "%s" n'
-*)
+ *)
 
   Format.fprintf ppf "%s" n
     
@@ -1073,12 +1073,12 @@ let rec to_stream_full s symb =
   s.stream_add_str "SType: \n";
   (match symb.stype with 
   |Def (type_list) ->
-     ( s.stream_add_str "[";
-       list_to_stream s to_stream type_list ",";
-       (* list_to_stream s to_stream_full  type_list " ";*)
+      ( s.stream_add_str "[";
+	list_to_stream s to_stream type_list ",";
+	(* list_to_stream s to_stream_full  type_list " ";*)
 
-       s.stream_add_str "]";
-      )
+	s.stream_add_str "]";
+       )
   |Undef -> 
       s.stream_add_str "Undef";
   );
@@ -1088,7 +1088,7 @@ let rec to_stream_full s symb =
   s.stream_add_str "Arity:     ";
   s.stream_add_str (param_to_string string_of_int symb.arity);
   s.stream_add_char '\n';
- 
+  
   s.stream_add_str "SProperty: ";
   s.stream_add_str (to_string_sproperty symb.sproperty);
   s.stream_add_char '\n';
@@ -1096,11 +1096,11 @@ let rec to_stream_full s symb =
   s.stream_add_str ("is_sig_symb: "^(string_of_bool (is_signature_symb symb))^"\n");
   s.stream_add_str (to_string_sproperty symb.sproperty);
   s.stream_add_char '\n'
-  
+    
 let out_full = to_stream_full stdout_stream 
 
 let to_string_full =
-    to_string_fun_from_to_stream_fun 10 to_stream_full
+  to_string_fun_from_to_stream_fun 10 to_stream_full
 
 
 

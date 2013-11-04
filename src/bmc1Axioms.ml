@@ -1,16 +1,16 @@
 (*----------------------------------------------------------------------(C)-*)
 (* Copyright (C) 2006 -2012 Konstantin Korovin and The University of Manchester.
-    This file is part of iProver - a theorem prover for first - order logic.
-    iProver is free software: you can redistribute it and / or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    iProver is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-    See the GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
+   This file is part of iProver - a theorem prover for first - order logic.
+   iProver is free software: you can redistribute it and / or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   iProver is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+   See the GNU General Public License for more details.
+   You should have received a copy of the GNU General Public License
+   along with iProver. If not, see < http:// www.gnu.org / licenses />. *)
 (*----------------------------------------------------------------------[C]-*)
 
 open Lib
@@ -84,16 +84,16 @@ let transient_address_term_format =
 
 (*
 (* Get n-th variable recursively *)
-   let rec var_n' accum = function
+  let rec var_n' accum = function
 
 (* Terminate and return accumulated variable *)
-   | 0 -> accum
+  | 0 -> accum
 
 (* Fail for negaive variable numbers *)
-   | i when i < 0 -> failwith ("Bmc1Axioms.var_n: variable number must be >= 0")
+  | i when i < 0 -> failwith ("Bmc1Axioms.var_n: variable number must be >= 0")
 
 (* Recurse to get next variable *)
-   | i -> var_n' (Var.get_next_var accum) (pred i)
+  | i -> var_n' (Var.get_next_var accum) (pred i)
  *)
 
 (* Get n-th variable *)
@@ -116,44 +116,44 @@ let term_x2 vtype = (term_xn vtype 2)
 (* Create typed equation *)
 let create_typed_equation stype lhs rhs = add_typed_equality_sym stype lhs rhs
     (*
-       (* Add or retrieve type term from term database *)
-       let stype_term =
-       TermDB.add_ref
-       (Term.create_fun_term stype [])
-       term_db
-       in
-       
-       (* Add or retrieve equation from term database *)
-       TermDB.add_ref
-       (Term.create_fun_term
-       Symbol.symb_typed_equality
-       [stype_term; lhs; rhs])
-       term_db
+      (* Add or retrieve type term from term database *)
+      let stype_term =
+      TermDB.add_ref
+      (Term.create_fun_term stype [])
+      term_db
+      in
+      
+      (* Add or retrieve equation from term database *)
+      TermDB.add_ref
+      (Term.create_fun_term
+      Symbol.symb_typed_equality
+      [stype_term; lhs; rhs])
+      term_db
      *)
 
 (*
 (* Create term *)
-   let create_constant_term symbol_name symbol_type =
-   
-   (* Type of symbol *)
-   let symbol_stype = Symbol.create_stype [] symbol_type in
-   
-   (* Add symbol to symbol database *)
-   let symbol =
-   SymbolDB.add_ref
-   (Symbol.create_from_str_type symbol_name symbol_stype)
-   symbol_db
-   in
-   
-   (* Add term to term database *)
-   let term =
-   TermDB.add_ref
-   (Term.create_fun_term symbol [])
-   term_db
-   in
-   
-   (* Return creted term *)
-   term
+  let create_constant_term symbol_name symbol_type =
+  
+  (* Type of symbol *)
+  let symbol_stype = Symbol.create_stype [] symbol_type in
+  
+  (* Add symbol to symbol database *)
+  let symbol =
+  SymbolDB.add_ref
+  (Symbol.create_from_str_type symbol_name symbol_stype)
+  symbol_db
+  in
+  
+  (* Add term to term database *)
+  let term =
+  TermDB.add_ref
+  (Term.create_fun_term symbol [])
+  term_db
+  in
+  
+  (* Return creted term *)
+  term
  *)
 
 let create_constant_term const_name const_type_symb =
@@ -232,10 +232,10 @@ let create_bitvector_atom bitvector_symbol_name bitindex_term =
 (* Create path atom for two states, i.e. nextState(constB{p}, constB{q}) *)
 let create_path_atom state_p state_q =
   (*
-     create_atom
-     path_symbol_name
-     [ state_type; state_type]
-     [ state_p; state_q ]
+    create_atom
+    path_symbol_name
+    [ state_type; state_type]
+    [ state_p; state_q ]
    *)
   create_atom_symb Symbol.symb_ver_next_state [state_p; state_q]
 
@@ -653,23 +653,23 @@ let has_bound_sk_constant_cl cl =
   Clause.exists has_bound_sk_constant_lit cl
 
 (*
-   let separate_reachable_state_clauses clauses =
+  let separate_reachable_state_clauses clauses =
 (* Clause.has_next_state is not assigned at this point so need to explicitely search for next state *)
 
-   let (_reach_clauses, no_reach_cl) = separate_reach_constants clauses in
+  let (_reach_clauses, no_reach_cl) = separate_reach_constants clauses in
 
-   let (has_bound_sk_constant, no_bound_sk_no_reach) =
-   List.partition has_bound_sk_constant_cl no_reach_cl
-   in
-   has_reach_bound_skolem_constants:= has_bound_sk_constant;
+  let (has_bound_sk_constant, no_bound_sk_no_reach) =
+  List.partition has_bound_sk_constant_cl no_reach_cl
+  in
+  has_reach_bound_skolem_constants:= has_bound_sk_constant;
 (* debug *)
 (*
-   out_str "\n\n----- separated has_bound_sk_constant ---------------\n";
-   out_str ((Clause.clause_list_to_tptp has_bound_sk_constant)^"\n\n");
-   out_str "\n--------------------\n";
+  out_str "\n\n----- separated has_bound_sk_constant ---------------\n";
+  out_str ((Clause.clause_list_to_tptp has_bound_sk_constant)^"\n\n");
+  out_str "\n--------------------\n";
  *)
 (* debug *)
-   no_reach_cl
+  no_reach_cl
  *)
 
 (* pre_inst_reachable_state_clauses is applied to all clauses (in iprover.ml), after adding all other axioms *)
@@ -847,70 +847,70 @@ let rec create_all_clock_axioms_for_states accum bound_i ubound =
    ~address_val(A1, B) | ~address_val(A2, B)
 
  *)
-   let create_address_domain_axiom () =
+  let create_address_domain_axiom () =
 
 (* Common literals of both axioms:
 
    ~address(A1) | ~address(A2) | ~addressDiff(A1, A2, B) | A1 = A2
  *)
-   let axiom_head =
-   [ create_compl_lit (create_address_atom term_x0);
-   create_compl_lit (create_address_atom term_x1);
-   create_compl_lit (create_address_diff_atom term_x0 term_x1 term_x2);
-   create_typed_equation address_type term_x0 term_x1 ]
-   in
+  let axiom_head =
+  [ create_compl_lit (create_address_atom term_x0);
+  create_compl_lit (create_address_atom term_x1);
+  create_compl_lit (create_address_diff_atom term_x0 term_x1 term_x2);
+  create_typed_equation address_type term_x0 term_x1 ]
+  in
 
 (* Atom address_val(A1,B) *)
-   let address_val_1_atom =
-   create_address_val_atom term_x0 term_x2
-   in
+  let address_val_1_atom =
+  create_address_val_atom term_x0 term_x2
+  in
 
 (* Atom address_val(A2,B) *)
-   let address_val_2_atom =
-   create_address_val_atom term_x1 term_x2
-   in
+  let address_val_2_atom =
+  create_address_val_atom term_x1 term_x2
+  in
 
 (* First axiom:
 
    address_val(A1, B) | address_val(A1, B) | { axiom_head }
  *)
-   let address_domain_axiom_1 =
-   address_val_1_atom ::
-   address_val_2_atom ::
-   axiom_head
-   in
+  let address_domain_axiom_1 =
+  address_val_1_atom ::
+  address_val_2_atom ::
+  axiom_head
+  in
 
 (* Second axiom:
 
    ~address_val(A1, B) | ~address_val(A1, B) | { axiom_head }
  *)
-   let address_domain_axiom_2 =
-   (create_compl_lit address_val_1_atom) ::
-   (create_compl_lit address_val_2_atom) ::
-   axiom_head
-   in
+  let address_domain_axiom_2 =
+  (create_compl_lit address_val_1_atom) ::
+  (create_compl_lit address_val_2_atom) ::
+  axiom_head
+  in
 
 (* Return the two address_domain axioms *)
-   [ address_domain_axiom_1; address_domain_axiom_2 ]
+  [ address_domain_axiom_1; address_domain_axiom_2 ]
 
 (* Accumulate atoms addressDiff(A1,A2,bitindex{n}) from n to 0 *)
-   let rec create_address_diff_disjunction accum = function
+  let rec create_address_diff_disjunction accum = function
 
 (* Terminate after all atoms have been generated *)
-   | i when i < 0 -> accum
+  | i when i < 0 -> accum
 
 (* Create axiom for current i *)
-   | i ->
+  | i ->
 
 (* Create atom addressDiff(X0,X1,bitindex{i}) *)
-   let address_diff_disjunct =
-   create_address_diff_atom term_x0 term_x1 (create_bitindex_term i)
-   in
+  let address_diff_disjunct =
+  create_address_diff_atom term_x0 term_x1 (create_bitindex_term i)
+  in
 
 (* Recursively create remaining atoms *)
-   create_address_diff_disjunction
-   (address_diff_disjunct :: accum)
-   (pred i)
+  create_address_diff_disjunction
+  (address_diff_disjunct :: accum)
+  (pred i)
 
 (* Create address_diff axiom with the maximal bit width of all
    addresses:
@@ -919,24 +919,24 @@ let rec create_all_clock_axioms_for_states accum bound_i ubound =
    addressDiff(A1, A2, bitindex { N -1 })).
 
  *)
-   let create_address_domain_axiom address_max_width =
+  let create_address_domain_axiom address_max_width =
 
 (* Create literals for axiom *)
-   let address_domain_axiom_literals =
-   create_address_diff_disjunction [ ] address_max_width
-   in
+  let address_domain_axiom_literals =
+  create_address_diff_disjunction [ ] address_max_width
+  in
 
 (* Create axiom *)
-   let address_domain_axiom =
-   Clause.normalise term_db (Clause.create address_domain_axiom_literals)
-   in
+  let address_domain_axiom =
+  Clause.normalise term_db (Clause.create address_domain_axiom_literals)
+  in
 
 (* Assign clause history as axiom *)
 (* Clause.assign_axiom_history Clause.BMC1_Axiom address_domain_axiom; *)
-   Clause.assign_tstp_source_axiom_bmc1 address_domain_axiom;
+  Clause.assign_tstp_source_axiom_bmc1 address_domain_axiom;
 
 (* Return axiom *)
-   address_domain_axiom
+  address_domain_axiom
 
 (* Return address definition for given constant bit vector b000 as
 
@@ -955,71 +955,71 @@ let rec create_all_clock_axioms_for_states accum bound_i ubound =
    first clause only in some cases
 
  *)
-   let create_constant_address_definition accum bitvector_symbol =
+  let create_constant_address_definition accum bitvector_symbol =
 
 (* Get name of bit vector symbol *)
-   let bitvector_name = Symbol.get_name bitvector_symbol in
+  let bitvector_name = Symbol.get_name bitvector_symbol in
 
 (* Create address term for constant bit vector: b000_address_term *)
-   let address_term =
-   create_skolem_term constant_address_term_format address_type bitvector_name
-   in
+  let address_term =
+  create_skolem_term constant_address_term_format address_type bitvector_name
+  in
 
 (* Create atom for address: addressVal(b000_address_term, X0) *)
-   let address_val_atom =
-   create_address_val_atom address_term term_x0
-   in
+  let address_val_atom =
+  create_address_val_atom address_term term_x0
+  in
 
 (* Create atom for bitvector with variable: b000(X0) *)
-   let bitvector_atom =
-   create_bitvector_atom bitvector_name term_x0
-   in
+  let bitvector_atom =
+  create_bitvector_atom bitvector_name term_x0
+  in
 
 (* Create atom for address term: address(b000_address_term) *)
-   let address_atom =
-   create_address_atom address_term
-   in
+  let address_atom =
+  create_address_atom address_term
+  in
 
 (* Create first axiom *)
-   let constant_address_definition_1 =
-   Clause.normalise
-   term_db
-   (Clause.create
-   [ create_compl_lit bitvector_atom; address_val_atom ])
-   in
+  let constant_address_definition_1 =
+  Clause.normalise
+  term_db
+  (Clause.create
+  [ create_compl_lit bitvector_atom; address_val_atom ])
+  in
 
 (* Assign clause history as axiom *)
 (* Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_1; *)
-   Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_1;
+  Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_1;
 
 (* Create second axiom *)
-   let constant_address_definition_2 =
-   Clause.normalise
-   term_db
-   (Clause.create
-   [ bitvector_atom; create_compl_lit address_val_atom ])
-   in
+  let constant_address_definition_2 =
+  Clause.normalise
+  term_db
+  (Clause.create
+  [ bitvector_atom; create_compl_lit address_val_atom ])
+  in
 
 (* Assign clause history as axiom *)
 (* Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_2; *)
-   Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_2;
+  Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_2;
 
 (* Create third axiom *)
-   let constant_address_definition_3 =
-   Clause.normalise
-   term_db
-   (Clause.create [ address_atom ])
-   in
+  let constant_address_definition_3 =
+  Clause.normalise
+  term_db
+  (Clause.create [ address_atom ])
+  in
 
 (* Assign clause history as axiom *)
 (* Clause.assign_axiom_history Clause.BMC1_Axiom constant_address_definition_3; *)
-   Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_3;
+  Clause.assign_tstp_source_axiom_bmc1 constant_address_definition_3;
 
 (* Return clauses in accumulator *)
-   constant_address_definition_1 ::
-   constant_address_definition_2 ::
-   constant_address_definition_3 ::
-   accum
+  constant_address_definition_1 ::
+  constant_address_definition_2 ::
+  constant_address_definition_3 ::
+  accum
  *)
 
 (********** Instantiate clauses for bound **********)
@@ -1436,10 +1436,10 @@ let init_bound all_clauses =
     if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
     then
       (*
-	 begin
-	 pre_inst_reachable_state_axioms [] 0 0
-	 (*	pre_inst_reachable_state_clauses [] 0 0 *)
-	 end
+	begin
+	pre_inst_reachable_state_axioms [] 0 0
+	(*	pre_inst_reachable_state_clauses [] 0 0 *)
+	end
        *)
       (* moved to pre_inst_reach all clauses in iprover.ml *)
       []
@@ -1471,9 +1471,9 @@ let init_bound all_clauses =
       end
   in
   (*
-     out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
-     out_str ((Clause.clause_list_to_tptp reachable_state_axioms)^"\n\n");
-     out_str "\n--------------------\n";
+    out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
+    out_str ((Clause.clause_list_to_tptp reachable_state_axioms)^"\n\n");
+    out_str "\n--------------------\n";
    *)
   (* Create clock axiom *)
   let clock_axioms =
@@ -1536,9 +1536,9 @@ let increment_bound cur_bound next_bound simulate =
   (* change grounding of state type to next_bound *)
   
   (*
-     let next_bound_state_term = create_state_term next_bound in
-     out_str ("state term: "^(Term.to_string next_bound_state_term)^("\n"));
-     Prop_solver_exchange.assign_new_grounding Symbol.symb_ver_state_type next_bound_state_term;
+    let next_bound_state_term = create_state_term next_bound in
+    out_str ("state term: "^(Term.to_string next_bound_state_term)^("\n"));
+    Prop_solver_exchange.assign_new_grounding Symbol.symb_ver_state_type next_bound_state_term;
    *)
   
   (* Create literals for current bound up to next bound,
@@ -1584,16 +1584,16 @@ let increment_bound cur_bound next_bound simulate =
     if !current_options.bmc1_pre_inst_reach_state  (* add this as a case in match below*)
     then
       (*
-	 begin
-	 let reach_axs = pre_inst_reachable_state_axioms [] (succ cur_bound) next_bound in
-	 (*
-	    out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
-	    out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
-	    out_str "\n--------------------\n";
-	  *)
-	 reach_axs
-	 (*	pre_inst_reachable_state_clauses []  (succ cur_bound) next_bound*)
-	 end
+	begin
+	let reach_axs = pre_inst_reachable_state_axioms [] (succ cur_bound) next_bound in
+	(*
+	  out_str "\n\n-----  pre_inst_reachable_state_axioms ---------------\n";
+	  out_str ((Clause.clause_list_to_tptp reach_axs)^"\n\n");
+	  out_str "\n--------------------\n";
+	 *)
+	reach_axs
+	(*	pre_inst_reachable_state_clauses []  (succ cur_bound) next_bound*)
+	end
        *)
       (* pre-instantiation of reachable states is moved to iprover.ml *)
       []

@@ -43,15 +43,15 @@ let out_str s =
     print_endline s
 
 let out_err_str s = 
-   if !tptp_safe_out_ref 
+  if !tptp_safe_out_ref 
   then 
-   prerr_endline ("% "^s)
+    prerr_endline ("% "^s)
   else
-   prerr_endline s
+    prerr_endline s
 
 let out_warning s = 
   out_err_str ("\n\nWarning: "^s)
- 
+    
 (*let out_str_debug s =
   if debug then out_str s else ()*)
 
@@ -114,14 +114,14 @@ let iprover_exe_path () =
     
 
 (*
-let program_path = 
+  let program_path = 
   let cmd_link = "/proc/self/exe" in
   if (Sys.file_exists cmd_link) 
   then
-    Filename.dirname (Unix.readlink cmd_link)
+  Filename.dirname (Unix.readlink cmd_link)
   else
-    "./"
-*)
+  "./"
+ *)
 
 (* switch on for debug mode*)
 (*let debug = true*)
@@ -145,21 +145,21 @@ let truncate_n n f =
 let mem_control_init () =
   let old_controls = Gc.get () in
   let new_controls = { old_controls with
-    Gc.minor_heap_size = 4 * 1024 * 1024 * 8 / Sys.word_size; (* 4MB *)
-    Gc.major_heap_increment = 8 * 1024 * 1024 * 8 / Sys.word_size; (* 8MB *)
-  (*  Gc.max_overhead = 1000;*)
+		       Gc.minor_heap_size = 4 * 1024 * 1024 * 8 / Sys.word_size; (* 4MB *)
+		       Gc.major_heap_increment = 8 * 1024 * 1024 * 8 / Sys.word_size; (* 8MB *)
+		       (*  Gc.max_overhead = 1000;*)
 (*    Gc.space_overhead = 400;*)
 
-  } in
+		     } in
   Gc.set new_controls   
 
 
 (*
-let mem_control_init () = 
+  let mem_control_init () = 
   let old_controls = Gc.get () in
   let new_controls = {old_controls with Gc.major_heap_increment= 1048576} in
   Gc.set new_controls
-*)
+ *)
 
 let _ =  mem_control_init ()
 
@@ -194,23 +194,23 @@ let print_memory_usage () =
   flush stderr
 
 let print_live_memory_usage () =
-   let (mbytes,kbytes) = bytes_to_mem_size (get_live_mem_bytes ()) in
-   Printf.fprintf stderr "Allocated live memory:\t%d Mbytes %d kBytes\n"
+  let (mbytes,kbytes) = bytes_to_mem_size (get_live_mem_bytes ()) in
+  Printf.fprintf stderr "Allocated live memory:\t%d Mbytes %d kBytes\n"
     mbytes kbytes;
-   flush stderr
+  flush stderr
 
 (* 
-let print_memory_usage () =
- let stat = Gc.stat () and control = Gc.get () in
- (* out_str ("space_overhead="^(string_of_int control.Gc.space_overhead)^"\n");*)
-  let max_words_total = stat.Gc.heap_words + control.Gc.minor_heap_size in
-  let bytes = (max_words_total * ( Sys.word_size / 8) ) in
-  let kbytes = (bytes / 1024) in
-  let mbytes = (kbytes / 1024) in
-  Printf.fprintf stderr "Allocated memory:\t%d Mbytes %d kBytes\n"
-    mbytes (kbytes - mbytes * 1024);
-  flush stderr
-*)
+   let print_memory_usage () =
+   let stat = Gc.stat () and control = Gc.get () in
+   (* out_str ("space_overhead="^(string_of_int control.Gc.space_overhead)^"\n");*)
+   let max_words_total = stat.Gc.heap_words + control.Gc.minor_heap_size in
+   let bytes = (max_words_total * ( Sys.word_size / 8) ) in
+   let kbytes = (bytes / 1024) in
+   let mbytes = (kbytes / 1024) in
+   Printf.fprintf stderr "Allocated memory:\t%d Mbytes %d kBytes\n"
+   mbytes (kbytes - mbytes * 1024);
+   flush stderr
+ *)
 
 
 (* fun is a function unit -> unit, get_time_fun returns time taken by fun  *)
@@ -244,7 +244,7 @@ let print_mem_time_fun f a =
   out_str (s_pref_str ());
   out_str 
     ("Mem before: "
-      ^(string_of_int before_mbytes)
+     ^(string_of_int before_mbytes)
      ^ " Mbytes "
      ^(string_of_int before_kbytes) 
      ^" kBytes\n"
@@ -269,8 +269,8 @@ let mem_test fun_to_test n =
   ( for i=1 to n
   do 
 (*      Gc.full_major ();
-      print_live_memory_usage (); 
-      print_memory_usage ();*)
+	print_live_memory_usage (); 
+	print_memory_usage ();*)
 
     ignore (print_mem_time_fun fun_to_test ()) 
   done
@@ -336,15 +336,15 @@ let kill_all_child_processes () =
 exception None_opt
 
 let is_some = function 
-	| Some _-> true 
-	| None -> false
-	 
+  | Some _-> true 
+  | None -> false
+	
 let get_some = function
-	|Some x -> x
+  |Some x -> x
   |None -> raise  None_opt
 
 let get_some_fun f = 
-	 (fun b -> get_some (f b))
+  (fun b -> get_some (f b))
 
 type 'a param = Def of 'a | Undef 
 
@@ -356,12 +356,12 @@ let get_param_val p =
   |Undef  -> raise Undef_param
 
 let get_param_val_fun f = 
-	(fun b -> get_param_val (f b))
+  (fun b -> get_param_val (f b))
 
 let param_is_def p = 
-	match p with
-	| Def _ -> true
-	| Undef -> false
+  match p with
+  | Def _ -> true
+  | Undef -> false
 
 (* outcome of  compare fun *)
 let cequal   =  0
@@ -383,8 +383,8 @@ let hash_sum rest num =
 
 (* returns hash of a list; hash_elem is fun elem-> hash*)
 let hash_list hash_elem list = 
-	List.fold_left (fun rest elem -> hash_sum rest (hash_elem elem)) 0  list 
-	
+  List.fold_left (fun rest elem -> hash_sum rest (hash_elem elem)) 0  list 
+    
 
 type 'a elem = Elem of 'a | Empty_Elem
 type 'a ref_elem = ('a elem) ref
@@ -401,10 +401,10 @@ let add_param_str str =
   param_str_ref := (!param_str_ref)^pref_str^str^"\n"
 
 let add_param_str_front str = 
-   param_str_ref := pref_str^str^"\n"^(!param_str_ref)
+  param_str_ref := pref_str^str^"\n"^(!param_str_ref)
 
 let param_str_new_line () = 
-   param_str_ref := (!param_str_ref)^"\n"
+  param_str_ref := (!param_str_ref)^"\n"
 
 
 (*compose sign with function*)
@@ -421,7 +421,7 @@ let get_pair_from_list  = function
 let get_pair_first (a1,_a2) = a1
 
 let get_pair_second (_a1,a2) = a2
-	
+    
 exception Not_a_triple
 let get_triple_from_list = function 
   |[a1;a2;a3] -> (a1,a2,a3)
@@ -442,7 +442,7 @@ type 'a bind = int * 'a
 let propagate_binding_to_list blist =
   let (b_l,list) = blist in  
   List.map (fun el -> (b_l,el)) list
-	
+    
 let apply_to_bounded f (b,e) = (b,f e)
 
 let binded_to_string  el_to_string (b,e) = ("("^(string_of_int b)^","^(el_to_string e)^")")
@@ -454,7 +454,7 @@ let bool_to_int b = if b then 1 else 0
 
 (*    let out_str s = Printf.fprintf stdout " %s \n" s *)
 
-    
+  
 (*let out_str_a s = Printf.fprintf stdout " %s \n" s *)
 
 (* lexicographic comparison on pairs*)
@@ -463,9 +463,9 @@ let pair_compare_lex comp1 comp2 (x1,x2) (y1,y2) =
   let res_comp1 = comp1 x1 y1 in
   if res_comp1=cequal then 
     let res_comp2 = comp2 x2 y2 in
-      if res_comp2 = cequal then 
-	cequal
-      else res_comp2
+    if res_comp2 = cequal then 
+      cequal
+    else res_comp2
   else res_comp1
 
 (* lex combination of all compare functions in compare_fun_list*)
@@ -476,7 +476,7 @@ let rec lex_combination compare_fun_list x1 x2 =
       if res = cequal then lex_combination tl x1 x2
       else res
   |[] -> cequal 
-       
+	
 
 
 
@@ -485,8 +485,8 @@ let rec lex_combination compare_fun_list x1 x2 =
 type 'a bound_list = ('a list) bind
 
 (*
-let rec bound_list_fold_left f a (bound_list : bound_list) = 
- 
+  let rec bound_list_fold_left f a (bound_list : bound_list) = 
+  
  *)
 
 (*-------- folds a function over intervals -------------*)
@@ -539,7 +539,7 @@ let rec list_skip elem l =
       else  list_skip elem tl	
   | [] -> failwith "Lib list_skip: elem should be in l"
 
-  
+	
 
 (* explicitly maps from left to right, 
    since order can matter when use imperative features *)
@@ -570,9 +570,9 @@ let rec list_compare_lex compare_el l1 l2 =
       if (cmp = cequal) then
 	list_compare_lex compare_el tl1 tl2
       else cmp 
- |((h::_),[]) -> cequal + 1
- |([],(h::_)) -> cequal -1
- |([],[]) -> cequal
+  |((h::_),[]) -> cequal + 1
+  |([],(h::_)) -> cequal -1
+  |([],[]) -> cequal
 
 
 (* in list_get_max_elements_v 
@@ -588,9 +588,9 @@ let rec list_is_max_elem_v compare elem list =
   match list with 
   |h::tl -> 
 (*      if ((not (h == elem)) & ((compare h elem) >= 0))       
-      then false 
-      else (list_is_max_elem_v compare elem tl) 
-*)
+	then false 
+	else (list_is_max_elem_v compare elem tl) 
+ *)
       if (h == elem) || not ((compare h elem) > 0) 
       then (list_is_max_elem_v compare elem tl)
       else false  
@@ -613,18 +613,18 @@ let rec list_is_max_elem compare elem list =
   |[] -> true
 
 (*
-let rec list_find_max_element compare list =
+  let rec list_find_max_element compare list =
   match list with 
   |h::tl -> 
-      if tl = [] 
-      then h
-      else
-	let max_rest = list_find_max_element compare tl in
-	if (compare max_rest h) > 0 
-	then max_rest
-	else h
+  if tl = [] 
+  then h
+  else
+  let max_rest = list_find_max_element compare tl in
+  if (compare max_rest h) > 0 
+  then max_rest
+  else h
   |[] -> raise Not_found
-*)
+ *)
 
 let list_find_max_element compare list =
   let rec f max_el rest =     
@@ -681,7 +681,7 @@ let list_remove_duplicates list =
 
 
 (* removes duplicates  based on the fact 
-  that literals are preordered i.e. the same are in sequence*)
+   that literals are preordered i.e. the same are in sequence*)
 
 let rec list_remove_duplicates_ordered list = 
   match list with 
@@ -742,21 +742,21 @@ let rec list_find_not_identical l1 l2 =
 
 
 (* appends ass lists: if list1 and list2 have
- elem with (k,v1)  and (k,v2) resp. then new list will have (k,(f v1 v2))
- otherwise  appends (k1,v1) and (k2,v2)*)
+   elem with (k,v1)  and (k,v2) resp. then new list will have (k,(f v1 v2))
+   otherwise  appends (k1,v1) and (k2,v2)*)
 
 
 let rec append_ass_list f ass_list_1 ass_list_2  = 
   match ass_list_1 with 
   |(k1,v1)::tl1 -> 
-     (try 
-       let v2 = List.assoc k1 ass_list_2 in 
-       let new_list_2 = 
-           (k1,(f v1 v2))::(List.remove_assoc k1 ass_list_2) in   
-       append_ass_list f tl1 new_list_2  
-     with
-       Not_found -> append_ass_list f tl1 ((k1,v1)::ass_list_2)
-     )
+      (try 
+	let v2 = List.assoc k1 ass_list_2 in 
+	let new_list_2 = 
+          (k1,(f v1 v2))::(List.remove_assoc k1 ass_list_2) in   
+	append_ass_list f tl1 new_list_2  
+      with
+	Not_found -> append_ass_list f tl1 ((k1,v1)::ass_list_2)
+      )
   |[] -> ass_list_2
 
 (* number association lists *)
@@ -769,23 +769,23 @@ type 'a num_ass_list =  ('a, int) ass_list
 
 
 (* dangerous: old lists are changing...
- association lists on ref's
+   association lists on ref's
 
-type 'a 'b ass_list = ('a*('b ref)) list
+   type 'a 'b ass_list = ('a*('b ref)) list
 
-let rec append_ass_list f ass_list_1 ass_list_2  = 
-  match n_list_1 with 
-  |(k1,v1)::tl1 -> 
-     (try 
-       let v2 = List.assoc k1 n_list_2 in 
-       v2 := f !v1 !v2 ;
-       append_ass_list f tl1 ass_list_2  
-     with
-       Not_found -> (k1,v1)::n_list_2
-     )
-  |[] -> ass_list_2
+   let rec append_ass_list f ass_list_1 ass_list_2  = 
+   match n_list_1 with 
+   |(k1,v1)::tl1 -> 
+   (try 
+   let v2 = List.assoc k1 n_list_2 in 
+   v2 := f !v1 !v2 ;
+   append_ass_list f tl1 ass_list_2  
+   with
+   Not_found -> (k1,v1)::n_list_2
+   )
+   |[] -> ass_list_2
 
-*)
+ *)
 
 (*------------- reachibility depth ----------*)
 (* given a module with an elemet, and reachability relation *)
@@ -844,9 +844,9 @@ type 'a string_stream =
     {
      stream : 'a;
      stream_add_char : char   -> unit;
-     stream_add_str  : string -> unit;
+       stream_add_str  : string -> unit;
    }
-   
+      
 let create_buffer_stream size = 
   let b = Buffer.create size in
   let s = {stream = b;
@@ -860,9 +860,9 @@ let to_string_buffer_stream s =
   Buffer.contents s.stream  
 
 let stdout_stream = 
- {stream = stdout;
-  stream_add_char = print_char;
-  stream_add_str  = print_string}   
+  {stream = stdout;
+   stream_add_char = print_char;
+   stream_add_str  = print_string}   
 
 (* "let to_string = to_string_fun_from_to_stream_fun 30 to_stream" *)
 (*    creates to_string function from to_stream function with      *)
@@ -875,7 +875,7 @@ let to_string_fun_from_to_stream_fun init_buff_size to_stream =
     to_string_buffer_stream s
   in
   out_fun
-  
+    
 
 let rec list_to_stream s to_str_el l separator_str = 
   match l with
@@ -929,7 +929,7 @@ let formatter_of_filename append filename =
     let formatter_channel = 
       Pervasives.open_out_gen open_flags open_perm filename 
     in
-      
+    
     (* Return formatter writing to file *)
     Format.formatter_of_out_channel formatter_channel
 
@@ -941,8 +941,8 @@ let rec pp_any_array' pp_a sep ppf array = function
   | i when i = Array.length array - 1 -> 
       Format.fprintf ppf "%a" pp_a array.(i)
   | i -> 
-    Format.fprintf ppf "%a%s" pp_a array.(i) sep; 
-    pp_any_array' pp_a sep ppf array (succ i)
+      Format.fprintf ppf "%a%s" pp_a array.(i) sep; 
+      pp_any_array' pp_a sep ppf array (succ i)
 
 (* Print an array of any type with separator *)
 let pp_any_array pp_a sep ppf array = 
@@ -954,16 +954,16 @@ let rec pp_any_list pp_a sep ppf = function
   | [] -> ()
 
   | [a] -> 
-    Format.fprintf ppf "@[<h>%a@]" pp_a a
+      Format.fprintf ppf "@[<h>%a@]" pp_a a
 
   | a::tl -> 
 
-    Format.fprintf 
-      ppf 
-      "@[<h>%a@]%s@," 
-      pp_a a sep; 
-    
-    pp_any_list pp_a sep ppf tl
+      Format.fprintf 
+	ppf 
+	"@[<h>%a@]%s@," 
+	pp_a a sep; 
+      
+      pp_any_list pp_a sep ppf tl
 
 
 (* Print a list of strings with separator *)
@@ -1012,44 +1012,44 @@ let string_of_string_option none_str str =
 
 (*
 
-1)
+  1)
 
   let b = Buffer.create 10000 in
   let s = {stream = b;
-	   stream_add_char = Buffer.add_char b;
-	   stream_add_str  = Buffer.add_string b}   
+  stream_add_char = Buffer.add_char b;
+  stream_add_str  = Buffer.add_string b}   
 
 (* strings, chars are added at the end*)
-s.add_str "first line\n"; 
-s.add_str "second line\n";
+  s.add_str "first line\n"; 
+  s.add_str "second line\n";
 
-2) (*        stdout          *)
+  2) (*        stdout          *)
 
   let out_model model = 
   let s = 
-    {stream = stdin;
-     stream_add_char = print_char ;
-     stream_add_str  = print_string}   
+  {stream = stdin;
+  stream_add_char = print_char ;
+  stream_add_str  = print_string}   
   in
   model_to_stream s model
 
-3)
+  3)
 
- let s =  {stream = out_channel;
-           stream_add_char = output_char out_channel;
-           stream_add_str  = output_string out_channel;
-           } in
- bench_to_buffer s formula; 
- flush out_channel
+  let s =  {stream = out_channel;
+  stream_add_char = output_char out_channel;
+  stream_add_str  = output_string out_channel;
+  } in
+  bench_to_buffer s formula; 
+  flush out_channel
 
------------------
+  -----------------
 (*if string is needed then *)
-let b_string =  (Buffer.contents b)
+  let b_string =  (Buffer.contents b)
 
 (* if out buffer to channel then *)
-let fun_out out_ch = Buffer.output_buffer out_ch b in
+  let fun_out out_ch = Buffer.output_buffer out_ch b in
 
-*)
+ *)
 
 
 
@@ -1102,7 +1102,7 @@ let rec list_to_string to_str_el l separator_str =
       (to_str_el h)^separator_str^(list_to_string to_str_el rest separator_str)
 
 let list_of_str_to_str str_list separator_str = 
-    list_to_string (fun x->x) str_list separator_str
+  list_to_string (fun x->x) str_list separator_str
 
 
 (*----------------reals----------*)
@@ -1143,7 +1143,7 @@ let start_discount_time  = ref Undef
 
 let assign_discount_time_limit (x:float) = discount_time_limit := Def(x)
 let unassign_discount_time_limit () = discount_time_limit := Undef
-	 
+    
 let assign_discount_start_time () = 
   start_discount_time := Def((Unix.gettimeofday ()))
 

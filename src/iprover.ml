@@ -105,16 +105,16 @@ let empty_problem_props () =
  }
 
 (*
-   let val_distance = 40
+  let val_distance = 40
 
-   let opt_val_to_str opt_val =
-   let (opt_name, val_str') = opt_val in
-   let val_str =
-   if val_str' = "" then "\"\"" else val_str' in
-   (space_padding_str val_distance opt_name)^val_str
+  let opt_val_to_str opt_val =
+  let (opt_name, val_str') = opt_val in
+  let val_str =
+  if val_str' = "" then "\"\"" else val_str' in
+  (space_padding_str val_distance opt_name)^val_str
 
-   let opt_val_list_to_str l =
-   String.concat "\n" (List.map opt_val_to_str l)
+  let opt_val_list_to_str l =
+  String.concat "\n" (List.map opt_val_to_str l)
 
  *)
 
@@ -253,11 +253,11 @@ let time_to_string time =
   | Undef -> "Unbounded"
 
 (*
-   let switching_off_discount () =
-   out_str (pref_str^"Switching off resolution: loop timeout \n");
-   !current_options.resolution_flag <- false;
-   Discount.clear_all();
-   clear_memory ()
+  let switching_off_discount () =
+  out_str (pref_str^"Switching off resolution: loop timeout \n");
+  !current_options.resolution_flag <- false;
+  Discount.clear_all();
+  clear_memory ()
  *)
 
 (*----------------Register of prover functions-----------------------------------*)
@@ -337,7 +337,7 @@ let create_provers ~inst_name_param ~res_name_param input_clauses =
   } in
   (
    (*if !current_options.instantiation_flag 
-      then*)
+     then*)
    match inst_name_param with 
    | Def(inst_name) ->
        let module InstInput =
@@ -352,7 +352,7 @@ let create_provers ~inst_name_param ~res_name_param input_clauses =
 	 (*	else ()*)
   );
   ((*if !current_options.resolution_flag
-      then *)
+     then *)
    match res_name_param with 
    | Def(res_name) ->
        
@@ -490,8 +490,8 @@ let full_loop prover_functions input_clauses_ref =
 	       *)
 	      (* debug *)
 	      (*
-		 out_str ("\n New Input Length: "
-		 ^(string_of_int (List.length !current_input_clauses))^"\n");
+		out_str ("\n New Input Length: "
+		^(string_of_int (List.length !current_input_clauses))^"\n");
 	       *)
 	      (* out_str "\nNon Horn Clauses:\n";
 		 List.iter
@@ -554,7 +554,7 @@ let get_num_of_input_constants () =
   SymbolDB.fold f !symbol_db_ref 0
 
 (*
-   let _ = out_str "\n\n!!! no_input_eq  Commented !!!\n\n"
+  let _ = out_str "\n\n!!! no_input_eq  Commented !!!\n\n"
  *)
 
 let no_input_eq () =
@@ -584,21 +584,21 @@ let finite_models input_clauses =
       []
   in
 (*	
-   out_str ("\n---------Eq Axioms------------------\n"
-   ^(Clause.clause_list_to_tptp eq_axioms)
-   ^"\n------------------------\n");
-   
-   out_str ("\n---------Flat clauses------------------\n"
-   ^(Clause.clause_list_to_tptp flat_clauses)
-   ^"\n------------------------\n");
+  out_str ("\n---------Eq Axioms------------------\n"
+  ^(Clause.clause_list_to_tptp eq_axioms)
+  ^"\n------------------------\n");
+  
+  out_str ("\n---------Flat clauses------------------\n"
+  ^(Clause.clause_list_to_tptp flat_clauses)
+  ^"\n------------------------\n");
  *)
   let init_clauses =
     eq_axioms@flat_clauses
   in
   (*
-     out_str ("\n---------Init clauses------------------\n"
-     ^(Clause.clause_list_to_tptp init_clauses)
-     ^"\n------------------------\n");
+    out_str ("\n---------Init clauses------------------\n"
+    ^(Clause.clause_list_to_tptp init_clauses)
+    ^"\n------------------------\n");
    *)
   out_str (pref_str^"lit_activity_flag true\n");
   (*  Prop_solver_exchange.set_lit_activity_flag false;*)
@@ -651,9 +651,9 @@ let finite_models input_clauses =
 	Finite_models.domain_axioms_triangular new_bound_pred
       in
       (*	
-	 out_str ("\n---------Domain Axioms------------------\n"
-	 ^(Clause.clause_list_to_tptp domain_axioms)
-	 ^"\n------------------------\n");
+	out_str ("\n---------Domain Axioms------------------\n"
+	^(Clause.clause_list_to_tptp domain_axioms)
+	^"\n------------------------\n");
        *)	
       let dis_eq_axioms =
 	if no_input_eq ()
@@ -663,17 +663,17 @@ let finite_models input_clauses =
 	  Finite_models.dis_eq_axioms_all_dom_sym ()
       in
       (*		
-	 out_str ("\n---------Diseq Axioms------------------\n"
-	 ^(Clause.clause_list_to_tptp dis_eq_axioms)
-	 ^"\n------------------------\n");
+	out_str ("\n---------Diseq Axioms------------------\n"
+	^(Clause.clause_list_to_tptp dis_eq_axioms)
+	^"\n------------------------\n");
        *)		
       (*
-	 let domain_axioms =
-	 if no_input_eq ()
-	 then
-	 Finite_models.domain_axioms_unit new_dom_pred !dom_const_list
-	 else
-	 Finite_models.domain_axioms_triangular new_dom_pred !dom_const_list
+	let domain_axioms =
+	if no_input_eq ()
+	then
+	Finite_models.domain_axioms_unit new_dom_pred !dom_const_list
+	else
+	Finite_models.domain_axioms_triangular new_dom_pred !dom_const_list
        *)
       
       let axioms = domain_axioms@dis_eq_axioms in
@@ -705,28 +705,28 @@ let finite_models input_clauses =
 	
 	(*........unsat cores unfinished yet......*)			
 	(*			
-	   let unsat_core_clauses =	Prop_solver_exchange.unsat_core ()	
-	   in
-	   
-	   (						
-	   (* Print unsat core *)
-	   Format.printf
-	   "@\n%sUnsat core has size %d@\n@\n%a\n\n@."
-	   pref_str
-	   (List.length unsat_core_clauses)
-	   (pp_any_list Clause.pp_clause_tptp "\n") unsat_core_clauses;						
-	   
-	   );
-	   (* let unsat_core_leaves = TstpProof.get_leaves unsat_core_clauses in *)
-	   let unsat_core_all_parents = TstpProof.get_parents unsat_core_clauses in
-	   (						
-	   (* Print unsat core *)
-	   Format.printf
-	   "@\n%sUnsat leaves have size %d@\n@\n%a\n\n@."
-	   pref_str
-	   (List.length unsat_core_clauses)
-	   (pp_clause_list_with_source ~global_subsumption_justification_fun:None ~clausify_proof:false) unsat_core_all_parents;						
-	   );
+	  let unsat_core_clauses =	Prop_solver_exchange.unsat_core ()	
+	  in
+	  
+	  (						
+	  (* Print unsat core *)
+	  Format.printf
+	  "@\n%sUnsat core has size %d@\n@\n%a\n\n@."
+	  pref_str
+	  (List.length unsat_core_clauses)
+	  (pp_any_list Clause.pp_clause_tptp "\n") unsat_core_clauses;						
+	  
+	  );
+	  (* let unsat_core_leaves = TstpProof.get_leaves unsat_core_clauses in *)
+	  let unsat_core_all_parents = TstpProof.get_parents unsat_core_clauses in
+	  (						
+	  (* Print unsat core *)
+	  Format.printf
+	  "@\n%sUnsat leaves have size %d@\n@\n%a\n\n@."
+	  pref_str
+	  (List.length unsat_core_clauses)
+	  (pp_clause_list_with_source ~global_subsumption_justification_fun:None ~clausify_proof:false) unsat_core_all_parents;						
+	  );
 	 *)
 	
 	(* since all inferred types are monotone, we can increase all domains simultaniously (other stratagies can be also worth trying) *)
@@ -868,13 +868,13 @@ let omit_eq_axioms () =
 (* fix omitting eq axioms *)
 (* but should be careful with effect on sem_filtering and sub_typing *)
 (*
-   !current_options.large_theory_mode &&
-   (Symbol.is_essential_input Symbol.symb_typed_equality) &&
-   (is_large_theory ()) &&
-   (get_val_stat num_of_input_neg_conjectures > 0) &&
-   (not (List.exists
-   Clause.has_eq_lit !Parser_types.neg_conjectures)) &&
-   (not !current_options.sat_mode)
+  !current_options.large_theory_mode &&
+  (Symbol.is_essential_input Symbol.symb_typed_equality) &&
+  (is_large_theory ()) &&
+  (get_val_stat num_of_input_neg_conjectures > 0) &&
+  (not (List.exists
+  Clause.has_eq_lit !Parser_types.neg_conjectures)) &&
+  (not !current_options.sat_mode)
  *)
 
 let schedule_to_many_axioms_schedule schedule =
@@ -1050,51 +1050,51 @@ let init_schedule5_inst_first () =
   [(option0, time0); (option1, time1); (option2, time2); (option3, time3); (option4, time4); (option_last, time_last)]
 
 (*
-   let init_schedule () =
-   out_str (pref_str^"Schedule 1 is on \n");
-   init_schedule1 ()
+  let init_schedule () =
+  out_str (pref_str^"Schedule 1 is on \n");
+  init_schedule1 ()
  *)
 (*
-   let init_schedule () =
-   out_str (pref_str^"Many Axioms, Schedule 1 is on \n");
-   schedule_to_many_axioms_schedule (init_schedule1 ())
- *)
-
-(*
-   let init_schedule () =
-   if num_of_input_clauses > !current_options.axioms_threshold
-   then
-   ( out_str (pref_str^"Schedule 3 is on, Many Axioms, no restarts \n");
-   schedule_to_many_axioms_schedule (schedule_no_learinig_restarts (init_schedule3 ()))
-   )
-   else
-   (out_str (pref_str^"Schedule 3 is on, no restarts between \n");
-   schedule_no_learinig_restarts_between (init_schedule3 ()))
-
+  let init_schedule () =
+  out_str (pref_str^"Many Axioms, Schedule 1 is on \n");
+  schedule_to_many_axioms_schedule (init_schedule1 ())
  *)
 
 (*
-   let init_schedule () =
-   if num_of_input_clauses > !current_options.axioms_threshold
-   then
-   ( out_str (pref_str^"Schedule 3 is on, Many Axioms, no restarts \n");
-   schedule_to_many_axioms_schedule (schedule_no_learinig_restarts (init_schedule3 ()))
-   )
-   else
-   (out_str (pref_str^"Schedule 3 is on \n");
-   (init_schedule3 ()))
+  let init_schedule () =
+  if num_of_input_clauses > !current_options.axioms_threshold
+  then
+  ( out_str (pref_str^"Schedule 3 is on, Many Axioms, no restarts \n");
+  schedule_to_many_axioms_schedule (schedule_no_learinig_restarts (init_schedule3 ()))
+  )
+  else
+  (out_str (pref_str^"Schedule 3 is on, no restarts between \n");
+  schedule_no_learinig_restarts_between (init_schedule3 ()))
+
  *)
 
 (*
-   let init_schedule () =
-   if num_of_input_clauses > !current_options.axioms_threshold
-   then
-   ( out_str (pref_str^"Schedule 1 is on, Many Axioms, no restarts \n");
-   schedule_to_many_axioms_schedule (schedule_no_learinig_restarts (init_schedule1 ()))
-   )
-   else
-   (out_str (pref_str^"Schedule 1 is on \n");
-   (init_schedule1 ()))
+  let init_schedule () =
+  if num_of_input_clauses > !current_options.axioms_threshold
+  then
+  ( out_str (pref_str^"Schedule 3 is on, Many Axioms, no restarts \n");
+  schedule_to_many_axioms_schedule (schedule_no_learinig_restarts (init_schedule3 ()))
+  )
+  else
+  (out_str (pref_str^"Schedule 3 is on \n");
+  (init_schedule3 ()))
+ *)
+
+(*
+  let init_schedule () =
+  if num_of_input_clauses > !current_options.axioms_threshold
+  then
+  ( out_str (pref_str^"Schedule 1 is on, Many Axioms, no restarts \n");
+  schedule_to_many_axioms_schedule (schedule_no_learinig_restarts (init_schedule1 ()))
+  )
+  else
+  (out_str (pref_str^"Schedule 1 is on \n");
+  (init_schedule1 ()))
  *)
 
 let sat_schedule () =
@@ -1125,10 +1125,10 @@ let epr_non_horn_schedule () =
 (*let _ = out_str "\n Schedule 5 was the best before\n"*)
 
 (*
-   let init_schedule () =
-   out_str (pref_str^"Schedule 5 is on \n");
-   strip_conj_schedule
-   (schedule_to_many_axioms_schedule (init_schedule5 ()))
+  let init_schedule () =
+  out_str (pref_str^"Schedule 5 is on \n");
+  strip_conj_schedule
+  (schedule_to_many_axioms_schedule (init_schedule5 ()))
  *)
 
 (*let _ = out_str "\n now init_schedule5_no_res_last, change later!\n "*)
@@ -1147,16 +1147,16 @@ let dynamic_sched_5 () =
     else
       (out_str (pref_str^"Schedule dynamic 5 is on \n");
        (*
-	  strip_conj_schedule
-	  (schedule_to_many_axioms_schedule (init_schedule5 ()))
+	 strip_conj_schedule
+	 (schedule_to_many_axioms_schedule (init_schedule5 ()))
 	*)
        (*
-	  strip_conj_schedule
-	  (schedule_to_many_axioms_schedule (init_schedule5_no_res_last ()))
+	 strip_conj_schedule
+	 (schedule_to_many_axioms_schedule (init_schedule5_no_res_last ()))
 	*)
        (*
-	  strip_conj_schedule
-	  (schedule_to_many_axioms_schedule (init_schedule5 ()))
+	 strip_conj_schedule
+	 (schedule_to_many_axioms_schedule (init_schedule5 ()))
 	*)
        (* -2012: init_schedule5_inst_first () *)
        
@@ -1212,45 +1212,45 @@ let out_res_model all_clauses_db =
   sat_out_active_clauses_db all_clauses_db
 
 (*
-   let init_schedule () =
-   out_str (pref_str^"Schedule 5 is on \n");
-   strip_conj_schedule
-   (schedule_to_many_axioms_schedule (init_schedule5 ()))
+  let init_schedule () =
+  out_str (pref_str^"Schedule 5 is on \n");
+  strip_conj_schedule
+  (schedule_to_many_axioms_schedule (init_schedule5 ()))
  *)
 (*
-   let init_schedule () =
-   out_str (pref_str^"Schedule 5_2 is on \n");
-   strip_conj_schedule
-   (schedule_to_many_axioms_schedule (init_schedule5_2 ()))
+  let init_schedule () =
+  out_str (pref_str^"Schedule 5_2 is on \n");
+  strip_conj_schedule
+  (schedule_to_many_axioms_schedule (init_schedule5_2 ()))
  *)
 
 (*
-   let init_schedule () =
-   out_str (pref_str^"Schedule 5_1 is on \n");
-   strip_conj_schedule
-   (schedule_to_many_axioms_schedule (init_schedule5_1 ()))
+  let init_schedule () =
+  out_str (pref_str^"Schedule 5_1 is on \n");
+  strip_conj_schedule
+  (schedule_to_many_axioms_schedule (init_schedule5_1 ()))
  *)
 
 (*------Main Function----------*)
 
 (*
-   let szs_pref = "\n\nSZS' status "
+  let szs_pref = "\n\nSZS' status "
 
 (* "PROVED\n" *)
-   let proved_str () =
-   if (get_val_stat num_of_input_neg_conjectures > 0)
-   then
-   szs_pref^"Theorem\n"
-   else
-   szs_pref^"Unsatisfiable\n"
+  let proved_str () =
+  if (get_val_stat num_of_input_neg_conjectures > 0)
+  then
+  szs_pref^"Theorem\n"
+  else
+  szs_pref^"Unsatisfiable\n"
 
 (*"SATISFIABLE\n"*)
-   let satisfiable_str () =
-   if (get_val_stat num_of_input_neg_conjectures > 0)
-   then
-   szs_pref^"CounterSatisfiable\n"
-   else
-   szs_pref^"Satisfiable\n"
+  let satisfiable_str () =
+  if (get_val_stat num_of_input_neg_conjectures > 0)
+  then
+  szs_pref^"CounterSatisfiable\n"
+  else
+  szs_pref^"Satisfiable\n"
  *)
 
 let szs_pref = "\n\n% SZS status "
@@ -1359,32 +1359,32 @@ let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_
 	end
 	  
 	  (*
-	     
-	     (if !current_options.schedule then
-	     (
-	     let schedule =
-	     if !current_options.sat_mode
-	     then
-	     sat_schedule ()
-	     else
-	     init_schedule ()
-	     in
-	     (*	 let schedule = init_schedule () in*)
-	     schedule_run clauses schedule
-	     )
-	     else
-	     (
-	     if (!current_options.sat_mode && !current_options.sat_finite_models)
-	     then
-	     (*we use input clauses rather than clauses + eq axioms*)
-	     finite_models !Parsed_input_to_db.input_clauses_ref
-	     else
-	     (* usual mode *)
-	     let prover_functions_ref =
-	     ref (create_provers "Inst" "Res" clauses) in
-	     full_loop prover_functions_ref clauses
-	     )
-	     )
+	    
+	    (if !current_options.schedule then
+	    (
+	    let schedule =
+	    if !current_options.sat_mode
+	    then
+	    sat_schedule ()
+	    else
+	    init_schedule ()
+	    in
+	    (*	 let schedule = init_schedule () in*)
+	    schedule_run clauses schedule
+	    )
+	    else
+	    (
+	    if (!current_options.sat_mode && !current_options.sat_finite_models)
+	    then
+	    (*we use input clauses rather than clauses + eq axioms*)
+	    finite_models !Parsed_input_to_db.input_clauses_ref
+	    else
+	    (* usual mode *)
+	    let prover_functions_ref =
+	    ref (create_provers "Inst" "Res" clauses) in
+	    full_loop prover_functions_ref clauses
+	    )
+	    )
 	   *)
 	  (* end was commented *)
     end
@@ -1446,10 +1446,10 @@ let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_
 	   Model_inst.out_model inst_model
 	 else ()
 	     (*
-		if !current_options.sat_out_clauses then
-		(
-		sat_out_clauses all_clauses;
-		)
+	       if !current_options.sat_out_clauses then
+	       (
+	       sat_out_clauses all_clauses;
+	       )
 	      *)
 	     
 	)
@@ -1901,18 +1901,18 @@ let rec main bmc1_for_pre_inst_cl clauses_ref finite_model_clauses_ref filtered_
 	 
 	 (
 	  (*
-	     (* Formatter to write to, i.e. stdout or file *)
-	     let dump_formatter =
-	     Bmc1Axioms.get_bmc1_dump_formatter ()
-	     in
-	     
-	     (* Output clauses *)
-	     Format.fprintf
-	     dump_formatter
-	     "%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@."
-	     next_bound
-	     (pp_any_list Clause.pp_clause_tptp "\n")
-	     all_clauses;
+	    (* Formatter to write to, i.e. stdout or file *)
+	    let dump_formatter =
+	    Bmc1Axioms.get_bmc1_dump_formatter ()
+	    in
+	    
+	    (* Output clauses *)
+	    Format.fprintf
+	    dump_formatter
+	    "%% ------------------------------------------------------------------------@\n%% Clauses for bound %d@\n%a@."
+	    next_bound
+	    (pp_any_list Clause.pp_clause_tptp "\n")
+	    all_clauses;
 	   *)
 	 );
        
@@ -2014,17 +2014,17 @@ let bmc1_all_bounds_unsat_out current_bound =
 	 let next_bound = succ current_bound in
 	 
 	 (*
-	    (* Output current bound *)
-	    Format.printf
-	    "@.@\n%s BMC1 bound %d UNSAT@\n@."
-	    pref_str
-	    !bmc1_cur_bound;
-	       *)
+	   (* Output current bound *)
+	   Format.printf
+	   "@.@\n%s BMC1 bound %d UNSAT@\n@."
+	   pref_str
+	   !bmc1_cur_bound;
+	  *)
 	 out_bmc1_unsat_result current_bound;
 	 
-	      (* Output unsatisfiable result *)
+	 (* Output unsatisfiable result *)
 	 out_str (proved_str ());
-	      
+	 
 	 (* Assign last solved bound in statistics *)
 	 assign_int_stat current_bound bmc1_last_solved_bound;
 	 
@@ -2038,9 +2038,9 @@ let bmc1_all_bounds_unsat_out current_bound =
 	 then
 	   
 	   (
-		 (* Increment bound *)
+	    (* Increment bound *)
 (*		 bmc1_cur_bound := next_bound;*)
-		 
+	    
 	    (* Recurse to output all bounds up to maximum *)
 	    skip_all_bounds next_bound
 	      
@@ -2048,30 +2048,30 @@ let bmc1_all_bounds_unsat_out current_bound =
 	     
        in
        
-	    (* Increment bound *)
+       (* Increment bound *)
        bmc1_cur_bound := succ !bmc1_cur_bound;
        let next_bound = succ current_bound in
        (* Output results for all bounds up to maximum *)
        skip_all_bounds next_bound;
-	    
+       
        (
-      (* When to output statistics? *)
+	(* When to output statistics? *)
 	match val_of_override !current_options.bmc1_out_stat with
-	
+	  
 	  (* Output statistics after each bound *)
 	| BMC1_Out_Stat_Full -> out_stat ()
-	    
+	      
 	      (* Output statistics after last bound *)
 	| BMC1_Out_Stat_Last
 	    (* when next_bound > max_bound*) -> out_stat ()
 		
 		(* Do not output statistics for bounds before last *)
-	      (*		  | BMC1_Out_Stat_Last -> ()*)
+		(*		  | BMC1_Out_Stat_Last -> ()*)
 		
 		(* Never output statistics *)
 	| BMC1_Out_Stat_None -> ()
 	      
-     );
+       );
        
       );
   end
@@ -2194,43 +2194,43 @@ let run_iprover () =
     
     (*---debug-------*)
     (*
-       let out_symb symb =
-       out_str ("Symb: "
-       ^(Symbol.to_string symb)
-       ^" is conj symb: "
-       ^ (string_of_bool (Symbol.get_bool_param Symbol.is_conj_symb symb ))^"\n"
-       ^"has bound constant: "
-       ^(string_of_bool (Symbol.get_bool_param Symbol.is_bound_constant symb ))^"\n" );
-       in
-       (* let out_term t =
-	  out_str ("Term: "
-	  ^(Term.to_string t)
-	  ^" has conj symb: "
-	  ^ (string_of_bool (Term.get_bool_param Term.has_conj_symb t ))^" "
-	  ^"has bound constant: "
-	  ^(string_of_bool (Term.get_bool_param Term.has_bound_constant t ))^"\n" )
-	  in *)
-       
-       let out_cl c =
-       out_str ("Clause: "
-       ^(Clause.to_string c)
-       ^" has conj symb: "
-       ^ (string_of_bool (Clause.get_bool_param Clause.has_conj_symb c ))
-       ^" has non-prolific conj symb: "
-       ^(string_of_bool (Clause.get_bool_param Clause.has_non_prolific_conj_symb c ))
-       ^" has bound constant: "
-       ^(string_of_bool (Clause.get_bool_param Clause.has_bound_constant c ))
-       
-       ^"\n")
-       in
-       (*
-	  SymbolDB.iter out_symb !Parser_types.symbol_db_ref;
-	*)
-       out_str "\n\n ------------------------------\n\n";
-       
-       (* Tern.DB.iter out_term !Parser_types.term_db_ref;
-	  out_str "\n\n ------------------------------\n\n";*)
-       List.iter out_cl !Parser_types.all_current_clauses;
+      let out_symb symb =
+      out_str ("Symb: "
+      ^(Symbol.to_string symb)
+      ^" is conj symb: "
+      ^ (string_of_bool (Symbol.get_bool_param Symbol.is_conj_symb symb ))^"\n"
+      ^"has bound constant: "
+      ^(string_of_bool (Symbol.get_bool_param Symbol.is_bound_constant symb ))^"\n" );
+      in
+      (* let out_term t =
+	 out_str ("Term: "
+	 ^(Term.to_string t)
+	 ^" has conj symb: "
+	 ^ (string_of_bool (Term.get_bool_param Term.has_conj_symb t ))^" "
+	 ^"has bound constant: "
+	 ^(string_of_bool (Term.get_bool_param Term.has_bound_constant t ))^"\n" )
+	 in *)
+      
+      let out_cl c =
+      out_str ("Clause: "
+      ^(Clause.to_string c)
+      ^" has conj symb: "
+      ^ (string_of_bool (Clause.get_bool_param Clause.has_conj_symb c ))
+      ^" has non-prolific conj symb: "
+      ^(string_of_bool (Clause.get_bool_param Clause.has_non_prolific_conj_symb c ))
+      ^" has bound constant: "
+      ^(string_of_bool (Clause.get_bool_param Clause.has_bound_constant c ))
+      
+      ^"\n")
+      in
+      (*
+	SymbolDB.iter out_symb !Parser_types.symbol_db_ref;
+       *)
+      out_str "\n\n ------------------------------\n\n";
+      
+      (* Tern.DB.iter out_term !Parser_types.term_db_ref;
+	 out_str "\n\n ------------------------------\n\n";*)
+      List.iter out_cl !Parser_types.all_current_clauses;
      *)
     (* end debug *)
     
@@ -2263,11 +2263,11 @@ let run_iprover () =
        current_clauses := Type_inf.sub_type_inf !current_clauses;)
     else ());
 (*
-   (*debug *)	
-   out_str "\n-----------After Subtyping:---------\n";
-   out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
-   out_str "\n--------------------\n";
-   (*debug *)
+  (*debug *)	
+  out_str "\n-----------After Subtyping:---------\n";
+  out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
+  out_str "\n--------------------\n";
+  (*debug *)
  *)
     
     (*-------------------------------*)
@@ -2306,16 +2306,16 @@ let run_iprover () =
       
       (*debug *)
       (*	out_str "\n-----------Distinct Axioms:---------\n";
-	 out_str ((Clause.clause_list_to_tptp distinct_ax_list)^"\n\n");
-	 out_str "\n--------------------\n";
+	out_str ((Clause.clause_list_to_tptp distinct_ax_list)^"\n\n");
+	out_str "\n--------------------\n";
        *)
       (*debug *)
       
       (*debug *)
       (*
-	 out_str "\n-----------Less Range Axioms:---------\n";
-	 out_str ((Clause.clause_list_to_tptp less_range_axioms)^"\n\n");
-	 out_str "\n--------------------\n";
+	out_str "\n-----------Less Range Axioms:---------\n";
+	out_str ((Clause.clause_list_to_tptp less_range_axioms)^"\n\n");
+	out_str "\n--------------------\n";
        *)
       (*debug *)
       
@@ -2416,12 +2416,12 @@ let run_iprover () =
 	  
 	  (* DEBUG *)
 	  (*
-	     out_str "\n-----------BMC1 init axioms:---------\n";
-	     out_str ((Clause.clause_list_to_tptp bmc1_axioms')^"\n\n");
-	     out_str "\n--------------------\n";
-	     out_str "\n-----------BMC1 init clauses:---------\n";
-	     out_str ((Clause.clause_list_to_tptp current_clauses')^"\n\n");
-	     out_str "\n--------------------\n";
+	    out_str "\n-----------BMC1 init axioms:---------\n";
+	    out_str ((Clause.clause_list_to_tptp bmc1_axioms')^"\n\n");
+	    out_str "\n--------------------\n";
+	    out_str "\n-----------BMC1 init clauses:---------\n";
+	    out_str ((Clause.clause_list_to_tptp current_clauses')^"\n\n");
+	    out_str "\n--------------------\n";
 	   *)
 	  (* DEBUG *)
 	  
@@ -2493,31 +2493,31 @@ let run_iprover () =
       (* sub_typing was moved to before init_solver for correct grounding assignment*)
 
       (*	
-	 (*---------sub_typing----------*)
-	 (* sub_typing swtich inside the schedule options does not get effect until proving *)
-	 let sub_type_is_on () =
-	 !current_options.sub_typing
-	 &&
-	 (match !current_options.schedule with
-	 | Schedule_verification_epr
-	 | Schedule_verification_epr_tables
-	 -> false
-	 | _ -> true
-	 )
-	 in
-	 
-	 (if (sub_type_is_on ())
-	 then
-	 ((*out_str "\n\n Subtypng\n\n";*)
-	 current_clauses := Type_inf.sub_type_inf !current_clauses;)
-	 else ());
+	(*---------sub_typing----------*)
+	(* sub_typing swtich inside the schedule options does not get effect until proving *)
+	let sub_type_is_on () =
+	!current_options.sub_typing
+	&&
+	(match !current_options.schedule with
+	| Schedule_verification_epr
+	| Schedule_verification_epr_tables
+	-> false
+	| _ -> true
+	)
+	in
+	
+	(if (sub_type_is_on ())
+	then
+	((*out_str "\n\n Subtypng\n\n";*)
+	current_clauses := Type_inf.sub_type_inf !current_clauses;)
+	else ());
 
 (* debug *)
 
-	 out_str "\n-----------After sub_type_inf ---------\n";
-	 out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
-	 out_str "\n--------------------\n";
-	 
+	out_str "\n-----------After sub_type_inf ---------\n";
+	out_str ((Clause.clause_list_to_tptp !current_clauses)^"\n\n");
+	out_str "\n--------------------\n";
+	
 (* debug *)		
        *)
       
@@ -2552,9 +2552,9 @@ let run_iprover () =
 	    gen_equality_axioms := Eq_axioms.eq_axiom_list !current_clauses;
 	    (*debug *)
 	    (*
-	       out_str "\n-----------Eq Axioms:---------\n";
-	       out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
-	       out_str "\n--------------------\n";
+	      out_str "\n-----------Eq Axioms:---------\n";
+	      out_str ((Clause.clause_list_to_tptp !gen_equality_axioms)^"\n\n");
+	      out_str "\n--------------------\n";
 	     *)
 	    
 	    (*debug *)
@@ -2603,8 +2603,8 @@ let run_iprover () =
 	 (*	 out_str (pref_str^"Semantically Preprocessed Clauses:\n");*)
 	 
 	 (*
-	    let prep_clauses =
-	    Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in
+	   let prep_clauses =
+	   Prep_sem_filter_unif.sem_filter_unif !Parser_types.all_current_clauses in
 	  *)
 	 
 	 let side_clauses = (get_side_clauses ()) in
@@ -2622,8 +2622,8 @@ let run_iprover () =
 	 Clause.out_clause_list_tptp filtered_in_clauses;
 	 
 	 (*
-	    out_str ("\n\n"^pref_str^"Filtered in clauses: \n"^(Clause.clause_list_to_string filtered_in_clauses));
-	    out_str ("\n\n"^pref_str^"Filtered out clauses: \n"^(Clause.clause_list_to_string filtered_clauses.Prep_sem_filter_unif.filtered_out));
+	   out_str ("\n\n"^pref_str^"Filtered in clauses: \n"^(Clause.clause_list_to_string filtered_in_clauses));
+	   out_str ("\n\n"^pref_str^"Filtered out clauses: \n"^(Clause.clause_list_to_string filtered_clauses.Prep_sem_filter_unif.filtered_out));
 	  *)
 	 
 	 out_str "\n\n";
@@ -2697,8 +2697,8 @@ let run_iprover () =
       
       (*debug *)
       (*
-	 out_str "\n\n Clauses before proving\n\n";
-	 out_str (Clause.clause_list_to_tptp !current_clauses);
+	out_str "\n\n Clauses before proving\n\n";
+	out_str (Clause.clause_list_to_tptp !current_clauses);
        *)
       
       (
@@ -2721,11 +2721,11 @@ let run_iprover () =
       
       (*debug*)
       (*	List.iter
-	 ( fun c ->
-	 Format.printf "Solver: %a@.\n" (TstpProof.pp_clause_with_source false) c;
-	 Prop_solver_exchange.add_clause_to_solver c
-	 )
-	 !current_clauses;
+	( fun c ->
+	Format.printf "Solver: %a@.\n" (TstpProof.pp_clause_with_source false) c;
+	Prop_solver_exchange.add_clause_to_solver c
+	)
+	!current_clauses;
        *)
       
       (* For incremental BMC1 we must catch this and move to the next
@@ -2810,12 +2810,12 @@ let run_iprover () =
        (* In incremental BMC1?
 	  
 	  Then output status once for each bound to prove *)
-      
-	 (if (val_of_override !current_options.bmc1_incremental)
-	 then
-	   (bmc1_all_bounds_unsat_out !bmc1_cur_bound;)
-	 else ()
-	 );
+       
+       (if (val_of_override !current_options.bmc1_incremental)
+       then
+	 (bmc1_all_bounds_unsat_out !bmc1_cur_bound;)
+       else ()
+       );
 
        (* Do not output statistics in BMC1 mode with
 	  -- bmc1_out_stat none *)
@@ -2997,40 +2997,40 @@ let _ = run_iprover ()
 
 (*
 
-   (
+  (
 
 (*debug*)
 (*
-   Large_theories.fill_tables !current_clauses;
-   out_str ("Conjectures: "
-   ^(Clause.clause_list_to_string
-   !Parsed_input_to_db.input_neg_conjectures_ref)^"\n"
-   );
-   let conj_symb =
-   Large_theories.get_symb_list !Parsed_input_to_db.input_neg_conjectures_ref in
-   let (_, key_list1) = Large_theories.get_axioms_next_keys_all conj_symb in
+  Large_theories.fill_tables !current_clauses;
+  out_str ("Conjectures: "
+  ^(Clause.clause_list_to_string
+  !Parsed_input_to_db.input_neg_conjectures_ref)^"\n"
+  );
+  let conj_symb =
+  Large_theories.get_symb_list !Parsed_input_to_db.input_neg_conjectures_ref in
+  let (_, key_list1) = Large_theories.get_axioms_next_keys_all conj_symb in
 
-   let (_, key_list2) = Large_theories.get_axioms_next_keys_all key_list1 in
-   let (_, _key_list3) = Large_theories.get_axioms_next_keys_all key_list2 in
+  let (_, key_list2) = Large_theories.get_axioms_next_keys_all key_list1 in
+  let (_, _key_list3) = Large_theories.get_axioms_next_keys_all key_list2 in
 (*end debug*)
  *)
 (*	else());	*)
 
-   List.iter (fun c ->
-   out_str ("\n-------------------\n"
-   ^(Clause.to_string c)^"\n"
-   ^
-   (Clause.to_string (Finite_models.flat_clause c))^"\n"))
-   !current_clauses;
+  List.iter (fun c ->
+  out_str ("\n-------------------\n"
+  ^(Clause.to_string c)^"\n"
+  ^
+  (Clause.to_string (Finite_models.flat_clause c))^"\n"))
+  !current_clauses;
 
-   let dom_const = Finite_models.add_domain_constants 0 5 in
-   let dis_eq_axioms_list = Finite_models.dis_eq_axioms_list dom_const in
-   out_str ("Domain Diseq\n"
-   ^(Clause.clause_list_to_string dis_eq_axioms_list)^"\n");
-   let dom_axioms = Finite_models.domain_axioms dom_const in
-   out_str
-   ("\n-------------------\n"
-   ^"Domain Ax: \n"
-   ^(Clause.clause_list_to_string dom_axioms)^"\n");
+  let dom_const = Finite_models.add_domain_constants 0 5 in
+  let dis_eq_axioms_list = Finite_models.dis_eq_axioms_list dom_const in
+  out_str ("Domain Diseq\n"
+  ^(Clause.clause_list_to_string dis_eq_axioms_list)^"\n");
+  let dom_axioms = Finite_models.domain_axioms dom_const in
+  out_str
+  ("\n-------------------\n"
+  ^"Domain Ax: \n"
+  ^(Clause.clause_list_to_string dom_axioms)^"\n");
 
  *)

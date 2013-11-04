@@ -112,13 +112,13 @@ let term_eq_view_type_symb t =
 	
 	
 (*
-   let dis_equality t s =
-   neg_atom (equality_term t s)
+  let dis_equality t s =
+  neg_atom (equality_term t s)
  *)
 
 (*
-   let add_typed_dis_equality stype t s =
-   add_neg_atom (add_typed_equality_term stype t s)
+  let add_typed_dis_equality stype t s =
+  add_neg_atom (add_typed_equality_term stype t s)
  *)
 (* used for model output *)
 let add_term_algebra_eq_term args = 

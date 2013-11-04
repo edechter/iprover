@@ -1,17 +1,17 @@
 (*----------------------------------------------------------------------(C)-*)
 (* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
-    This file is part of iProver - a theorem prover for first-order logic.
+   This file is part of iProver - a theorem prover for first-order logic.
 
-	iProver is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-      the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-  iProver is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
-    See the GNU General Public License for more details.
-	You should have received a copy of the GNU General Public License
-	    along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
+   iProver is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   iProver is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+   See the GNU General Public License for more details.
+   You should have received a copy of the GNU General Public License
+   along with iProver.  If not, see <http://www.gnu.org/licenses/>.         *)
 (*----------------------------------------------------------------------[C]-*)
 
 
@@ -570,18 +570,18 @@ let res_moves_from_active_to_pass =
 
 
 (*
-   let   = 
-   {
-   int_entry_name  = "";
-   value = 0;
-   }
+  let   = 
+  {
+  int_entry_name  = "";
+  value = 0;
+  }
 
 
-   let  = 
-   {
-   fun_entry_name  = "";
-   stat_fun        = Undef 
-   }
+  let  = 
+  {
+  fun_entry_name  = "";
+  stat_fun        = Undef 
+  }
 
  *)
 
@@ -783,15 +783,15 @@ let out_stat () =
 
 (*
 
-   type statistics = 
-   {
+  type statistics = 
+  {
 
 (*---------General--------*)
 
 
-   (* let lit_activity_check_move  = ref 0*)
+  (* let lit_activity_check_move  = ref 0*)
 
 
-   let inst_solver_thershold   = ref 100
+  let inst_solver_thershold   = ref 100
 
  *)

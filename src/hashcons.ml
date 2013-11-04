@@ -14,22 +14,22 @@
 (**************************************************************************)
 
 (*s Hash tables for hash-consing. (Some code is borrowed from the ocaml
-    standard library, which is copyright 1996 INRIA.) *)
+  standard library, which is copyright 1996 INRIA.) *)
 
 type 'a hash_consed = { 
-  hkey : int;
-  tag : int;
-  node : 'a }
+    hkey : int;
+    tag : int;
+    node : 'a }
 
 let gentag =
   let r = ref 0 in
   fun () -> incr r; !r
 
 type 'a t = {
-  mutable table : 'a hash_consed Weak.t array;
-  mutable totsize : int;             (* sum of the bucket sizes *)
-  mutable limit : int;               (* max ratio totsize/table length *)
-}
+    mutable table : 'a hash_consed Weak.t array;
+    mutable totsize : int;             (* sum of the bucket sizes *)
+    mutable limit : int;               (* max ratio totsize/table length *)
+  }
 
 let create sz =
   let sz = if sz < 7 then 7 else sz in
@@ -44,29 +44,29 @@ let clear t =
   for i = 0 to Array.length t.table - 1 do t.table.(i) <- emptybucket done;
   t.totsize <- 0;
   t.limit <- 3
-  
+      
 let fold f t init =
   let rec fold_bucket i b accu =
     if i >= Weak.length b then accu else
-      match Weak.get b i with
-	| Some v -> fold_bucket (i+1) b (f v accu)
-	| None -> fold_bucket (i+1) b accu
+    match Weak.get b i with
+    | Some v -> fold_bucket (i+1) b (f v accu)
+    | None -> fold_bucket (i+1) b accu
   in
   Array.fold_right (fold_bucket 0) t.table init
 
 let iter f t =
   let rec iter_bucket i b =
     if i >= Weak.length b then () else
-      match Weak.get b i with
-	| Some v -> f v; iter_bucket (i+1) b
-	| None -> iter_bucket (i+1) b
+    match Weak.get b i with
+    | Some v -> f v; iter_bucket (i+1) b
+    | None -> iter_bucket (i+1) b
   in
   Array.iter (iter_bucket 0) t.table
 
 let count t =
   let rec count_bucket i b accu =
     if i >= Weak.length b then accu else
-      count_bucket (i+1) b (accu + (if Weak.check b i then 1 else 0))
+    count_bucket (i+1) b (accu + (if Weak.check b i then 1 else 0))
   in
   Array.fold_right (count_bucket 0) t.table 0
 
@@ -118,16 +118,16 @@ let hashcons t d =
       hnode
     end else begin
       match Weak.get_copy bucket i with
-        | Some v when v.node = d -> 
-	    begin match Weak.get bucket i with
-              | Some v -> v
-              | None -> loop (i+1)
-            end
-        | _ -> loop (i+1)
+      | Some v when v.node = d -> 
+	  begin match Weak.get bucket i with
+          | Some v -> v
+          | None -> loop (i+1)
+          end
+      | _ -> loop (i+1)
     end
   in
   loop 0
-  
+    
 let stats t =
   let len = Array.length t.table in
   let lens = Array.map Weak.length t.table in
@@ -163,10 +163,10 @@ module Make(H : HashedType) : (S with type key = H.t) = struct
   type data = H.t hash_consed
 
   type t = {
-    mutable table : data Weak.t array;
-    mutable totsize : int;             (* sum of the bucket sizes *)
-    mutable limit : int;               (* max ratio totsize/table length *)
-  }
+      mutable table : data Weak.t array;
+      mutable totsize : int;             (* sum of the bucket sizes *)
+      mutable limit : int;               (* max ratio totsize/table length *)
+    }
 
   let emptybucket = Weak.create 0
 
@@ -174,10 +174,10 @@ module Make(H : HashedType) : (S with type key = H.t) = struct
     let sz = if sz < 7 then 7 else sz in
     let sz = if sz > Sys.max_array_length then Sys.max_array_length else sz in
     {
-      table = Array.create sz emptybucket;
-      totsize = 0;
-      limit = 3;
-    }
+     table = Array.create sz emptybucket;
+     totsize = 0;
+     limit = 3;
+   }
 
   let clear t =
     for i = 0 to Array.length t.table - 1 do
@@ -185,7 +185,7 @@ module Make(H : HashedType) : (S with type key = H.t) = struct
     done;
     t.totsize <- 0;
     t.limit <- 3
-  
+	
   let fold f t init =
     let rec fold_bucket i b accu =
       if i >= Weak.length b then accu else
@@ -261,19 +261,19 @@ module Make(H : HashedType) : (S with type key = H.t) = struct
         match Weak.get_copy bucket i with
         | Some v when H.equal v.node d -> 
 	    begin match Weak.get bucket i with
-              | Some v -> v
-              | None -> loop (i+1)
+            | Some v -> v
+            | None -> loop (i+1)
             end
         | _ -> loop (i+1)
       end
     in
     loop 0
-  
+      
   let stats t =
     let len = Array.length t.table in
     let lens = Array.map Weak.length t.table in
     Array.sort compare lens;
     let totlen = Array.fold_left ( + ) 0 lens in
     (len, count t, totlen, lens.(0), lens.(len/2), lens.(len-1))
-  
+      
 end

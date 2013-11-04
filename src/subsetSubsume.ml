@@ -19,9 +19,9 @@
 open Logic_interface
 
 (*
-type clause  = Clause.clause
-type literal = Clause.literal
-*)
+  type clause  = Clause.clause
+  type literal = Clause.literal
+ *)
 
 
 (* restricted subset subsumption very fast but 
@@ -31,7 +31,7 @@ type literal = Clause.literal
    and then this clause is subsumed
    or this clause is extended by a clause in the index and then the clause 
    in the index is subsumed 
-*)
+ *)
 
 exception Is_subsumed 
 exception Subsumes
@@ -39,43 +39,43 @@ exception Already_in
 exception No_subsumed
 
 (*
-   module type SubsetSubsume = 
-   sig
-   type index
-   
-    val create : unit -> index
-   
+  module type SubsetSubsume = 
+  sig
+  type index
+  
+  val create : unit -> index
+  
 (* we assume that the literals in the clause are in term db*)
-   val add_clause  : clause -> index -> index
+  val add_clause  : clause -> index -> index
 
 (* returns list of  all strictly subsumed clauses by the clause 
    raises No_subsumed if no such clauses*)
 
-   val find_subsumed : clause -> index -> clause list 
-    
+  val find_subsumed : clause -> index -> clause list 
+  
 (* removes a subtrie corr. to all subsumed by the cluase clauses 
    after this the cluase is not in the index 
    for efficience can be joint with find_subsumed  
    (remove clauses from  separately)*)
-    
-   val  remove_subsumed : clause -> index -> index 
+  
+  val  remove_subsumed : clause -> index -> index 
   
 
 (*Restricted Subset subsumed*)
 (*    val is_rsubset_subsumed : index -> clause -> bool
-   	
+      
 (* the list of clauses (rsubset)subsumed by the given clause*)
-    val subsumed_clauses : index -> clause -> clause list
-	
+      val subsumed_clauses : index -> clause -> clause list
+      
 
- (*   val remove : clause -> index ref -> unit	 *)
-*)
- end
-*)
+      (*   val remove : clause -> index ref -> unit	 *)
+ *)
+  end
+ *)
 (*
-module SubsetSubsume = 
+  module SubsetSubsume = 
   struct
-*)
+ *)
 module Key =
   struct
     type t      = lit
@@ -83,8 +83,8 @@ module Key =
   end
     
 module SIndexM = Trie_func.Make(Key)
-    type index = clause SIndexM.trie
-	  
+type index = clause SIndexM.trie
+      
 let create () = SIndexM.create ()
 
 
@@ -92,14 +92,14 @@ let create () = SIndexM.create ()
 (* otherwise raises Not_found*)
 (*  check also subclauses on subset subs*)
 let rec is_subsumed' lit_list index =
- try (SIndexM.long_or_in lit_list index) 
- with
-   Not_found -> 
-     (match lit_list with 
-     |l::tl ->  
-	 is_subsumed' tl index
-     |[] -> raise Not_found
-     )  
+  try (SIndexM.long_or_in lit_list index) 
+  with
+    Not_found -> 
+      (match lit_list with 
+      |l::tl ->  
+	  is_subsumed' tl index
+      |[] -> raise Not_found
+      )  
 
 (* is_subsumed returns the clause which subset subsumes clause *)
 (* otherwise raises Not_found*)
@@ -108,12 +108,12 @@ let is_subsumed clause index =
   let lit_list = Clause.get_literals clause in
   is_subsumed' lit_list index
     
-		
+    
 let add_clause clause index = 
   try
     let new_index = SIndexM.add (Clause.get_literals clause) clause index in
-   (* Clause.set_bool_param true Clause.in_subset_subsumption_index clause; *)
-	  Clause.set_ps_in_subset_subsumption_index true clause;
+    (* Clause.set_bool_param true Clause.in_subset_subsumption_index clause; *)
+    Clause.set_ps_in_subset_subsumption_index true clause;
     new_index
   with
   |Trie_func.Trie_add_leaf_extension -> raise Is_subsumed 
@@ -136,12 +136,12 @@ let remove_subsumed clause trie =
 let remove clause trie = 
   try
     (Clause.set_ps_in_subset_subsumption_index false clause;
-	  (*Clause.set_bool_param false Clause.in_subset_subsumption_index clause;*)
+     (*Clause.set_bool_param false Clause.in_subset_subsumption_index clause;*)
      SIndexM.remove (Clause.get_literals clause) trie)     
   with
     Not_found -> raise Not_found
 
 
 (*
-   end
+  end
  *)

@@ -33,23 +33,23 @@ module type Index =
   end 
 
 (**** old
-module type IndexData =
-  sig 
-    type t
-    val add : t -> t -> t
-    val remove : t -> t -> t
-    val is_empty : t -> bool
-  end
+      module type IndexData =
+      sig 
+      type t
+      val add : t -> t -> t
+      val remove : t -> t -> t
+      val is_empty : t -> bool
+      end
       
-module type Index =
-  sig 
-    type indexData
-    type index
+      module type Index =
+      sig 
+      type indexData
+      type index
 (*  type unif_result *)  
-    val create : unit -> index 
-    val add    : term -> index -> index 
-    val remove : term -> index -> index 
- (* val unify  : term -> index -> unif_result *)
-  end 
+      val create : unit -> index 
+      val add    : term -> index -> index 
+      val remove : term -> index -> index 
+      (* val unify  : term -> index -> unif_result *)
+      end 
 
-*)
+ *)

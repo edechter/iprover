@@ -49,7 +49,7 @@ let remove_double_quotes str =
 (*--------------------------*)
 
 let append_iprover_path file_name =
-    Filename.concat (iprover_exe_path ()) file_name
+  Filename.concat (iprover_exe_path ()) file_name
 
 
 let clausifier_cmd_options () = 
@@ -77,10 +77,10 @@ let clausifier_cmd_options () =
   in  
 (*
   let default_vclausify_rel_options  = 
-    " --mode clausify "
-    ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+  " --mode clausify "
+  ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
   in
-*)
+ *)
 (* new version of vclausify_rel *)
   let default_vclausify_rel_options  = 
 (*    " --mode clausify --epr_preserving_skolemization on --equality_propagation on "*)
@@ -88,13 +88,13 @@ let clausifier_cmd_options () =
     (!current_options.schedule = Options.Schedule_sat))
     then
       begin 
-      " --mode clausify  --equality_propagation on --predicate_equivalence_discovery all_atoms --predicate_definition_inlining non_growing --epr_restoring_inlining on --predicate_definition_merging on -fde none "
-			  ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+	" --mode clausify  --equality_propagation on --predicate_equivalence_discovery all_atoms --predicate_definition_inlining non_growing --epr_restoring_inlining on --predicate_definition_merging on -fde none "
+	^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
       end
     else
       begin
-      " --mode clausify  --equality_propagation on --predicate_definition_inlining non_growing  --predicate_definition_merging on -fde none "
-      ^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
+	" --mode clausify  --equality_propagation on --predicate_definition_inlining non_growing  --predicate_definition_merging on -fde none "
+	^(if cpu_limit > 0 then ("-t "^(string_of_int cpu_limit)) else "")
       end
   in
   let default_eprover_options = 
@@ -128,7 +128,7 @@ let clausifier_cmd_options () =
       then
 	let options =
 	  try 
-	     remove_double_quotes (Unix.getenv clausifier_env_options_name)
+	    remove_double_quotes (Unix.getenv clausifier_env_options_name)
 	  with
 	    Not_found -> ""
 	in 
@@ -143,8 +143,8 @@ let clausifier_cmd_options () =
 	    (eprover_cmd, default_eprover_options)
 	  else
 	    (failwith 
-	      ("cannot find clausifier, please specify using --clausifier and --clausifier_options"))
-	    
+	       ("cannot find clausifier, please specify using --clausifier and --clausifier_options"))
+	      
   in    	    
   (cmd,options)
 
@@ -158,58 +158,58 @@ let check_clausifier_error_channel error_channel =
 
 (* OLD checks of error_channel for eprover, now all ignored, we just check the exit status 
 
-  (* Ignore warnings *)
-  let ignore_regexp = Str.regexp "eprover: Warning: " in
+   (* Ignore warnings *)
+   let ignore_regexp = Str.regexp "eprover: Warning: " in
 
-  (* Save lines read from stderr *)
-  let error_line = ref [] in
-  try 
-    
-    (* Read from stderr until end *)
-    let rec f () = 
-	
-	(* Read one line *)
-      let add_line = input_line error_channel in      
-      if 
-	
-	    (* Error is only a warning? *)
-	Str.string_match ignore_regexp add_line 0	  
-      then
-	    
-	    (* Ignore line *)
-	(
-	 Printf.printf "Ignoring \"%s\"\n%!" add_line
-	)	  
-      else	
-	(
-	 
-	      (* Kepp error line *)
-	 error_line := (add_line)::(!error_line)
-	);
+   (* Save lines read from stderr *)
+   let error_line = ref [] in
+   try 
+   
+   (* Read from stderr until end *)
+   let rec f () = 
+   
+   (* Read one line *)
+   let add_line = input_line error_channel in      
+   if 
+   
+   (* Error is only a warning? *)
+   Str.string_match ignore_regexp add_line 0	  
+   then
+   
+   (* Ignore line *)
+   (
+   Printf.printf "Ignoring \"%s\"\n%!" add_line
+   )	  
+   else	
+   (
+   
+   (* Kepp error line *)
+   error_line := (add_line)::(!error_line)
+   );
 
-	  (* Loop until end of file *)
-	  f ()
-    in 
-    (* Read all lines from stderr *)
-    f ()
-	  
-  with End_of_file -> 
-    ( 	
-       if 
+   (* Loop until end of file *)
+   f ()
+   in 
+   (* Read all lines from stderr *)
+   f ()
+   
+   with End_of_file -> 
+   ( 	
+   if 
 
-	  (* No error messages on stderr? *)
-	  !error_line = [] 
-	then 
-	  (* Continue *)
-	  ()
-	else 
-	  (* Fail *)
-	  (out_str "\n\n# SZS status: Unknown\n"; 		
-	   failwith ("fail to clausify by E prover: "
-		     ^(String.concat "\n" (List.rev !error_line)))
-	  )
-      )
-*)
+   (* No error messages on stderr? *)
+   !error_line = [] 
+   then 
+   (* Continue *)
+   ()
+   else 
+   (* Fail *)
+   (out_str "\n\n# SZS status: Unknown\n"; 		
+   failwith ("fail to clausify by E prover: "
+   ^(String.concat "\n" (List.rev !error_line)))
+   )
+   )
+ *)
 
 let check_clausifier_process_status process_status =
   match process_status with 
@@ -223,7 +223,7 @@ let check_clausifier_process_status process_status =
 (*	The process was killed by a signal; the argument is the signal number.	*)
   | 	Unix.WSIGNALED int -> 
       failwith ("Clausification error: "^(!current_options.clausifier)^" prover was killed by a signal: "
-		  ^(string_of_int int))
+		^(string_of_int int))
 	(*	The process was stopped by a signal; the argument is the signal number.	*)
   | 	Unix.WSTOPPED int ->
       failwith ("Clausification error: "^(!current_options.clausifier)^" was stopped by a signal: "
@@ -235,7 +235,7 @@ let get_line_num_lexbuf lexbuf =
   line_number
 
 
-	
+    
 let parse_channel channel_name in_channel = 
   let lexbuf = (Lexing.from_channel in_channel) in
   let () = init_lexbuf channel_name lexbuf in
@@ -266,7 +266,7 @@ let clausify_parse_channel clausifier_full_cmd channel_name in_channel =
 (*
   let cl_err_pipe_out, cl_err_pipe_in = Unix.pipe () in
   let cl_err_pipe_out_ch = Unix.in_channel_of_descr cl_err_pipe_out in 
-*)
+ *)
 
 (* won't need *)
 (*  let _cl_err_pipe_in_ch  = Unix.out_channel_of_descr cl_err_pipe_in in *)
@@ -290,11 +290,11 @@ let clausify_parse_channel clausifier_full_cmd channel_name in_channel =
 (* cat_pid is used for testing: just redirects input into output *)
 (*
   let cat_pid = 
-    Unix.create_process_env "cat" (Array.of_list ["cat"]) env
-      (Unix.descr_of_in_channel in_channel)
-     e_out_pipe_in e_err_pipe_in
+  Unix.create_process_env "cat" (Array.of_list ["cat"]) env
+  (Unix.descr_of_in_channel in_channel)
+  e_out_pipe_in e_err_pipe_in
   in
-*)
+ *)
 
 (* ! We need to close this end of pipe since it is copyied to the process !*)
 (* Otherwise EOF is not sent which creats a bolck*)
@@ -324,7 +324,7 @@ let adjust_input_file_name file_name =
     file_name
 
 
-	
+      
 
 (*---------- Clausifying by an external clausifier and parsing by iProver ---------*)
 
@@ -336,15 +336,15 @@ let ext_clausify_parse problem_files =
     ("\n"^(s_pref_str ())^"Clausification by "^clausifier_short_name^"  & Parsing by iProver");
   flush stdout;
   (   
-    try 	
+      try 	
 	(* Check if environment variable set *)
-      ignore (Unix.getenv "TPTP")	  
-    with Not_found ->
-      (* Pass include path on to E via $TPTP *)
-      if not (!current_options.include_path = "")
-      then
-  	Unix.putenv "TPTP" !current_options.include_path	  
-      else ()
+	ignore (Unix.getenv "TPTP")	  
+      with Not_found ->
+	(* Pass include path on to E via $TPTP *)
+	if not (!current_options.include_path = "")
+	then
+  	  Unix.putenv "TPTP" !current_options.include_path	  
+	else ()
      );
 
   (* we assume that includes are infolded by the external clausifier *)
@@ -371,8 +371,8 @@ let ext_clausify_parse problem_files =
 
 (*--------------parsing with iProver (without ext. clausifier)--------------*)
 
-  (* parse all includes *)
-  
+    (* parse all includes *)
+    
 let include_full_file_name includes =
   if Filename.is_relative includes.includes_file_name
   then 
@@ -382,22 +382,22 @@ let include_full_file_name includes =
 	 (remove_double_quotes !current_options.include_path) 
 	 includes.includes_file_name)
     else
-            (* check whether the file is in the dirctory of the source file *)
-     let source_dir =  
-       match includes.include_source_file_name with 
-       |FileName source_file_name -> Filename.dirname source_file_name
-       |Stdin -> Filename.current_dir_name 
-     in 
-     let full_file_name = Filename.concat source_dir includes.includes_file_name in 
-     if (Sys.file_exists full_file_name) 
-     then 
-       full_file_name 
-     else
-       try 
-	 let tptp_path = (Unix.getenv "TPTP")	in	
-	 (Filename.concat tptp_path includes.includes_file_name)  	   
-       with Not_found ->
-	 includes.includes_file_name     	     
+      (* check whether the file is in the dirctory of the source file *)
+      let source_dir =  
+	match includes.include_source_file_name with 
+	|FileName source_file_name -> Filename.dirname source_file_name
+	|Stdin -> Filename.current_dir_name 
+      in 
+      let full_file_name = Filename.concat source_dir includes.includes_file_name in 
+      if (Sys.file_exists full_file_name) 
+      then 
+	full_file_name 
+      else
+	try 
+	  let tptp_path = (Unix.getenv "TPTP")	in	
+	  (Filename.concat tptp_path includes.includes_file_name)  	   
+	with Not_found ->
+	  includes.includes_file_name     	     
   else (* absolute path *)
     includes.includes_file_name
       
@@ -437,12 +437,12 @@ let parse_files problem_files =
     if (not (StrSet.mem full_file_name !parsed_file_set_ref)) 
     then
       ((* out_str ("\n open full_file_name: "^full_file_name^"\n");*)
-       let in_channel = open_in full_file_name in
-      parse_channel (FileName (full_file_name)) in_channel; 
-      close_in in_channel;
-      parsed_file_set_ref := StrSet.add full_file_name !parsed_file_set_ref;
-      parse_includes ();
-      )
+let in_channel = open_in full_file_name in
+parse_channel (FileName (full_file_name)) in_channel; 
+close_in in_channel;
+parsed_file_set_ref := StrSet.add full_file_name !parsed_file_set_ref;
+parse_includes ();
+)
     else (* already parsed this file *) 
       ()
   in  

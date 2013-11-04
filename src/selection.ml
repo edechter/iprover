@@ -1,6 +1,6 @@
 (*----------------------------------------------------------------------(C)-*)
 (* Copyright (C) 2006-2012 Konstantin Korovin and The University of Manchester. 
-   This file is part of iProver - a theorem prover for first-order logic.
+    This file is part of iProver - a theorem prover for first-order logic.
 
    iProver is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -41,17 +41,17 @@ let kbo_sel_max' clause =
 
 let literal_neg_selection_max'  clause = 
 (*let lit_neg_sel_max_t clause =*)
- let neg_literals = Clause.find_all Term.is_neg_lit clause in
-   let cmp lit1 lit2 = 
-     compare (Term.get_num_of_symb lit1) (Term.get_num_of_symb lit2) in
-   try  
-     let neg_literal  = list_find_max_element cmp neg_literals in
-     [neg_literal]
-   with 
-     Not_found -> (* all lits are positive*)
-       list_get_max_elements_v 
-	 Orderings.simple_kbo_lit (Clause.get_lits clause)
-    
+  let neg_literals = Clause.find_all Term.is_neg_lit clause in
+  let cmp lit1 lit2 = 
+    compare (Term.get_num_of_symb lit1) (Term.get_num_of_symb lit2) in
+  try  
+    let neg_literal  = list_find_max_element cmp neg_literals in
+    [neg_literal]
+  with 
+    Not_found -> (* all lits are positive*)
+      list_get_max_elements_v 
+	Orderings.simple_kbo_lit (Clause.get_lits clause)
+	
 let literal_neg_selection_max  = 
   get_sel literal_neg_selection_max' 
 
@@ -61,10 +61,10 @@ let literal_neg_selection_min'  clause =
   let neg_literals = Clause.find_all Term.is_neg_lit clause in
   let cmp lit1 lit2 = 
     compare (Term.get_num_of_symb lit1) (Term.get_num_of_symb lit2) in
-    try  
-      let neg_literal  = list_find_max_element (fun x y -> - (cmp x y)) neg_literals in
-      [neg_literal]
-    with 
+  try  
+    let neg_literal  = list_find_max_element (fun x y -> - (cmp x y)) neg_literals in
+    [neg_literal]
+  with 
     Not_found -> (* all lits are positive*)
       list_get_max_elements_v Orderings.simple_kbo_lit (Clause.get_lits clause)
 	
@@ -159,7 +159,7 @@ let res_lit_sel clause =
   let sel_fun = res_lit_sel_type_to_fun !current_options.res_lit_sel in
   get_sel sel_fun clause
 
-      
+    
 
 (*-------------------------instantiation selections-----------------------*)
 
